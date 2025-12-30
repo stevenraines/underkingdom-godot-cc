@@ -27,7 +27,7 @@ script = ExtResource("4")
 script = ExtResource("5")
 
 [node name="Camera" type="Camera2D" parent="ASCIIRenderer"]
-zoom = Vector2(0.5, 0.5)
+zoom = Vector2(0.5, 0.45)
 
 [node name="InputHandler" type="Node" parent="."]
 script = ExtResource("3")

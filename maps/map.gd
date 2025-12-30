@@ -65,3 +65,50 @@ func fill(tile_type: String) -> void:
 ## Create a tile by type (helper function)
 func _create_tile(type: String) -> GameTile:
 	return GameTile.create(type)
+
+## Calculate which walls are visible (adjacent to accessible floors)
+## Returns a Set (Dictionary) of wall positions that should be rendered
+func get_visible_walls(start_pos: Vector2i) -> Dictionary:
+	var visible_walls: Dictionary = {}  # Set of Vector2i positions
+	var visited_floors: Dictionary = {}  # Set of visited floor positions
+	var to_visit: Array[Vector2i] = [start_pos]
+
+	# Flood fill accessible floors
+	while to_visit.size() > 0:
+		var pos = to_visit.pop_back()
+
+		# Skip if already visited or out of bounds
+		if pos in visited_floors:
+			continue
+		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
+			continue
+
+		var tile = get_tile(pos)
+
+		# Only visit walkable tiles
+		if not tile.walkable:
+			continue
+
+		visited_floors[pos] = true
+
+		# Check all 8 neighbors (including diagonals for wall visibility)
+		var neighbors = [
+			Vector2i(pos.x - 1, pos.y - 1), Vector2i(pos.x, pos.y - 1), Vector2i(pos.x + 1, pos.y - 1),
+			Vector2i(pos.x - 1, pos.y),                                 Vector2i(pos.x + 1, pos.y),
+			Vector2i(pos.x - 1, pos.y + 1), Vector2i(pos.x, pos.y + 1), Vector2i(pos.x + 1, pos.y + 1)
+		]
+
+		for neighbor in neighbors:
+			if neighbor.x < 0 or neighbor.x >= width or neighbor.y < 0 or neighbor.y >= height:
+				continue
+
+			var neighbor_tile = get_tile(neighbor)
+
+			# If neighbor is a wall, mark it as visible
+			if neighbor_tile.tile_type == "wall":
+				visible_walls[neighbor] = true
+			# If neighbor is walkable and not visited, add to queue
+			elif neighbor_tile.walkable and neighbor not in visited_floors:
+				to_visit.append(neighbor)
+
+	return visible_walls

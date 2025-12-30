@@ -62,32 +62,32 @@ func _setup_tilemap_layers() -> void:
 	# Set camera zoom for better visibility
 	# With 64px tiles, use smaller zoom to fit more tiles on screen
 	if camera:
-		camera.zoom = Vector2(0.8, 0.8)
+		camera.zoom = Vector2(0.5, 0.45)
 
 ## Create ASCII tileset from sprite sheet
 func _create_ascii_tileset() -> TileSet:
 	var tileset = TileSet.new()
 	tileset.tile_size = Vector2i(TILE_SIZE, TILE_SIZE)
 
-	# Load the pre-generated sprite sheet
+	# Load the pre-generated CP437 sprite sheet (default)
 	var texture_path = "res://rendering/tilesets/ascii_tileset.png"
 	var texture = load(texture_path) as Texture2D
 
 	if not texture:
-		push_error("Failed to load ASCII tileset: " + texture_path)
+		push_error("Failed to load CP437 tileset: " + texture_path)
 		# Fall back to generated texture
 		texture = _generate_ascii_texture()
 
-	# Create a source for our ASCII tiles
+	# Create a source for our tiles
 	var source = TileSetAtlasSource.new()
 	source.texture = texture
 	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
 
-	# Add tiles for all ASCII characters (95 characters in 16x6 grid)
-	# Characters 32-126 laid out left-to-right, top-to-bottom
-	for i in range(95):
-		var col = i % 16
-		var row = i / 16
+	# Add tiles for all 256 CP437 characters in 16x16 grid
+	# Characters 0-255 laid out left-to-right, top-to-bottom
+	for i in range(256):
+		var col = i % TILES_PER_ROW
+		var row = i / TILES_PER_ROW
 		source.create_tile(Vector2i(col, row))
 
 	tileset.add_source(source, 0)

@@ -74,10 +74,24 @@ func _render_map() -> void:
 
 	renderer.clear_all()
 
+	# For dungeons, calculate which walls should be visible (only those adjacent to accessible areas)
+	var visible_walls: Dictionary = {}
+	var is_dungeon = MapManager.current_map.map_id.begins_with("dungeon_")
+
+	if is_dungeon and player:
+		visible_walls = MapManager.current_map.get_visible_walls(player.position)
+		print("Dungeon rendering: ", visible_walls.size(), " visible walls from position ", player.position)
+
 	for y in range(MapManager.current_map.height):
 		for x in range(MapManager.current_map.width):
 			var pos = Vector2i(x, y)
 			var tile = MapManager.current_map.get_tile(pos)
+
+			# Skip inaccessible walls in dungeons
+			if is_dungeon and tile.tile_type == "wall":
+				if pos not in visible_walls:
+					continue  # Don't render this wall
+
 			renderer.render_tile(pos, tile.ascii_char)
 
 ## Called when player moves
@@ -200,24 +214,23 @@ func _find_valid_spawn_position() -> Vector2i:
 	if not MapManager.current_map:
 		return Vector2i(10, 10)  # Fallback
 
-	# Try center first
 	var center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
-	if _is_valid_spawn_position(center):
-		return center
 
-	# Search in a spiral pattern from center
+	# Try to find a position with open space around it (not just a single walkable tile)
+	# Search in expanding rings from center
 	var max_radius = max(MapManager.current_map.width, MapManager.current_map.height)
 
-	for radius in range(1, max_radius):
+	for radius in range(0, max_radius):
 		for angle in range(0, 360, 15):  # Check every 15 degrees
 			var rad = deg_to_rad(angle)
 			var offset = Vector2i(int(cos(rad) * radius), int(sin(rad) * radius))
 			var pos = center + offset
 
-			if _is_valid_spawn_position(pos):
+			# Check if this position AND at least 3 adjacent tiles are walkable
+			if _is_open_spawn_position(pos):
 				return pos
 
-	# Last resort: find ANY walkable tile
+	# Fallback: find ANY position with at least 1 walkable neighbor
 	for y in range(MapManager.current_map.height):
 		for x in range(MapManager.current_map.width):
 			var pos = Vector2i(x, y)
@@ -227,6 +240,23 @@ func _find_valid_spawn_position() -> Vector2i:
 	# Absolute fallback
 	push_warning("Could not find valid spawn position, using center anyway")
 	return center
+
+## Check if a position is open enough for player spawn (has walkable neighbors)
+func _is_open_spawn_position(pos: Vector2i) -> bool:
+	if not _is_valid_spawn_position(pos):
+		return false
+
+	# Count walkable adjacent tiles
+	var walkable_neighbors = 0
+	var directions = [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
+
+	for dir in directions:
+		var neighbor_pos = pos + dir
+		if MapManager.current_map.is_walkable(neighbor_pos):
+			walkable_neighbors += 1
+
+	# Require at least 2 walkable neighbors to ensure player isn't trapped
+	return walkable_neighbors >= 2
 
 ## Check if a position is valid for player spawn
 func _is_valid_spawn_position(pos: Vector2i) -> bool:

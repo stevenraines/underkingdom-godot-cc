@@ -5,7 +5,8 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 
 # Configuration
-TILE_SIZE = 64  # Increased to 64 for better clarity
+TILE_WIDTH = 38   # Width optimized for monospace fonts
+TILE_HEIGHT = 64  # Height for good vertical spacing
 DEFAULT_COLOR = (255, 255, 255)  # All white - colors applied via Godot modulation
 
 # ============================================================================
@@ -88,7 +89,7 @@ def load_font():
 
     for font_path in font_paths:
         if os.path.exists(font_path):
-            font = ImageFont.truetype(font_path, 48)
+            font = ImageFont.truetype(font_path, 58)  # Larger font to fill 64px tiles
             print(f"Loaded font: {font_path}")
             return font
 

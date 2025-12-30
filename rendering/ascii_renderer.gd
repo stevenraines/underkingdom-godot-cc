@@ -129,6 +129,8 @@ func _create_ascii_tileset() -> TileSet:
 	var source = TileSetAtlasSource.new()
 	source.texture = texture
 	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
+	source.separation = Vector2i(0, 0)  # No spacing between tiles
+	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
 	# Add tiles for all 895 Unicode characters in 32-column grid
 	# Characters laid out left-to-right, top-to-bottom (28 rows)

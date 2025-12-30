@@ -14,21 +14,72 @@ const TILE_SIZE = 64
 @onready var camera: Camera2D = $Camera
 
 # Tile ID mappings (char -> index in tileset)
-# Extended ASCII tileset: 16 columns, 256 characters (0-255)
-# Characters indexed sequentially: col = index % 16, row = index / 16
-const TILES_PER_ROW = 16
+# Unicode tileset: 32 columns, 895 characters
+# Characters indexed sequentially: col = index % 32, row = index / 32
+const TILES_PER_ROW = 32
+
+# Unicode character list (matches the order in unicode_tileset.png)
+# This must match the exact order from generate_tilesets.py
+var unicode_char_map: Dictionary = {}
+
+func _ready() -> void:
+	_setup_tilemap_layers()
+	_build_unicode_map()
+	print("ASCIIRenderer initialized")
+
+# Build Unicode character index mapping
+func _build_unicode_map() -> void:
+	var chars: Array = []
+
+	# Basic Latin (ASCII 32-126) - 95 chars
+	for i in range(0x0020, 0x007F):
+		chars.append(char(i))
+
+	# Latin-1 Supplement (160-255) - 96 chars
+	for i in range(0x00A0, 0x0100):
+		chars.append(char(i))
+
+	# Box Drawing (0x2500-0x257F) - 128 chars
+	for i in range(0x2500, 0x2580):
+		chars.append(char(i))
+
+	# Block Elements (0x2580-0x259F) - 32 chars
+	for i in range(0x2580, 0x25A0):
+		chars.append(char(i))
+
+	# Geometric Shapes (0x25A0-0x25FF) - 96 chars
+	for i in range(0x25A0, 0x2600):
+		chars.append(char(i))
+
+	# Miscellaneous Symbols (0x2600-0x26FF) - 256 chars
+	for i in range(0x2600, 0x2700):
+		chars.append(char(i))
+
+	# Dingbats (0x2700-0x27BF) - 192 chars
+	for i in range(0x2700, 0x27C0):
+		chars.append(char(i))
+
+	# Build lookup dictionary
+	for i in range(chars.size()):
+		unicode_char_map[chars[i]] = i
 
 # Helper function to get tile index from character
-# Extended ASCII: 0-255 map directly to indices 0-255
 func _char_to_index(character: String) -> int:
 	if character.is_empty():
 		return 0
-	return character.unicode_at(0)
+
+	# Look up character in unicode map
+	if character in unicode_char_map:
+		return unicode_char_map[character]
+
+	# Fallback for unmapped characters - use space
+	return 0  # Space character at index 0
 
 # Default terrain colors (tiles should define their own colors)
 var default_terrain_colors: Dictionary = {
 	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor
-	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall
+	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (legacy)
+	"░": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (CP437 light shade)
 	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up
@@ -41,10 +92,6 @@ var visible_tiles: Array[Vector2i] = []
 # Dictionaries to track modulated cells for runtime coloring
 var terrain_modulated_cells: Dictionary = {}
 var entity_modulated_cells: Dictionary = {}
-
-func _ready() -> void:
-	_setup_tilemap_layers()
-	print("ASCIIRenderer initialized")
 
 ## Setup TileMapLayer nodes with tileset
 func _setup_tilemap_layers() -> void:
@@ -69,12 +116,12 @@ func _create_ascii_tileset() -> TileSet:
 	var tileset = TileSet.new()
 	tileset.tile_size = Vector2i(TILE_SIZE, TILE_SIZE)
 
-	# Load the pre-generated CP437 sprite sheet (default)
-	var texture_path = "res://rendering/tilesets/ascii_tileset.png"
+	# Load the pre-generated Unicode sprite sheet (default)
+	var texture_path = "res://rendering/tilesets/unicode_tileset.png"
 	var texture = load(texture_path) as Texture2D
 
 	if not texture:
-		push_error("Failed to load CP437 tileset: " + texture_path)
+		push_error("Failed to load Unicode tileset: " + texture_path)
 		# Fall back to generated texture
 		texture = _generate_ascii_texture()
 
@@ -83,9 +130,10 @@ func _create_ascii_tileset() -> TileSet:
 	source.texture = texture
 	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
 
-	# Add tiles for all 256 CP437 characters in 16x16 grid
-	# Characters 0-255 laid out left-to-right, top-to-bottom
-	for i in range(256):
+	# Add tiles for all 895 Unicode characters in 32-column grid
+	# Characters laid out left-to-right, top-to-bottom (28 rows)
+	var num_tiles = 895
+	for i in range(num_tiles):
 		var col = i % TILES_PER_ROW
 		var row = i / TILES_PER_ROW
 		source.create_tile(Vector2i(col, row))

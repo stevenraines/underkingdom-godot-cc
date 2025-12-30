@@ -80,7 +80,6 @@ func _render_map() -> void:
 
 	if is_dungeon and player:
 		visible_walls = MapManager.current_map.get_visible_walls(player.position)
-		print("Dungeon rendering: ", visible_walls.size(), " visible walls from position ", player.position)
 
 	for y in range(MapManager.current_map.height):
 		for x in range(MapManager.current_map.width):

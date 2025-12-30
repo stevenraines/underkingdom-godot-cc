@@ -131,7 +131,7 @@ static func _create_tile(type: String) -> GameTile:
 			tile.tile_type = "wall"
 			tile.walkable = false
 			tile.transparent = false
-			tile.ascii_char = "#"
+			tile.ascii_char = "░"  # CP437 light shade (U+2591, index 176)
 		"stairs_down":
 			tile.tile_type = "stairs_down"
 			tile.walkable = true

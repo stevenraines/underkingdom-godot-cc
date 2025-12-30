@@ -91,8 +91,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Stairs navigation and wait action - check for specific key presses
 	if event is InputEventKey and event.pressed and not event.echo:
 		var action_taken = false
+		
+		# Check for > key (descend) - check unicode for web compatibility
+		var is_descend_key = (event.keycode == KEY_PERIOD and event.shift_pressed) or event.unicode == 62  # 62 = '>'
+		# Check for < key (ascend) - check unicode for web compatibility  
+		var is_ascend_key = (event.keycode == KEY_COMMA and event.shift_pressed) or event.unicode == 60  # 60 = '<'
+		# Check for . key (wait) - not shifted
+		var is_wait_key = (event.keycode == KEY_PERIOD and not event.shift_pressed) or (event.unicode == 46 and not event.shift_pressed)  # 46 = '.'
 
-		if event.keycode == KEY_PERIOD and event.shift_pressed:  # > key (Shift + .)
+		if is_descend_key:
 			# Descend stairs - only works on stairs_down tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_down":
@@ -100,7 +107,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				player._find_and_move_to_stairs("stairs_up")
 				action_taken = true
 				get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_COMMA and event.shift_pressed:  # < key (Shift + ,)
+		elif is_ascend_key:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_up":
@@ -108,7 +115,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_PERIOD and not event.shift_pressed:  # . key (wait/rest)
+		elif is_wait_key:
 			# Wait action - skip turn and get bonus stamina regen
 			_do_wait_action()
 			action_taken = true

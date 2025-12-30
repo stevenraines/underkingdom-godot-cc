@@ -14,43 +14,26 @@ const TILE_SIZE = 64
 @onready var camera: Camera2D = $Camera
 
 # Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, characters indexed sequentially
-# Basic Latin (ASCII 32-126) are first 95 characters (indices 0-94)
-# To get coordinates: col = index % 32, row = index / 32
-const TILES_PER_ROW = 32
+# Extended ASCII tileset: 16 columns, 256 characters (0-255)
+# Characters indexed sequentially: col = index % 16, row = index / 16
+const TILES_PER_ROW = 16
 
-# Helper function to get tile index from ASCII character code
-func _ascii_to_index(ascii_code: int) -> int:
-	# ASCII 32-126 are indices 0-94
-	return ascii_code - 32
+# Helper function to get tile index from character
+# Extended ASCII: 0-255 map directly to indices 0-255
+func _char_to_index(character: String) -> int:
+	if character.is_empty():
+		return 0
+	return character.unicode_at(0)
 
-var tile_map: Dictionary = {
-	"@": _ascii_to_index(64),   # Player (ASCII 64, @)
-	".": _ascii_to_index(46),   # Floor (ASCII 46, .)
-	"#": _ascii_to_index(35),   # Wall (ASCII 35, #)
-	"+": _ascii_to_index(43),   # Door (ASCII 43, +)
-	">": _ascii_to_index(62),   # Stairs down (ASCII 62, >)
-	"<": _ascii_to_index(60),   # Stairs up (ASCII 60, <)
-	"T": _ascii_to_index(84),   # Tree (ASCII 84, T)
-	"~": _ascii_to_index(126),  # Water (ASCII 126, ~)
-	"r": _ascii_to_index(114),  # Grave Rat (ASCII 114, r)
-	"W": _ascii_to_index(87),   # Barrow Wight (ASCII 87, W)
-	"w": _ascii_to_index(119),  # Woodland Wolf (ASCII 119, w)
-}
-
-# Color mapping for tiles
-var tile_colors: Dictionary = {
-	"@": Color(1.0, 1.0, 0.0),          # Yellow - Player
-	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor (80/255)
-	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (200/255)
+# Default terrain colors (tiles should define their own colors)
+var default_terrain_colors: Dictionary = {
+	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor
+	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall
 	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up
-	"T": Color(0.0, 0.71, 0.0),        # Green - Tree (180/255)
+	"T": Color(0.0, 0.71, 0.0),        # Green - Tree
 	"~": Color(0.2, 0.4, 1.0),         # Blue - Water
-	"r": Color(0.55, 0.27, 0.07),      # Brown - Grave Rat
-	"W": Color(0.27, 1.0, 0.27),       # Green - Barrow Wight
-	"w": Color(0.63, 0.63, 0.63),      # Gray - Woodland Wolf
 }
 
 var visible_tiles: Array[Vector2i] = []
@@ -125,14 +108,14 @@ func _generate_ascii_texture() -> ImageTexture:
 	var image = Image.create(atlas_width, atlas_height, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))  # Transparent background
 
-	# Draw each character in grid layout
+	# Draw each character in grid layout (all white for runtime coloring)
 	for i in range(chars.size()):
 		var c = chars[i]
 		var col = i % tiles_per_row
 		var row = i / tiles_per_row
 		var x_offset = col * TILE_SIZE
 		var y_offset = row * TILE_SIZE
-		var color = tile_colors.get(c, Color(0.78, 0.78, 0.78))  # Default light gray
+		var color = Color.WHITE  # All white - colors applied at runtime
 		_draw_char_to_image(image, c, x_offset, y_offset, color)
 
 	return ImageTexture.create_from_image(image)
@@ -188,17 +171,17 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> voi
 	if not terrain_layer:
 		return
 
-	# Get the tile index from tile_map, or calculate from ASCII code
-	var tile_index = tile_map.get(tile_type, 14)  # Default to floor (ASCII 46, index 14)
+	# Get the tile index from the character directly
+	var tile_index = _char_to_index(tile_type)
 
 	# Convert linear index to grid coordinates (16 columns)
-	var col = tile_index % 16
-	var row = tile_index / 16
+	var col = tile_index % TILES_PER_ROW
+	var row = tile_index / TILES_PER_ROW
 
 	terrain_layer.set_cell(position, 0, Vector2i(col, row))
 
 	# Set color modulation for this tile
-	var tile_color = tile_colors.get(tile_type, Color.WHITE)
+	var tile_color = default_terrain_colors.get(tile_type, Color.WHITE)
 	terrain_modulated_cells[position] = tile_color
 	terrain_layer.notify_runtime_tile_data_update()
 
@@ -207,12 +190,12 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 	if not entity_layer:
 		return
 
-	# Get the tile index from tile_map, or calculate from ASCII code
-	var tile_index = tile_map.get(entity_type, 32)  # Default to @ (player, ASCII 64, index 32)
+	# Get the tile index from the character directly
+	var tile_index = _char_to_index(entity_type)
 
 	# Convert linear index to grid coordinates (16 columns)
-	var col = tile_index % 16
-	var row = tile_index / 16
+	var col = tile_index % TILES_PER_ROW
+	var row = tile_index / TILES_PER_ROW
 
 	entity_layer.set_cell(position, 0, Vector2i(col, row))
 

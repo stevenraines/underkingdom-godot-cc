@@ -18,8 +18,8 @@ print(f"Total characters: {len(CHARS)}")
 # All characters white - colors will be applied via Godot's modulation
 DEFAULT_COLOR = (255, 255, 255)
 
-def create_unicode_tileset():
-    """Create a sprite sheet with Unicode characters."""
+def create_extended_ascii_tileset():
+    """Create a sprite sheet with Extended ASCII characters (0-255)."""
     # Calculate grid dimensions
     num_chars = len(CHARS)
     rows = (num_chars + TILES_PER_ROW - 1) // TILES_PER_ROW  # Ceiling division
@@ -81,22 +81,22 @@ def create_unicode_tileset():
         draw.text((x, y), char, fill=color + (255,), font=font)
 
     # Save the image
-    output_path = os.path.join(os.path.dirname(__file__), "tilesets", "unicode_tileset.png")
+    output_path = os.path.join(os.path.dirname(__file__), "tilesets", "ascii_tileset.png")
     image.save(output_path)
-    print(f"Saved Unicode tileset to: {output_path}")
+    print(f"Saved Extended ASCII tileset to: {output_path}")
     print(f"Image size: {width}x{height}")
     print(f"Tile size: {TILE_SIZE}x{TILE_SIZE}")
     print(f"Grid layout: {TILES_PER_ROW} columns x {rows} rows")
     print(f"Number of tiles: {len(CHARS)}")
 
     # Also save character map for reference
-    charmap_path = os.path.join(os.path.dirname(__file__), "tilesets", "unicode_charmap.txt")
+    charmap_path = os.path.join(os.path.dirname(__file__), "tilesets", "ascii_charmap.txt")
     with open(charmap_path, 'w', encoding='utf-8') as f:
         for i, char in enumerate(CHARS):
             row = i // TILES_PER_ROW
             col = i % TILES_PER_ROW
-            f.write(f"{i:4d} ({col:2d},{row:2d}) U+{ord(char):04X} '{char}'\n")
+            f.write(f"{i:4d} ({col:2d},{row:2d}) ASCII {i:3d} '{char}'\n")
     print(f"Saved character map to: {charmap_path}")
 
 if __name__ == "__main__":
-    create_unicode_tileset()
+    create_extended_ascii_tileset()

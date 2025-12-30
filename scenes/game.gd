@@ -95,6 +95,16 @@ func _render_map() -> void:
 
 ## Called when player moves
 func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
+	# In dungeons, wall visibility depends on player position
+	# So we need to re-render the entire map when player moves
+	var is_dungeon = MapManager.current_map and MapManager.current_map.map_id.begins_with("dungeon_")
+
+	if is_dungeon:
+		# Re-render entire map with updated wall visibility
+		_render_map()
+		_render_all_entities()
+
+	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)

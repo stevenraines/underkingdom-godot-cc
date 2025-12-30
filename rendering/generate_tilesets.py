@@ -101,8 +101,8 @@ def create_cp437_tileset():
     """Create CP437 tileset (ascii_tileset.png) - 256 characters, 16x16 grid."""
     num_chars = len(CP437_CHARS)
     rows = (num_chars + CP437_TILES_PER_ROW - 1) // CP437_TILES_PER_ROW
-    width = CP437_TILES_PER_ROW * TILE_SIZE
-    height = rows * TILE_SIZE
+    width = CP437_TILES_PER_ROW * TILE_WIDTH
+    height = rows * TILE_HEIGHT
 
     print(f"\nCreating CP437 tileset: {width}x{height} ({CP437_TILES_PER_ROW} columns x {rows} rows)")
 
@@ -114,15 +114,15 @@ def create_cp437_tileset():
     for i, char in enumerate(CP437_CHARS):
         row = i // CP437_TILES_PER_ROW
         col = i % CP437_TILES_PER_ROW
-        x_offset = col * TILE_SIZE
-        y_offset = row * TILE_SIZE
+        x_offset = col * TILE_WIDTH
+        y_offset = row * TILE_HEIGHT
 
         # Get text bounding box and center
         bbox = draw.textbbox((0, 0), char, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
-        x = x_offset + (TILE_SIZE - text_width) // 2
-        y = y_offset + (TILE_SIZE - text_height) // 2 - bbox[1]
+        x = x_offset + (TILE_WIDTH - text_width) // 2
+        y = y_offset + (TILE_HEIGHT - text_height) // 2 - bbox[1]
 
         draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=font)
 
@@ -151,8 +151,8 @@ def create_unicode_tileset():
     """Create Unicode tileset (unicode_tileset.png) - comprehensive character set, 32-column grid."""
     num_chars = len(UNICODE_CHARS)
     rows = (num_chars + UNICODE_TILES_PER_ROW - 1) // UNICODE_TILES_PER_ROW
-    width = UNICODE_TILES_PER_ROW * TILE_SIZE
-    height = rows * TILE_SIZE
+    width = UNICODE_TILES_PER_ROW * TILE_WIDTH
+    height = rows * TILE_HEIGHT
 
     print(f"\nCreating Unicode tileset: {width}x{height} ({UNICODE_TILES_PER_ROW} columns x {rows} rows)")
 
@@ -164,15 +164,15 @@ def create_unicode_tileset():
     for i, char in enumerate(UNICODE_CHARS):
         row = i // UNICODE_TILES_PER_ROW
         col = i % UNICODE_TILES_PER_ROW
-        x_offset = col * TILE_SIZE
-        y_offset = row * TILE_SIZE
+        x_offset = col * TILE_WIDTH
+        y_offset = row * TILE_HEIGHT
 
         # Get text bounding box and center
         bbox = draw.textbbox((0, 0), char, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
-        x = x_offset + (TILE_SIZE - text_width) // 2
-        y = y_offset + (TILE_SIZE - text_height) // 2 - bbox[1]
+        x = x_offset + (TILE_WIDTH - text_width) // 2
+        y = y_offset + (TILE_HEIGHT - text_height) // 2 - bbox[1]
 
         draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=font)
 

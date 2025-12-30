@@ -6,7 +6,8 @@ extends RenderInterface
 ## Renders the game world using ASCII characters.
 ## Uses two TileMapLayer nodes: one for terrain, one for entities.
 
-const TILE_SIZE = 64
+const TILE_WIDTH = 38
+const TILE_HEIGHT = 64
 
 # Child nodes (set in scene or _ready)
 @onready var terrain_layer: TileMapLayer = $TerrainLayer
@@ -114,7 +115,7 @@ func _setup_tilemap_layers() -> void:
 ## Create ASCII tileset from sprite sheet
 func _create_ascii_tileset() -> TileSet:
 	var tileset = TileSet.new()
-	tileset.tile_size = Vector2i(TILE_SIZE, TILE_SIZE)
+	tileset.tile_size = Vector2i(TILE_WIDTH, TILE_HEIGHT)
 
 	# Load the pre-generated Unicode sprite sheet (default)
 	var texture_path = "res://rendering/tilesets/unicode_tileset.png"
@@ -128,7 +129,7 @@ func _create_ascii_tileset() -> TileSet:
 	# Create a source for our tiles
 	var source = TileSetAtlasSource.new()
 	source.texture = texture
-	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
+	source.texture_region_size = Vector2i(TILE_WIDTH, TILE_HEIGHT)
 	source.separation = Vector2i(0, 0)  # No spacing between tiles
 	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
@@ -152,8 +153,8 @@ func _generate_ascii_texture() -> ImageTexture:
 
 	var tiles_per_row = 16
 	var num_rows = 6
-	var atlas_width = tiles_per_row * TILE_SIZE
-	var atlas_height = num_rows * TILE_SIZE
+	var atlas_width = tiles_per_row * TILE_WIDTH
+	var atlas_height = num_rows * TILE_HEIGHT
 
 	var image = Image.create(atlas_width, atlas_height, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))  # Transparent background
@@ -163,8 +164,8 @@ func _generate_ascii_texture() -> ImageTexture:
 		var c = chars[i]
 		var col = i % tiles_per_row
 		var row = i / tiles_per_row
-		var x_offset = col * TILE_SIZE
-		var y_offset = row * TILE_SIZE
+		var x_offset = col * TILE_WIDTH
+		var y_offset = row * TILE_HEIGHT
 		var color = Color.WHITE  # All white - colors applied at runtime
 		_draw_char_to_image(image, c, x_offset, y_offset, color)
 
@@ -175,26 +176,26 @@ func _draw_char_to_image(image: Image, char: String, x_offset: int, y_offset: in
 	# Draw distinctive patterns for different characters
 	match char:
 		"@":  # Player - filled circle
-			_draw_filled_circle(image, x_offset + TILE_SIZE/2, y_offset + TILE_SIZE/2, 5, color)
+			_draw_filled_circle(image, x_offset + TILE_WIDTH/2, y_offset + TILE_HEIGHT/2, 5, color)
 		"#":  # Wall - solid square
-			for y in range(TILE_SIZE):
-				for x in range(TILE_SIZE):
+			for y in range(TILE_HEIGHT):
+				for x in range(TILE_WIDTH):
 					image.set_pixel(x_offset + x, y_offset + y, color)
 		"T":  # Tree - triangle
 			_draw_triangle(image, x_offset, y_offset, color)
 		"~":  # Water - wavy lines
 			for i in range(3):
 				var y = y_offset + 4 + i * 4
-				for x in range(TILE_SIZE):
+				for x in range(TILE_WIDTH):
 					var wave = int(sin(x * 0.5) * 2)
-					if y + wave >= 0 and y + wave < TILE_SIZE:
+					if y + wave >= 0 and y + wave < TILE_HEIGHT:
 						image.set_pixel(x_offset + x, y + wave, color)
 		"r", "W", "w":  # Enemies - filled circles with different sizes
 			var radius = 4 if char == "W" else 3
-			_draw_filled_circle(image, x_offset + TILE_SIZE/2, y_offset + TILE_SIZE/2, radius, color)
+			_draw_filled_circle(image, x_offset + TILE_WIDTH/2, y_offset + TILE_HEIGHT/2, radius, color)
 		_:  # Default - smaller square
-			for y in range(3, TILE_SIZE - 3):
-				for x in range(3, TILE_SIZE - 3):
+			for y in range(3, TILE_HEIGHT - 3):
+				for x in range(3, TILE_WIDTH - 3):
 					image.set_pixel(x_offset + x, y_offset + y, color)
 
 ## Draw a filled circle
@@ -209,11 +210,11 @@ func _draw_filled_circle(image: Image, cx: int, cy: int, radius: int, color: Col
 
 ## Draw a triangle (tree)
 func _draw_triangle(image: Image, x_offset: int, y_offset: int, color: Color) -> void:
-	var cx = TILE_SIZE / 2
-	for y in range(TILE_SIZE):
-		var width = (TILE_SIZE - y) / 2
+	var cx = TILE_WIDTH / 2
+	for y in range(TILE_HEIGHT):
+		var width = (TILE_WIDTH - y) / 2
 		for x in range(cx - width, cx + width + 1):
-			if x >= 0 and x < TILE_SIZE:
+			if x >= 0 and x < TILE_WIDTH:
 				image.set_pixel(x_offset + x, y_offset + y, color)
 
 ## Render a tile
@@ -275,7 +276,7 @@ func center_camera(pos: Vector2i) -> void:
 	if not camera:
 		return
 
-	camera.position = Vector2(pos) * TILE_SIZE
+	camera.position = Vector2(pos.x * TILE_WIDTH, pos.y * TILE_HEIGHT)
 
 ## Clear all rendering
 func clear_all() -> void:

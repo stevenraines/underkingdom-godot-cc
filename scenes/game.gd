@@ -257,8 +257,8 @@ func _update_hud() -> void:
 
 	# Update character info line
 	if character_info_label:
-		@warning_ignore("integer_division")
-		character_info_label.text = "Player, Harvest Dawn %dth of Nivvum Ut" % (TurnManager.current_turn / 1000 + 6)
+		var day_suffix = _get_day_suffix(TurnManager.current_day)
+		character_info_label.text = "Day %d%s - %s" % [TurnManager.current_day, day_suffix, TurnManager.time_of_day.capitalize()]
 
 	# Update status line with health and survival
 	if status_line:
@@ -274,7 +274,7 @@ func _update_hud() -> void:
 			var stam_text = "Stam: %d/%d" % [int(s.stamina), int(s.get_max_stamina())]
 			var hunger_text = "Hun: %d%%" % int(s.hunger)
 			var thirst_text = "Thr: %d%%" % int(s.thirst)
-			var temp_text = "Tmp: %d°C" % int(s.temperature)
+			var temp_text = "Tmp: %d°F" % int(s.temperature)
 			survival_text = "  %s  %s  %s  %s" % [stam_text, hunger_text, thirst_text, temp_text]
 
 		status_line.text = "%s%s  %s  %s" % [hp_text, survival_text, turn_text, time_text]
@@ -361,6 +361,16 @@ func _count_nearby_enemies() -> int:
 				count += 1
 	
 	return count
+
+## Get ordinal suffix for a day number (1st, 2nd, 3rd, etc.)
+func _get_day_suffix(day: int) -> String:
+	if day >= 11 and day <= 13:
+		return "th"
+	match day % 10:
+		1: return "st"
+		2: return "nd"
+		3: return "rd"
+		_: return "th"
 
 ## Update message based on player position
 func _update_message() -> void:

@@ -7,6 +7,7 @@ extends Node
 
 # Turn tracking
 var current_turn: int = 0
+var current_day: int = 1  # Day counter, starts at day 1
 var time_of_day: String = "dawn"
 var is_player_turn: bool = true
 
@@ -45,6 +46,9 @@ func _process_player_survival() -> void:
 	if EntityManager.player and EntityManager.player.survival:
 		var effects = EntityManager.player.process_survival_turn(current_turn)
 		
+		# Regenerate some stamina each turn (slower rate while active)
+		EntityManager.player.regenerate_stamina()
+		
 		# Emit warnings if any
 		for warning in effects.get("warnings", []):
 			EventBus.survival_warning.emit(warning, _get_warning_severity(warning))
@@ -66,6 +70,10 @@ func get_time_of_day() -> String:
 func _update_time_of_day() -> void:
 	var new_time = get_time_of_day()
 	if new_time != time_of_day:
+		# Check if we're transitioning to a new day (night -> dawn)
+		if time_of_day == "night" and new_time == "dawn":
+			current_day += 1
+			print("Day %d has begun" % current_day)
 		time_of_day = new_time
 		EventBus.time_of_day_changed.emit(time_of_day)
 		print("Time of day changed to: ", time_of_day)

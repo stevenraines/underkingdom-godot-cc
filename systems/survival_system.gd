@@ -9,7 +9,7 @@ extends RefCounted
 # Current survival stats
 var hunger: float = 100.0  # 0-100, starts full
 var thirst: float = 100.0  # 0-100, starts full
-var temperature: float = 20.0  # °C, comfortable default
+var temperature: float = 68.0  # °F, comfortable default
 var stamina: float = 100.0  # Current stamina
 var base_max_stamina: float = 100.0  # Before fatigue reduction
 var fatigue: float = 0.0  # 0-100, starts rested
@@ -25,23 +25,23 @@ const STAMINA_COST_ATTACK: int = 3
 const STAMINA_COST_SPRINT: int = 5
 const STAMINA_COST_HEAVY_ATTACK: int = 6
 
-# Temperature thresholds (°C)
-const TEMP_FREEZING: float = 0.0
-const TEMP_COLD: float = 10.0
-const TEMP_COOL: float = 15.0
-const TEMP_WARM: float = 25.0
-const TEMP_HOT: float = 30.0
-const TEMP_HYPERTHERMIA: float = 40.0
+# Temperature thresholds (°F)
+const TEMP_FREEZING: float = 32.0
+const TEMP_COLD: float = 50.0
+const TEMP_COOL: float = 59.0
+const TEMP_WARM: float = 77.0
+const TEMP_HOT: float = 86.0
+const TEMP_HYPERTHERMIA: float = 104.0
 
-# Base temperatures
-const TEMP_WOODLAND_BASE: float = 18.0
-const TEMP_DUNGEON_BASE: float = 12.0
+# Base temperatures (°F)
+const TEMP_WOODLAND_BASE: float = 64.0
+const TEMP_DUNGEON_BASE: float = 54.0
 
-# Time of day temperature modifiers
-const TEMP_MOD_DAWN: float = -3.0
+# Time of day temperature modifiers (°F)
+const TEMP_MOD_DAWN: float = -5.0
 const TEMP_MOD_DAY: float = 0.0
-const TEMP_MOD_DUSK: float = -2.0
-const TEMP_MOD_NIGHT: float = -8.0
+const TEMP_MOD_DUSK: float = -4.0
+const TEMP_MOD_NIGHT: float = -14.0
 
 # Track turns for periodic effects
 var _last_hunger_drain_turn: int = 0

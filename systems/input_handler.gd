@@ -83,7 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:
 		return
 
-	# Stairs navigation - check for specific key presses
+	# Stairs navigation and wait action - check for specific key presses
 	if event is InputEventKey and event.pressed and not event.echo:
 		var action_taken = false
 
@@ -103,7 +103,19 @@ func _unhandled_input(event: InputEvent) -> void:
 				player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_PERIOD and not event.shift_pressed:  # . key (wait/rest)
+			# Wait action - skip turn and get bonus stamina regen
+			_do_wait_action()
+			action_taken = true
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
 			TurnManager.advance_turn()
+
+## Wait action - rest in place for bonus stamina regeneration
+func _do_wait_action() -> void:
+	if player.survival:
+		# Bonus stamina regeneration for waiting (regen twice)
+		player.regenerate_stamina()
+		player.regenerate_stamina()

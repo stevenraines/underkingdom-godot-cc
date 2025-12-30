@@ -1,0 +1,22 @@
+{
+  "id": "waterskin_full",
+  "name": "Full Waterskin",
+  "description": "A leather waterskin filled with fresh water.",
+  "category": "consumable",
+  "subtype": "drink",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 1.2,
+  "value": 10,
+  "max_stack": 1,
+  "ascii_char": "!",
+  "ascii_color": "#4488FF",
+  "effects": {
+    "thirst": 50
+  },
+  "transforms_into": "waterskin_empty"
+}

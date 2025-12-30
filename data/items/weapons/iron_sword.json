@@ -1,0 +1,21 @@
+{
+  "id": "iron_sword",
+  "name": "Iron Sword",
+  "description": "A well-crafted iron sword.",
+  "category": "weapon",
+  "subtype": "sword",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 1.5,
+  "value": 40,
+  "max_stack": 1,
+  "ascii_char": "|",
+  "ascii_color": "#AAAAAA",
+  "durability": 100,
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 6
+}

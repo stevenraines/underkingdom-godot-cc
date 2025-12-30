@@ -1,0 +1,22 @@
+{
+  "id": "raw_meat",
+  "name": "Raw Meat",
+  "description": "Uncooked meat. Should be cooked before eating.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false,
+    "cookable": true
+  },
+  "weight": 0.3,
+  "value": 2,
+  "max_stack": 10,
+  "ascii_char": "%",
+  "ascii_color": "#AA4444",
+  "effects": {
+    "hunger": 15
+  }
+}

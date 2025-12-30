@@ -11,6 +11,9 @@ var entities: Array[Entity] = []
 # Enemy definitions cache
 var enemy_definitions: Dictionary = {}
 
+# Base path for enemy data
+const ENEMY_DATA_BASE_PATH: String = "res://data/enemies"
+
 # Player reference (set by game scene)
 var player: Player = null
 
@@ -18,28 +21,98 @@ func _ready() -> void:
 	print("EntityManager initialized")
 	_load_enemy_definitions()
 
-## Load enemy definitions from JSON files
+## Load all enemy definitions by recursively scanning folders
 func _load_enemy_definitions() -> void:
-	var enemy_files = ["grave_rat", "barrow_wight", "woodland_wolf"]
+	_load_enemies_from_folder(ENEMY_DATA_BASE_PATH)
+	print("EntityManager: Loaded %d enemy definitions" % enemy_definitions.size())
 
-	for enemy_id in enemy_files:
-		var file_path = "res://data/enemies/%s.json" % enemy_id
-		var file = FileAccess.open(file_path, FileAccess.READ)
+## Recursively load enemies from a folder and all subfolders
+func _load_enemies_from_folder(path: String) -> void:
+	var dir = DirAccess.open(path)
+	if not dir:
+		push_warning("EntityManager: Could not open directory: %s" % path)
+		return
+	
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	
+	while file_name != "":
+		var full_path = path + "/" + file_name
+		
+		if dir.current_is_dir():
+			# Skip hidden folders and navigate into subfolders
+			if not file_name.begins_with("."):
+				_load_enemies_from_folder(full_path)
+		elif file_name.ends_with(".json"):
+			# Load JSON file as enemy data
+			_load_enemy_from_file(full_path)
+		
+		file_name = dir.get_next()
+	
+	dir.list_dir_end()
 
-		if file:
-			var json_string = file.get_as_text()
-			var json = JSON.new()
-			var parse_result = json.parse(json_string)
-
-			if parse_result == OK:
-				enemy_definitions[enemy_id] = json.data
+## Load a single enemy from a JSON file
+func _load_enemy_from_file(file_path: String) -> void:
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	
+	if not file:
+		push_error("EntityManager: Failed to load enemy file: " + file_path)
+		return
+	
+	var json_string = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+	
+	if parse_result != OK:
+		push_error("EntityManager: Failed to parse enemy JSON: %s at line %d" % [file_path, json.get_error_line()])
+		return
+	
+	var data = json.data
+	
+	# Handle single enemy file (new format with "id" field)
+	if data is Dictionary and "id" in data:
+		var enemy_id = data.get("id", "")
+		if enemy_id != "":
+			enemy_definitions[enemy_id] = data
+			print("Loaded enemy definition: ", enemy_id)
+		else:
+			push_warning("EntityManager: Enemy without ID in %s" % file_path)
+	# Handle old multi-enemy format for backwards compatibility
+	elif data is Dictionary and "enemies" in data:
+		for enemy_data in data["enemies"]:
+			var enemy_id = enemy_data.get("id", "")
+			if enemy_id != "":
+				enemy_definitions[enemy_id] = enemy_data
 				print("Loaded enemy definition: ", enemy_id)
 			else:
-				push_error("Failed to parse enemy JSON: " + file_path)
+				push_warning("EntityManager: Enemy without ID in %s" % file_path)
+	else:
+		push_warning("EntityManager: Invalid enemy file format in %s" % file_path)
 
-			file.close()
-		else:
-			push_error("Failed to load enemy file: " + file_path)
+## Check if an enemy ID exists
+func has_enemy_definition(enemy_id: String) -> bool:
+	return enemy_id in enemy_definitions
+
+## Get enemy definition data by ID
+func get_enemy_definition(enemy_id: String) -> Dictionary:
+	return enemy_definitions.get(enemy_id, {})
+
+## Get all enemy IDs
+func get_all_enemy_ids() -> Array[String]:
+	var result: Array[String] = []
+	for enemy_id in enemy_definitions:
+		result.append(enemy_id)
+	return result
+
+## Get all enemy IDs with a specific behavior type
+func get_enemies_by_behavior(behavior: String) -> Array[String]:
+	var result: Array[String] = []
+	for enemy_id in enemy_definitions:
+		if enemy_definitions[enemy_id].get("behavior", "") == behavior:
+			result.append(enemy_id)
+	return result
 
 ## Spawn an enemy at a position
 func spawn_enemy(enemy_id: String, pos: Vector2i) -> Enemy:
@@ -75,6 +148,26 @@ func get_entities_at(pos: Vector2i) -> Array[Entity]:
 			result.append(entity)
 
 	return result
+
+## Get ground items at a position
+func get_ground_items_at(pos: Vector2i) -> Array[GroundItem]:
+	var result: Array[GroundItem] = []
+
+	for entity in entities:
+		if entity.position == pos and entity is GroundItem:
+			result.append(entity as GroundItem)
+
+	return result
+
+## Spawn a ground item at a position
+func spawn_ground_item(item: Item, pos: Vector2i, despawn_turns: int = -1) -> GroundItem:
+	var ground_item = GroundItem.create(item, pos, despawn_turns)
+	entities.append(ground_item)
+	
+	if MapManager.current_map:
+		MapManager.current_map.entities.append(ground_item)
+	
+	return ground_item
 
 ## Get entity blocking movement at position (returns first blocking entity)
 func get_blocking_entity_at(pos: Vector2i) -> Entity:

@@ -66,15 +66,20 @@ static func get_evasion(entity: Entity) -> int:
 ## Formula: Base Damage + STR modifier - Armor
 ## STR modifier: +1 per 2 STR above 10
 static func calculate_damage(attacker: Entity, defender: Entity) -> int:
+	# Get weapon damage - check if attacker has get_weapon_damage method (Player)
 	var base_damage = attacker.base_damage
+	if attacker.has_method("get_weapon_damage"):
+		base_damage = attacker.get_weapon_damage()
 	
 	# STR modifier: +1 per 2 points above 10
-	var str_stat = attacker.attributes.get("STR", 10)
+	var str_stat = attacker.get_effective_attribute("STR") if attacker.has_method("get_effective_attribute") else attacker.attributes.get("STR", 10)
 	@warning_ignore("integer_division")
 	var str_modifier = (str_stat - 10) / 2
 	
-	# Armor reduction
+	# Armor reduction - check if defender has get_total_armor method (Player)
 	var armor = defender.armor
+	if defender.has_method("get_total_armor"):
+		armor = defender.get_total_armor()
 	
 	# Calculate total damage (minimum 1)
 	var damage = maxi(1, base_damage + str_modifier - armor)

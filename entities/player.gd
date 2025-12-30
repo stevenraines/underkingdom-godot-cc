@@ -5,12 +5,14 @@ extends Entity
 ##
 ## Handles player movement, interactions, and dungeon navigation.
 
-# Preload combat system to ensure it's available
+# Preload systems to ensure they're available
 const _CombatSystem = preload("res://systems/combat_system.gd")
 const _SurvivalSystem = preload("res://systems/survival_system.gd")
+const _Inventory = preload("res://systems/inventory_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
+var inventory: Inventory = null
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
@@ -29,6 +31,9 @@ func _setup_player() -> void:
 	
 	# Initialize survival system
 	survival = _SurvivalSystem.new(self)
+	
+	# Initialize inventory system
+	inventory = _Inventory.new(self)
 
 ## Attempt to attack a target entity
 func attack(target: Entity) -> Dictionary:
@@ -136,3 +141,113 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 	position = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
 	push_warning("Could not find ", stairs_type, ", positioning at center")
 	EventBus.player_moved.emit(old_pos, position)
+
+## Get total weapon damage (base + equipped weapon bonus)
+func get_weapon_damage() -> int:
+	if inventory:
+		return base_damage + inventory.get_weapon_damage_bonus()
+	return base_damage
+
+## Get total armor value from all equipped items
+func get_total_armor() -> int:
+	if inventory:
+		return armor + inventory.get_total_armor()
+	return armor
+
+## Pick up a ground item
+func pickup_item(ground_item: GroundItem) -> bool:
+	if not ground_item or not ground_item.item:
+		return false
+	
+	if not inventory:
+		return false
+	
+	# Check encumbrance before picking up
+	var new_weight = inventory.get_total_weight() + ground_item.item.get_total_weight()
+	if new_weight / inventory.max_weight > 1.25:
+		# Would be too heavy to move at all
+		return false
+	
+	if inventory.add_item(ground_item.item):
+		EventBus.item_picked_up.emit(ground_item.item)
+		return true
+	
+	return false
+
+## Drop an item from inventory
+func drop_item(item: Item) -> GroundItem:
+	if not item or not inventory:
+		return null
+	
+	if inventory.remove_item(item):
+		var drop_pos = _find_drop_position()
+		var ground_item = GroundItem.create(item, drop_pos)
+		EventBus.item_dropped.emit(item, drop_pos)
+		return ground_item
+	
+	return null
+
+## Find an empty adjacent position to drop an item
+func _find_drop_position() -> Vector2i:
+	# Check adjacent tiles in order: cardinal directions first, then diagonals
+	var directions = [
+		Vector2i(1, 0),   # Right
+		Vector2i(-1, 0),  # Left
+		Vector2i(0, 1),   # Down
+		Vector2i(0, -1),  # Up
+		Vector2i(1, 1),   # Down-right
+		Vector2i(-1, 1),  # Down-left
+		Vector2i(1, -1),  # Up-right
+		Vector2i(-1, -1)  # Up-left
+	]
+	
+	for dir in directions:
+		var check_pos = position + dir
+		if _is_valid_drop_position(check_pos):
+			return check_pos
+	
+	# If no empty adjacent space, drop at player position as fallback
+	return position
+
+## Check if a position is valid for dropping an item
+func _is_valid_drop_position(pos: Vector2i) -> bool:
+	if not MapManager.current_map:
+		return false
+	
+	# Must be walkable terrain
+	if not MapManager.current_map.is_walkable(pos):
+		return false
+	
+	# Check for blocking entities (enemies, other players)
+	var blocking = EntityManager.get_blocking_entity_at(pos)
+	if blocking:
+		return false
+	
+	return true
+
+## Use an item from inventory
+func use_item(item: Item) -> Dictionary:
+	if not item or not inventory:
+		return {"success": false, "message": "No item"}
+	
+	return inventory.use_item(item)
+
+## Equip an item (returns array of unequipped items, if any)
+func equip_item(item: Item, target_slot: String = "") -> Array[Item]:
+	if not item or not inventory:
+		return []
+	
+	return inventory.equip_item(item, target_slot)
+
+## Apply item effects (called by Item.use())
+func apply_item_effects(effects: Dictionary) -> void:
+	if "hunger" in effects and survival:
+		survival.eat(effects.hunger)
+	if "thirst" in effects and survival:
+		survival.drink(effects.thirst)
+	if "health" in effects:
+		heal(effects.health)
+	if "stamina" in effects and survival:
+		survival.stamina = min(survival.get_max_stamina(), survival.stamina + effects.stamina)
+	if "fatigue" in effects and survival:
+		survival.rest(effects.fatigue)

@@ -1,0 +1,22 @@
+{
+  "id": "wooden_staff",
+  "name": "Wooden Staff",
+  "description": "A long wooden staff. Requires both hands to wield effectively.",
+  "category": "weapon",
+  "subtype": "staff",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false,
+    "two_handed": true
+  },
+  "weight": 1.5,
+  "value": 10,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#8B5A2B",
+  "durability": 80,
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 4
+}

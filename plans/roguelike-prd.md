@@ -606,6 +606,7 @@ SaveData:
 - [ ] Crafting screen
 - [ ] Message log
 - [ ] Character sheet
+- [ ] Contextual Help sheet
 
 #### 1.17 Integration & Testing
 - [ ] Full loop playtest

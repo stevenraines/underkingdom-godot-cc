@@ -1,0 +1,19 @@
+{
+  "id": "leather",
+  "name": "Leather",
+  "description": "Tanned animal hide suitable for crafting.",
+  "category": "material",
+  "subtype": "hide",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.3,
+  "value": 5,
+  "max_stack": 20,
+  "ascii_char": "&",
+  "ascii_color": "#8B4513"
+}

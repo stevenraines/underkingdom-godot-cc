@@ -1,0 +1,22 @@
+{
+  "id": "flint_knife",
+  "name": "Flint Knife",
+  "description": "A crude knife made from flint. Good for basic tasks.",
+  "category": "tool",
+  "subtype": "knife",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true
+  },
+  "weight": 0.3,
+  "value": 5,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#777777",
+  "durability": 50,
+  "tool_type": "knife",
+  "equip_slots": ["main_hand", "off_hand"],
+  "damage_bonus": 2
+}

@@ -24,6 +24,7 @@ TurnManager="*res://autoload/turn_manager.gd"
 GameManager="*res://autoload/game_manager.gd"
 MapManager="*res://autoload/map_manager.gd"
 EntityManager="*res://autoload/entity_manager.gd"
+ItemManager="*res://autoload/item_manager.gd"
 
 [display]
 

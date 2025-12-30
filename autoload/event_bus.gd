@@ -29,5 +29,14 @@ signal survival_stat_changed(stat_name: String, old_value: float, new_value: flo
 signal survival_warning(message: String, severity: String)
 signal stamina_depleted()
 
+# Inventory signals
+signal item_picked_up(item)  # Item
+signal item_dropped(item, position: Vector2i)  # Item
+signal item_used(item, result: Dictionary)  # Item
+signal item_equipped(item, slot: String)  # Item
+signal item_unequipped(item, slot: String)  # Item
+signal inventory_changed()
+signal encumbrance_changed(ratio: float)
+
 func _ready() -> void:
 	print("EventBus initialized")

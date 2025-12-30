@@ -1,0 +1,21 @@
+{
+  "id": "bandage",
+  "name": "Bandage",
+  "description": "A cloth bandage for treating wounds.",
+  "category": "consumable",
+  "subtype": "medical",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.1,
+  "value": 8,
+  "max_stack": 10,
+  "ascii_char": "♥",
+  "ascii_color": "#FF746C",
+  "effects": {
+    "health": 15
+  }
+}

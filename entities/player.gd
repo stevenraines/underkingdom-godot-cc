@@ -43,9 +43,11 @@ func move(direction: Vector2i) -> bool:
 
 	# Check if new position is walkable
 	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
-		# Consume stamina for movement
-		if survival and not survival.consume_stamina(survival.STAMINA_COST_MOVE):
-			return false  # Can't move without stamina
+		# Consume stamina for movement (allow move even if depleted, just add fatigue)
+		if survival:
+			if not survival.consume_stamina(survival.STAMINA_COST_MOVE):
+				# Out of stamina - still allow movement but warn player
+				pass
 		
 		var old_pos = position
 		position = new_pos

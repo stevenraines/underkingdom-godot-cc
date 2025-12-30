@@ -51,15 +51,15 @@ const SLOT_DISPLAY_NAMES = {
 	"accessory_2": "Ring 2"
 }
 const SLOT_ICONS = {
-	"head": "○",
-	"torso": "▣",
-	"hands": "☐",
-	"legs": "║",
-	"feet": "⌐",
-	"main_hand": "†",
-	"off_hand": "◈",
-	"accessory_1": "◇",
-	"accessory_2": "◇"
+	"head": "O",
+	"torso": "#",
+	"hands": "[",
+	"legs": "|",
+	"feet": "_",
+	"main_hand": "/",
+	"off_hand": "*",
+	"accessory_1": "o",
+	"accessory_2": "o"
 }
 
 func _ready() -> void:
@@ -341,22 +341,22 @@ func _format_item_tooltip(item: Item) -> String:
 	match item.item_type:
 		"consumable":
 			if item.effects.has("health") and item.effects["health"] > 0:
-				tooltip += "[color=#88ff88]♥ Heals: %d HP[/color]\n" % item.effects["health"]
+				tooltip += "[color=#88ff88]+ Heals: %d HP[/color]\n" % item.effects["health"]
 			if item.effects.has("hunger") and item.effects["hunger"] > 0:
-				tooltip += "[color=#ffcc88]◆ Hunger: +%d%%[/color]\n" % item.effects["hunger"]
+				tooltip += "[color=#ffcc88]+ Hunger: +%d%%[/color]\n" % item.effects["hunger"]
 			if item.effects.has("thirst") and item.effects["thirst"] > 0:
-				tooltip += "[color=#88ccff]◇ Thirst: +%d%%[/color]\n" % item.effects["thirst"]
+				tooltip += "[color=#88ccff]+ Thirst: +%d%%[/color]\n" % item.effects["thirst"]
 		"weapon":
-			tooltip += "[color=#ff8888]⚔ Damage: +%d[/color]\n" % item.damage_bonus
+			tooltip += "[color=#ff8888]* Damage: +%d[/color]\n" % item.damage_bonus
 			if item.is_two_handed():
-				tooltip += "[color=#cc88cc]◊ Two-Handed[/color]\n"
+				tooltip += "[color=#cc88cc]* Two-Handed[/color]\n"
 		"armor":
-			tooltip += "[color=#8888ff]◈ Armor: %d[/color]\n" % item.armor_value
+			tooltip += "[color=#8888ff]* Armor: %d[/color]\n" % item.armor_value
 		"tool":
 			if item.tool_type != "":
-				tooltip += "[color=#cccccc]⚒ Tool: %s[/color]\n" % item.tool_type.capitalize()
+				tooltip += "[color=#cccccc]* Tool: %s[/color]\n" % item.tool_type.capitalize()
 			if item.is_two_handed():
-				tooltip += "[color=#cc88cc]◊ Two-Handed[/color]\n"
+				tooltip += "[color=#cc88cc]* Two-Handed[/color]\n"
 	
 	# Equip slot info for multi-slot items
 	var slots = item.get_equip_slots()

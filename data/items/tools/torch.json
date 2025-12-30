@@ -18,5 +18,5 @@
   "ascii_color": "#FF8800",
   "durability": 100,
   "tool_type": "light",
-  "equip_slot": "off_hand"
+  "equip_slots": ["main_hand", "off_hand"]
 }

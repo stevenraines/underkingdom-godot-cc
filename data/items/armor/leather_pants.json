@@ -16,6 +16,6 @@
   "ascii_char": "n",
   "ascii_color": "#8B4513",
   "durability": 70,
-  "equip_slot": "legs",
+  "equip_slots": ["legs"],
   "armor_value": 1
 }

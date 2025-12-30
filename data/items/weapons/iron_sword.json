@@ -16,6 +16,6 @@
   "ascii_char": "|",
   "ascii_color": "#AAAAAA",
   "durability": 100,
-  "equip_slot": "main_hand",
+  "equip_slots": ["main_hand"],
   "damage_bonus": 6
 }

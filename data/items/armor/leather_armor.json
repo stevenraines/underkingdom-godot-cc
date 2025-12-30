@@ -16,6 +16,6 @@
   "ascii_char": "[",
   "ascii_color": "#8B4513",
   "durability": 100,
-  "equip_slot": "torso",
+  "equip_slots": ["torso"],
   "armor_value": 3
 }

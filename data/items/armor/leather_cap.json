@@ -16,6 +16,6 @@
   "ascii_char": "^",
   "ascii_color": "#8B4513",
   "durability": 50,
-  "equip_slot": "head",
+  "equip_slots": ["head"],
   "armor_value": 1
 }

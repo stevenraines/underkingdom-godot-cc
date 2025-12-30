@@ -16,6 +16,6 @@
   "ascii_char": ")",
   "ascii_color": "#8B5A2B",
   "durability": 75,
-  "equip_slot": "off_hand",
+  "equip_slots": ["off_hand"],
   "armor_value": 2
 }

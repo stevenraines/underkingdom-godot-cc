@@ -232,12 +232,12 @@ func use_item(item: Item) -> Dictionary:
 	
 	return inventory.use_item(item)
 
-## Equip an item
-func equip_item(item: Item) -> Item:
+## Equip an item (returns array of unequipped items, if any)
+func equip_item(item: Item, target_slot: String = "") -> Array[Item]:
 	if not item or not inventory:
-		return null
+		return []
 	
-	return inventory.equip_item(item)
+	return inventory.equip_item(item, target_slot)
 
 ## Apply item effects (called by Item.use())
 func apply_item_effects(effects: Dictionary) -> void:

@@ -8,7 +8,8 @@
     "equippable": true,
     "consumable": false,
     "craftable": true,
-    "tool": true
+    "tool": true,
+    "two_handed": true
   },
   "weight": 2.0,
   "value": 25,
@@ -17,6 +18,6 @@
   "ascii_color": "#666666",
   "durability": 100,
   "tool_type": "pickaxe",
-  "equip_slot": "main_hand",
+  "equip_slots": ["main_hand"],
   "damage_bonus": 2
 }

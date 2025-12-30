@@ -17,6 +17,6 @@
   "ascii_color": "#8B8B8B",
   "durability": 150,
   "tool_type": "hammer",
-  "equip_slot": "main_hand",
+  "equip_slots": ["main_hand"],
   "damage_bonus": 3
 }

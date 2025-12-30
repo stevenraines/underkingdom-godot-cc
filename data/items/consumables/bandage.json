@@ -13,8 +13,8 @@
   "weight": 0.1,
   "value": 8,
   "max_stack": 10,
-  "ascii_char": "+",
-  "ascii_color": "#FFFFFF",
+  "ascii_char": "♥",
+  "ascii_color": "#FF746C",
   "effects": {
     "health": 15
   }

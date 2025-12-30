@@ -17,6 +17,6 @@
   "ascii_color": "#AAAAAA",
   "durability": 100,
   "tool_type": "knife",
-  "equip_slot": "main_hand",
+  "equip_slots": ["main_hand", "off_hand"],
   "damage_bonus": 4
 }

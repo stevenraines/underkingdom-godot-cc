@@ -207,15 +207,21 @@ func get_tool(tool_type: String) -> Item:
 	
 	return null
 
-## Equip an item
-## Returns the previously equipped item (or null)
-func equip_item(item: Item) -> Item:
+## Equip an item to a specific slot (or auto-select if slot is empty)
+## Returns an array of previously equipped items (can be multiple for two-handed)
+func equip_item(item: Item, target_slot: String = "") -> Array[Item]:
+	var unequipped: Array[Item] = []
+	
 	if not item or not item.is_equippable():
-		return null
+		return unequipped
 	
-	var slot = item.equip_slot
+	var slot = target_slot
 	
-	# Handle accessory slots (use first available)
+	# If no target slot specified, pick the first available or first in list
+	if slot == "":
+		slot = _get_best_slot_for_item(item)
+	
+	# Handle accessory slots specially
 	if slot == "accessory":
 		if equipment["accessory_1"] == null:
 			slot = "accessory_1"
@@ -224,12 +230,31 @@ func equip_item(item: Item) -> Item:
 		else:
 			slot = "accessory_1"  # Replace first
 	
+	# Verify item can equip to this slot
+	if not item.can_equip_to_slot(slot):
+		push_error("Inventory: Item %s cannot equip to slot %s" % [item.id, slot])
+		return unequipped
+	
 	if slot not in equipment:
 		push_error("Inventory: Invalid equip slot: %s" % slot)
-		return null
+		return unequipped
 	
-	# Remove from inventory
+	# Check if off_hand is blocked by a two-handed weapon
+	if slot == "off_hand" and is_off_hand_blocked():
+		push_warning("Inventory: Cannot equip to off_hand - blocked by two-handed weapon")
+		return unequipped
+	
+	# Remove from inventory first
 	remove_item(item)
+	
+	# Handle two-handed weapon - must unequip off_hand first
+	if item.is_two_handed() and slot == "main_hand":
+		var off_hand_item = equipment["off_hand"]
+		if off_hand_item:
+			equipment["off_hand"] = null
+			add_item(off_hand_item)
+			unequipped.append(off_hand_item)
+			EventBus.item_unequipped.emit(off_hand_item, "off_hand")
 	
 	# Swap with currently equipped
 	var previous = equipment[slot]
@@ -238,9 +263,45 @@ func equip_item(item: Item) -> Item:
 	# Put previous item back in inventory
 	if previous:
 		add_item(previous)
+		unequipped.append(previous)
 	
 	EventBus.item_equipped.emit(item, slot)
-	return previous
+	return unequipped
+
+## Get the best slot to equip an item to (first empty, or first in list)
+func _get_best_slot_for_item(item: Item) -> String:
+	var slots = item.get_equip_slots()
+	if slots.is_empty():
+		return ""
+	
+	# For accessories, check both slots
+	if "accessory" in slots:
+		if equipment["accessory_1"] == null:
+			return "accessory_1"
+		if equipment["accessory_2"] == null:
+			return "accessory_2"
+		return "accessory_1"
+	
+	# Check if any slot is empty
+	for slot in slots:
+		if equipment.get(slot, null) == null:
+			return slot
+	
+	# Return first slot (will replace existing)
+	return slots[0]
+
+## Check if the off_hand slot is blocked by a two-handed main_hand weapon
+func is_off_hand_blocked() -> bool:
+	var main_hand = equipment.get("main_hand", null)
+	return main_hand != null and main_hand.is_two_handed()
+
+## Get items that can be equipped to a specific slot
+func get_items_for_slot(slot: String) -> Array[Item]:
+	var result: Array[Item] = []
+	for item in items:
+		if item.can_equip_to_slot(slot):
+			result.append(item)
+	return result
 
 ## Unequip an item from a slot
 ## Returns the unequipped item

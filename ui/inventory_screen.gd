@@ -22,6 +22,12 @@ var is_equipment_focused: bool = false
 var equipment_index: int = 0
 var inventory_index: int = 0
 
+# Slot selection mode (when pressing E on empty slot or multi-slot item)
+var slot_selection_mode: bool = false
+var slot_selection_items: Array[Item] = []
+var slot_selection_index: int = 0
+var pending_equip_slot: String = ""  # The slot we're trying to equip to
+
 # Colors
 const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
 const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
@@ -65,6 +71,12 @@ func _input(event: InputEvent) -> void:
 		return
 	
 	if event is InputEventKey and event.pressed and not event.echo:
+		# Handle slot selection mode separately
+		if slot_selection_mode:
+			_handle_slot_selection_input(event.keycode)
+			get_viewport().set_input_as_handled()
+			return
+		
 		match event.keycode:
 			KEY_ESCAPE, KEY_I:
 				_close()
@@ -312,9 +324,13 @@ func _update_tooltip() -> void:
 		tooltip_label.text = _format_item_tooltip(selected_item)
 	elif selected_slot != "":
 		var slot_name = SLOT_DISPLAY_NAMES.get(selected_slot, selected_slot)
-		tooltip_label.text = "[color=#888888]Empty %s slot[/color]\n\nEquip an item from your backpack using [color=#99cc99][E][/color]" % slot_name
+		# Check if off_hand is blocked
+		if selected_slot == "off_hand" and player and player.inventory and player.inventory.is_off_hand_blocked():
+			tooltip_label.text = "[color=#ff8888]%s slot is BLOCKED[/color]\n\n[color=#888888]A two-handed weapon is equipped in main hand.[/color]\n\nUnequip the weapon to use this slot.\n\n[color=#666666][Tab] Switch panel | [ESC] Close[/color]"  % slot_name
+		else:
+			tooltip_label.text = "[color=#888888]Empty %s slot[/color]\n\nSelect an item to equip here.\n\n[color=#666666][E] Browse items | [Tab] Switch panel | [ESC] Close[/color]" % slot_name
 	else:
-		tooltip_label.text = "[color=#888888]Use [Tab] to switch between Equipment and Backpack[/color]"
+		tooltip_label.text = "[color=#888888]Use [Tab] to switch between Equipment and Backpack[/color]\n\n[color=#666666][ESC] Close[/color]"
 
 ## Format item tooltip with BBCode
 func _format_item_tooltip(item: Item) -> String:
@@ -332,13 +348,44 @@ func _format_item_tooltip(item: Item) -> String:
 				tooltip += "[color=#88ccff]◇ Thirst: +%d%%[/color]\n" % item.effects["thirst"]
 		"weapon":
 			tooltip += "[color=#ff8888]⚔ Damage: +%d[/color]\n" % item.damage_bonus
+			if item.is_two_handed():
+				tooltip += "[color=#cc88cc]◊ Two-Handed[/color]\n"
 		"armor":
 			tooltip += "[color=#8888ff]◈ Armor: %d[/color]\n" % item.armor_value
 		"tool":
 			if item.tool_type != "":
 				tooltip += "[color=#cccccc]⚒ Tool: %s[/color]\n" % item.tool_type.capitalize()
+			if item.is_two_handed():
+				tooltip += "[color=#cc88cc]◊ Two-Handed[/color]\n"
+	
+	# Equip slot info for multi-slot items
+	var slots = item.get_equip_slots()
+	if slots.size() > 1:
+		var slot_names = []
+		for slot in slots:
+			slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
+		tooltip += "[color=#aaaaaa]Slots: %s[/color]\n" % ", ".join(slot_names)
 	
 	tooltip += "\n[color=#666666]Weight: %.1f kg  |  Value: %d gold[/color]" % [item.weight, item.value]
+	
+	# Dynamic action hints based on item flags and context
+	var actions = []
+	
+	if is_equipment_focused and selected_slot != "":
+		# Item is equipped - show unequip option
+		actions.append("[E] Unequip")
+	else:
+		# Item is in inventory - show contextual options
+		if item.is_consumable():
+			actions.append("[U] Use")
+		if item.is_equippable():
+			actions.append("[E] Equip")
+	
+	actions.append("[D] Drop")
+	actions.append("[Tab] Switch panel")
+	actions.append("[ESC] Close")
+	
+	tooltip += "\n\n[color=#666666]%s[/color]" % " | ".join(actions)
 	
 	return tooltip
 
@@ -356,25 +403,189 @@ func _toggle_focus() -> void:
 	_update_selection()
 
 func _equip_selected() -> void:
-	if not player or not player.inventory or not selected_item:
+	if not player or not player.inventory:
 		return
 	
-	# Store the item reference before any operations
-	var item_to_process = selected_item
-	
-	# Clear selection state to prevent double-operations
-	selected_item = null
-	
 	if is_equipment_focused:
-		# Unequip
-		if selected_slot != "":
+		# On equipment side
+		if selected_item:
+			# Unequip the item
 			player.inventory.unequip_slot(selected_slot)
+		elif selected_slot != "":
+			# Empty slot - show items that can be equipped here
+			_show_items_for_slot(selected_slot)
+			return
 	else:
-		# Equip from inventory - verify item is still in inventory
-		if item_to_process.is_equippable() and player.inventory.contains_item(item_to_process):
-			player.inventory.equip_item(item_to_process)
+		# On inventory side - equip selected item
+		if not selected_item:
+			return
+		
+		# Store the item reference before any operations
+		var item_to_process = selected_item
+		
+		# Check if item is equippable
+		if not item_to_process.is_equippable():
+			return
+		
+		# Check if it's in inventory
+		if not player.inventory.contains_item(item_to_process):
+			return
+		
+		# If item can go in multiple slots, show slot picker
+		var slots = item_to_process.get_equip_slots()
+		if slots.size() > 1:
+			_show_slot_picker(item_to_process)
+			return
+		
+		# Clear selection state to prevent double-operations
+		selected_item = null
+		
+		# Equip to default slot
+		player.inventory.equip_item(item_to_process)
 	
 	refresh()
+
+## Show items that can be equipped to a specific slot
+func _show_items_for_slot(slot: String) -> void:
+	# Check if off_hand is blocked
+	if slot == "off_hand" and player.inventory.is_off_hand_blocked():
+		# Show message in tooltip
+		tooltip_label.text = "[color=#ff8888]Off-hand slot is blocked by two-handed weapon![/color]\n\nUnequip your main weapon first."
+		return
+	
+	var items = player.inventory.get_items_for_slot(slot)
+	if items.is_empty():
+		tooltip_label.text = "[color=#888888]No items in backpack can be equipped here.[/color]"
+		return
+	
+	slot_selection_mode = true
+	slot_selection_items = items
+	slot_selection_index = 0
+	pending_equip_slot = slot
+	_update_slot_selection_display()
+
+## Show slot picker for items with multiple equip slots
+func _show_slot_picker(item: Item) -> void:
+	# Build a list showing slot options
+	slot_selection_mode = true
+	slot_selection_items.clear()
+	slot_selection_index = 0
+	pending_equip_slot = ""
+	_slot_picker_index = 0  # Reset to first slot
+	
+	# Store the item we're equipping
+	_pending_slot_picker_item = item
+	
+	# Update the display
+	_update_slot_picker_display()
+
+## Update the slot picker display with current selection
+func _update_slot_picker_display() -> void:
+	if not _pending_slot_picker_item:
+		return
+	
+	var item = _pending_slot_picker_item
+	var slots = item.get_equip_slots()
+	
+	var tooltip = "[color=#99cc99][b]Select Slot for %s[/b][/color]\n\n" % item.name
+	for i in range(slots.size()):
+		var slot = slots[i]
+		var slot_name = SLOT_DISPLAY_NAMES.get(slot, slot)
+		var current = player.inventory.get_equipped(slot)
+		var current_text = current.name if current else "Empty"
+		var marker = "► " if i == _slot_picker_index else "  "
+		# Highlight selected slot in yellow
+		if i == _slot_picker_index:
+			tooltip += "[color=#ffff99]%s[%d] %s: %s[/color]\n" % [marker, i + 1, slot_name, current_text]
+		else:
+			tooltip += "%s[%d] %s: %s\n" % [marker, i + 1, slot_name, current_text]
+	
+	tooltip += "\n[color=#666666]↑↓ Navigate | Enter to equip | 1-%d Quick select | ESC Cancel[/color]" % slots.size()
+	tooltip_label.text = tooltip
+
+var _pending_slot_picker_item: Item = null
+var _slot_picker_index: int = 0  # Track selected slot in slot picker
+
+## Handle slot picker key input  
+func _handle_slot_selection_input(keycode: int) -> void:
+	# If we have a pending slot picker item, handle navigation and selection
+	if _pending_slot_picker_item:
+		var slots = _pending_slot_picker_item.get_equip_slots()
+		match keycode:
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
+				var index = keycode - KEY_1
+				if index < slots.size():
+					var slot = slots[index]
+					player.inventory.equip_item(_pending_slot_picker_item, slot)
+					_cancel_slot_selection()
+				return
+			KEY_UP:
+				_slot_picker_index = max(0, _slot_picker_index - 1)
+				_update_slot_picker_display()
+				return
+			KEY_DOWN:
+				_slot_picker_index = min(slots.size() - 1, _slot_picker_index + 1)
+				_update_slot_picker_display()
+				return
+			KEY_ENTER, KEY_SPACE, KEY_E:
+				if _slot_picker_index < slots.size():
+					var slot = slots[_slot_picker_index]
+					player.inventory.equip_item(_pending_slot_picker_item, slot)
+					_cancel_slot_selection()
+				return
+			KEY_ESCAPE:
+				_cancel_slot_selection()
+				return
+		return
+	
+	# Normal item selection mode (for empty slot)
+	match keycode:
+		KEY_ESCAPE:
+			_cancel_slot_selection()
+		KEY_UP:
+			slot_selection_index = max(0, slot_selection_index - 1)
+			_update_slot_selection_display()
+		KEY_DOWN:
+			slot_selection_index = min(slot_selection_items.size() - 1, slot_selection_index + 1)
+			_update_slot_selection_display()
+		KEY_ENTER, KEY_SPACE, KEY_E:
+			_confirm_slot_selection()
+
+func _cancel_slot_selection() -> void:
+	slot_selection_mode = false
+	slot_selection_items.clear()
+	pending_equip_slot = ""
+	_pending_slot_picker_item = null
+	_slot_picker_index = 0
+	refresh()
+
+func _confirm_slot_selection() -> void:
+	if slot_selection_items.is_empty() or pending_equip_slot == "":
+		_cancel_slot_selection()
+		return
+	
+	var item = slot_selection_items[slot_selection_index]
+	player.inventory.equip_item(item, pending_equip_slot)
+	_cancel_slot_selection()
+
+func _update_slot_selection_display() -> void:
+	if slot_selection_items.is_empty():
+		return
+	
+	var slot_name = SLOT_DISPLAY_NAMES.get(pending_equip_slot, pending_equip_slot)
+	var tooltip = "[color=#99cc99][b]Select item to equip in %s:[/b][/color]\n\n" % slot_name
+	
+	for i in range(slot_selection_items.size()):
+		var item = slot_selection_items[i]
+		var marker = "► " if i == slot_selection_index else "  "
+		# Highlight selected item in yellow
+		if i == slot_selection_index:
+			tooltip += "[color=#ffff99]%s%s[/color]\n" % [marker, item.name]
+		else:
+			tooltip += "%s[color=#%s]%s[/color]\n" % [marker, item.get_color().to_html(false), item.name]
+	
+	tooltip += "\n[color=#666666]↑↓ Navigate | Enter to equip | ESC to cancel[/color]"
+	tooltip_label.text = tooltip
 
 func _use_selected() -> void:
 	if not player or not selected_item:

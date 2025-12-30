@@ -37,7 +37,8 @@ var durability: int = -1            # -1 = no durability
 var max_durability: int = -1        # -1 = no durability
 
 # Equipment properties
-var equip_slot: String = ""         # Which slot this equips to ("", "main_hand", "torso", etc.)
+var equip_slot: String = ""         # Legacy: single slot (for backwards compatibility)
+var equip_slots: Array[String] = [] # Which slots this can equip to (e.g., ["main_hand", "off_hand"])
 var armor_value: int = 0            # Damage reduction when equipped
 var damage_bonus: int = 0           # Added to base damage when equipped
 
@@ -83,8 +84,21 @@ static func create_from_data(data: Dictionary) -> Item:
 	item.max_durability = data.get("durability", -1)
 	item.durability = item.max_durability
 	
-	# Equipment
-	item.equip_slot = data.get("equip_slot", "")
+	# Equipment - support both new equip_slots array and legacy equip_slot
+	var slots_data = data.get("equip_slots", [])
+	if slots_data is Array:
+		for slot in slots_data:
+			item.equip_slots.append(str(slot))
+	
+	# Legacy support: if equip_slot exists but equip_slots is empty, use it
+	var legacy_slot = data.get("equip_slot", "")
+	if legacy_slot != "" and item.equip_slots.is_empty():
+		item.equip_slots.append(legacy_slot)
+	
+	# Set equip_slot to first slot for backwards compatibility
+	if not item.equip_slots.is_empty():
+		item.equip_slot = item.equip_slots[0]
+	
 	item.armor_value = data.get("armor_value", 0)
 	item.damage_bonus = data.get("damage_bonus", 0)
 	
@@ -118,6 +132,7 @@ func duplicate_item() -> Item:
 	copy.durability = durability
 	copy.max_durability = max_durability
 	copy.equip_slot = equip_slot
+	copy.equip_slots = equip_slots.duplicate()
 	copy.armor_value = armor_value
 	copy.damage_bonus = damage_bonus
 	copy.tool_type = tool_type
@@ -205,12 +220,29 @@ func remove_from_stack(amount: int) -> int:
 func get_total_weight() -> float:
 	return weight * stack_size
 
-## Check if this item can be equipped (uses flags or equip_slot)
+## Check if this item can be equipped (uses flags or equip_slots)
 func is_equippable() -> bool:
-	# Check flag first, then fall back to equip_slot
+	# Check flag first, then fall back to equip_slots
 	if flags.get("equippable", false):
 		return true
-	return equip_slot != ""
+	return not equip_slots.is_empty()
+
+## Check if this item can be equipped to a specific slot
+func can_equip_to_slot(slot: String) -> bool:
+	if not is_equippable():
+		return false
+	# Handle accessory slots specially - both accessory_1 and accessory_2 match "accessory"
+	if slot in ["accessory_1", "accessory_2"]:
+		return "accessory" in equip_slots
+	return slot in equip_slots
+
+## Get all slots this item can be equipped to
+func get_equip_slots() -> Array[String]:
+	return equip_slots
+
+## Check if this item requires two hands
+func is_two_handed() -> bool:
+	return flags.get("two_handed", false)
 
 ## Check if this item is consumable
 func is_consumable() -> bool:

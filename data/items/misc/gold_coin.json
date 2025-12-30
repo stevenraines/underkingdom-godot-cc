@@ -1,0 +1,19 @@
+{
+  "id": "gold_coin",
+  "name": "Gold Coin",
+  "description": "A gold coin used as currency.",
+  "category": "currency",
+  "subtype": "coin",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "currency": true
+  },
+  "weight": 0.01,
+  "value": 1,
+  "max_stack": 9999,
+  "ascii_char": "$",
+  "ascii_color": "#FFD700"
+}

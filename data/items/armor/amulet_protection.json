@@ -1,0 +1,21 @@
+{
+  "id": "amulet_protection",
+  "name": "Amulet of Protection",
+  "description": "A magical amulet that provides minor protection.",
+  "category": "armor",
+  "subtype": "accessory",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "magical": true
+  },
+  "weight": 0.1,
+  "value": 50,
+  "max_stack": 1,
+  "ascii_char": "o",
+  "ascii_color": "#FFD700",
+  "equip_slot": "accessory",
+  "armor_value": 1
+}

@@ -1,0 +1,21 @@
+{
+  "id": "wooden_shield",
+  "name": "Wooden Shield",
+  "description": "A sturdy wooden shield for blocking attacks.",
+  "category": "armor",
+  "subtype": "shield",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 2.5,
+  "value": 20,
+  "max_stack": 1,
+  "ascii_char": ")",
+  "ascii_color": "#8B5A2B",
+  "durability": 75,
+  "equip_slot": "off_hand",
+  "armor_value": 2
+}

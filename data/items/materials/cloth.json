@@ -1,0 +1,19 @@
+{
+  "id": "cloth",
+  "name": "Cloth",
+  "description": "A piece of cloth useful for various crafts.",
+  "category": "material",
+  "subtype": "fabric",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.1,
+  "value": 2,
+  "max_stack": 50,
+  "ascii_char": "~",
+  "ascii_color": "#AAAAAA"
+}

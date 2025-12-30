@@ -4,9 +4,15 @@ extends Node2D
 ##
 ## Initializes the game, creates player, manages rendering and updates.
 
+const ItemClass = preload("res://items/item.gd")
+const GroundItemClass = preload("res://entities/ground_item.gd")
+const ItemManagerScript = preload("res://autoload/item_manager.gd")
+
 var player: Player
 var renderer: ASCIIRenderer
 var input_handler: Node
+var inventory_screen: Control = null
+var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
 @onready var hud: CanvasLayer = $HUD
 @onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
@@ -14,6 +20,8 @@ var input_handler: Node
 @onready var location_label: Label = $HUD/RightSidebar/LocationLabel
 @onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
+
+const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -24,6 +32,9 @@ func _ready() -> void:
 
 	# Set UI colors
 	_setup_ui_colors()
+	
+	# Create inventory screen
+	_setup_inventory_screen()
 
 	# Start new game
 	GameManager.start_new_game()
@@ -35,6 +46,9 @@ func _ready() -> void:
 	player = Player.new()
 	player.position = _find_valid_spawn_position()
 	MapManager.current_map.entities.append(player)
+	
+	# Give player some starter items
+	_give_starter_items()
 
 	# Set player reference in input handler and EntityManager
 	input_handler.set_player(player)
@@ -46,6 +60,7 @@ func _ready() -> void:
 	# Initial render
 	_render_map()
 	_render_all_entities()
+	_render_ground_items()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
 
@@ -63,15 +78,43 @@ func _ready() -> void:
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.survival_warning.connect(_on_survival_warning)
 	EventBus.stamina_depleted.connect(_on_stamina_depleted)
+	EventBus.inventory_changed.connect(_on_inventory_changed)
+	EventBus.item_picked_up.connect(_on_item_picked_up)
+	EventBus.item_dropped.connect(_on_item_dropped)
 
 	# Update HUD
 	_update_hud()
 
 	# Add welcome message
 	_add_message("Welcome to the Underkingdom. Press ? for help.", Color(0.7, 0.9, 1.0))
-	_add_message("WASD/Arrows: Move  >: Descend  <: Ascend", Color(0.8, 0.8, 0.8))
+	_add_message("WASD/Arrows: Move  I: Inventory  G: Pickup", Color(0.8, 0.8, 0.8))
 
 	print("Game scene initialized")
+
+## Setup inventory screen
+func _setup_inventory_screen() -> void:
+	inventory_screen = InventoryScreenScene.instantiate()
+	hud.add_child(inventory_screen)
+	inventory_screen.closed.connect(_on_inventory_closed)
+
+## Give player some starter items
+func _give_starter_items() -> void:
+	if not player or not player.inventory:
+		return
+	
+	# Add some basic starter items
+	var starter_items = [
+		{"id": "ration", "count": 3},
+		{"id": "bandage", "count": 2},
+		{"id": "waterskin_full", "count": 1},
+		{"id": "flint_knife", "count": 1}
+	]
+	
+	var item_mgr = get_node("/root/ItemManager")
+	for item_data in starter_items:
+		var item = item_mgr.create_item(item_data.id, item_data.count)
+		if item:
+			player.inventory.add_item(item)
 
 ## Render the entire current map
 func _render_map() -> void:
@@ -112,6 +155,10 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
+	
+	# Re-render any ground item at old position that was hidden under player
+	_render_ground_item_at(old_pos)
+	
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
 
@@ -119,8 +166,35 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	var visible_tiles = FOVSystem.calculate_fov(new_pos, player.perception_range, MapManager.current_map)
 	renderer.update_fov(visible_tiles)
 
+	# Auto-pickup items at new position
+	_auto_pickup_items()
+
 	# Check if standing on stairs and update message
 	_update_message()
+
+## Render a ground item at a specific position if one exists
+func _render_ground_item_at(pos: Vector2i) -> void:
+	var ground_items = EntityManager.get_ground_items_at(pos)
+	if ground_items.size() > 0:
+		var item = ground_items[0]
+		renderer.render_entity(pos, item.ascii_char, item.color)
+
+## Auto-pickup items at the player's position
+func _auto_pickup_items() -> void:
+	if not player or not auto_pickup_enabled:
+		return
+	
+	var ground_items = EntityManager.get_ground_items_at(player.position)
+	for ground_item in ground_items:
+		if player.pickup_item(ground_item):
+			EntityManager.remove_entity(ground_item)
+
+## Toggle auto-pickup on/off
+func toggle_auto_pickup() -> void:
+	auto_pickup_enabled = not auto_pickup_enabled
+	var status = "ON" if auto_pickup_enabled else "OFF"
+	_add_message("Auto-pickup: %s" % status, Color(0.8, 0.8, 0.6))
+	_update_toggles_display()
 
 ## Called when map changes (dungeon transitions, etc.)
 func _on_map_changed(map_id: String) -> void:
@@ -348,6 +422,18 @@ func _update_survival_display() -> void:
 	else:
 		active_effects_label.text = "EFFECTS: None"
 		active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+	
+	# Update abilities/toggles bar
+	_update_toggles_display()
+
+## Update the bottom bar toggles display
+func _update_toggles_display() -> void:
+	var ability1 = $HUD/BottomBar/Abilities/Ability1
+	if ability1:
+		var autopickup_status = "[G] Auto-pickup: %s" % ("ON" if auto_pickup_enabled else "OFF")
+		var autopickup_color = Color(0.5, 0.9, 0.5) if auto_pickup_enabled else Color(0.6, 0.6, 0.6)
+		ability1.text = autopickup_status
+		ability1.add_theme_color_override("font_color", autopickup_color)
 
 ## Count enemies within aggro range of player
 func _count_nearby_enemies() -> int:
@@ -499,3 +585,45 @@ func _setup_ui_colors() -> void:
 	var ability1 = $HUD/BottomBar/Abilities/Ability1
 	if ability1:
 		ability1.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+
+## Render all ground items on the map (except under player)
+func _render_ground_items() -> void:
+	for entity in EntityManager.entities:
+		if entity is GroundItemClass:
+			# Don't render items under the player - player renders on top
+			if player and entity.position == player.position:
+				continue
+			renderer.render_entity(entity.position, entity.ascii_char, entity.color)
+
+## Called when inventory contents change - only refresh if already open
+func _on_inventory_changed() -> void:
+	if inventory_screen and inventory_screen.visible:
+		inventory_screen.refresh()
+
+## Toggle inventory screen visibility (called from input handler)
+func toggle_inventory_screen() -> void:
+	if inventory_screen:
+		if inventory_screen.visible:
+			inventory_screen.hide()
+			input_handler.ui_blocking_input = false
+		else:
+			inventory_screen.open(player)
+			input_handler.ui_blocking_input = true
+
+## Called when inventory screen is closed
+func _on_inventory_closed() -> void:
+	# Resume normal gameplay
+	input_handler.ui_blocking_input = false
+
+## Called when an item is picked up
+func _on_item_picked_up(item) -> void:
+	_add_message("Picked up: %s" % item.name, Color(0.6, 0.9, 0.6))
+	# Re-render to update ground items
+	_render_ground_items()
+
+## Called when an item is dropped
+func _on_item_dropped(item, pos: Vector2i) -> void:
+	_add_message("Dropped: %s" % item.name, Color(0.7, 0.7, 0.7))
+	# Re-render to show dropped item
+	renderer.render_entity(pos, item.ascii_char, item.get_color())
+	_update_hud()

@@ -1,0 +1,21 @@
+{
+  "id": "wooden_club",
+  "name": "Wooden Club",
+  "description": "A simple wooden club. Better than bare fists.",
+  "category": "weapon",
+  "subtype": "blunt",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 1.0,
+  "value": 5,
+  "max_stack": 1,
+  "ascii_char": "!",
+  "ascii_color": "#8B5A2B",
+  "durability": 50,
+  "equip_slot": "main_hand",
+  "damage_bonus": 2
+}

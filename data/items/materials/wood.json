@@ -1,0 +1,19 @@
+{
+  "id": "wood",
+  "name": "Wood",
+  "description": "A sturdy piece of wood for crafting.",
+  "category": "material",
+  "subtype": "wood",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.5,
+  "value": 1,
+  "max_stack": 20,
+  "ascii_char": "=",
+  "ascii_color": "#8B5A2B"
+}

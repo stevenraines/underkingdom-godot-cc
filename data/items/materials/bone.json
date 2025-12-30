@@ -1,0 +1,19 @@
+{
+  "id": "bone",
+  "name": "Bone",
+  "description": "An animal bone. Can be used for crafting.",
+  "category": "material",
+  "subtype": "bone",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.2,
+  "value": 1,
+  "max_stack": 20,
+  "ascii_char": "/",
+  "ascii_color": "#FFFFDD"
+}

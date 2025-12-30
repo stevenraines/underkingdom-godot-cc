@@ -6,6 +6,7 @@ extends Node
 ## Supports continuous movement while holding WASD/arrow keys.
 
 var player: Player = null
+var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
 
 # Continuous movement settings
 var move_delay: float = 0.12  # Time between moves when holding a key
@@ -27,6 +28,10 @@ func _process(delta: float) -> void:
 	
 	# Don't process input if player is dead
 	if not player.is_alive:
+		return
+	
+	# Don't process movement input if UI is blocking
+	if ui_blocking_input:
 		return
 
 	# Check for held movement keys
@@ -108,6 +113,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			_do_wait_action()
 			action_taken = true
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_I:  # I key - toggle inventory
+			_toggle_inventory()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_G:  # G key - toggle auto-pickup
+			_toggle_auto_pickup()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_COMMA:  # , - manual pickup
+			_try_pickup_item()
+			action_taken = true
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -119,3 +134,24 @@ func _do_wait_action() -> void:
 		# Bonus stamina regeneration for waiting (regen twice)
 		player.regenerate_stamina()
 		player.regenerate_stamina()
+
+## Toggle inventory screen
+func _toggle_inventory() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_inventory_screen"):
+		game.toggle_inventory_screen()
+
+## Toggle auto-pickup setting
+func _toggle_auto_pickup() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_auto_pickup"):
+		game.toggle_auto_pickup()
+
+## Try to pick up an item at the player's position
+func _try_pickup_item() -> void:
+	# Find ground items at player position
+	var ground_items = EntityManager.get_ground_items_at(player.position)
+	if ground_items.size() > 0:
+		var ground_item = ground_items[0]  # Pick up first item
+		if player.pickup_item(ground_item):
+			EntityManager.remove_entity(ground_item)

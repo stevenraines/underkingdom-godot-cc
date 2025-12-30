@@ -1,0 +1,19 @@
+{
+  "id": "cord",
+  "name": "Cord",
+  "description": "A length of strong cord for binding and crafting.",
+  "category": "material",
+  "subtype": "fiber",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.1,
+  "value": 2,
+  "max_stack": 50,
+  "ascii_char": "-",
+  "ascii_color": "#AA8866"
+}

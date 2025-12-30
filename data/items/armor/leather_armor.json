@@ -1,0 +1,21 @@
+{
+  "id": "leather_armor",
+  "name": "Leather Armor",
+  "description": "Sturdy leather armor that provides basic protection.",
+  "category": "armor",
+  "subtype": "body",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 3.0,
+  "value": 30,
+  "max_stack": 1,
+  "ascii_char": "[",
+  "ascii_color": "#8B4513",
+  "durability": 100,
+  "equip_slot": "torso",
+  "armor_value": 3
+}

@@ -1,0 +1,20 @@
+{
+  "id": "waterskin_empty",
+  "name": "Empty Waterskin",
+  "description": "An empty leather waterskin. Fill it at a water source.",
+  "category": "tool",
+  "subtype": "container",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "fillable": true
+  },
+  "weight": 0.2,
+  "value": 8,
+  "max_stack": 1,
+  "ascii_char": "!",
+  "ascii_color": "#8B4513",
+  "tool_type": "waterskin"
+}

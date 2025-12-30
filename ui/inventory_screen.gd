@@ -1,0 +1,404 @@
+extends Control
+
+## InventoryScreen - UI for displaying and managing player inventory
+##
+## Shows equipped items, inventory contents, weight, and encumbrance.
+## Allows equipping, using, and dropping items.
+
+signal closed()
+
+@onready var equipment_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentList
+@onready var inventory_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer/InventoryList
+@onready var weight_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/WeightLabel
+@onready var encumbrance_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/EncumbranceLabel
+@onready var tooltip_label: RichTextLabel = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipMargin/TooltipLabel
+@onready var equipment_title: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentTitle
+@onready var inventory_title: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/InventoryTitle
+
+var player: Player = null
+var selected_item: Item = null
+var selected_slot: String = ""
+var is_equipment_focused: bool = false
+var equipment_index: int = 0
+var inventory_index: int = 0
+
+# Colors
+const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
+const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
+const COLOR_EMPTY = Color(0.4, 0.4, 0.4, 1.0)
+const COLOR_EQUIPPED = Color(0.9, 0.85, 0.5, 1.0)
+const COLOR_HIGHLIGHT = Color(1.0, 1.0, 0.6, 1.0)
+const COLOR_PANEL_ACTIVE = Color(0.8, 0.8, 0.5, 1.0)
+const COLOR_PANEL_INACTIVE = Color(0.5, 0.5, 0.4, 1.0)
+
+# Equipment slots in display order
+const EQUIPMENT_SLOTS = ["head", "torso", "hands", "legs", "feet", "main_hand", "off_hand", "accessory_1", "accessory_2"]
+const SLOT_DISPLAY_NAMES = {
+	"head": "Head",
+	"torso": "Torso", 
+	"hands": "Hands",
+	"legs": "Legs",
+	"feet": "Feet",
+	"main_hand": "Weapon",
+	"off_hand": "Off-Hand",
+	"accessory_1": "Ring 1",
+	"accessory_2": "Ring 2"
+}
+const SLOT_ICONS = {
+	"head": "○",
+	"torso": "▣",
+	"hands": "☐",
+	"legs": "║",
+	"feet": "⌐",
+	"main_hand": "†",
+	"off_hand": "◈",
+	"accessory_1": "◇",
+	"accessory_2": "◇"
+}
+
+func _ready() -> void:
+	hide()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_ESCAPE, KEY_I:
+				_close()
+				get_viewport().set_input_as_handled()
+			KEY_UP:
+				_navigate(-1)
+				get_viewport().set_input_as_handled()
+			KEY_DOWN:
+				_navigate(1)
+				get_viewport().set_input_as_handled()
+			KEY_TAB:
+				_toggle_focus()
+				get_viewport().set_input_as_handled()
+			KEY_E:
+				_equip_selected()
+				get_viewport().set_input_as_handled()
+			KEY_U:
+				_use_selected()
+				get_viewport().set_input_as_handled()
+			KEY_D:
+				_drop_selected()
+				get_viewport().set_input_as_handled()
+			KEY_ENTER, KEY_SPACE:
+				_action_selected()
+				get_viewport().set_input_as_handled()
+
+func open(p: Player) -> void:
+	player = p
+	refresh()
+	show()
+	is_equipment_focused = false
+	equipment_index = 0
+	inventory_index = 0
+	_update_selection()
+
+func _close() -> void:
+	hide()
+	closed.emit()
+
+func refresh() -> void:
+	if not player or not player.inventory:
+		return
+	
+	_update_weight_display()
+	_update_equipment_display()
+	_update_inventory_display()
+	_update_selection()
+
+func _update_weight_display() -> void:
+	if not player or not player.inventory:
+		return
+	
+	var inv = player.inventory
+	var current_weight = inv.get_total_weight()
+	var max_weight = inv.max_weight
+	
+	weight_label.text = "Weight: %.1f / %.1f kg" % [current_weight, max_weight]
+	
+	var penalty = inv.get_encumbrance_penalty()
+	match penalty.state:
+		"normal":
+			encumbrance_label.text = "Status: Normal"
+			encumbrance_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
+		"encumbered":
+			encumbrance_label.text = "Status: Encumbered (+50% stamina cost)"
+			encumbrance_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
+		"overburdened":
+			encumbrance_label.text = "Status: Overburdened (2x move cost)"
+			encumbrance_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
+		"immobile":
+			encumbrance_label.text = "Status: CANNOT MOVE"
+			encumbrance_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+
+func _update_equipment_display() -> void:
+	if not equipment_list or not player or not player.inventory:
+		return
+	
+	# Clear existing (use free() instead of queue_free() for immediate removal)
+	for child in equipment_list.get_children():
+		equipment_list.remove_child(child)
+		child.free()
+	
+	# Add equipment slots
+	for slot in EQUIPMENT_SLOTS:
+		var container = _create_item_row()
+		container.name = slot
+		
+		var equipped_item = player.inventory.get_equipped(slot)
+		var slot_name = SLOT_DISPLAY_NAMES.get(slot, slot)
+		var slot_icon = SLOT_ICONS.get(slot, "•")
+		
+		if equipped_item:
+			container.get_node("Icon").text = equipped_item.ascii_char
+			container.get_node("Icon").add_theme_color_override("font_color", equipped_item.get_color())
+			container.get_node("Name").text = equipped_item.name
+			container.get_node("Name").add_theme_color_override("font_color", COLOR_EQUIPPED)
+			container.get_node("Weight").text = "%.1fkg" % equipped_item.weight
+			container.get_node("Weight").add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		else:
+			container.get_node("Icon").text = slot_icon
+			container.get_node("Icon").add_theme_color_override("font_color", COLOR_EMPTY)
+			container.get_node("Name").text = "<%s>" % slot_name
+			container.get_node("Name").add_theme_color_override("font_color", COLOR_EMPTY)
+			container.get_node("Weight").text = ""
+		
+		container.set_meta("slot", slot)
+		equipment_list.add_child(container)
+
+func _update_inventory_display() -> void:
+	if not inventory_list or not player or not player.inventory:
+		return
+	
+	# Clear existing (use free() instead of queue_free() for immediate removal)
+	for child in inventory_list.get_children():
+		inventory_list.remove_child(child)
+		child.free()
+	
+	# Add inventory items
+	var items = player.inventory.get_all_items()
+	if items.size() == 0:
+		var label = Label.new()
+		label.text = "  (Empty backpack)"
+		label.add_theme_color_override("font_color", COLOR_EMPTY)
+		label.add_theme_font_size_override("font_size", 13)
+		inventory_list.add_child(label)
+	else:
+		for item in items:
+			var container = _create_item_row()
+			container.name = item.id
+			
+			container.get_node("Icon").text = item.ascii_char
+			container.get_node("Icon").add_theme_color_override("font_color", item.get_color())
+			
+			var name_text = item.name
+			if item.stack_size > 1:
+				name_text = "%s (x%d)" % [item.name, item.stack_size]
+			container.get_node("Name").text = name_text
+			container.get_node("Name").add_theme_color_override("font_color", item.get_color())
+			
+			container.get_node("Weight").text = "%.1fkg" % item.get_total_weight()
+			container.get_node("Weight").add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+			
+			container.set_meta("item", item)
+			inventory_list.add_child(container)
+
+## Create a row container for displaying items
+func _create_item_row() -> HBoxContainer:
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 8)
+	
+	var icon = Label.new()
+	icon.name = "Icon"
+	icon.custom_minimum_size = Vector2(20, 0)
+	icon.add_theme_font_size_override("font_size", 14)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(icon)
+	
+	var name_label = Label.new()
+	name_label.name = "Name"
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_font_size_override("font_size", 13)
+	container.add_child(name_label)
+	
+	var weight_label_item = Label.new()
+	weight_label_item.name = "Weight"
+	weight_label_item.custom_minimum_size = Vector2(50, 0)
+	weight_label_item.add_theme_font_size_override("font_size", 12)
+	weight_label_item.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	container.add_child(weight_label_item)
+	
+	return container
+
+func _update_selection() -> void:
+	selected_item = null
+	selected_slot = ""
+	
+	# Update panel title colors to show which is active
+	if equipment_title:
+		equipment_title.add_theme_color_override("font_color", COLOR_PANEL_ACTIVE if is_equipment_focused else COLOR_PANEL_INACTIVE)
+	if inventory_title:
+		inventory_title.add_theme_color_override("font_color", COLOR_PANEL_ACTIVE if not is_equipment_focused else COLOR_PANEL_INACTIVE)
+	
+	# Reset all highlights in equipment list
+	for i in range(equipment_list.get_child_count()):
+		var child = equipment_list.get_child(i)
+		_set_row_highlight(child, false)
+	
+	# Reset all highlights in inventory list  
+	for i in range(inventory_list.get_child_count()):
+		var child = inventory_list.get_child(i)
+		_set_row_highlight(child, false)
+	
+	# Highlight selected
+	if is_equipment_focused:
+		var children = equipment_list.get_children()
+		if equipment_index >= 0 and equipment_index < children.size():
+			var selected_row = children[equipment_index]
+			_set_row_highlight(selected_row, true)
+			selected_slot = EQUIPMENT_SLOTS[equipment_index]
+			selected_item = player.inventory.get_equipped(selected_slot) if player and player.inventory else null
+	else:
+		var children = inventory_list.get_children()
+		if inventory_index >= 0 and inventory_index < children.size():
+			var selected_row = children[inventory_index]
+			_set_row_highlight(selected_row, true)
+			selected_item = selected_row.get_meta("item") if selected_row.has_meta("item") else null
+	
+	_update_tooltip()
+
+## Set highlight state for a row
+func _set_row_highlight(row: Control, highlighted: bool) -> void:
+	if row is HBoxContainer:
+		var name_node = row.get_node_or_null("Name")
+		if name_node and name_node is Label:
+			if highlighted:
+				name_node.text = "► " + name_node.text.trim_prefix("► ")
+				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+			else:
+				name_node.text = name_node.text.trim_prefix("► ")
+	elif row is Label:
+		if highlighted:
+			row.text = "► " + row.text.trim_prefix("► ")
+			row.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+		else:
+			row.text = row.text.trim_prefix("► ")
+
+func _update_tooltip() -> void:
+	if not tooltip_label:
+		return
+	
+	if selected_item:
+		tooltip_label.text = _format_item_tooltip(selected_item)
+	elif selected_slot != "":
+		var slot_name = SLOT_DISPLAY_NAMES.get(selected_slot, selected_slot)
+		tooltip_label.text = "[color=#888888]Empty %s slot[/color]\n\nEquip an item from your backpack using [color=#99cc99][E][/color]" % slot_name
+	else:
+		tooltip_label.text = "[color=#888888]Use [Tab] to switch between Equipment and Backpack[/color]"
+
+## Format item tooltip with BBCode
+func _format_item_tooltip(item: Item) -> String:
+	var tooltip = "[color=#%s][b]%s[/b][/color]\n" % [item.get_color().to_html(false), item.name]
+	tooltip += "[color=#888888]%s[/color]\n\n" % item.description
+	
+	# Stats based on item type
+	match item.item_type:
+		"consumable":
+			if item.effects.has("health") and item.effects["health"] > 0:
+				tooltip += "[color=#88ff88]♥ Heals: %d HP[/color]\n" % item.effects["health"]
+			if item.effects.has("hunger") and item.effects["hunger"] > 0:
+				tooltip += "[color=#ffcc88]◆ Hunger: +%d%%[/color]\n" % item.effects["hunger"]
+			if item.effects.has("thirst") and item.effects["thirst"] > 0:
+				tooltip += "[color=#88ccff]◇ Thirst: +%d%%[/color]\n" % item.effects["thirst"]
+		"weapon":
+			tooltip += "[color=#ff8888]⚔ Damage: +%d[/color]\n" % item.damage_bonus
+		"armor":
+			tooltip += "[color=#8888ff]◈ Armor: %d[/color]\n" % item.armor_value
+		"tool":
+			if item.tool_type != "":
+				tooltip += "[color=#cccccc]⚒ Tool: %s[/color]\n" % item.tool_type.capitalize()
+	
+	tooltip += "\n[color=#666666]Weight: %.1f kg  |  Value: %d gold[/color]" % [item.weight, item.value]
+	
+	return tooltip
+
+func _navigate(direction: int) -> void:
+	if is_equipment_focused:
+		equipment_index = clampi(equipment_index + direction, 0, EQUIPMENT_SLOTS.size() - 1)
+	else:
+		var item_count = player.inventory.get_all_items().size() if player and player.inventory else 0
+		inventory_index = clampi(inventory_index + direction, 0, max(0, item_count - 1))
+	
+	_update_selection()
+
+func _toggle_focus() -> void:
+	is_equipment_focused = not is_equipment_focused
+	_update_selection()
+
+func _equip_selected() -> void:
+	if not player or not player.inventory or not selected_item:
+		return
+	
+	# Store the item reference before any operations
+	var item_to_process = selected_item
+	
+	# Clear selection state to prevent double-operations
+	selected_item = null
+	
+	if is_equipment_focused:
+		# Unequip
+		if selected_slot != "":
+			player.inventory.unequip_slot(selected_slot)
+	else:
+		# Equip from inventory - verify item is still in inventory
+		if item_to_process.is_equippable() and player.inventory.contains_item(item_to_process):
+			player.inventory.equip_item(item_to_process)
+	
+	refresh()
+
+func _use_selected() -> void:
+	if not player or not selected_item:
+		return
+	
+	if selected_item.item_type == "consumable":
+		player.use_item(selected_item)
+		refresh()
+
+func _drop_selected() -> void:
+	if not player or not selected_item:
+		return
+	
+	if is_equipment_focused and selected_slot != "":
+		# Unequip then drop
+		var item = player.inventory.unequip_slot(selected_slot)
+		if item:
+			var ground_item = player.drop_item(item)
+			if ground_item:
+				EntityManager.entities.append(ground_item)
+	else:
+		# Drop from inventory
+		var ground_item = player.drop_item(selected_item)
+		if ground_item:
+			EntityManager.entities.append(ground_item)
+	
+	refresh()
+
+func _action_selected() -> void:
+	if not selected_item:
+		return
+	
+	# Default action based on item type
+	match selected_item.item_type:
+		"consumable":
+			_use_selected()
+		"weapon", "armor", "tool":
+			_equip_selected()
+		_:
+			pass  # No default action for materials

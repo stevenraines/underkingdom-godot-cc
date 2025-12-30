@@ -1,0 +1,22 @@
+{
+  "id": "iron_knife",
+  "name": "Iron Knife",
+  "description": "A sturdy iron knife. Excellent for crafting and combat.",
+  "category": "tool",
+  "subtype": "knife",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true
+  },
+  "weight": 0.5,
+  "value": 15,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#AAAAAA",
+  "durability": 100,
+  "tool_type": "knife",
+  "equip_slot": "main_hand",
+  "damage_bonus": 4
+}

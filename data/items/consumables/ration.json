@@ -1,0 +1,21 @@
+{
+  "id": "ration",
+  "name": "Travel Ration",
+  "description": "Dried food preserved for long journeys.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.2,
+  "value": 5,
+  "max_stack": 20,
+  "ascii_char": "%",
+  "ascii_color": "#AA8855",
+  "effects": {
+    "hunger": 25
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "pickaxe",
+  "name": "Pickaxe",
+  "description": "A mining pickaxe for extracting ore.",
+  "category": "tool",
+  "subtype": "mining",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true
+  },
+  "weight": 2.0,
+  "value": 25,
+  "max_stack": 1,
+  "ascii_char": "T",
+  "ascii_color": "#666666",
+  "durability": 100,
+  "tool_type": "pickaxe",
+  "equip_slot": "main_hand",
+  "damage_bonus": 2
+}

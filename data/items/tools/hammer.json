@@ -1,0 +1,22 @@
+{
+  "id": "hammer",
+  "name": "Hammer",
+  "description": "A heavy hammer for smithing and construction.",
+  "category": "tool",
+  "subtype": "hammer",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true
+  },
+  "weight": 1.0,
+  "value": 20,
+  "max_stack": 1,
+  "ascii_char": "T",
+  "ascii_color": "#8B8B8B",
+  "durability": 150,
+  "tool_type": "hammer",
+  "equip_slot": "main_hand",
+  "damage_bonus": 3
+}

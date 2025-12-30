@@ -1,0 +1,19 @@
+{
+  "id": "flint",
+  "name": "Flint",
+  "description": "A sharp piece of flint useful for making tools.",
+  "category": "material",
+  "subtype": "stone",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.2,
+  "value": 2,
+  "max_stack": 20,
+  "ascii_char": "*",
+  "ascii_color": "#555555"
+}

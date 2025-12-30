@@ -1,0 +1,19 @@
+{
+  "id": "herb",
+  "name": "Herb",
+  "description": "A common herb useful for crafting bandages.",
+  "category": "material",
+  "subtype": "plant",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.05,
+  "value": 1,
+  "max_stack": 50,
+  "ascii_char": "\"",
+  "ascii_color": "#55AA55"
+}

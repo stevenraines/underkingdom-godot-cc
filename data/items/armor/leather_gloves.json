@@ -1,0 +1,21 @@
+{
+  "id": "leather_gloves",
+  "name": "Leather Gloves",
+  "description": "Leather gloves that protect your hands.",
+  "category": "armor",
+  "subtype": "hands",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.2,
+  "value": 8,
+  "max_stack": 1,
+  "ascii_char": "(",
+  "ascii_color": "#8B4513",
+  "durability": 40,
+  "equip_slot": "hands",
+  "armor_value": 1
+}

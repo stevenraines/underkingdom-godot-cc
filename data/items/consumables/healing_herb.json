@@ -1,0 +1,21 @@
+{
+  "id": "healing_herb",
+  "name": "Healing Herb",
+  "description": "A medicinal herb with minor healing properties.",
+  "category": "consumable",
+  "subtype": "medical",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.05,
+  "value": 3,
+  "max_stack": 20,
+  "ascii_char": "\"",
+  "ascii_color": "#44AA44",
+  "effects": {
+    "health": 5
+  }
+}

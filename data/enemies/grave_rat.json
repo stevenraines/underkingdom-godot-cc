@@ -1,0 +1,18 @@
+{
+  "id": "grave_rat",
+  "name": "Grave Rat",
+  "ascii_char": "r",
+  "ascii_color": "#8B4513",
+  "stats": {
+    "health": 8,
+    "str": 4,
+    "dex": 12,
+    "con": 6,
+    "int": 2,
+    "wis": 8,
+    "cha": 3
+  },
+  "behavior": "aggressive",
+  "loot_table": "rat_common",
+  "xp_value": 5
+}

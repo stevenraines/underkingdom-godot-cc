@@ -5,20 +5,20 @@ extends Entity
 ##
 ## Handles player movement, interactions, and dungeon navigation.
 
-# Player attributes (stub for now, full implementation in Phase 1.7)
-var attributes: Dictionary = {
-	"STR": 10,
-	"DEX": 10,
-	"CON": 10,
-	"INT": 10,
-	"WIS": 10,
-	"CHA": 10
-}
-
 var perception_range: int = 10
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
+	_setup_player()
+
+## Setup player-specific properties
+func _setup_player() -> void:
+	entity_type = "player"
+	name = "Player"
+
+	# Player starts with base attributes (defined in Entity)
+	# Perception range calculated from WIS: Base 5 + (WIS / 2)
+	perception_range = 5 + int(attributes["WIS"] / 2.0)
 
 ## Attempt to move in a direction
 func move(direction: Vector2i) -> bool:

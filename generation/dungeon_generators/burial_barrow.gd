@@ -65,6 +65,9 @@ static func generate_floor(world_seed: int, floor_number: int) -> GameMap:
 			var down_pos = rooms[rooms.size() - 1].center()
 			map.set_tile(down_pos, _create_tile("stairs_down"))
 
+	# Spawn enemies (after stairs so we don't spawn on stairs)
+	_spawn_enemies(map, rng, rooms, floor_number)
+
 	print("Burial barrow floor %d generated with %d rooms" % [floor_number, rooms.size()])
 	return map
 
@@ -147,3 +150,56 @@ static func _create_tile(type: String) -> GameTile:
 			tile.ascii_char = "."
 
 	return tile
+
+## Spawn enemies in rooms
+static func _spawn_enemies(map: GameMap, rng: SeededRandom, rooms: Array[Room], floor_number: int) -> void:
+	# Enemy types for burial barrow (dungeon enemies only)
+	var enemy_types = ["grave_rat", "barrow_wight"]
+
+	# Number of enemies scales with floor depth
+	# Early floors: 1-2 enemies per room
+	# Deep floors: 2-4 enemies per room
+	var base_enemies_per_room = 1 + int(floor_number / 10.0)
+	var enemies_per_room = clamp(base_enemies_per_room, 1, 4)
+
+	# Skip first room (has stairs up, player spawns there)
+	for i in range(1, rooms.size()):
+		var room = rooms[i]
+		var num_enemies = rng.randi_range(0, enemies_per_room)  # Some rooms may have no enemies
+
+		for j in range(num_enemies):
+			# Find a valid spawn position in the room
+			var spawn_pos = _find_spawn_position_in_room(map, rng, room)
+			if spawn_pos != Vector2i(-1, -1):
+				# Choose enemy type (more wights on deeper floors)
+				var enemy_id: String
+				if floor_number > 5 and rng.randf() > 0.6:
+					enemy_id = "barrow_wight"
+				else:
+					enemy_id = "grave_rat"
+
+				# Store enemy spawn data in map metadata
+				# Actual spawning happens when map is loaded in EntityManager
+				if not map.has_meta("enemy_spawns"):
+					map.set_meta("enemy_spawns", [])
+
+				var spawns = map.get_meta("enemy_spawns")
+				spawns.append({"enemy_id": enemy_id, "position": spawn_pos})
+				map.set_meta("enemy_spawns", spawns)
+
+## Find a valid spawn position within a room (not on stairs, not occupied)
+static func _find_spawn_position_in_room(map: GameMap, rng: SeededRandom, room: Room) -> Vector2i:
+	var max_attempts = 20
+
+	for attempt in range(max_attempts):
+		var x = rng.randi_range(room.x + 1, room.x + room.width - 2)
+		var y = rng.randi_range(room.y + 1, room.y + room.height - 2)
+		var pos = Vector2i(x, y)
+
+		var tile = map.get_tile(pos)
+
+		# Check if position is valid (walkable floor, not stairs)
+		if tile and tile.walkable and tile.tile_type == "floor":
+			return pos
+
+	return Vector2i(-1, -1)  # Failed to find position

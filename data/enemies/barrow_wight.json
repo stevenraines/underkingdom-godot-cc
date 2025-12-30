@@ -1,0 +1,18 @@
+{
+  "id": "barrow_wight",
+  "name": "Barrow Wight",
+  "ascii_char": "W",
+  "ascii_color": "#44FF44",
+  "stats": {
+    "health": 25,
+    "str": 12,
+    "dex": 8,
+    "con": 14,
+    "int": 5,
+    "wis": 6,
+    "cha": 4
+  },
+  "behavior": "guardian",
+  "loot_table": "undead_common",
+  "xp_value": 50
+}

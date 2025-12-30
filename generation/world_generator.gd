@@ -30,7 +30,10 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	map.set_tile(entrance_pos, _create_tile("stairs_down"))
 	print("Dungeon entrance placed at: ", entrance_pos)
 
-	print("Overworld generated (100x100) with seed: ", seed_value)
+	# Spawn overworld enemies (wolves in woodland biome)
+	_spawn_overworld_enemies(map, rng)
+
+	print("Overworld generated (20x20) with seed: ", seed_value)
 	return map
 
 ## Map noise value to biome tile type (Temperate Woodland)
@@ -116,3 +119,37 @@ static func _find_valid_location(map: GameMap, rng: SeededRandom) -> Vector2i:
 	# Fallback to center if no valid location found
 	push_warning("Could not find valid dungeon entrance location, using center")
 	return Vector2i(map.width / 2, map.height / 2)
+
+## Spawn enemies on the overworld
+static func _spawn_overworld_enemies(map: GameMap, rng: SeededRandom) -> void:
+	# Woodland wolves scattered across the overworld
+	# Spawn density: roughly 1 wolf per 20 tiles (for 20x20 = ~20 wolves)
+	var num_enemies = rng.randi_range(3, 8)  # Reduced for 20x20 map
+
+	for i in range(num_enemies):
+		var spawn_pos = _find_enemy_spawn_location(map, rng)
+		if spawn_pos != Vector2i(-1, -1):
+			# Store enemy spawn data in map metadata
+			if not map.has_meta("enemy_spawns"):
+				map.set_meta("enemy_spawns", [])
+
+			var spawns = map.get_meta("enemy_spawns")
+			spawns.append({"enemy_id": "woodland_wolf", "position": spawn_pos})
+			map.set_meta("enemy_spawns", spawns)
+
+## Find a valid enemy spawn location (walkable, not on dungeon entrance)
+static func _find_enemy_spawn_location(map: GameMap, rng: SeededRandom) -> Vector2i:
+	var max_attempts = 50
+
+	for attempt in range(max_attempts):
+		var x = rng.randi_range(0, map.width - 1)
+		var y = rng.randi_range(0, map.height - 1)
+		var pos = Vector2i(x, y)
+
+		var tile = map.get_tile(pos)
+
+		# Check if position is valid (walkable floor, not stairs)
+		if tile and tile.walkable and tile.tile_type == "floor":
+			return pos
+
+	return Vector2i(-1, -1)  # Failed to find position

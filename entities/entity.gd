@@ -35,6 +35,16 @@ var is_alive: bool = true
 var base_damage: int = 1  # Unarmed/natural weapon damage
 var armor: int = 0  # Damage reduction
 
+# Stat modifiers from survival/effects (applied on top of base attributes)
+var stat_modifiers: Dictionary = {
+	"STR": 0,
+	"DEX": 0,
+	"CON": 0,
+	"INT": 0,
+	"WIS": 0,
+	"CHA": 0
+}
+
 # Components (composition pattern)
 var components: Dictionary = {}  # component_name -> component instance
 
@@ -67,6 +77,23 @@ func die() -> void:
 	is_alive = false
 	blocks_movement = false
 	EventBus.entity_died.emit(self)
+
+## Get effective attribute value (base + modifiers)
+func get_effective_attribute(attr_name: String) -> int:
+	var base_value = attributes.get(attr_name, 10)
+	var modifier = stat_modifiers.get(attr_name, 0)
+	return max(1, base_value + modifier)
+
+## Apply stat modifiers (from survival, effects, etc.)
+func apply_stat_modifiers(modifiers: Dictionary) -> void:
+	for stat_name in modifiers:
+		if stat_name in stat_modifiers:
+			stat_modifiers[stat_name] = modifiers[stat_name]
+
+## Clear all stat modifiers
+func clear_stat_modifiers() -> void:
+	for stat_name in stat_modifiers:
+		stat_modifiers[stat_name] = 0
 
 ## Add a component
 func add_component(component_name: String, component: Variant) -> void:

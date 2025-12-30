@@ -24,5 +24,10 @@ signal attack_performed(attacker: Entity, defender: Entity, result: Dictionary)
 signal combat_message(message: String, color: Color)
 signal player_died()
 
+# Survival signals
+signal survival_stat_changed(stat_name: String, old_value: float, new_value: float)
+signal survival_warning(message: String, severity: String)
+signal stamina_depleted()
+
 func _ready() -> void:
 	print("EventBus initialized")

@@ -61,6 +61,8 @@ func _ready() -> void:
 	EventBus.entity_died.connect(_on_entity_died)
 	EventBus.attack_performed.connect(_on_attack_performed)
 	EventBus.player_died.connect(_on_player_died)
+	EventBus.survival_warning.connect(_on_survival_warning)
+	EventBus.stamina_depleted.connect(_on_stamina_depleted)
 
 	# Update HUD
 	_update_hud()
@@ -148,6 +150,26 @@ func _on_map_changed(map_id: String) -> void:
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
 	_update_hud()
+	_update_survival_display()
+
+## Called when a survival warning is triggered
+func _on_survival_warning(message: String, severity: String) -> void:
+	var color: Color
+	match severity:
+		"critical":
+			color = Color.RED
+		"severe":
+			color = Color(1.0, 0.4, 0.2)  # Orange-red
+		"warning":
+			color = Color(1.0, 0.7, 0.2)  # Orange
+		_:
+			color = Color(0.8, 0.8, 0.5)  # Dim yellow
+	
+	_add_message(message, color)
+
+## Called when stamina is depleted
+func _on_stamina_depleted() -> void:
+	_add_message("You are out of stamina!", Color(1.0, 0.5, 0.5))
 
 ## Called when any entity moves
 func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> void:
@@ -238,57 +260,93 @@ func _update_hud() -> void:
 		@warning_ignore("integer_division")
 		character_info_label.text = "Player, Harvest Dawn %dth of Nivvum Ut" % (TurnManager.current_turn / 1000 + 6)
 
-	# Update status line with all stats
+	# Update status line with health and survival
 	if status_line:
 		# Health with color coding
-		var hp_percent = float(player.current_health) / float(player.max_health)
 		var hp_text = "HP: %d/%d" % [player.current_health, player.max_health]
-		
-		var level_text = "LVL: 1"
-		var exp_text = "Exp: 0/220"
 		var turn_text = "Turn: %d" % TurnManager.current_turn
-		var time_text = TurnManager.time_of_day
-
-		# Combat stats
-		var acc_text = "Acc: %d%%" % CombatSystem.get_accuracy(player)
-		var eva_text = "Eva: %d%%" % CombatSystem.get_evasion(player)
-		var dmg_text = "Dmg: %d" % player.base_damage
-		var arm_text = "Arm: %d" % player.armor
-
-		status_line.text = "%s  %s  %s  %s  %s  %s  %s  %s  %s" % [
-			hp_text, level_text, exp_text, turn_text, time_text,
-			acc_text, eva_text, dmg_text, arm_text
-		]
+		var time_text = TurnManager.time_of_day.capitalize()
 		
-		# Color code based on health
-		var hp_color: Color
-		if hp_percent > 0.75:
-			hp_color = Color(0.5, 1.0, 0.5)  # Green - healthy
-		elif hp_percent > 0.5:
-			hp_color = Color(1.0, 1.0, 0.3)  # Yellow - wounded
-		elif hp_percent > 0.25:
-			hp_color = Color(1.0, 0.6, 0.2)  # Orange - hurt
-		else:
-			hp_color = Color(1.0, 0.3, 0.3)  # Red - critical
+		# Survival stats (if available)
+		var survival_text = ""
+		if player.survival:
+			var s = player.survival
+			var stam_text = "Stam: %d/%d" % [int(s.stamina), int(s.get_max_stamina())]
+			var hunger_text = "Hun: %d%%" % int(s.hunger)
+			var thirst_text = "Thr: %d%%" % int(s.thirst)
+			var temp_text = "Tmp: %d°C" % int(s.temperature)
+			survival_text = "  %s  %s  %s  %s" % [stam_text, hunger_text, thirst_text, temp_text]
+
+		status_line.text = "%s%s  %s  %s" % [hp_text, survival_text, turn_text, time_text]
 		
-		status_line.add_theme_color_override("font_color", hp_color)
+		# Color code based on most critical state
+		var status_color = _get_status_color()
+		status_line.add_theme_color_override("font_color", status_color)
 
 	# Update location
 	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
 		location_label.text = map_name.replace("_", " ").capitalize()
+
+## Get status line color based on player state
+func _get_status_color() -> Color:
+	if not player:
+		return Color(0.5, 1.0, 0.5)
 	
-	# Update active effects with nearby enemy count
-	if active_effects_label:
-		var nearby_enemies = _count_nearby_enemies()
-		if nearby_enemies > 0:
-			active_effects_label.text = "DANGER: %d enem%s nearby!" % [
-				nearby_enemies, "y" if nearby_enemies == 1 else "ies"
-			]
-			active_effects_label.add_theme_color_override("font_color", Color.RED)
+	var hp_percent = float(player.current_health) / float(player.max_health)
+	
+	# Check survival critical states
+	if player.survival:
+		var s = player.survival
+		if s.hunger <= 0 or s.thirst <= 0 or s.temperature < 0 or s.temperature > 40:
+			return Color.RED  # Critical survival
+		if s.hunger <= 25 or s.thirst <= 25:
+			return Color(1.0, 0.4, 0.4)  # Severe survival
+	
+	# Health-based colors
+	if hp_percent > 0.75:
+		return Color(0.5, 1.0, 0.5)  # Green - healthy
+	elif hp_percent > 0.5:
+		return Color(1.0, 1.0, 0.3)  # Yellow - wounded
+	elif hp_percent > 0.25:
+		return Color(1.0, 0.6, 0.2)  # Orange - hurt
+	else:
+		return Color(1.0, 0.3, 0.3)  # Red - critical
+
+## Update survival-specific display elements
+func _update_survival_display() -> void:
+	if not player or not player.survival or not active_effects_label:
+		return
+	
+	var s = player.survival
+	var effects_list: Array[String] = []
+	
+	# Check for survival effects
+	if s.hunger <= 50:
+		effects_list.append(s.get_hunger_state().capitalize())
+	if s.thirst <= 50:
+		effects_list.append(s.get_thirst_state().capitalize())
+	if s.temperature < 15 or s.temperature > 25:
+		effects_list.append(s.get_temperature_state().capitalize())
+	if s.fatigue >= 25:
+		effects_list.append(s.get_fatigue_state().capitalize())
+	
+	# Check for nearby enemies
+	var nearby_enemies = _count_nearby_enemies()
+	if nearby_enemies > 0:
+		effects_list.append("DANGER: %d enem%s" % [nearby_enemies, "y" if nearby_enemies == 1 else "ies"])
+	
+	# Update display
+	if effects_list.size() > 0:
+		active_effects_label.text = "EFFECTS: " + ", ".join(effects_list)
+		# Color based on severity
+		if s.hunger <= 25 or s.thirst <= 25 or s.temperature < 10 or s.temperature > 30 or nearby_enemies > 0:
+			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 		else:
-			active_effects_label.text = "ACTIVE EFFECTS: None"
-			active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+	else:
+		active_effects_label.text = "EFFECTS: None"
+		active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
 
 ## Count enemies within aggro range of player
 func _count_nearby_enemies() -> int:

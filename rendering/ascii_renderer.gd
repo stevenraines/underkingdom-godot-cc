@@ -94,6 +94,9 @@ var visible_tiles: Array[Vector2i] = []
 var terrain_modulated_cells: Dictionary = {}
 var entity_modulated_cells: Dictionary = {}
 
+# Track hidden floor tiles (positions where entities are standing)
+var hidden_floor_positions: Dictionary = {}
+
 ## Setup TileMapLayer nodes with tileset
 func _setup_tilemap_layers() -> void:
 	# Set renderer reference on layers for runtime tile data updates
@@ -241,6 +244,23 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 	if not entity_layer:
 		return
 
+	# Hide floor tile underneath entity (don't render the period)
+	if terrain_layer and terrain_layer.get_cell_source_id(position) != -1:
+		# Check if this is a floor tile (period character)
+		var floor_index = _char_to_index(".")
+		var floor_col = floor_index % TILES_PER_ROW
+		var floor_row = floor_index / TILES_PER_ROW
+		var current_atlas = terrain_layer.get_cell_atlas_coords(position)
+		if current_atlas == Vector2i(floor_col, floor_row):
+			# Store the floor data and hide it
+			hidden_floor_positions[position] = {
+				"atlas": current_atlas,
+				"color": terrain_modulated_cells.get(position, Color.WHITE)
+			}
+			terrain_layer.erase_cell(position)
+			terrain_modulated_cells.erase(position)
+			terrain_layer.notify_runtime_tile_data_update()
+
 	# Get the tile index from the character directly
 	var tile_index = _char_to_index(entity_type)
 
@@ -262,6 +282,14 @@ func clear_entity(position: Vector2i) -> void:
 	entity_layer.erase_cell(position)
 	entity_modulated_cells.erase(position)
 	entity_layer.notify_runtime_tile_data_update()
+
+	# Restore hidden floor tile if there was one
+	if position in hidden_floor_positions:
+		var floor_data = hidden_floor_positions[position]
+		terrain_layer.set_cell(position, 0, floor_data["atlas"])
+		terrain_modulated_cells[position] = floor_data["color"]
+		terrain_layer.notify_runtime_tile_data_update()
+		hidden_floor_positions.erase(position)
 
 ## Update field of view
 func update_fov(new_visible_tiles: Array[Vector2i]) -> void:

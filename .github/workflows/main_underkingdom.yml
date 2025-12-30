@@ -30,22 +30,37 @@ jobs:
           godot --version
 
       - name: Create export directory
-        run: mkdir -p export
+        run: mkdir -p build
 
       - name: Export Godot project for Web
         run: |
-          godot --headless --export-release "Web" "export/Underkingdom Roguelike.html"
+          godot --headless --export-release "Web" "build/Underkingdom Roguelike.html"
 
       - name: Rename HTML to index.html for web server
         run: |
-          cd export
+          cd build
           mv "Underkingdom Roguelike.html" index.html
+
+      - name: Create package.json for static file serving
+        run: |
+          cat > build/package.json << 'EOF'
+          {
+            "name": "underkingdom",
+            "version": "1.0.0",
+            "scripts": {
+              "start": "npx serve -s . -l 8080"
+            },
+            "dependencies": {
+              "serve": "^14.2.0"
+            }
+          }
+          EOF
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: godot-web-export
-          path: export/
+          path: build/
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,6 +74,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: godot-web-export
+
+      - name: Install dependencies for static server
+        run: npm install
       
       - name: Login to Azure
         uses: azure/login@v2

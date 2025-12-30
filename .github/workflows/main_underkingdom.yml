@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - underkingdom
+name: Build and deploy Godot web export to Azure Web App - underkingdom
 
 on:
   push:
@@ -18,22 +18,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
         with:
-          node-version: '24.x'
+          version: 4.5.1
+          use-dotnet: false
+          include-templates: true
 
-      - name: npm install, build, and test
+      - name: Verify Godot installation
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+          godot --version
+
+      - name: Create export directory
+        run: mkdir -p export
+
+      - name: Export Godot project for Web
+        run: |
+          godot --headless --export-release "Web" "export/Underkingdom Roguelike.html"
+
+      - name: Rename HTML to index.html for web server
+        run: |
+          cd export
+          mv "Underkingdom Roguelike.html" index.html
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: .
+          name: godot-web-export
+          path: export/
 
   deploy:
     runs-on: ubuntu-latest
@@ -46,7 +58,7 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: godot-web-export
       
       - name: Login to Azure
         uses: azure/login@v2

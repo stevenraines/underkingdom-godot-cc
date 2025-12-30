@@ -1,68 +1,59 @@
 #!/usr/bin/env python3
-"""Generate ASCII tileset sprite sheet for the roguelike game."""
+"""Generate Extended ASCII tileset sprite sheet for the roguelike game."""
 
 from PIL import Image, ImageDraw, ImageFont
 import os
 import string
 
 # Configuration
-TILE_SIZE = 48  # Increased to 48 for better clarity
-TILES_PER_ROW = 16  # Standard 16x6 grid for printable ASCII
+TILE_SIZE = 64  # Increased to 64 for better clarity
+TILES_PER_ROW = 16  # 16x16 grid for 256 characters
 
-# Printable ASCII characters (32-126)
-# Space, !"#$%&'()*+,-./0-9:;<=>?@A-Z[\]^_`a-z{|}~
-CHARS = [chr(i) for i in range(32, 127)]
+# Extended ASCII characters (0-255)
+# Includes all ASCII (0-127) and Extended ASCII (128-255)
+CHARS = [chr(i) for i in range(256)]
 
-# Default white for most characters - we'll override specific ones
-DEFAULT_COLOR = (200, 200, 200)
+print(f"Total characters: {len(CHARS)}")
 
-# Special color overrides for game elements
-COLOR_OVERRIDES = {
-    "@": (255, 255, 0),      # Yellow - Player
-    ".": (80, 80, 80),       # Dark Gray - Floor
-    "#": (200, 200, 200),    # Light Gray - Wall
-    "+": (153, 102, 51),     # Brown - Door
-    ">": (0, 255, 255),      # Cyan - Stairs down
-    "<": (0, 255, 255),      # Cyan - Stairs up
-    "T": (0, 180, 0),        # Green - Tree
-    "~": (51, 102, 255),     # Blue - Water
-    "r": (140, 69, 18),      # Brown - Grave Rat
-    "W": (69, 255, 69),      # Green - Barrow Wight
-    "w": (161, 161, 161),    # Gray - Woodland Wolf
-    "%": (180, 100, 100),    # Corpse (for future use)
-    "$": (255, 215, 0),      # Gold
-    "&": (139, 90, 43),      # Chest/container
-    "!": (255, 100, 100),    # Potion (for future use)
-    "?": (100, 149, 237),    # Scroll (for future use)
-}
+# All characters white - colors will be applied via Godot's modulation
+DEFAULT_COLOR = (255, 255, 255)
 
-def create_ascii_tileset():
-    """Create a sprite sheet with ASCII characters."""
+def create_unicode_tileset():
+    """Create a sprite sheet with Unicode characters."""
     # Calculate grid dimensions
     num_chars = len(CHARS)
     rows = (num_chars + TILES_PER_ROW - 1) // TILES_PER_ROW  # Ceiling division
 
     width = TILES_PER_ROW * TILE_SIZE
     height = rows * TILE_SIZE
+
+    print(f"Creating tileset: {width}x{height} ({TILES_PER_ROW} columns x {rows} rows)")
+
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
     # Try to use a monospace font
     try:
-        # Try different common monospace fonts
+        # Try different common monospace fonts with much larger size
         font_paths = [
-            "/System/Library/Fonts/Courier.dfont",  # macOS
+            "/System/Library/Fonts/Courier.ttc",  # macOS (TrueType Collection)
+            "/System/Library/Fonts/Monaco.ttf",  # macOS alternative
+            "/System/Library/Fonts/Menlo.ttc",  # macOS Menlo
             "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",  # Linux
-            "C:\\Windows\\Fonts\\cour.ttf",  # Windows
+            "C:\\Windows\\Fonts\\consola.ttf",  # Windows (Consolas)
+            "C:\\Windows\\Fonts\\cour.ttf",  # Windows (Courier)
         ]
         font = None
         for font_path in font_paths:
             if os.path.exists(font_path):
-                font = ImageFont.truetype(font_path, 36)  # Increased to 36 for 48px tiles
+                # Use larger font size (48) to fill more of the 64px tile
+                font = ImageFont.truetype(font_path, 48)
+                print(f"Loaded font: {font_path}")
                 break
 
         if font is None:
-            print("Using default font")
+            print("Warning: No TrueType font found, using PIL default (very small)")
+            # PIL's default font is tiny - we'll use it but warn
             font = ImageFont.load_default()
     except Exception as e:
         print(f"Font loading error: {e}, using default")
@@ -75,7 +66,7 @@ def create_ascii_tileset():
         x_offset = col * TILE_SIZE
         y_offset = row * TILE_SIZE
 
-        color = COLOR_OVERRIDES.get(char, DEFAULT_COLOR)
+        color = DEFAULT_COLOR  # All white, colors applied in-game
 
         # Get text bounding box
         bbox = draw.textbbox((0, 0), char, font=font)
@@ -90,13 +81,22 @@ def create_ascii_tileset():
         draw.text((x, y), char, fill=color + (255,), font=font)
 
     # Save the image
-    output_path = os.path.join(os.path.dirname(__file__), "tilesets", "ascii_tileset.png")
+    output_path = os.path.join(os.path.dirname(__file__), "tilesets", "unicode_tileset.png")
     image.save(output_path)
-    print(f"Saved ASCII tileset to: {output_path}")
+    print(f"Saved Unicode tileset to: {output_path}")
     print(f"Image size: {width}x{height}")
     print(f"Tile size: {TILE_SIZE}x{TILE_SIZE}")
     print(f"Grid layout: {TILES_PER_ROW} columns x {rows} rows")
     print(f"Number of tiles: {len(CHARS)}")
 
+    # Also save character map for reference
+    charmap_path = os.path.join(os.path.dirname(__file__), "tilesets", "unicode_charmap.txt")
+    with open(charmap_path, 'w', encoding='utf-8') as f:
+        for i, char in enumerate(CHARS):
+            row = i // TILES_PER_ROW
+            col = i % TILES_PER_ROW
+            f.write(f"{i:4d} ({col:2d},{row:2d}) U+{ord(char):04X} '{char}'\n")
+    print(f"Saved character map to: {charmap_path}")
+
 if __name__ == "__main__":
-    create_ascii_tileset()
+    create_unicode_tileset()

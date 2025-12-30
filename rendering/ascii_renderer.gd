@@ -6,28 +6,36 @@ extends RenderInterface
 ## Renders the game world using ASCII characters.
 ## Uses two TileMapLayer nodes: one for terrain, one for entities.
 
-const TILE_SIZE = 48
+const TILE_SIZE = 64
 
 # Child nodes (set in scene or _ready)
 @onready var terrain_layer: TileMapLayer = $TerrainLayer
 @onready var entity_layer: TileMapLayer = $EntityLayer
 @onready var camera: Camera2D = $Camera
 
-# Tile ID mappings (char -> atlas coordinates)
-# ASCII characters 32-126 are laid out in a 16-column grid
-# To get tile coordinates from char: col = (char_code - 32) % 16, row = (char_code - 32) / 16
+# Tile ID mappings (char -> index in tileset)
+# Unicode tileset: 32 columns, characters indexed sequentially
+# Basic Latin (ASCII 32-126) are first 95 characters (indices 0-94)
+# To get coordinates: col = index % 32, row = index / 32
+const TILES_PER_ROW = 32
+
+# Helper function to get tile index from ASCII character code
+func _ascii_to_index(ascii_code: int) -> int:
+	# ASCII 32-126 are indices 0-94
+	return ascii_code - 32
+
 var tile_map: Dictionary = {
-	"@": 32,   # Player (ASCII 64)
-	".": 14,   # Floor (ASCII 46)
-	"#": 3,    # Wall (ASCII 35)
-	"+": 11,   # Door (ASCII 43)
-	">": 30,   # Stairs down (ASCII 62)
-	"<": 28,   # Stairs up (ASCII 60)
-	"T": 52,   # Tree (ASCII 84)
-	"~": 62,   # Water (ASCII 126)
-	"r": 82,   # Grave Rat (ASCII 114)
-	"W": 55,   # Barrow Wight (ASCII 87)
-	"w": 87,   # Woodland Wolf (ASCII 119)
+	"@": _ascii_to_index(64),   # Player (ASCII 64, @)
+	".": _ascii_to_index(46),   # Floor (ASCII 46, .)
+	"#": _ascii_to_index(35),   # Wall (ASCII 35, #)
+	"+": _ascii_to_index(43),   # Door (ASCII 43, +)
+	">": _ascii_to_index(62),   # Stairs down (ASCII 62, >)
+	"<": _ascii_to_index(60),   # Stairs up (ASCII 60, <)
+	"T": _ascii_to_index(84),   # Tree (ASCII 84, T)
+	"~": _ascii_to_index(126),  # Water (ASCII 126, ~)
+	"r": _ascii_to_index(114),  # Grave Rat (ASCII 114, r)
+	"W": _ascii_to_index(87),   # Barrow Wight (ASCII 87, W)
+	"w": _ascii_to_index(119),  # Woodland Wolf (ASCII 119, w)
 }
 
 # Color mapping for tiles
@@ -47,22 +55,31 @@ var tile_colors: Dictionary = {
 
 var visible_tiles: Array[Vector2i] = []
 
+# Dictionaries to track modulated cells for runtime coloring
+var terrain_modulated_cells: Dictionary = {}
+var entity_modulated_cells: Dictionary = {}
+
 func _ready() -> void:
 	_setup_tilemap_layers()
 	print("ASCIIRenderer initialized")
 
 ## Setup TileMapLayer nodes with tileset
 func _setup_tilemap_layers() -> void:
-	# Create tileset if not set
-	if terrain_layer and not terrain_layer.tile_set:
-		terrain_layer.tile_set = _create_ascii_tileset()
-	if entity_layer and not entity_layer.tile_set:
-		entity_layer.tile_set = _create_ascii_tileset()
+	# Set renderer reference on layers for runtime tile data updates
+	if terrain_layer:
+		terrain_layer.set("renderer", self)
+		if not terrain_layer.tile_set:
+			terrain_layer.tile_set = _create_ascii_tileset()
+
+	if entity_layer:
+		entity_layer.set("renderer", self)
+		if not entity_layer.tile_set:
+			entity_layer.tile_set = _create_ascii_tileset()
 
 	# Set camera zoom for better visibility
-	# With 48px tiles (3x larger than original 16px), use higher zoom to make them appear larger
+	# With 64px tiles, use smaller zoom to fit more tiles on screen
 	if camera:
-		camera.zoom = Vector2(1.5, 1.5)
+		camera.zoom = Vector2(0.8, 0.8)
 
 ## Create ASCII tileset from sprite sheet
 func _create_ascii_tileset() -> TileSet:
@@ -180,6 +197,11 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> voi
 
 	terrain_layer.set_cell(position, 0, Vector2i(col, row))
 
+	# Set color modulation for this tile
+	var tile_color = tile_colors.get(tile_type, Color.WHITE)
+	terrain_modulated_cells[position] = tile_color
+	terrain_layer.notify_runtime_tile_data_update()
+
 ## Render an entity
 func render_entity(position: Vector2i, entity_type: String, color: Color = Color.WHITE) -> void:
 	if not entity_layer:
@@ -194,12 +216,18 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 
 	entity_layer.set_cell(position, 0, Vector2i(col, row))
 
+	# Set color modulation for this entity
+	entity_modulated_cells[position] = color
+	entity_layer.notify_runtime_tile_data_update()
+
 ## Clear entity at position
 func clear_entity(position: Vector2i) -> void:
 	if not entity_layer:
 		return
 
 	entity_layer.erase_cell(position)
+	entity_modulated_cells.erase(position)
+	entity_layer.notify_runtime_tile_data_update()
 
 ## Update field of view
 func update_fov(new_visible_tiles: Array[Vector2i]) -> void:

@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://bkt0gfnv2fxc7"]
+[gd_scene load_steps=6 format=3 uid="uid://bkt0gfnv2fxc7"]
 
 [ext_resource type="Script" path="res://scenes/game.gd" id="1"]
 [ext_resource type="Script" path="res://rendering/ascii_renderer.gd" id="2"]
 [ext_resource type="Script" path="res://systems/input_handler.gd" id="3"]
+[ext_resource type="Script" path="res://rendering/terrain_layer.gd" id="4"]
+[ext_resource type="Script" path="res://rendering/entity_layer.gd" id="5"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
@@ -19,8 +21,10 @@ z_index = -100
 script = ExtResource("2")
 
 [node name="TerrainLayer" type="TileMapLayer" parent="ASCIIRenderer"]
+script = ExtResource("4")
 
 [node name="EntityLayer" type="TileMapLayer" parent="ASCIIRenderer"]
+script = ExtResource("5")
 
 [node name="Camera" type="Camera2D" parent="ASCIIRenderer"]
 enabled = true
@@ -75,10 +79,16 @@ text = "[color=#88CCFF]Message Log[/color]"
 scroll_following = true
 
 [node name="BottomBar" type="ColorRect" parent="HUD"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = 675.0
-offset_right = 1090.0
-offset_bottom = 720.0
+offset_top = -45.0
+offset_right = -190.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
 color = Color(0, 0, 0, 0.9)
 
 [node name="ActiveEffects" type="Label" parent="HUD/BottomBar"]

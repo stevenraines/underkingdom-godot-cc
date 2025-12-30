@@ -17,6 +17,7 @@ signal map_changed(map_id: String)
 
 # Entity signals
 signal entity_died(entity: Entity)
+signal entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i)
 
 func _ready() -> void:
 	print("EventBus initialized")

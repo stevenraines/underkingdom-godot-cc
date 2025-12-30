@@ -57,6 +57,8 @@ func _ready() -> void:
 	EventBus.player_moved.connect(_on_player_moved)
 	EventBus.map_changed.connect(_on_map_changed)
 	EventBus.turn_advanced.connect(_on_turn_advanced)
+	EventBus.entity_moved.connect(_on_entity_moved)
+	EventBus.entity_died.connect(_on_entity_died)
 
 	# Update HUD
 	_update_hud()
@@ -144,6 +146,16 @@ func _on_map_changed(map_id: String) -> void:
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
 	_update_hud()
+
+## Called when any entity moves
+func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> void:
+	renderer.clear_entity(old_pos)
+	renderer.render_entity(new_pos, entity.ascii_char, entity.color)
+
+## Called when an entity dies
+func _on_entity_died(entity: Entity) -> void:
+	renderer.clear_entity(entity.position)
+	_add_message("%s dies!" % entity.name, Color.RED)
 
 ## Update HUD display
 func _update_hud() -> void:

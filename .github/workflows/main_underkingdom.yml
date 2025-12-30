@@ -48,12 +48,48 @@ jobs:
             "name": "underkingdom",
             "version": "1.0.0",
             "scripts": {
-              "start": "npx serve -s . -l 8080"
+              "start": "node server.js"
             },
             "dependencies": {
-              "serve": "^14.2.0"
+              "express": "^4.18.2"
             }
           }
+          EOF
+
+      - name: Create Express server for Godot web export
+        run: |
+          cat > build/server.js << 'EOF'
+          const express = require('express');
+          const path = require('path');
+          const app = express();
+          const port = process.env.PORT || 8080;
+
+          // Set headers required for Godot web exports (SharedArrayBuffer support)
+          app.use((req, res, next) => {
+            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+            res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+            next();
+          });
+
+          // Serve static files from the current directory
+          app.use(express.static(__dirname, {
+            setHeaders: (res, filePath) => {
+              if (filePath.endsWith('.wasm')) {
+                res.setHeader('Content-Type', 'application/wasm');
+              } else if (filePath.endsWith('.pck')) {
+                res.setHeader('Content-Type', 'application/octet-stream');
+              }
+            }
+          }));
+
+          // Fallback to index.html
+          app.get('*', (req, res) => {
+            res.sendFile(path.join(__dirname, 'index.html'));
+          });
+
+          app.listen(port, () => {
+            console.log(`Underkingdom server running on port ${port}`);
+          });
           EOF
 
       - name: Upload artifact for deployment job

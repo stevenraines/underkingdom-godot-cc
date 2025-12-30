@@ -6,26 +6,28 @@ extends RenderInterface
 ## Renders the game world using ASCII characters.
 ## Uses two TileMapLayer nodes: one for terrain, one for entities.
 
-const TILE_SIZE = 16
+const TILE_SIZE = 48
 
 # Child nodes (set in scene or _ready)
 @onready var terrain_layer: TileMapLayer = $TerrainLayer
 @onready var entity_layer: TileMapLayer = $EntityLayer
 @onready var camera: Camera2D = $Camera
 
-# Tile ID mappings (char -> source_id)
+# Tile ID mappings (char -> atlas coordinates)
+# ASCII characters 32-126 are laid out in a 16-column grid
+# To get tile coordinates from char: col = (char_code - 32) % 16, row = (char_code - 32) / 16
 var tile_map: Dictionary = {
-	"@": 0,   # Player
-	".": 1,   # Floor
-	"#": 2,   # Wall
-	"+": 3,   # Door
-	">": 4,   # Stairs down
-	"<": 5,   # Stairs up
-	"T": 6,   # Tree
-	"~": 7,   # Water
-	"r": 8,   # Grave Rat
-	"W": 9,   # Barrow Wight
-	"w": 10,  # Woodland Wolf
+	"@": 32,   # Player (ASCII 64)
+	".": 14,   # Floor (ASCII 46)
+	"#": 3,    # Wall (ASCII 35)
+	"+": 11,   # Door (ASCII 43)
+	">": 30,   # Stairs down (ASCII 62)
+	"<": 28,   # Stairs up (ASCII 60)
+	"T": 52,   # Tree (ASCII 84)
+	"~": 62,   # Water (ASCII 126)
+	"r": 82,   # Grave Rat (ASCII 114)
+	"W": 55,   # Barrow Wight (ASCII 87)
+	"w": 87,   # Woodland Wolf (ASCII 119)
 }
 
 # Color mapping for tiles
@@ -58,8 +60,9 @@ func _setup_tilemap_layers() -> void:
 		entity_layer.tile_set = _create_ascii_tileset()
 
 	# Set camera zoom for better visibility
+	# With 48px tiles (3x larger than original 16px), use higher zoom to make them appear larger
 	if camera:
-		camera.zoom = Vector2(2.0, 2.0)
+		camera.zoom = Vector2(1.5, 1.5)
 
 ## Create ASCII tileset from sprite sheet
 func _create_ascii_tileset() -> TileSet:
@@ -80,27 +83,40 @@ func _create_ascii_tileset() -> TileSet:
 	source.texture = texture
 	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
 
-	# Add tiles for each character
-	for i in range(11):  # We have 11 characters (8 terrain + 3 enemies)
-		source.create_tile(Vector2i(i, 0))
+	# Add tiles for all ASCII characters (95 characters in 16x6 grid)
+	# Characters 32-126 laid out left-to-right, top-to-bottom
+	for i in range(95):
+		var col = i % 16
+		var row = i / 16
+		source.create_tile(Vector2i(col, row))
 
 	tileset.add_source(source, 0)
 	return tileset
 
-## Generate texture atlas with ASCII characters
+## Generate texture atlas with ASCII characters (fallback if PNG fails to load)
 func _generate_ascii_texture() -> ImageTexture:
-	var chars = ["@", ".", "#", "+", ">", "<", "T", "~", "r", "W", "w"]
-	var atlas_width = chars.size() * TILE_SIZE
-	var atlas_height = TILE_SIZE
+	# Generate all printable ASCII characters in 16x6 grid
+	var chars = []
+	for i in range(32, 127):  # ASCII 32-126 (95 characters)
+		chars.append(char(i))
+
+	var tiles_per_row = 16
+	var num_rows = 6
+	var atlas_width = tiles_per_row * TILE_SIZE
+	var atlas_height = num_rows * TILE_SIZE
 
 	var image = Image.create(atlas_width, atlas_height, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))  # Transparent background
 
-	# Draw each character using a font
+	# Draw each character in grid layout
 	for i in range(chars.size()):
-		var char = chars[i]
-		var color = tile_colors.get(char, Color.WHITE)
-		_draw_char_to_image(image, char, i * TILE_SIZE, 0, color)
+		var c = chars[i]
+		var col = i % tiles_per_row
+		var row = i / tiles_per_row
+		var x_offset = col * TILE_SIZE
+		var y_offset = row * TILE_SIZE
+		var color = tile_colors.get(c, Color(0.78, 0.78, 0.78))  # Default light gray
+		_draw_char_to_image(image, c, x_offset, y_offset, color)
 
 	return ImageTexture.create_from_image(image)
 
@@ -155,16 +171,28 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> voi
 	if not terrain_layer:
 		return
 
-	var tile_id = tile_map.get(tile_type, 1)  # Default to floor
-	terrain_layer.set_cell(position, 0, Vector2i(tile_id, 0))
+	# Get the tile index from tile_map, or calculate from ASCII code
+	var tile_index = tile_map.get(tile_type, 14)  # Default to floor (ASCII 46, index 14)
+
+	# Convert linear index to grid coordinates (16 columns)
+	var col = tile_index % 16
+	var row = tile_index / 16
+
+	terrain_layer.set_cell(position, 0, Vector2i(col, row))
 
 ## Render an entity
 func render_entity(position: Vector2i, entity_type: String, color: Color = Color.WHITE) -> void:
 	if not entity_layer:
 		return
 
-	var tile_id = tile_map.get(entity_type, 0)
-	entity_layer.set_cell(position, 0, Vector2i(tile_id, 0))
+	# Get the tile index from tile_map, or calculate from ASCII code
+	var tile_index = tile_map.get(entity_type, 32)  # Default to @ (player, ASCII 64, index 32)
+
+	# Convert linear index to grid coordinates (16 columns)
+	var col = tile_index % 16
+	var row = tile_index / 16
+
+	entity_layer.set_cell(position, 0, Vector2i(col, row))
 
 ## Clear entity at position
 func clear_entity(position: Vector2i) -> void:

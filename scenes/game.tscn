@@ -30,23 +30,69 @@ script = ExtResource("3")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
-[node name="Background" type="ColorRect" parent="HUD"]
+[node name="TopBar" type="ColorRect" parent="HUD"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 650.0
-offset_bottom = 80.0
-color = Color(0.2, 0.2, 0.2, 0.9)
+offset_right = 1280.0
+offset_bottom = 45.0
+color = Color(0, 0, 0, 0.9)
 
-[node name="TurnCounter" type="Label" parent="HUD"]
+[node name="CharacterInfo" type="Label" parent="HUD/TopBar"]
+offset_left = 10.0
+offset_top = 5.0
+offset_right = 400.0
+offset_bottom = 20.0
+text = "Player, Harvest Dawn 6th of Nivvum Ut"
+
+[node name="StatusLine" type="Label" parent="HUD/TopBar"]
+offset_left = 10.0
+offset_top = 22.0
+offset_right = 1270.0
+offset_bottom = 40.0
+text = "HP: 18/18  LVL: 1  Exp: 0/220  Turn: 0  dawn  QN: 100  MS: 120  AV: 3  DV: 5  MA: 5"
+
+[node name="RightSidebar" type="ColorRect" parent="HUD"]
+offset_left = 1090.0
+offset_top = 45.0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0, 0, 0, 0.9)
+
+[node name="LocationLabel" type="Label" parent="HUD/RightSidebar"]
 offset_left = 10.0
 offset_top = 10.0
-offset_right = 400.0
-offset_bottom = 40.0
-text = "Turn: 0 | dawn"
+offset_right = 180.0
+offset_bottom = 30.0
+text = "Location"
 
-[node name="MessageLabel" type="Label" parent="HUD"]
+[node name="MessageLog" type="RichTextLabel" parent="HUD/RightSidebar"]
 offset_left = 10.0
-offset_top = 40.0
+offset_top = 140.0
+offset_right = 180.0
+offset_bottom = 380.0
+bbcode_enabled = true
+text = "[color=#88CCFF]Message Log[/color]"
+scroll_following = true
+
+[node name="BottomBar" type="ColorRect" parent="HUD"]
+offset_left = 0.0
+offset_top = 675.0
+offset_right = 1090.0
+offset_bottom = 720.0
+color = Color(0, 0, 0, 0.9)
+
+[node name="ActiveEffects" type="Label" parent="HUD/BottomBar"]
+offset_left = 10.0
+offset_top = 5.0
 offset_right = 600.0
-offset_bottom = 70.0
-text = "WASD/Arrows: Move"
+offset_bottom = 20.0
+text = "ACTIVE EFFECTS:"
+
+[node name="Abilities" type="HBoxContainer" parent="HUD/BottomBar"]
+offset_left = 10.0
+offset_top = 22.0
+offset_right = 1070.0
+offset_bottom = 42.0
+
+[node name="Ability1" type="Label" parent="HUD/BottomBar/Abilities"]
+text = "A  Sprint off <Num Del>"

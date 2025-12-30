@@ -9,8 +9,11 @@ var renderer: ASCIIRenderer
 var input_handler: Node
 
 @onready var hud: CanvasLayer = $HUD
-@onready var turn_counter: Label = $HUD/TurnCounter
-@onready var message_label: Label = $HUD/MessageLabel
+@onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
+@onready var status_line: Label = $HUD/TopBar/StatusLine
+@onready var location_label: Label = $HUD/RightSidebar/LocationLabel
+@onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
+@onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
 
 func _ready() -> void:
 	# Get renderer reference
@@ -18,6 +21,9 @@ func _ready() -> void:
 
 	# Get input handler
 	input_handler = $InputHandler
+
+	# Set UI colors
+	_setup_ui_colors()
 
 	# Start new game
 	GameManager.start_new_game()
@@ -54,6 +60,10 @@ func _ready() -> void:
 
 	# Update HUD
 	_update_hud()
+
+	# Add welcome message
+	_add_message("Welcome to the Underkingdom. Press ? for help.", Color(0.7, 0.9, 1.0))
+	_add_message("WASD/Arrows: Move  >: Descend  <: Ascend", Color(0.8, 0.8, 0.8))
 
 	print("Game scene initialized")
 
@@ -114,23 +124,58 @@ func _on_turn_advanced(_turn_number: int) -> void:
 
 ## Update HUD display
 func _update_hud() -> void:
-	if turn_counter:
+	if not player:
+		return
+
+	# Update character info line
+	if character_info_label:
+		character_info_label.text = "Player, Harvest Dawn %dth of Nivvum Ut" % (TurnManager.current_turn / 1000 + 6)
+
+	# Update status line with all stats
+	if status_line:
+		var hp_text = "HP: %d/%d" % [player.current_health, player.max_health]
+		var level_text = "LVL: 1"
+		var exp_text = "Exp: 0/220"
+		var turn_text = "Turn: %d" % TurnManager.current_turn
+		var time_text = TurnManager.time_of_day
+
+		# Placeholder stats (QN=Quickness, MS=Move Speed, AV=Armor Value, DV=Dodge Value, MA=Mental Armor)
+		var qn_text = "QN: 100"
+		var ms_text = "MS: 120"
+		var av_text = "AV: 3"
+		var dv_text = "DV: 5"
+		var ma_text = "MA: 5"
+
+		status_line.text = "%s  %s  %s  %s  %s  %s  %s  %s  %s  %s" % [
+			hp_text, level_text, exp_text, turn_text, time_text,
+			qn_text, ms_text, av_text, dv_text, ma_text
+		]
+
+	# Update location
+	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
-		turn_counter.text = "Turn: %d | %s | Map: %s" % [TurnManager.current_turn, TurnManager.time_of_day, map_name]
+		location_label.text = map_name.replace("_", " ").capitalize()
 
 ## Update message based on player position
 func _update_message() -> void:
-	if not message_label or not player or not MapManager.current_map:
+	if not message_log or not player or not MapManager.current_map:
 		return
 
 	var tile = MapManager.current_map.get_tile(player.position)
 
 	if tile.tile_type == "stairs_down":
-		message_label.text = "Standing on stairs (>) - Press > to descend"
+		_add_message("Standing on stairs (>) - Press > to descend", Color.CYAN)
 	elif tile.tile_type == "stairs_up":
-		message_label.text = "Standing on stairs (<) - Press < to ascend"
-	else:
-		message_label.text = "WASD/Arrows: Move"
+		_add_message("Standing on stairs (<) - Press < to ascend", Color.CYAN)
+
+## Add a message to the message log
+func _add_message(text: String, color: Color = Color.WHITE) -> void:
+	if not message_log:
+		return
+
+	var color_hex = color.to_html(false)
+	var formatted_message = "[color=#%s]%s[/color]\n" % [color_hex, text]
+	message_log.append_text(formatted_message)
 
 ## Spawn enemies from map metadata
 func _spawn_map_enemies() -> void:
@@ -204,3 +249,19 @@ func _is_valid_spawn_position(pos: Vector2i) -> bool:
 		return false
 
 	return true
+
+## Setup UI element colors
+func _setup_ui_colors() -> void:
+	if character_info_label:
+		character_info_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+	if status_line:
+		status_line.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
+	if location_label:
+		location_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+	if active_effects_label:
+		active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+
+	# Set ability label color
+	var ability1 = $HUD/BottomBar/Abilities/Ability1
+	if ability1:
+		ability1.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))

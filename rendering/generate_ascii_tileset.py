@@ -6,7 +6,7 @@ import os
 import string
 
 # Configuration
-TILE_SIZE = 32  # Increased from 16 to 32 for better clarity
+TILE_SIZE = 48  # Increased to 48 for better clarity
 TILES_PER_ROW = 16  # Standard 16x6 grid for printable ASCII
 
 # Printable ASCII characters (32-126)
@@ -38,9 +38,12 @@ COLOR_OVERRIDES = {
 
 def create_ascii_tileset():
     """Create a sprite sheet with ASCII characters."""
-    # Create image
-    width = len(CHARS) * TILE_SIZE
-    height = TILE_SIZE
+    # Calculate grid dimensions
+    num_chars = len(CHARS)
+    rows = (num_chars + TILES_PER_ROW - 1) // TILES_PER_ROW  # Ceiling division
+
+    width = TILES_PER_ROW * TILE_SIZE
+    height = rows * TILE_SIZE
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
@@ -55,7 +58,7 @@ def create_ascii_tileset():
         font = None
         for font_path in font_paths:
             if os.path.exists(font_path):
-                font = ImageFont.truetype(font_path, 14)
+                font = ImageFont.truetype(font_path, 36)  # Increased to 36 for 48px tiles
                 break
 
         if font is None:
@@ -65,10 +68,14 @@ def create_ascii_tileset():
         print(f"Font loading error: {e}, using default")
         font = ImageFont.load_default()
 
-    # Draw each character
+    # Draw each character in grid layout
     for i, char in enumerate(CHARS):
-        x_offset = i * TILE_SIZE
-        color = COLORS.get(char, (255, 255, 255))
+        row = i // TILES_PER_ROW
+        col = i % TILES_PER_ROW
+        x_offset = col * TILE_SIZE
+        y_offset = row * TILE_SIZE
+
+        color = COLOR_OVERRIDES.get(char, DEFAULT_COLOR)
 
         # Get text bounding box
         bbox = draw.textbbox((0, 0), char, font=font)
@@ -77,7 +84,7 @@ def create_ascii_tileset():
 
         # Center the character in the tile
         x = x_offset + (TILE_SIZE - text_width) // 2
-        y = (TILE_SIZE - text_height) // 2 - bbox[1]
+        y = y_offset + (TILE_SIZE - text_height) // 2 - bbox[1]
 
         # Draw the character
         draw.text((x, y), char, fill=color + (255,), font=font)
@@ -88,6 +95,7 @@ def create_ascii_tileset():
     print(f"Saved ASCII tileset to: {output_path}")
     print(f"Image size: {width}x{height}")
     print(f"Tile size: {TILE_SIZE}x{TILE_SIZE}")
+    print(f"Grid layout: {TILES_PER_ROW} columns x {rows} rows")
     print(f"Number of tiles: {len(CHARS)}")
 
 if __name__ == "__main__":

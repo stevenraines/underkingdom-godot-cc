@@ -13,6 +13,8 @@
     "cha": 4
   },
   "behavior": "guardian",
+  "base_damage": 5,
+  "armor": 2,
   "loot_table": "undead_common",
   "xp_value": 50
 }

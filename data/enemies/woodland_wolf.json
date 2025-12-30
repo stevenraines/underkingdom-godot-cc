@@ -13,6 +13,8 @@
     "cha": 6
   },
   "behavior": "pack",
+  "base_damage": 4,
+  "armor": 0,
   "loot_table": "beast_common",
   "xp_value": 30
 }

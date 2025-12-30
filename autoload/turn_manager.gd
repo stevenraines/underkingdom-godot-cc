@@ -28,6 +28,10 @@ func _ready() -> void:
 func advance_turn() -> void:
 	current_turn += 1
 	_update_time_of_day()
+
+	# Process enemy turns
+	EntityManager.process_entity_turns()
+
 	EventBus.turn_advanced.emit(current_turn)
 
 	# Reset player turn flag

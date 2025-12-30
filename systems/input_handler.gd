@@ -24,6 +24,10 @@ func set_player(p: Player) -> void:
 func _process(delta: float) -> void:
 	if not player or not TurnManager.is_player_turn:
 		return
+	
+	# Don't process input if player is dead
+	if not player.is_alive:
+		return
 
 	# Check for held movement keys
 	var direction = Vector2i.ZERO
@@ -44,12 +48,12 @@ func _process(delta: float) -> void:
 
 		move_timer -= delta
 		if move_timer <= 0.0:
-			var action_taken = player.move(direction)
+			var action_taken = _try_move_or_attack(direction)
 			if action_taken:
 				TurnManager.advance_turn()
-				blocked_direction = Vector2i.ZERO  # Clear block on successful move
+				blocked_direction = Vector2i.ZERO  # Clear block on successful move/attack
 			else:
-				# Movement failed (obstacle/enemy) - stop continuous movement in this direction
+				# Movement failed (obstacle) - stop continuous movement in this direction
 				blocked_direction = direction
 			# Use longer delay for initial press, shorter for continuous
 			move_timer = initial_delay if is_initial_press else move_delay
@@ -59,6 +63,21 @@ func _process(delta: float) -> void:
 		move_timer = 0.0
 		is_initial_press = true
 		blocked_direction = Vector2i.ZERO  # Clear block when key released
+
+## Try to move or attack in a direction
+func _try_move_or_attack(direction: Vector2i) -> bool:
+	var target_pos = player.position + direction
+	
+	# Check for enemy at target position
+	var blocking_entity = EntityManager.get_blocking_entity_at(target_pos)
+	
+	if blocking_entity and blocking_entity is Enemy:
+		# Attack the enemy (always consumes turn)
+		player.attack(blocking_entity)
+		return true
+	else:
+		# Try to move
+		return player.move(direction)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:

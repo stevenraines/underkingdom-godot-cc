@@ -32,6 +32,8 @@ var attributes: Dictionary = {
 var max_health: int = 0
 var current_health: int = 0
 var is_alive: bool = true
+var base_damage: int = 1  # Unarmed/natural weapon damage
+var armor: int = 0  # Damage reduction
 
 # Components (composition pattern)
 var components: Dictionary = {}  # component_name -> component instance

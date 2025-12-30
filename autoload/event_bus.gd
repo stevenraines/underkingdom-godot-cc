@@ -19,5 +19,10 @@ signal map_changed(map_id: String)
 signal entity_died(entity: Entity)
 signal entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i)
 
+# Combat signals
+signal attack_performed(attacker: Entity, defender: Entity, result: Dictionary)
+signal combat_message(message: String, color: Color)
+signal player_died()
+
 func _ready() -> void:
 	print("EventBus initialized")

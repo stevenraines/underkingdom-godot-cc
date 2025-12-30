@@ -58,6 +58,10 @@ static func create(enemy_data: Dictionary) -> Enemy:
 	enemy.loot_table = enemy_data.get("loot_table", "")
 	enemy.xp_value = enemy_data.get("xp_value", 10)
 
+	# Combat properties
+	enemy.base_damage = enemy_data.get("base_damage", 2)
+	enemy.armor = enemy_data.get("armor", 0)
+
 	# Aggro range based on INT
 	enemy.aggro_range = 3 + enemy.attributes["INT"]
 
@@ -85,6 +89,11 @@ func take_turn() -> void:
 
 ## Execute AI behavior
 func _execute_behavior(player: Player) -> void:
+	# First, check if we should attack (player is adjacent)
+	if _attempt_attack_if_adjacent():
+		return  # Attack consumes the turn
+	
+	# Otherwise, execute movement behavior
 	match behavior_type:
 		"aggressive":
 			# Always chase and attack
@@ -106,6 +115,18 @@ func _execute_behavior(player: Player) -> void:
 		_:
 			_move_toward_target(player.position)
 
+## Attempt to attack player if adjacent
+func _attempt_attack_if_adjacent() -> bool:
+	if not EntityManager.player or not EntityManager.player.is_alive:
+		return false
+	
+	# Check if player is cardinally adjacent (not diagonal for now)
+	if CombatSystem.are_cardinally_adjacent(position, EntityManager.player.position):
+		CombatSystem.attempt_attack(self, EntityManager.player)
+		return true
+	
+	return false
+
 ## Move one step toward target position
 func _move_toward_target(target: Vector2i) -> void:
 	if position == target:
@@ -124,10 +145,9 @@ func _move_toward_target(target: Vector2i) -> void:
 	# Try to move in that direction
 	var new_pos = position + move_dir
 
-	# Check if player is at the target position (attack instead of move)
+	# Check if player is at the target position (don't move into player)
 	if EntityManager.player and EntityManager.player.position == new_pos:
-		# Attack will be implemented in combat phase
-		# For now, just stay adjacent
+		# Player is blocking - attack handled in _attempt_attack_if_adjacent
 		return
 
 	# Check if position is walkable

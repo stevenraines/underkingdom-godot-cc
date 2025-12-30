@@ -59,6 +59,8 @@ func _ready() -> void:
 	EventBus.turn_advanced.connect(_on_turn_advanced)
 	EventBus.entity_moved.connect(_on_entity_moved)
 	EventBus.entity_died.connect(_on_entity_died)
+	EventBus.attack_performed.connect(_on_attack_performed)
+	EventBus.player_died.connect(_on_player_died)
 
 	# Update HUD
 	_update_hud()
@@ -155,7 +157,76 @@ func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> v
 ## Called when an entity dies
 func _on_entity_died(entity: Entity) -> void:
 	renderer.clear_entity(entity.position)
-	_add_message("%s dies!" % entity.name, Color.RED)
+	
+	# Check if it's the player
+	if entity == player:
+		EventBus.player_died.emit()
+	else:
+		# Enemy died - remove from EntityManager
+		EntityManager.remove_entity(entity)
+
+## Called when an attack is performed
+func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionary) -> void:
+	var is_player_attacker = (attacker == player)
+	var message = CombatSystem.get_attack_message(result, is_player_attacker)
+	
+	# Determine message color
+	var color: Color
+	if result.hit:
+		if result.defender_died:
+			color = Color.RED
+		elif is_player_attacker:
+			color = Color(1.0, 0.6, 0.2)  # Orange - player dealing damage
+		else:
+			color = Color(1.0, 0.4, 0.4)  # Light red - taking damage
+	else:
+		color = Color(0.6, 0.6, 0.6)  # Gray for misses
+	
+	_add_message(message, color)
+	
+	# Update HUD to show health changes
+	_update_hud()
+
+## Called when player dies
+func _on_player_died() -> void:
+	_add_message("", Color.WHITE)  # Blank line
+	_add_message("*** YOU HAVE DIED ***", Color.RED)
+	_add_message("Press R to restart or ESC for main menu.", Color(0.7, 0.7, 0.7))
+	
+	# Disable input (handled in input_handler via is_alive check)
+	# Show game over state
+	_show_game_over()
+
+## Show game over overlay
+func _show_game_over() -> void:
+	# For now, just change the HUD to show game over state
+	# A proper overlay can be added later
+	if status_line:
+		status_line.text = "GAME OVER - Press R to restart"
+		status_line.add_theme_color_override("font_color", Color.RED)
+
+## Handle unhandled input (for game-wide controls)
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		# Restart game when R is pressed and player is dead
+		if event.keycode == KEY_R and player and not player.is_alive:
+			_restart_game()
+		# Return to main menu on ESC when player is dead
+		elif event.keycode == KEY_ESCAPE and player and not player.is_alive:
+			get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+## Restart the game
+func _restart_game() -> void:
+	# Clear entities
+	EntityManager.clear_entities()
+	EntityManager.player = null
+	
+	# Reset turn manager
+	TurnManager.current_turn = 0
+	TurnManager.is_player_turn = true
+	
+	# Reload the scene
+	get_tree().reload_current_scene()
 
 ## Update HUD display
 func _update_hud() -> void:
@@ -164,32 +235,74 @@ func _update_hud() -> void:
 
 	# Update character info line
 	if character_info_label:
+		@warning_ignore("integer_division")
 		character_info_label.text = "Player, Harvest Dawn %dth of Nivvum Ut" % (TurnManager.current_turn / 1000 + 6)
 
 	# Update status line with all stats
 	if status_line:
+		# Health with color coding
+		var hp_percent = float(player.current_health) / float(player.max_health)
 		var hp_text = "HP: %d/%d" % [player.current_health, player.max_health]
+		
 		var level_text = "LVL: 1"
 		var exp_text = "Exp: 0/220"
 		var turn_text = "Turn: %d" % TurnManager.current_turn
 		var time_text = TurnManager.time_of_day
 
-		# Placeholder stats (QN=Quickness, MS=Move Speed, AV=Armor Value, DV=Dodge Value, MA=Mental Armor)
-		var qn_text = "QN: 100"
-		var ms_text = "MS: 120"
-		var av_text = "AV: 3"
-		var dv_text = "DV: 5"
-		var ma_text = "MA: 5"
+		# Combat stats
+		var acc_text = "Acc: %d%%" % CombatSystem.get_accuracy(player)
+		var eva_text = "Eva: %d%%" % CombatSystem.get_evasion(player)
+		var dmg_text = "Dmg: %d" % player.base_damage
+		var arm_text = "Arm: %d" % player.armor
 
-		status_line.text = "%s  %s  %s  %s  %s  %s  %s  %s  %s  %s" % [
+		status_line.text = "%s  %s  %s  %s  %s  %s  %s  %s  %s" % [
 			hp_text, level_text, exp_text, turn_text, time_text,
-			qn_text, ms_text, av_text, dv_text, ma_text
+			acc_text, eva_text, dmg_text, arm_text
 		]
+		
+		# Color code based on health
+		var hp_color: Color
+		if hp_percent > 0.75:
+			hp_color = Color(0.5, 1.0, 0.5)  # Green - healthy
+		elif hp_percent > 0.5:
+			hp_color = Color(1.0, 1.0, 0.3)  # Yellow - wounded
+		elif hp_percent > 0.25:
+			hp_color = Color(1.0, 0.6, 0.2)  # Orange - hurt
+		else:
+			hp_color = Color(1.0, 0.3, 0.3)  # Red - critical
+		
+		status_line.add_theme_color_override("font_color", hp_color)
 
 	# Update location
 	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
 		location_label.text = map_name.replace("_", " ").capitalize()
+	
+	# Update active effects with nearby enemy count
+	if active_effects_label:
+		var nearby_enemies = _count_nearby_enemies()
+		if nearby_enemies > 0:
+			active_effects_label.text = "DANGER: %d enem%s nearby!" % [
+				nearby_enemies, "y" if nearby_enemies == 1 else "ies"
+			]
+			active_effects_label.add_theme_color_override("font_color", Color.RED)
+		else:
+			active_effects_label.text = "ACTIVE EFFECTS: None"
+			active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+
+## Count enemies within aggro range of player
+func _count_nearby_enemies() -> int:
+	if not player:
+		return 0
+	
+	var count = 0
+	for entity in EntityManager.entities:
+		if entity.is_alive and entity is Enemy:
+			var distance = abs(entity.position.x - player.position.x) + abs(entity.position.y - player.position.y)
+			if distance <= player.perception_range:
+				count += 1
+	
+	return count
 
 ## Update message based on player position
 func _update_message() -> void:
@@ -235,6 +348,7 @@ func _find_valid_spawn_position() -> Vector2i:
 	if not MapManager.current_map:
 		return Vector2i(10, 10)  # Fallback
 
+	@warning_ignore("integer_division")
 	var center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
 
 	# Try to find a position with open space around it (not just a single walkable tile)

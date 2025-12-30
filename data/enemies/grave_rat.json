@@ -13,6 +13,8 @@
     "cha": 3
   },
   "behavior": "aggressive",
+  "base_damage": 2,
+  "armor": 0,
   "loot_table": "rat_common",
   "xp_value": 5
 }

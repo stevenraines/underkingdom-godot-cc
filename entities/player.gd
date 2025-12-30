@@ -5,6 +5,9 @@ extends Entity
 ##
 ## Handles player movement, interactions, and dungeon navigation.
 
+# Preload combat system to ensure it's available
+const _CombatSystem = preload("res://systems/combat_system.gd")
+
 var perception_range: int = 10
 
 func _init() -> void:
@@ -15,10 +18,16 @@ func _init() -> void:
 func _setup_player() -> void:
 	entity_type = "player"
 	name = "Player"
+	base_damage = 2  # Unarmed combat damage
+	armor = 0  # No armor initially
 
 	# Player starts with base attributes (defined in Entity)
 	# Perception range calculated from WIS: Base 5 + (WIS / 2)
 	perception_range = 5 + int(attributes["WIS"] / 2.0)
+
+## Attempt to attack a target entity
+func attack(target: Entity) -> Dictionary:
+	return _CombatSystem.attempt_attack(self, target)
 
 ## Attempt to move in a direction
 func move(direction: Vector2i) -> bool:

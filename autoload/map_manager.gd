@@ -7,7 +7,7 @@ extends Node
 
 var loaded_maps: Dictionary = {}  # map_id -> GameMap
 var current_map: GameMap = null
-var current_dungeon_floor: int = 1  # Track which dungeon floor player is on
+var current_dungeon_floor: int = 0  # Track which dungeon floor player is on (0 = overworld)
 
 func _ready() -> void:
 	print("MapManager initialized")

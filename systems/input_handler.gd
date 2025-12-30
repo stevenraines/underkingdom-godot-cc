@@ -35,17 +35,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Stairs navigation - check for specific key presses
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_PERIOD and event.shift_pressed:  # > key (Shift + .)
-			# Descend stairs
+			# Descend stairs - only works on stairs_down tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_down":
-				player.interact_with_tile()
+				MapManager.descend_dungeon()
+				player._find_and_move_to_stairs("stairs_up")
 				action_taken = true
 				get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_COMMA and event.shift_pressed:  # < key (Shift + ,)
-			# Ascend stairs
+			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_up":
-				player.interact_with_tile()
+				MapManager.ascend_dungeon()
+				player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
 

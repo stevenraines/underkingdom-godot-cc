@@ -112,8 +112,8 @@ func _update_message() -> void:
 	var tile = MapManager.current_map.get_tile(player.position)
 
 	if tile.tile_type == "stairs_down":
-		message_label.text = "Standing on stairs down (>) - Press SHIFT+. (>) to descend"
+		message_label.text = "Standing on stairs (>) - Press > to descend"
 	elif tile.tile_type == "stairs_up":
-		message_label.text = "Standing on stairs up (<) - Press SHIFT+, (<) to ascend"
+		message_label.text = "Standing on stairs (<) - Press < to ascend"
 	else:
-		message_label.text = "WASD/Arrows: Move | >: Descend stairs | <: Ascend stairs"
+		message_label.text = "WASD/Arrows: Move"

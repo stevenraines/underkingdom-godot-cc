@@ -284,12 +284,25 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
 			else:
 				name_node.text = name_node.text.trim_prefix("► ")
+				# Restore original color from item metadata or use default
+				if row.has_meta("item"):
+					var item = row.get_meta("item")
+					name_node.add_theme_color_override("font_color", item.get_color())
+				elif row.has_meta("slot"):
+					# Equipment slot - check if it has an equipped item
+					var slot = row.get_meta("slot")
+					var equipped = player.inventory.get_equipped(slot) if player and player.inventory else null
+					if equipped:
+						name_node.add_theme_color_override("font_color", COLOR_EQUIPPED)
+					else:
+						name_node.add_theme_color_override("font_color", COLOR_EMPTY)
 	elif row is Label:
 		if highlighted:
 			row.text = "► " + row.text.trim_prefix("► ")
 			row.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
 		else:
 			row.text = row.text.trim_prefix("► ")
+			row.add_theme_color_override("font_color", COLOR_EMPTY)
 
 func _update_tooltip() -> void:
 	if not tooltip_label:

@@ -298,7 +298,8 @@ func _get_status_color() -> Color:
 	# Check survival critical states
 	if player.survival:
 		var s = player.survival
-		if s.hunger <= 0 or s.thirst <= 0 or s.temperature < 0 or s.temperature > 40:
+		# Temperature thresholds in Fahrenheit: freezing < 32°F, hyperthermia > 104°F
+		if s.hunger <= 0 or s.thirst <= 0 or s.temperature < 32 or s.temperature > 104:
 			return Color.RED  # Critical survival
 		if s.hunger <= 25 or s.thirst <= 25:
 			return Color(1.0, 0.4, 0.4)  # Severe survival
@@ -339,8 +340,8 @@ func _update_survival_display() -> void:
 	# Update display
 	if effects_list.size() > 0:
 		active_effects_label.text = "EFFECTS: " + ", ".join(effects_list)
-		# Color based on severity
-		if s.hunger <= 25 or s.thirst <= 25 or s.temperature < 10 or s.temperature > 30 or nearby_enemies > 0:
+		# Color based on severity (temperature thresholds in °F: cold < 50, hot > 86)
+		if s.hunger <= 25 or s.thirst <= 25 or s.temperature < 50 or s.temperature > 86 or nearby_enemies > 0:
 			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 		else:
 			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))

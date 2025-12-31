@@ -17,8 +17,15 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		"defender_died": false,
 		"critical": false,
 		"roll": 0,
-		"hit_chance": 0
+		"hit_chance": 0,
+		"weapon_name": ""
 	}
+	
+	# Get equipped weapon name if attacker has inventory
+	if attacker.has_method("get_component") or "inventory" in attacker:
+		var inventory = attacker.get("inventory")
+		if inventory and inventory.equipment.get("main_hand"):
+			result.weapon_name = inventory.equipment["main_hand"].name
 	
 	# Calculate hit chance
 	var accuracy = get_accuracy(attacker)
@@ -100,20 +107,26 @@ static func are_cardinally_adjacent(pos1: Vector2i, pos2: Vector2i) -> bool:
 static func get_attack_message(result: Dictionary, is_player_attacker: bool) -> String:
 	var attacker = result.attacker_name
 	var defender = result.defender_name
+	var weapon = result.get("weapon_name", "")
+	
+	# Build weapon phrase for player attacks
+	var weapon_phrase = ""
+	if is_player_attacker and weapon != "":
+		weapon_phrase = " with your %s" % weapon
 	
 	if result.hit:
 		if result.defender_died:
 			if is_player_attacker:
-				return "You kill the %s!" % defender
+				return "You kill the %s%s!" % [defender, weapon_phrase]
 			else:
 				return "The %s kills you!" % attacker
 		else:
 			if is_player_attacker:
-				return "You hit the %s for %d damage." % [defender, result.damage]
+				return "You hit the %s%s for %d damage." % [defender, weapon_phrase, result.damage]
 			else:
 				return "The %s hits you for %d damage." % [attacker, result.damage]
 	else:
 		if is_player_attacker:
-			return "You miss the %s." % defender
+			return "You miss the %s%s." % [defender, weapon_phrase]
 		else:
 			return "The %s misses you." % attacker

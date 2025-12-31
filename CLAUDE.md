@@ -156,6 +156,36 @@ All interconnected for emergent gameplay:
 - Floor tile (period) hidden when item/entity stands on it
 - Pickup/drop mechanics integrated with movement
 
+### Harvest System
+**Generic resource harvesting** with configurable behaviors:
+- All resources defined in separate JSON files (`data/resources/*.json`)
+- Loaded recursively from subdirectories like items and enemies
+- Three harvest behaviors: permanent destruction, renewable, non-consumable
+- Tool requirements, stamina costs, yield tables with probability
+
+**Harvest Behaviors**:
+- **Destroy Permanent**: Resource destroyed forever (trees → wood, rocks → stone)
+- **Destroy Renewable**: Resource respawns after N turns (wheat → grain)
+- **Non-Consumable**: Never depletes (water → fresh water)
+
+**Implemented Resources**:
+- Trees (flint knife/iron knife/axe) → 2-4 wood, destroyed permanently
+- Rocks (pickaxe) → 3-6 stone + 0-2 flint (30% chance), destroyed permanently
+- Wheat (flint knife/iron knife/sickle) → 1-3 wheat, respawns after 5000 turns
+- Water (waterskin/bottle) → waterskin full, never depletes
+- Iron Ore (pickaxe) → 2-5 iron ore, destroyed permanently
+
+**Player Interaction**:
+- Press 'H' key to harvest
+- Select direction with arrow keys or WASD
+- System validates tool, consumes stamina, generates yields
+- Renewable resources tracked for automatic respawn
+
+**Extensibility**:
+- Add new resources via JSON without code changes
+- Configure yields with probability for rare drops
+- Customize respawn rates per resource type
+
 ---
 
 ## Current Phase: 1.15 Complete → 1.16 Next
@@ -250,6 +280,7 @@ res://
 │   ├── combat_system.gd
 │   ├── survival_system.gd
 │   ├── inventory_system.gd
+│   ├── harvest_system.gd
 │   ├── fov_system.gd
 │   └── input_handler.gd
 ├── maps/               # Map data structures
@@ -273,14 +304,20 @@ res://
 │   ├── hud.tscn
 │   └── inventory_screen.tscn
 ├── data/               # JSON data files
+│   ├── resources/      # Harvestable resource definitions
 │   ├── items/
-│   │   ├── consumables.json
-│   │   ├── materials.json
-│   │   ├── tools.json
-│   │   └── equipment.json
+│   │   ├── consumables/
+│   │   ├── materials/
+│   │   ├── tools/
+│   │   ├── weapons/
+│   │   ├── armor/
+│   │   └── misc/
+│   ├── recipes/
+│   │   ├── consumables/
+│   │   ├── tools/
+│   │   └── equipment/
+│   ├── structures/
 │   └── enemies/
-│       ├── overworld/
-│       └── dungeon/
 ├── scenes/             # Scene files
 │   ├── main.tscn
 │   └── game.tscn
@@ -290,7 +327,8 @@ res://
     ├── entity-system-implementation.md
     ├── combat-system-implementation.md
     ├── survival-systems-implementation.md
-    └── inventory-system-implementation.md
+    ├── inventory-system-implementation.md
+    └── harvest-system-implementation.md
 ```
 
 ---

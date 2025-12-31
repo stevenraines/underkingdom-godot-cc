@@ -1,0 +1,11 @@
+{
+  "id": "stone",
+  "name": "Stone",
+  "item_type": "material",
+  "description": "Rough stone, useful for building and crafting.",
+  "weight": 2.0,
+  "value": 1,
+  "max_stack": 99,
+  "ascii_char": "*",
+  "color": {"r": 0.6, "g": 0.6, "b": 0.6}
+}

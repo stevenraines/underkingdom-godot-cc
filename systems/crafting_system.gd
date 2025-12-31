@@ -156,6 +156,15 @@ static func is_near_fire(player_pos: Vector2i) -> bool:
 				if "is_fire_source" in entity and entity.is_fire_source:
 					return true
 
+			# Check structures for fire sources (campfires)
+			if MapManager.current_map:
+				var map_id = MapManager.current_map.map_id
+				var structures = StructureManager.get_structures_at(check_pos, map_id)
+				for structure in structures:
+					var fire_comp = structure.get_component("fire")
+					if fire_comp and fire_comp.is_lit:
+						return true
+
 	return false
 
 ## Get success chance percentage as string (for UI display)

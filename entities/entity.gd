@@ -51,10 +51,10 @@ var stat_modifiers: Dictionary = {
 # Components (composition pattern)
 var components: Dictionary = {}  # component_name -> component instance
 
-func _init(id: String = "", pos: Vector2i = Vector2i.ZERO, char: String = "?", entity_color: Color = Color.WHITE, blocks: bool = true) -> void:
+func _init(id: String = "", pos: Vector2i = Vector2i.ZERO, display_char: String = "?", entity_color: Color = Color.WHITE, blocks: bool = true) -> void:
 	entity_id = id
 	position = pos
-	ascii_char = char
+	ascii_char = display_char
 	color = entity_color
 	blocks_movement = blocks
 	_calculate_derived_stats()

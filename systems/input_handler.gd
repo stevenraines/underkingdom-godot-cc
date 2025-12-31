@@ -15,6 +15,9 @@ var move_timer: float = 0.0
 var is_initial_press: bool = true
 var blocked_direction: Vector2i = Vector2i.ZERO  # Stop continuous movement if blocked
 
+# Harvest mode
+var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
+
 func _ready() -> void:
 	set_process_unhandled_input(true)
 	set_process(true)
@@ -88,6 +91,43 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:
 		return
 
+	# If awaiting harvest direction, handle directional input
+	if _awaiting_harvest_direction and event is InputEventKey and event.pressed and not event.echo:
+		var direction = Vector2i.ZERO
+
+		match event.keycode:
+			KEY_UP, KEY_W:
+				direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel harvest
+				_awaiting_harvest_direction = false
+				ui_blocking_input = false
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Cancelled harvest", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if direction != Vector2i.ZERO:
+			_awaiting_harvest_direction = false
+			ui_blocking_input = false
+			get_viewport().set_input_as_handled()  # Consume input BEFORE processing
+
+			# Reset movement timer to prevent immediate movement after harvest
+			move_timer = initial_delay
+			is_initial_press = true
+
+			var action_taken = _try_harvest(direction)
+			if action_taken:
+				TurnManager.advance_turn()
+			return
+
 	# Stairs navigation and wait action - check for specific key presses
 	if event is InputEventKey and event.pressed and not event.echo:
 		var action_taken = false
@@ -126,6 +166,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_C:  # C key - open crafting
 			_open_crafting()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_B:  # B key - toggle build mode
+			_toggle_build_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_E:  # E key - interact with structure
+			_interact_with_structure()
+			action_taken = true
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_G:  # G key - toggle auto-pickup
 			_toggle_auto_pickup()
 			get_viewport().set_input_as_handled()
@@ -135,6 +182,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_T:  # T - talk/interact with NPC
 			_try_interact_npc()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
+			_start_harvest_mode()
 			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
@@ -159,6 +209,36 @@ func _open_crafting() -> void:
 	var game = get_parent()
 	if game and game.has_method("open_crafting_screen"):
 		game.open_crafting_screen()
+
+## Toggle build mode
+func _toggle_build_mode() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_build_mode"):
+		game.toggle_build_mode()
+
+## Interact with structure at player position
+func _interact_with_structure() -> void:
+	# Find structures at player position
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_at(player.position, map_id)
+
+	if structures.size() > 0:
+		var structure = structures[0]
+		var result = structure.interact(player)
+
+		if result.success:
+			var game = get_parent()
+			if not game:
+				return
+
+			match result.action:
+				"open_container":
+					if game.has_method("open_container_screen"):
+						game.open_container_screen(structure)
+				"toggle_fire":
+					if game.has_method("_add_message"):
+						game._add_message(result.message, Color(0.9, 0.7, 0.4))
+					EventBus.fire_toggled.emit(structure, structure.is_active)
 
 ## Toggle auto-pickup setting
 func _toggle_auto_pickup() -> void:
@@ -196,3 +276,33 @@ func _try_interact_npc() -> void:
 		nearby_npcs[0].interact(player)
 	else:
 		EventBus.emit_signal("message_logged", "There's nobody here to talk to.")
+
+## Start harvest mode - player will be prompted for direction
+func _start_harvest_mode() -> void:
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		game._add_message("Harvest which direction? (Arrow keys or WASD)", Color(1.0, 1.0, 0.6))
+
+	# Set a flag to await direction input
+	ui_blocking_input = true
+	_awaiting_harvest_direction = true
+
+## Try to harvest a resource in the given direction
+func _try_harvest(direction: Vector2i) -> bool:
+	var result = player.harvest_resource(direction)
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
+		game._add_message(result.message, color)
+
+	# If successful, trigger a map re-render to show the resource is gone
+	if result.success and game and game.has_method("_render_map"):
+		game._render_map()
+		game._render_all_entities()
+		game._render_ground_items()
+		# Re-render player (not in EntityManager.entities)
+		if game.has_method("get_node") and game.get("renderer"):
+			game.renderer.render_entity(player.position, "@", Color.YELLOW)
+
+	return result.success

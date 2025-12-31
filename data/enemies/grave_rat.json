@@ -15,6 +15,8 @@
   "behavior": "aggressive",
   "base_damage": 2,
   "armor": 0,
+  "feared_components": ["fire"],
+  "fear_distance": 3,
   "loot_table": "rat_common",
   "xp_value": 5,
   "spawn_density_overworld": 0,

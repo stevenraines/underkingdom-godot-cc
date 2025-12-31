@@ -9,14 +9,18 @@ extends Entity
 const _CombatSystem = preload("res://systems/combat_system.gd")
 const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
-const CraftingSystem = preload("res://systems/crafting_system.gd")
+const _CraftingSystem = preload("res://systems/crafting_system.gd")
+const HarvestSystem = preload("res://systems/harvest_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
 var gold: int = 0  # Player's gold currency
-var xp: int = 0  # Player's experience points
+
+# Experience
+var experience: int = 0
+var experience_to_next_level: int = 100
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
@@ -69,11 +73,11 @@ func move(direction: Vector2i) -> bool:
 func process_survival_turn(turn_number: int) -> Dictionary:
 	if not survival:
 		return {}
-	
-	# Update temperature based on current location and time
+
+	# Update temperature based on current location, time, and player position
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else "overworld"
-	survival.update_temperature(map_id, TurnManager.time_of_day)
-	
+	survival.update_temperature(map_id, TurnManager.time_of_day, position)
+
 	# Process survival effects
 	var effects = survival.process_turn(turn_number)
 	
@@ -145,6 +149,20 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 	position = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
 	push_warning("Could not find ", stairs_type, ", positioning at center")
 	EventBus.player_moved.emit(old_pos, position)
+
+## Harvest a resource in a given direction (generic method)
+func harvest_resource(direction: Vector2i) -> Dictionary:
+	if not MapManager.current_map:
+		return {"success": false, "message": "No map loaded"}
+
+	var target_pos = position + direction
+	var tile = MapManager.current_map.get_tile(target_pos)
+
+	if not tile or tile.harvestable_resource_id.is_empty():
+		return {"success": false, "message": "Nothing to harvest there"}
+
+	# Delegate to HarvestSystem
+	return HarvestSystem.harvest(self, target_pos, tile.harvestable_resource_id)
 
 ## Get total weapon damage (base + equipped weapon bonus)
 func get_weapon_damage() -> int:
@@ -266,6 +284,10 @@ func learn_recipe(recipe_id: String) -> void:
 		known_recipes.append(recipe_id)
 		print("Player learned recipe: ", recipe_id)
 
+## Check if player is near a fire source for crafting
+func is_near_fire() -> bool:
+	return _CraftingSystem.is_near_fire(position)
+
 ## Get all recipes the player knows
 func get_known_recipes() -> Array:
 	var result: Array = []
@@ -278,7 +300,7 @@ func get_known_recipes() -> Array:
 ## Get recipes player can currently craft (knows recipe + has ingredients)
 func get_craftable_recipes() -> Array:
 	var result: Array = []
-	var near_fire = CraftingSystem.is_near_fire(position)
+	var near_fire = _CraftingSystem.is_near_fire(position)
 
 	for recipe_id in known_recipes:
 		var recipe = RecipeManager.get_recipe(recipe_id)

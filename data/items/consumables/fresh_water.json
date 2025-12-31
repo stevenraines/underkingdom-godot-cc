@@ -1,0 +1,15 @@
+{
+  "id": "fresh_water",
+  "name": "Fresh Water",
+  "item_type": "consumable",
+  "subtype": "drink",
+  "description": "Clean, fresh water. Restores thirst.",
+  "weight": 1.0,
+  "value": 1,
+  "max_stack": 1,
+  "ascii_char": "~",
+  "color": {"r": 0.3, "g": 0.5, "b": 0.9},
+  "effects": {
+    "thirst_restored": 50
+  }
+}

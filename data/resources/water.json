@@ -1,0 +1,12 @@
+{
+  "id": "water",
+  "name": "Water",
+  "required_tools": ["waterskin_empty", "bottle"],
+  "tool_must_be_equipped": false,
+  "harvest_behavior": "non_consumable",
+  "stamina_cost": 5,
+  "yields": [
+    {"item_id": "waterskin_full", "min_count": 1, "max_count": 1}
+  ],
+  "harvest_message": "Filled %tool% with water"
+}

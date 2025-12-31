@@ -234,6 +234,19 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	# Auto-pickup items at new position
 	_auto_pickup_items()
 
+	# If player stepped onto a structure, show a contextual message
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_at(new_pos, map_id)
+	if structures.size() > 0:
+		# Show only the first structure's message to avoid spamming
+		var structure = structures[0]
+		var entry_msg = "You are near %s." % structure.name
+		if structure.has_component("fire"):
+			var fire = structure.get_component("fire")
+			var lit_text = "lit" if fire.is_lit else "unlit"
+			entry_msg += " The fire is %s." % lit_text
+		_add_message(entry_msg, Color(0.9, 0.8, 0.6))
+
 	# Check if standing on stairs and update message
 	_update_message()
 

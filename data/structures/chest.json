@@ -4,7 +4,7 @@
   "description": "A sturdy chest for storing items. Can hold up to 50kg of items.",
   "ascii_char": "&",
   "ascii_color": "#CD853F",
-  "blocks_movement": true,
+  "blocks_movement": false,
   "structure_type": "container",
   "durability": 200,
   "components": {

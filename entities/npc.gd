@@ -75,7 +75,9 @@ func load_shop_inventory():
 			{"item_id": "cord", "count": 15, "base_price": 2},
 			{"item_id": "cloth", "count": 10, "base_price": 3},
 			{"item_id": "flint", "count": 8, "base_price": 5},
-			{"item_id": "pickaxe", "count": 2, "base_price": 10}
+			{"item_id": "pickaxe", "count": 2, "base_price": 10},
+			{"item_id": "iron_ore", "count": 10, "base_price": 2},	
+			{"item_id": "hammer", "count": 2, "base_price": 2}
 
 		]
 

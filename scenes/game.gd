@@ -7,6 +7,7 @@ extends Node2D
 const ItemClass = preload("res://items/item.gd")
 const GroundItemClass = preload("res://entities/ground_item.gd")
 const ItemManagerScript = preload("res://autoload/item_manager.gd")
+const JsonHelperScript = preload("res://autoload/json_helper.gd")
 const Structure = preload("res://entities/structure.gd")
 const StructurePlacement = preload("res://systems/structure_placement.gd")
 
@@ -154,32 +155,28 @@ func _give_starter_items() -> void:
 	if not player or not player.inventory:
 		return
 
-	# Add some basic starter items
-	var starter_items = [
-		{"id": "ration", "count": 3},
-		{"id": "bandage", "count": 2},
-		{"id": "waterskin_full", "count": 1},
-		{"id": "flint_knife", "count": 1},
-		{"id": "axe", "count": 1},
-		{"id": "flint", "count": 1},  # For building campfire
-		# Crafting materials for testing
-		{"id": "wood", "count": 5},
-		{"id": "leather", "count": 3},
-		{"id": "cord", "count": 3},
-		{"id": "cloth", "count": 2},
-		{"id": "herb", "count": 2},
-		{"id": "raw_meat", "count": 2}
-	]
+	# Load starter items from configuration JSON (falls back to empty)
+	var starter_path: String = "res://data/configuration/starter_items.json"
+	var items_data: Array = JsonHelper.load_json_file(starter_path)
+	if typeof(items_data) != TYPE_ARRAY:
+		push_warning("Game: starter_items.json did not return an array, using empty list")
+		items_data = []
 
 	var item_mgr = get_node("/root/ItemManager")
-	for item_data in starter_items:
-		var item = item_mgr.create_item(item_data.id, item_data.count)
-		if item:
-			player.inventory.add_item(item)
+	for item_data in items_data:
+		var item_id = item_data.get("id", "")
+		var count = int(item_data.get("count", 1))
+		if item_id == "":
+			continue
+		var stacks = item_mgr.create_item_stacks(item_id, count)
+		for it in stacks:
+			if it:
+				player.inventory.add_item(it)
 
 	# Give player some starter recipes for testing
 	player.learn_recipe("bandage")
 	player.learn_recipe("flint_knife")
+	player.learn_recipe("cooked_meat")
 
 ## Render the entire current map
 func _render_map() -> void:

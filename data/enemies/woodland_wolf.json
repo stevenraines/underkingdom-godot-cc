@@ -12,6 +12,9 @@
     "wis": 10,
     "cha": 6
   },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 1, "max_count": 3}
+  ],
   "behavior": "pack",
   "base_damage": 4,
   "armor": 0,

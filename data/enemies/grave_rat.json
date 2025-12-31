@@ -12,6 +12,9 @@
     "wis": 8,
     "cha": 3
   },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 0, "max_count": 1}
+  ],
   "behavior": "aggressive",
   "base_damage": 2,
   "armor": 0,

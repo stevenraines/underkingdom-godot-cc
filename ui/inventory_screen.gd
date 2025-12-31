@@ -400,24 +400,24 @@ func _format_item_tooltip(item: Item) -> String:
 	
 	tooltip += "\n[color=#666666]Weight: %.1f kg  |  Value: %d gold[/color]" % [item.weight, item.value]
 	
-	# Dynamic action hints based on item flags and context
+	# Dynamic action hints based on item flags and context - styled like bottom panel
 	var actions = []
-	
+
 	if is_equipment_focused and selected_slot != "":
 		# Item is equipped - show unequip option
-		actions.append("[E] Unequip")
+		actions.append("[color=#9acc9a][E] Equip[/color]")
 	else:
 		# Item is in inventory - show contextual options
 		if item.is_consumable():
-			actions.append("[U] Use")
+			actions.append("[color=#9acc9a][U] Use[/color]")
 		if item.is_equippable():
-			actions.append("[E] Equip")
-	
-	actions.append("[D] Drop")
-	actions.append("[Tab] Switch panel")
-	actions.append("[ESC] Close")
-	
-	tooltip += "\n\n[color=#666666]%s[/color]" % " | ".join(actions)
+			actions.append("[color=#9acc9a][E] Equip[/color]")
+
+	actions.append("[color=#9acc9a][D] Drop[/color]")
+	actions.append("[color=#7fb3cc][Tab] Switch[/color]")
+	actions.append("[color=#cc9999][Esc] Close[/color]")
+
+	tooltip += "\n\n%s" % "  ".join(actions)
 	
 	return tooltip
 

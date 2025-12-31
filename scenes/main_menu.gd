@@ -15,38 +15,16 @@ const UNSELECT_COLOR: Color = Color(0.7, 0.7, 0.7, 1)
 
 func _ready() -> void:
 	print("Main menu loaded")
-	# load ascii art from ui file into Title (RichTextLabel)
+	# Load ASCII art from file into Title RichTextLabel
 	var logo_path := "res://ui/underkingdom_logo.txt"
-	print("[MainMenu] checking logo path: ", logo_path)
-	var exists := FileAccess.file_exists(logo_path)
-	print("[MainMenu] file_exists: ", exists)
-	if exists:
+	if FileAccess.file_exists(logo_path):
 		var f := FileAccess.open(logo_path, FileAccess.READ)
 		if f:
 			var txt := f.get_as_text()
 			f.close()
-			print("[MainMenu] read logo length:", txt.length())
-			var title: Label = get_node("VBoxContainer/Title")
-			print("[MainMenu] title node: ", title)
-			# ensure Title control is visible and has enough space for ASCII art
-			title.visible = true
-			title.custom_minimum_size = Vector2(900, 180)
-
-			# Load and apply monospace font for ASCII art
-			var mono_font = load("res://fonts/DejaVuSansMono.ttf")
-			if mono_font:
-				print("[MainMenu] Loaded mono font: ", mono_font)
-				title.add_theme_font_override("font", mono_font)
-			else:
-				print("[MainMenu] Failed to load mono font")
-
-			title.add_theme_font_size_override("font_size", 14)
-			title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			title.text = txt
-		else:
-			print("[MainMenu] failed to open file handle")
-	else:
-		print("[MainMenu] logo file not found at path")
+			var title: RichTextLabel = $VBoxContainer/Title
+			title.text = txt.strip_edges(false, true)
+	
 
 	# collect buttons in visual order using @onready references
 	buttons = [start_button, load_button, quit_button]

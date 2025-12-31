@@ -1,0 +1,22 @@
+{
+  "id": "campfire",
+  "name": "Campfire",
+  "description": "A warming fire that can be used for cooking. Provides heat within 3 tiles.",
+  "ascii_char": "^",
+  "ascii_color": "#FF6600",
+  "blocks_movement": true,
+  "structure_type": "campfire",
+  "durability": 100,
+  "components": {
+    "fire": {
+      "heat_radius": 3,
+      "temperature_bonus": 15.0,
+      "light_radius": 5
+    }
+  },
+  "build_requirements": [
+    {"item": "wood", "count": 3}
+  ],
+  "build_tool": "flint",
+  "build_time_turns": 1
+}

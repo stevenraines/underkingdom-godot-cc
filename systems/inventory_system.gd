@@ -328,17 +328,23 @@ func get_equipped(slot: String) -> Item:
 func use_item(item: Item) -> Dictionary:
 	if not item:
 		return {"success": false, "consumed": false, "message": "No item"}
-	
+
 	var result = item.use(_owner)
-	
+
 	if result.consumed:
+		# Check if item transforms into something else (e.g., waterskin_full -> waterskin_empty)
+		if item.transforms_into != "":
+			var transformed_item = ItemManager.create_item(item.transforms_into, 1)
+			if transformed_item:
+				add_item(transformed_item)
+
 		# Reduce stack or remove
 		item.remove_from_stack(1)
 		if item.is_empty():
 			remove_item(item)
 		else:
 			EventBus.inventory_changed.emit()
-	
+
 	EventBus.item_used.emit(item, result)
 	return result
 

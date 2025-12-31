@@ -5,6 +5,8 @@ extends Node
 ## Manages the turn counter, day/night cycle, and ensures the game
 ## only advances when the player takes an action.
 
+const HarvestSystem = preload("res://systems/harvest_system.gd")
+
 # Turn tracking
 var current_turn: int = 0
 var current_day: int = 1  # Day counter, starts at day 1
@@ -35,6 +37,9 @@ func advance_turn() -> void:
 
 	# Process enemy turns
 	EntityManager.process_entity_turns()
+
+	# Process renewable resource respawns
+	HarvestSystem.process_renewable_resources()
 
 	EventBus.turn_advanced.emit(current_turn)
 

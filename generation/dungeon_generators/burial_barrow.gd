@@ -117,39 +117,10 @@ static func _create_corridor(map: GameMap, start: Vector2i, end: Vector2i) -> vo
 	# Set final position
 	map.set_tile(current, _create_tile("floor"))
 
-## Create a tile by type (helper function to avoid static method issues)
+## Create a tile by type (helper function)
+## Uses GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly
 static func _create_tile(type: String) -> GameTile:
-	var tile = GameTile.new()
-
-	match type:
-		"floor":
-			tile.tile_type = "floor"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
-		"wall":
-			tile.tile_type = "wall"
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "░"  # CP437 light shade (U+2591, index 176)
-		"stairs_down":
-			tile.tile_type = "stairs_down"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = ">"
-		"stairs_up":
-			tile.tile_type = "stairs_up"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "<"
-		_:
-			push_warning("Unknown tile type: " + type + ", defaulting to floor")
-			tile.tile_type = "floor"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
-
-	return tile
+	return GameTile.create(type)
 
 ## Spawn enemies in rooms
 static func _spawn_enemies(map: GameMap, rng: SeededRandom, rooms: Array[Room], floor_number: int) -> void:

@@ -46,6 +46,12 @@ func is_walkable(pos: Vector2i) -> bool:
 		if entity.position == pos and entity.blocks_movement:
 			return false
 
+	# Check if any structure blocks movement at this position
+	var structures = StructureManager.get_structures_at(pos, map_id)
+	for structure in structures:
+		if structure.blocks_movement:
+			return false
+
 	return true
 
 ## Check if position is transparent (for FOV)

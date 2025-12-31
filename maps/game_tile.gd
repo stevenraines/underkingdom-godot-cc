@@ -10,6 +10,7 @@ var walkable: bool
 var transparent: bool  # For FOV calculations
 var ascii_char: String  # Visual representation
 var is_fire_source: bool = false  # Used for proximity crafting
+var harvestable_resource_id: String = ""  # ID of harvestable resource (if any)
 
 func _init(type: String = "floor", is_walkable: bool = true, is_transparent: bool = true, character: String = ".", fire: bool = false) -> void:
 	tile_type = type
@@ -38,11 +39,13 @@ static func create(type: String) -> GameTile:
 			tile.walkable = false
 			tile.transparent = false
 			tile.ascii_char = "T"
+			tile.harvestable_resource_id = "tree"
 		"water":
 			tile.tile_type = "water"
 			tile.walkable = false
 			tile.transparent = true
 			tile.ascii_char = "~"
+			tile.harvestable_resource_id = "water"
 		"stairs_down":
 			tile.tile_type = "stairs_down"
 			tile.walkable = true
@@ -58,6 +61,24 @@ static func create(type: String) -> GameTile:
 			tile.walkable = true
 			tile.transparent = false
 			tile.ascii_char = "+"
+		"rock":
+			tile.tile_type = "rock"
+			tile.walkable = false
+			tile.transparent = false
+			tile.ascii_char = "◆"
+			tile.harvestable_resource_id = "rock"
+		"wheat":
+			tile.tile_type = "wheat"
+			tile.walkable = false
+			tile.transparent = true
+			tile.ascii_char = "\""
+			tile.harvestable_resource_id = "wheat"
+		"iron_ore":
+			tile.tile_type = "iron_ore"
+			tile.walkable = false
+			tile.transparent = false
+			tile.ascii_char = "◊"
+			tile.harvestable_resource_id = "iron_ore"
 		_:
 			push_warning("Unknown tile type: " + type + ", defaulting to floor")
 			tile.tile_type = "floor"

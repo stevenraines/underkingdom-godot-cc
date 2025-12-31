@@ -1,0 +1,14 @@
+{
+  "id": "wheat",
+  "name": "Wheat",
+  "required_tools": ["flint_knife", "iron_knife", "sickle"],
+  "tool_must_be_equipped": true,
+  "harvest_behavior": "destroy_renewable",
+  "stamina_cost": 5,
+  "respawn_turns": 5000,
+  "yields": [
+    {"item_id": "wheat", "min_count": 1, "max_count": 3}
+  ],
+  "replacement_tile": "floor",
+  "harvest_message": "Harvested wheat with %tool%, got %yield%"
+}

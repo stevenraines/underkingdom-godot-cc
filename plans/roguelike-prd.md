@@ -598,6 +598,7 @@ SaveData:
 - [ ] Three slot management
 - [ ] Death → load prompt
 - [ ] Save anywhere trigger (menu)
+- [ ] Support Saves in Web (html/wasm) deployment
 
 #### 1.16 UI Polish
 - [ ] Main menu
@@ -616,29 +617,38 @@ SaveData:
 
 ---
 
-### Phase 2: Content Expansion (Future)
+### Phase 2: Systems Expansion (Future)
+- Barrow dungeon type has max of 3 levels
+- When reentering a level, creatures and items retain last position instead of resetting
+- Weather system
+- Allow selection of world-seed at game creation (default 'Underkingdom') for repeatable worlds
+- Player leveling based on XP
+- Damage type (fire, cold, electric, etc.) and corresponding resistance modifiers for enemies.
+
+
+### Phase 3: Advanced Features (Future)
 - Additional biomes (4 remaining)
 - Dungeon types per biome
+- Skill system (lockpicking, stealth, arcana, nature, etc)
+- Special abilities (regeneration, fire breathing, etc)
+- Conditions (prone, poisoned, blinded, etc) (see https://www.dandwiki.com/wiki/5e_SRD:Conditions)
+- More NPCs
+- Faction reputation
+- Magic system
+- Quest system
+- Procedural quests
+- Sound design
 - More enemies (3+ per biome)
 - Expanded recipe tree
 - More equipment tiers
 - Injury system implementation
-- Weather system
 
-### Phase 3: Graphics Mode (Future)
+### Phase 4: Graphics Mode (Future)
 - Sprite tileset creation
 - GraphicsRenderer implementation
 - Animation system
 - Visual effects
 - Renderer toggle in options
-
-### Phase 4: Advanced Features (Future)
-- Quest system
-- More NPCs
-- Faction reputation
-- Magic system
-- Procedural quests
-- Sound design
 
 ---
 

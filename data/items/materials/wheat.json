@@ -1,0 +1,11 @@
+{
+  "id": "wheat",
+  "name": "Wheat",
+  "item_type": "material",
+  "description": "Harvested wheat grain, can be ground into flour.",
+  "weight": 0.5,
+  "value": 2,
+  "max_stack": 99,
+  "ascii_char": "\"",
+  "color": {"r": 0.9, "g": 0.8, "b": 0.3}
+}

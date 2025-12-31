@@ -6,6 +6,11 @@ extends Entity
 ## Represents player-built structures like campfires, shelters, and containers.
 ## Uses component pattern for behavior (fire, shelter, storage).
 
+# Preload components
+const FireComponent = preload("res://systems/components/fire_component.gd")
+const ShelterComponent = preload("res://systems/components/shelter_component.gd")
+const ContainerComponent = preload("res://systems/components/container_component.gd")
+
 # Structure properties
 var structure_type: String = ""  # "campfire", "lean_to", "chest"
 var durability: int = -1  # -1 = indestructible, otherwise current durability

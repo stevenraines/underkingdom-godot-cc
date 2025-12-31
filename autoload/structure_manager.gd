@@ -5,6 +5,9 @@ extends Node
 ## Loads structure definitions from JSON files and manages placed structures.
 ## Tracks structures per map to persist them across map regeneration.
 
+# Preload Structure class
+const Structure = preload("res://entities/structure.gd")
+
 # Structure data cache (id -> data dictionary)
 var structure_definitions: Dictionary = {}
 

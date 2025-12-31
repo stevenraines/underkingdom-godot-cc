@@ -36,7 +36,7 @@ func attempt_purchase(shop_npc, item_id: String, count: int, player) -> bool:
 		return false
 
 	# Calculate total price
-	var unit_price = calculate_buy_price(item_data.base_price, player.stats.cha)
+	var unit_price = calculate_buy_price(item_data.base_price, player.attributes["CHA"])
 	var total_price = unit_price * count
 
 	# Check if player can afford it
@@ -78,7 +78,7 @@ func attempt_sell(shop_npc, item, count: int, player) -> bool:
 		return false
 
 	# Calculate sell price
-	var unit_price = calculate_sell_price(item.value, player.stats.cha)
+	var unit_price = calculate_sell_price(item.value, player.attributes["CHA"])
 	var total_price = unit_price * count
 
 	# Check if shop can afford it

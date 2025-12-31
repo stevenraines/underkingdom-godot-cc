@@ -4,9 +4,11 @@ extends Control
 ##
 ## Displays known recipes and allows crafting attempts.
 
-@onready var recipe_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/RecipeList
+@onready var recipe_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel/ScrollContainer/RecipeList
 @onready var fire_label: Label = $Panel/MarginContainer/VBoxContainer/FireStatus
 @onready var message_label: Label = $Panel/MarginContainer/VBoxContainer/MessagePanel/MessageMargin/Message
+@onready var recipe_name_label: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel/RecipeNameLabel
+@onready var details_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel/DetailsScroll/DetailsContainer
 
 var player: Player = null
 var near_fire: bool = false
@@ -72,72 +74,149 @@ func _update_display() -> void:
 	# Show recipes or "no recipes" message
 	if known_recipes.is_empty():
 		var no_recipes = Label.new()
-		no_recipes.text = "No recipes known yet.\nExperiment by combining items to discover recipes!"
+		no_recipes.text = "No recipes known yet.\nExperiment by combining items\nto discover recipes!"
 		no_recipes.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
-		no_recipes.add_theme_font_size_override("font_size", 14)
+		no_recipes.add_theme_font_size_override("font_size", 13)
 		no_recipes.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		no_recipes.autowrap_mode = TextServer.AUTOWRAP_WORD
 		recipe_list.add_child(no_recipes)
+
+		# Clear details panel
+		recipe_name_label.text = "Select a recipe"
+		_clear_details()
 	else:
-		# Add each recipe
+		# Add each recipe to left panel
 		for i in range(known_recipes.size()):
 			var recipe = known_recipes[i]
-			var recipe_label = _create_recipe_label(recipe, i == selected_recipe_index)
+			var recipe_label = _create_recipe_list_item(recipe, i == selected_recipe_index)
 			recipe_list.add_child(recipe_label)
+
+		# Update details panel for selected recipe
+		if selected_recipe_index < known_recipes.size():
+			_update_details_panel(known_recipes[selected_recipe_index])
 
 	message_label.text = " "
 
-## Create a label for a recipe
-func _create_recipe_label(recipe: Recipe, is_selected: bool) -> Label:
+## Create a simple label for recipe list (left panel)
+func _create_recipe_list_item(recipe: Recipe, is_selected: bool) -> Label:
 	var label = Label.new()
 
 	# Check if can craft
 	var can_craft = recipe.has_requirements(player.inventory, near_fire)
-	var missing = recipe.get_missing_requirements(player.inventory, near_fire)
+
+	# Get the item color
+	var item = ItemManager.get_item_data(recipe.result_item_id)
+	var item_color = item.color if item else Color.WHITE
 
 	# Build text
 	var text = ""
 	if is_selected:
 		text += "▶ "
 	else:
-		text += "   "
+		text += "  "
 
 	text += recipe.get_display_name()
 
-	# Show status
-	if can_craft:
-		text += " [CAN CRAFT]"
-	elif not missing.is_empty():
-		text += " [MISSING]"
+	label.text = text
+	label.add_theme_font_size_override("font_size", 14)
 
-	text += "\n   Ingredients: "
-	text += recipe.get_ingredient_list()
+	# Color: item color if craftable, grayscale if not
+	if can_craft:
+		label.add_theme_color_override("font_color", item_color)
+	else:
+		# Convert to grayscale
+		var gray = (item_color.r + item_color.g + item_color.b) / 3.0
+		label.add_theme_color_override("font_color", Color(gray, gray, gray, 1.0))
+
+	return label
+
+## Update the details panel on the right
+func _update_details_panel(recipe: Recipe) -> void:
+	# Update recipe name
+	var item = ItemManager.get_item_data(recipe.result_item_id)
+	recipe_name_label.text = recipe.get_display_name()
+	if item:
+		recipe_name_label.add_theme_color_override("font_color", item.color)
+
+	# Clear previous details
+	_clear_details()
+
+	# Add ingredients section
+	var ingredients_label = Label.new()
+	ingredients_label.text = "Ingredients:"
+	ingredients_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
+	ingredients_label.add_theme_font_size_override("font_size", 14)
+	details_container.add_child(ingredients_label)
+
+	# Show each ingredient with count
+	for ingredient in recipe.ingredients:
+		var ingredient_item = ItemManager.get_item_data(ingredient["item"])
+		if ingredient_item:
+			var have_count = player.inventory.count_item_by_id(ingredient["item"])
+			var need_count = ingredient["count"]
+
+			var ingredient_label = Label.new()
+			ingredient_label.text = "  %s: %d/%d" % [
+				ingredient_item.display_name,
+				have_count,
+				need_count
+			]
+			ingredient_label.add_theme_font_size_override("font_size", 13)
+
+			# Color: green if have enough, red if not
+			if have_count >= need_count:
+				ingredient_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+			else:
+				ingredient_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+
+			details_container.add_child(ingredient_label)
 
 	# Tool requirement
 	if recipe.tool_required != "":
-		text += "\n   Tool: " + recipe.tool_required.capitalize()
+		var tool_label = Label.new()
+		var has_tool = player.inventory.has_tool(recipe.tool_required)
+		tool_label.text = "Tool: %s %s" % [
+			recipe.tool_required.capitalize(),
+			"✓" if has_tool else "✗"
+		]
+		tool_label.add_theme_font_size_override("font_size", 13)
+		if has_tool:
+			tool_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+		else:
+			tool_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+		details_container.add_child(tool_label)
 
 	# Fire requirement
 	if recipe.fire_required:
-		text += "\n   Requires: Fire (within 3 tiles)"
+		var fire_req_label = Label.new()
+		fire_req_label.text = "Requires: Fire (within 3 tiles) %s" % ["✓" if near_fire else "✗"]
+		fire_req_label.add_theme_font_size_override("font_size", 13)
+		if near_fire:
+			fire_req_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+		else:
+			fire_req_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+		details_container.add_child(fire_req_label)
 
 	# Success chance
+	var success_label = Label.new()
 	var success_chance = CraftingSystem.get_success_chance_string(recipe.difficulty, player.attributes["INT"])
-	text += "\n   Success: " + success_chance
+	success_label.text = "Success Chance: %s" % success_chance
+	success_label.add_theme_font_size_override("font_size", 13)
+	success_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
+	details_container.add_child(success_label)
 
-	label.text = text
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	label.add_theme_font_size_override("font_size", 13)
+	# Result
+	var result_label = Label.new()
+	result_label.text = "\nResult: %s (×%d)" % [recipe.get_display_name(), recipe.result_count]
+	result_label.add_theme_font_size_override("font_size", 13)
+	if item:
+		result_label.add_theme_color_override("font_color", item.color)
+	details_container.add_child(result_label)
 
-	# Color based on availability
-	if is_selected:
-		label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.5, 1))
-	elif can_craft:
-		label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
-	else:
-		label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1))
-
-	return label
+## Clear details panel
+func _clear_details() -> void:
+	for child in details_container.get_children():
+		child.queue_free()
 
 ## Select previous recipe
 func _select_previous() -> void:

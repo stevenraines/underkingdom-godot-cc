@@ -81,16 +81,59 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="ContentContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="LeftPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RecipeListLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "Known Recipes"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="RecipeList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer"]
+[node name="RecipeList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 2
+
+[node name="VSeparator" type="VSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="RecipeNameLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 16
+text = "Select a recipe"
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+
+[node name="DetailsScroll" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="DetailsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel/DetailsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

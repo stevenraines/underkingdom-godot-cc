@@ -15,21 +15,12 @@ var gold: int = 0  ## NPC's gold for transactions
 var last_restock_turn: int = 0  ## Last turn when shop inventory restocked
 var restock_interval: int = 500  ## Turns between restocks
 
-func _init():
-	super()
-	blocking = true  # NPCs always block movement
-	ascii_char = "@"
-	ascii_color = Color("#FFAA00")  # Golden color for NPCs
+func _init(id: String = "", pos: Vector2i = Vector2i.ZERO, char: String = "@", entity_color: Color = Color("#FFAA00"), blocks: bool = true):
+	super(id, pos, char, entity_color, blocks)
+	blocks_movement = true  # NPCs always block movement
 
-	# Default stats for NPCs
-	stats = {
-		"str": 10,
-		"dex": 10,
-		"con": 10,
-		"int": 10,
-		"wis": 10,
-		"cha": 10
-	}
+	# Default attributes for NPCs (already set in Entity, but can override if needed)
+	# attributes dictionary is inherited from Entity
 
 func process_turn():
 	## NPCs don't move or take actions in Phase 1
@@ -123,9 +114,13 @@ func remove_shop_item(item_id: String, count: int) -> bool:
 
 	return true
 
+## Serializes NPC data for saving (future use)
 func to_dict() -> Dictionary:
-	## Serializes NPC data for saving
-	var data = super.to_dict()
+	var data = {}
+	data["entity_id"] = entity_id
+	data["entity_type"] = entity_type
+	data["name"] = name
+	data["position"] = {"x": position.x, "y": position.y}
 	data["npc_type"] = npc_type
 	data["dialogue"] = dialogue.duplicate()
 	data["faction"] = faction
@@ -140,9 +135,13 @@ func to_dict() -> Dictionary:
 
 	return data
 
+## Deserializes NPC data from saved game (future use)
 func from_dict(data: Dictionary):
-	## Deserializes NPC data from saved game
-	super.from_dict(data)
+	entity_id = data.get("entity_id", "")
+	entity_type = data.get("entity_type", "npc")
+	name = data.get("name", "NPC")
+	var pos = data.get("position", {"x": 0, "y": 0})
+	position = Vector2i(pos.x, pos.y)
 	npc_type = data.get("npc_type", "generic")
 	dialogue = data.get("dialogue", {})
 	faction = data.get("faction", "neutral")

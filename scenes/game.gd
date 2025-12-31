@@ -329,7 +329,43 @@ func _on_entity_died(entity: Entity) -> void:
 	if entity == player:
 		EventBus.player_died.emit()
 	else:
-		# Enemy died - remove from EntityManager
+		# If the entity defines yields, generate drops similar to harvesting
+		var drop_messages: Array[String] = []
+		if entity and entity is Enemy and entity.yields.size() > 0:
+			# Use yields array (array of dicts with item_id, min_count, max_count, chance)
+			print("[DEBUG] Entity died: ", entity.entity_id, " at ", entity.position)
+			print("[DEBUG] yields array: ", entity.yields)
+			var total_yields: Dictionary = {}
+			for yield_data in entity.yields:
+				var item_id = yield_data.get("item_id", "")
+				var min_count = int(yield_data.get("min_count", 1))
+				var max_count = int(yield_data.get("max_count", 1))
+				var chance = float(yield_data.get("chance", 1.0))
+				if randf() > chance:
+					continue
+				var range_size = max_count - min_count + 1
+				var count = min_count + (randi() % max(1, range_size))
+				if count > 0:
+					if item_id in total_yields:
+						total_yields[item_id] += count
+					else:
+						total_yields[item_id] = count
+			print("[DEBUG] total_yields computed: ", total_yields)
+			# Create and spawn items as ground items
+			for item_id in total_yields:
+				var count = total_yields[item_id]
+				# Create stacks as needed
+				var stacks = ItemManager.create_item_stacks(item_id, count)
+				for it in stacks:
+					print("[DEBUG] Spawning ground item stack: ", item_id, " count ", it.stack_size)
+					EntityManager.spawn_ground_item(it, entity.position)
+				drop_messages.append("%d %s" % [count, ItemManager.get_item_data(item_id).get("name", item_id)])
+			if drop_messages.size() > 0:
+				_add_message("Dropped: %s" % ", ".join(drop_messages), Color(0.8, 0.8, 0.6))
+				# Ensure dropped ground items are rendered immediately
+				_render_ground_item_at(entity.position)
+
+		# Remove entity from managers
 		EntityManager.remove_entity(entity)
 
 ## Called when an attack is performed

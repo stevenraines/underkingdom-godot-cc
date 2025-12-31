@@ -15,6 +15,7 @@ var fear_distance: int = 4  # How close they'll get to feared components
 # Loot
 var loot_table: String = ""  # Reference to loot table ID
 var xp_value: int = 0
+var yields: Array[Dictionary] = []
 
 # AI state
 var target_position: Vector2i = Vector2i.ZERO
@@ -69,6 +70,9 @@ static func create(enemy_data: Dictionary) -> Enemy:
 	# Combat properties
 	enemy.base_damage = enemy_data.get("base_damage", 2)
 	enemy.armor = enemy_data.get("armor", 0)
+
+	# Yields on death (drops)
+	enemy.yields.assign(enemy_data.get("yields", []))
 
 	# Aggro range based on INT
 	enemy.aggro_range = 3 + enemy.attributes["INT"]

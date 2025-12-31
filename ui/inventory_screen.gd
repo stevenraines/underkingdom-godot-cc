@@ -9,6 +9,7 @@ signal closed()
 
 @onready var equipment_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentList
 @onready var inventory_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer/InventoryList
+@onready var inventory_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer
 @onready var weight_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/WeightLabel
 @onready var encumbrance_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/EncumbranceLabel
 @onready var tooltip_label: RichTextLabel = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipMargin/TooltipLabel
@@ -283,8 +284,39 @@ func _update_selection() -> void:
 			var selected_row = children[inventory_index]
 			_set_row_highlight(selected_row, true)
 			selected_item = selected_row.get_meta("item") if selected_row.has_meta("item") else null
-	
+			# Scroll to keep selected item visible
+			_scroll_to_item(selected_row)
+
 	_update_tooltip()
+
+## Scroll to ensure the selected item is visible in the inventory scroll container
+func _scroll_to_item(item_row: Control) -> void:
+	if not inventory_scroll or not item_row or not is_instance_valid(item_row):
+		return
+
+	# Use call_deferred to ensure layout is updated, and re-check validity
+	_scroll_to_item_deferred.call_deferred(item_row)
+
+## Deferred scroll helper to avoid freed object errors
+func _scroll_to_item_deferred(item_row: Control) -> void:
+	# Double-check the item is still valid after deferring
+	if not inventory_scroll or not item_row or not is_instance_valid(item_row):
+		return
+
+	# Get the item's position relative to the scroll container
+	var item_top = item_row.position.y
+	var item_bottom = item_top + item_row.size.y
+
+	# Get the visible area of the scroll container
+	var scroll_top = inventory_scroll.scroll_vertical
+	var scroll_bottom = scroll_top + inventory_scroll.size.y
+
+	# Check if item is above visible area
+	if item_top < scroll_top:
+		inventory_scroll.scroll_vertical = int(item_top)
+	# Check if item is below visible area
+	elif item_bottom > scroll_bottom:
+		inventory_scroll.scroll_vertical = int(item_bottom - inventory_scroll.size.y)
 
 ## Set highlight state for a row
 func _set_row_highlight(row: Control, highlighted: bool) -> void:

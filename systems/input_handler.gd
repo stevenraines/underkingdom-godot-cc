@@ -91,6 +91,43 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:
 		return
 
+	# If awaiting harvest direction, handle directional input
+	if _awaiting_harvest_direction and event is InputEventKey and event.pressed and not event.echo:
+		var direction = Vector2i.ZERO
+
+		match event.keycode:
+			KEY_UP, KEY_W:
+				direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel harvest
+				_awaiting_harvest_direction = false
+				ui_blocking_input = false
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Cancelled harvest", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if direction != Vector2i.ZERO:
+			_awaiting_harvest_direction = false
+			ui_blocking_input = false
+			get_viewport().set_input_as_handled()  # Consume input BEFORE processing
+
+			# Reset movement timer to prevent immediate movement after harvest
+			move_timer = initial_delay
+			is_initial_press = true
+
+			var action_taken = _try_harvest(direction)
+			if action_taken:
+				TurnManager.advance_turn()
+			return
+
 	# Stairs navigation and wait action - check for specific key presses
 	if event is InputEventKey and event.pressed and not event.echo:
 		var action_taken = false
@@ -225,19 +262,22 @@ func _start_harvest_mode() -> void:
 	ui_blocking_input = true
 	_awaiting_harvest_direction = true
 
-## Try to harvest a tree in the given direction
+## Try to harvest a resource in the given direction
 func _try_harvest(direction: Vector2i) -> bool:
-	var result = player.harvest_tree(direction)
+	var result = player.harvest_resource(direction)
 
 	var game = get_parent()
 	if game and game.has_method("_add_message"):
 		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
 		game._add_message(result.message, color)
 
-	# If successful, trigger a map re-render to show the tree is gone
+	# If successful, trigger a map re-render to show the resource is gone
 	if result.success and game and game.has_method("_render_map"):
 		game._render_map()
 		game._render_all_entities()
 		game._render_ground_items()
+		# Re-render player (not in EntityManager.entities)
+		if game.has_method("get_node") and game.get("renderer"):
+			game.renderer.render_entity(player.position, "@", Color.YELLOW)
 
 	return result.success

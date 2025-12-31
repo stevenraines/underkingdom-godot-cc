@@ -10,6 +10,7 @@ const _CombatSystem = preload("res://systems/combat_system.gd")
 const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
 const _CraftingSystem = preload("res://systems/crafting_system.gd")
+const HarvestSystem = preload("res://systems/harvest_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -148,57 +149,19 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 	push_warning("Could not find ", stairs_type, ", positioning at center")
 	EventBus.player_moved.emit(old_pos, position)
 
-## Harvest a tree in a given direction
-func harvest_tree(direction: Vector2i) -> Dictionary:
+## Harvest a resource in a given direction (generic method)
+func harvest_resource(direction: Vector2i) -> Dictionary:
 	if not MapManager.current_map:
 		return {"success": false, "message": "No map loaded"}
 
 	var target_pos = position + direction
 	var tile = MapManager.current_map.get_tile(target_pos)
 
-	if not tile or tile.tile_type != "tree":
-		return {"success": false, "message": "No tree there"}
+	if not tile or tile.harvestable_resource_id.is_empty():
+		return {"success": false, "message": "Nothing to harvest there"}
 
-	# Check if player has an axe or knife (can harvest with either)
-	var has_tool = false
-	var tool_name = ""
-
-	for item in inventory.items:
-		if item.item_type == "tool" and (item.subtype == "axe" or item.subtype == "knife"):
-			has_tool = true
-			tool_name = item.name
-			break
-
-	if not has_tool:
-		for slot in inventory.equipment:
-			var equipped = inventory.equipment[slot]
-			if equipped and equipped.item_type == "tool" and (equipped.subtype == "axe" or equipped.subtype == "knife"):
-				has_tool = true
-				tool_name = equipped.name
-				break
-
-	if not has_tool:
-		return {"success": false, "message": "Need an axe or knife to harvest trees"}
-
-	# Consume stamina for harvesting
-	if survival and not survival.consume_stamina(survival.STAMINA_COST_ATTACK * 2):
-		return {"success": false, "message": "Too tired to harvest"}
-
-	# Replace tree with floor
-	MapManager.current_map.set_tile(target_pos, GameTile.create("floor"))
-
-	# Drop wood at the tree's position
-	var wood_count = 2 + randi() % 3  # 2-4 wood per tree
-	var wood = ItemManager.create_item("wood", wood_count)
-	if wood:
-		var ground_item = GroundItem.new()
-		ground_item.item = wood
-		ground_item.position = target_pos
-		ground_item.ascii_char = wood.ascii_char
-		ground_item.color = wood.get_color()
-		EntityManager.add_entity(ground_item)
-
-	return {"success": true, "message": "Harvested tree with %s, got %d wood" % [tool_name, wood_count]}
+	# Delegate to HarvestSystem
+	return HarvestSystem.harvest(self, target_pos, tile.harvestable_resource_id)
 
 ## Get total weapon damage (base + equipped weapon bonus)
 func get_weapon_damage() -> int:

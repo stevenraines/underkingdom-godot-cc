@@ -33,9 +33,12 @@ StructureManager="*res://autoload/structure_manager.gd"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/mode=2
-window/size/resizable=true
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
+
+[gui]
+
+theme/default_font="res://fonts/DejaVuSansMono.ttf"
 
 [input]
 
@@ -85,10 +88,6 @@ open_crafting={
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":67,"physical_keycode":0,"key_label":0,"unicode":99,"location":0,"echo":false,"script":null)
 ]
 }
-
-[gui]
-
-theme/default_font="res://fonts/DejaVuSansMono.ttf"
 
 [rendering]
 

@@ -30,6 +30,16 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	map.set_tile(entrance_pos, _create_tile("stairs_down"))
 	print("Dungeon entrance placed at: ", entrance_pos)
 
+	# Place test harvestable resources near center for testing
+	var center_x = map.width / 2
+	var center_y = map.height / 2
+	# Place a few rocks
+	map.set_tile(Vector2i(center_x + 3, center_y + 2), _create_tile("rock"))
+	map.set_tile(Vector2i(center_x - 4, center_y + 3), _create_tile("rock"))
+	# Place water source
+	map.set_tile(Vector2i(center_x + 2, center_y - 3), _create_tile("water"))
+	map.set_tile(Vector2i(center_x + 3, center_y - 3), _create_tile("water"))
+
 	# Spawn overworld enemies (wolves in woodland biome)
 	_spawn_overworld_enemies(map, rng)
 
@@ -55,54 +65,10 @@ static func _biome_from_noise(noise_val: float, rng: SeededRandom) -> String:
 		else:
 			return "floor"  # Grass/dirt
 
-## Create a tile by type (helper function to avoid static method issues)
+## Create a tile by type (helper function)
+## Uses GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly
 static func _create_tile(type: String) -> GameTile:
-	var tile = GameTile.new()
-
-	match type:
-		"floor":
-			tile.tile_type = "floor"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
-		"wall":
-			tile.tile_type = "wall"
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "░"  # CP437 light shade (U+2591, index 176)
-		"tree":
-			tile.tile_type = "tree"
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "T"
-		"water":
-			tile.tile_type = "water"
-			tile.walkable = false
-			tile.transparent = true
-			tile.ascii_char = "~"
-		"stairs_down":
-			tile.tile_type = "stairs_down"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = ">"
-		"stairs_up":
-			tile.tile_type = "stairs_up"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "<"
-		"door":
-			tile.tile_type = "door"
-			tile.walkable = true
-			tile.transparent = false
-			tile.ascii_char = "+"
-		_:
-			push_warning("Unknown tile type: " + type + ", defaulting to floor")
-			tile.tile_type = "floor"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
-
-	return tile
+	return GameTile.create(type)
 
 ## Find a valid walkable location for dungeon entrance
 static func _find_valid_location(map: GameMap, rng: SeededRandom) -> Vector2i:

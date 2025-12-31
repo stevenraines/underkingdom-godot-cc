@@ -5,12 +5,16 @@ extends Node
 ## Manages world seed, game state transitions, and coordinates
 ## between major systems like TurnManager and MapManager.
 
+const HarvestSystem = preload("res://systems/harvest_system.gd")
+
 # Game state
 var world_seed: int = 0
 var game_state: String = "menu"  # "menu", "playing", "paused"
 var current_map_id: String = ""
 
 func _ready() -> void:
+	# Load harvestable resources
+	HarvestSystem.load_resources()
 	print("GameManager initialized")
 
 ## Start a new game with optional seed

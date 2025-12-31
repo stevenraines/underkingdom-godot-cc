@@ -111,6 +111,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: godot-web-export
+          path: build
 
       - name: Install dependencies for static server (inside build)
         run: |

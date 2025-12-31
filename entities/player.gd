@@ -67,11 +67,11 @@ func move(direction: Vector2i) -> bool:
 func process_survival_turn(turn_number: int) -> Dictionary:
 	if not survival:
 		return {}
-	
-	# Update temperature based on current location and time
+
+	# Update temperature based on current location, time, and player position
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else "overworld"
-	survival.update_temperature(map_id, TurnManager.time_of_day)
-	
+	survival.update_temperature(map_id, TurnManager.time_of_day, position)
+
 	# Process survival effects
 	var effects = survival.process_turn(turn_number)
 	
@@ -263,6 +263,10 @@ func learn_recipe(recipe_id: String) -> void:
 	if not knows_recipe(recipe_id):
 		known_recipes.append(recipe_id)
 		print("Player learned recipe: ", recipe_id)
+
+## Check if player is near a fire source for crafting
+func is_near_fire() -> bool:
+	return CraftingSystem.is_near_fire(position)
 
 ## Get all recipes the player knows
 func get_known_recipes() -> Array:

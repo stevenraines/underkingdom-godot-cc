@@ -278,16 +278,16 @@ func regenerate_stamina(regen_modifier: float = 1.0) -> void:
 		EventBus.survival_stat_changed.emit("stamina", old_stamina, stamina)
 
 ## Update temperature based on environment
-func update_temperature(map_id: String, time_of_day: String) -> void:
+func update_temperature(map_id: String, time_of_day: String, player_pos: Vector2i) -> void:
 	var old_temp = temperature
-	
+
 	# Determine base temperature
 	var base_temp: float
 	if map_id.begins_with("dungeon_"):
 		base_temp = TEMP_DUNGEON_BASE
 	else:
 		base_temp = TEMP_WOODLAND_BASE
-	
+
 	# Apply time of day modifier (only for overworld)
 	var time_modifier: float = 0.0
 	if not map_id.begins_with("dungeon_"):
@@ -300,11 +300,34 @@ func update_temperature(map_id: String, time_of_day: String) -> void:
 				time_modifier = TEMP_MOD_DUSK
 			"night":
 				time_modifier = TEMP_MOD_NIGHT
-	
-	temperature = base_temp + time_modifier
-	
+
+	# Apply structure temperature bonuses (campfires, shelters)
+	var structure_bonus = _calculate_structure_temperature_bonus(player_pos, map_id)
+
+	temperature = base_temp + time_modifier + structure_bonus
+
 	if temperature != old_temp:
 		EventBus.survival_stat_changed.emit("temperature", old_temp, temperature)
+
+## Calculate temperature bonus from nearby structures
+func _calculate_structure_temperature_bonus(player_pos: Vector2i, map_id: String) -> float:
+	var bonus: float = 0.0
+	var structures = StructureManager.get_structures_on_map(map_id)
+
+	for structure in structures:
+		# Check fire component
+		if structure.has_component("fire"):
+			var fire = structure.get_component("fire")
+			if fire.affects_position(structure.position, player_pos):
+				bonus += fire.get_temperature_bonus()
+
+		# Check shelter component
+		if structure.has_component("shelter"):
+			var shelter = structure.get_component("shelter")
+			if shelter.is_sheltered(structure.position, player_pos):
+				bonus += shelter.temperature_bonus
+
+	return bonus
 
 ## Get current hunger state as string
 func get_hunger_state() -> String:

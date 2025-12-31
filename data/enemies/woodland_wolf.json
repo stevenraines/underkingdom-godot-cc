@@ -15,9 +15,11 @@
   "behavior": "pack",
   "base_damage": 4,
   "armor": 0,
+  "feared_components": ["fire"],
+  "fear_distance": 4,
   "loot_table": "beast_common",
   "xp_value": 30,
-  "spawn_density_overworld": 100,
+  "spawn_density_overworld": 200,
   "spawn_density_dungeon": 0,
   "min_spawn_level": 0,
   "max_spawn_level": 0

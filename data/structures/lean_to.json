@@ -1,0 +1,23 @@
+{
+  "id": "lean_to",
+  "name": "Lean-to Shelter",
+  "description": "A simple shelter providing protection from the elements. Provides warmth within 2 tiles.",
+  "ascii_char": "A",
+  "ascii_color": "#8B4513",
+  "blocks_movement": false,
+  "structure_type": "shelter",
+  "durability": 150,
+  "components": {
+    "shelter": {
+      "shelter_radius": 2,
+      "temperature_bonus": 5.0,
+      "blocks_rain": true
+    }
+  },
+  "build_requirements": [
+    {"item": "wood", "count": 5},
+    {"item": "cord", "count": 2}
+  ],
+  "build_tool": "knife",
+  "build_time_turns": 1
+}

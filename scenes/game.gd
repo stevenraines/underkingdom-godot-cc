@@ -13,7 +13,12 @@ var renderer: ASCIIRenderer
 var input_handler: Node
 var inventory_screen: Control = null
 var crafting_screen: Control = null
+var build_mode_screen: Control = null
+var container_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
+var build_mode_active: bool = false
+var selected_structure_id: String = ""
+var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for placement cursor
 
 @onready var hud: CanvasLayer = $HUD
 @onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
@@ -24,6 +29,8 @@ var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
+const BuildModeScreenScene = preload("res://ui/build_mode_screen.tscn")
+const ContainerScreenScene = preload("res://ui/container_screen.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -40,6 +47,12 @@ func _ready() -> void:
 
 	# Create crafting screen
 	_setup_crafting_screen()
+
+	# Create build mode screen
+	_setup_build_mode_screen()
+
+	# Create container screen
+	_setup_container_screen()
 
 	# Start new game
 	GameManager.start_new_game()
@@ -86,13 +99,14 @@ func _ready() -> void:
 	EventBus.inventory_changed.connect(_on_inventory_changed)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.item_dropped.connect(_on_item_dropped)
+	EventBus.structure_placed.connect(_on_structure_placed)
 
 	# Update HUD
 	_update_hud()
 
 	# Add welcome message
 	_add_message("Welcome to the Underkingdom. Press ? for help.", Color(0.7, 0.9, 1.0))
-	_add_message("WASD/Arrows: Move  I: Inventory  C: Crafting  G: Pickup", Color(0.8, 0.8, 0.8))
+	_add_message("WASD/Arrows: Move  I: Inventory  C: Crafting  B: Build  E: Interact", Color(0.8, 0.8, 0.8))
 
 	print("Game scene initialized")
 
@@ -107,6 +121,19 @@ func _setup_crafting_screen() -> void:
 	crafting_screen = CraftingScreenScene.instantiate()
 	hud.add_child(crafting_screen)
 
+## Setup build mode screen
+func _setup_build_mode_screen() -> void:
+	build_mode_screen = BuildModeScreenScene.instantiate()
+	hud.add_child(build_mode_screen)
+	build_mode_screen.closed.connect(_on_build_mode_closed)
+	build_mode_screen.structure_selected.connect(_on_structure_selected)
+
+## Setup container screen
+func _setup_container_screen() -> void:
+	container_screen = ContainerScreenScene.instantiate()
+	hud.add_child(container_screen)
+	container_screen.closed.connect(_on_container_closed)
+
 ## Give player some starter items
 func _give_starter_items() -> void:
 	if not player or not player.inventory:
@@ -118,6 +145,7 @@ func _give_starter_items() -> void:
 		{"id": "bandage", "count": 2},
 		{"id": "waterskin_full", "count": 1},
 		{"id": "flint_knife", "count": 1},
+		{"id": "flint", "count": 1},  # For building campfire
 		# Crafting materials for testing
 		{"id": "wood", "count": 5},
 		{"id": "leather", "count": 3},
@@ -193,8 +221,17 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	# Check if standing on stairs and update message
 	_update_message()
 
-## Render a ground item at a specific position if one exists
+## Render a ground item or structure at a specific position if one exists
 func _render_ground_item_at(pos: Vector2i) -> void:
+	# Check for structures first (they should be rendered above ground items)
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_at(pos, map_id)
+	if structures.size() > 0:
+		var structure = structures[0]
+		renderer.render_entity(pos, structure.ascii_char, structure.color)
+		return
+
+	# If no structure, check for ground items
 	var ground_items = EntityManager.get_ground_items_at(pos)
 	if ground_items.size() > 0:
 		var item = ground_items[0]
@@ -324,9 +361,54 @@ func _show_game_over() -> void:
 
 ## Handle unhandled input (for game-wide controls)
 func _unhandled_input(event: InputEvent) -> void:
+	# Handle mouse clicks for structure placement in build mode
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if build_mode_active and selected_structure_id != "":
+			_try_place_structure_at_screen(event.position)
+			get_viewport().set_input_as_handled()
+
 	if event is InputEventKey and event.pressed and not event.echo:
+		# Handle build mode controls
+		if build_mode_active and selected_structure_id != "":
+			match event.keycode:
+				KEY_UP, KEY_W:
+					build_cursor_offset.y = max(-1, build_cursor_offset.y - 1)
+					_update_build_cursor()
+					get_viewport().set_input_as_handled()
+				KEY_DOWN, KEY_S:
+					build_cursor_offset.y = min(1, build_cursor_offset.y + 1)
+					_update_build_cursor()
+					get_viewport().set_input_as_handled()
+				KEY_LEFT, KEY_A:
+					build_cursor_offset.x = max(-1, build_cursor_offset.x - 1)
+					_update_build_cursor()
+					get_viewport().set_input_as_handled()
+				KEY_RIGHT, KEY_D:
+					build_cursor_offset.x = min(1, build_cursor_offset.x + 1)
+					_update_build_cursor()
+					get_viewport().set_input_as_handled()
+				KEY_ENTER, KEY_SPACE:
+					_try_place_structure_at_cursor()
+					get_viewport().set_input_as_handled()
+				KEY_ESCAPE:
+					build_mode_active = false
+					selected_structure_id = ""
+					build_cursor_offset = Vector2i(1, 0)
+					input_handler.ui_blocking_input = false  # Re-enable player movement
+					_add_message("Cancelled building", Color(0.7, 0.7, 0.7))
+					_render_map()  # Clear cursor
+					_render_all_entities()
+					get_viewport().set_input_as_handled()
+		# ESC to cancel build mode (if we somehow get here without structure selected)
+		elif event.keycode == KEY_ESCAPE and build_mode_active:
+			build_mode_active = false
+			selected_structure_id = ""
+			build_cursor_offset = Vector2i(1, 0)
+			input_handler.ui_blocking_input = false  # Re-enable player movement
+			_add_message("Cancelled building", Color(0.7, 0.7, 0.7))
+			get_viewport().set_input_as_handled()
 		# Restart game when R is pressed and player is dead
-		if event.keycode == KEY_R and player and not player.is_alive:
+		elif event.keycode == KEY_R and player and not player.is_alive:
 			_restart_game()
 		# Return to main menu on ESC when player is dead
 		elif event.keycode == KEY_ESCAPE and player and not player.is_alive:
@@ -519,6 +601,12 @@ func _render_all_entities() -> void:
 		if entity.is_alive:
 			renderer.render_entity(entity.position, entity.ascii_char, entity.color)
 
+	# Render structures
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_on_map(map_id)
+	for structure in structures:
+		renderer.render_entity(structure.position, structure.ascii_char, structure.color)
+
 ## Find a valid spawn position for the player (walkable, not occupied)
 func _find_valid_spawn_position() -> Vector2i:
 	if not MapManager.current_map:
@@ -636,9 +724,49 @@ func open_crafting_screen() -> void:
 	if crafting_screen and player:
 		crafting_screen.open(player)
 
+## Toggle build mode (called from input handler)
+func toggle_build_mode() -> void:
+	if build_mode_screen:
+		if build_mode_screen.visible:
+			build_mode_screen.hide()
+			build_mode_active = false
+			selected_structure_id = ""
+			input_handler.ui_blocking_input = false
+		else:
+			build_mode_screen.open(player)
+			input_handler.ui_blocking_input = true
+
+## Open container screen (called from input handler)
+func open_container_screen(structure: Structure) -> void:
+	if container_screen and player:
+		container_screen.open(player, structure)
+		input_handler.ui_blocking_input = true
+
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
 	# Resume normal gameplay
+	input_handler.ui_blocking_input = false
+
+## Called when build mode screen is closed
+func _on_build_mode_closed() -> void:
+	# Only clear if we're not in placement mode
+	if selected_structure_id == "":
+		build_mode_active = false
+		input_handler.ui_blocking_input = false
+
+## Called when a structure is selected from build mode
+func _on_structure_selected(structure_id: String) -> void:
+	selected_structure_id = structure_id
+	build_mode_active = true
+	build_cursor_offset = Vector2i(1, 0)  # Reset cursor to right of player
+	input_handler.ui_blocking_input = true  # Block player movement during placement
+	var structure_name = StructureManager.structure_definitions[structure_id].get("name", structure_id) if StructureManager.structure_definitions.has(structure_id) else structure_id
+	_add_message("BUILD MODE: %s - Arrow keys to move cursor, ENTER to place, ESC to cancel" % structure_name, Color(1.0, 1.0, 0.6))
+	# Show initial cursor
+	_update_build_cursor()
+
+## Called when container screen is closed
+func _on_container_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when an item is picked up
@@ -653,3 +781,70 @@ func _on_item_dropped(item, pos: Vector2i) -> void:
 	# Re-render to show dropped item
 	renderer.render_entity(pos, item.ascii_char, item.get_color())
 	_update_hud()
+
+## Called when a structure is placed
+func _on_structure_placed(structure: Structure) -> void:
+	_add_message("Built: %s" % structure.name, Color(0.6, 0.9, 0.6))
+	# Clear build mode state
+	build_mode_active = false
+	selected_structure_id = ""
+	build_cursor_offset = Vector2i(1, 0)
+	input_handler.ui_blocking_input = false  # Re-enable player movement
+	# Re-render map to clear cursor and show the new structure
+	_render_map()
+	_render_all_entities()
+	_render_ground_items()
+	renderer.render_entity(player.position, "@", Color.YELLOW)
+
+## Try to place a structure at the clicked screen position
+func _try_place_structure_at_screen(screen_pos: Vector2) -> void:
+	if not player or not MapManager.current_map:
+		return
+
+	# Convert screen position to tile position
+	var tile_pos = renderer.screen_to_tile(screen_pos)
+
+	# Attempt to place the structure
+	var result = StructurePlacement.place_structure(selected_structure_id, tile_pos, player, MapManager.current_map)
+
+	if result.success:
+		_add_message(result.message, Color(0.6, 0.9, 0.6))
+		_update_hud()  # Update inventory display
+	else:
+		_add_message(result.message, Color(0.9, 0.5, 0.5))
+
+## Try to place a structure at the cursor position (keyboard mode)
+func _try_place_structure_at_cursor() -> void:
+	if not player or not MapManager.current_map:
+		return
+
+	var tile_pos = player.position + build_cursor_offset
+
+	# Attempt to place the structure
+	var result = StructurePlacement.place_structure(selected_structure_id, tile_pos, player, MapManager.current_map)
+
+	if result.success:
+		_add_message(result.message, Color(0.6, 0.9, 0.6))
+		_update_hud()  # Update inventory display
+		# Clear cursor after successful placement
+		_render_map()
+		_render_all_entities()
+		_render_ground_items()
+		renderer.render_entity(player.position, "@", Color.YELLOW)
+	else:
+		_add_message(result.message, Color(0.9, 0.5, 0.5))
+
+## Update the build cursor visualization
+func _update_build_cursor() -> void:
+	if not player or not MapManager.current_map:
+		return
+
+	# Re-render map to clear old cursor
+	_render_map()
+	_render_all_entities()
+	_render_ground_items()
+	renderer.render_entity(player.position, "@", Color.YELLOW)
+
+	# Render cursor at new position
+	var cursor_pos = player.position + build_cursor_offset
+	renderer.render_entity(cursor_pos, "X", Color(1.0, 1.0, 0.0, 0.8))

@@ -126,6 +126,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_C:  # C key - open crafting
 			_open_crafting()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_B:  # B key - toggle build mode
+			_toggle_build_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_E:  # E key - interact with structure
+			_interact_with_structure()
+			action_taken = true
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_G:  # G key - toggle auto-pickup
 			_toggle_auto_pickup()
 			get_viewport().set_input_as_handled()
@@ -156,6 +163,36 @@ func _open_crafting() -> void:
 	var game = get_parent()
 	if game and game.has_method("open_crafting_screen"):
 		game.open_crafting_screen()
+
+## Toggle build mode
+func _toggle_build_mode() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_build_mode"):
+		game.toggle_build_mode()
+
+## Interact with structure at player position
+func _interact_with_structure() -> void:
+	# Find structures at player position
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_at(player.position, map_id)
+
+	if structures.size() > 0:
+		var structure = structures[0]
+		var result = structure.interact(player)
+
+		if result.success:
+			var game = get_parent()
+			if not game:
+				return
+
+			match result.action:
+				"open_container":
+					if game.has_method("open_container_screen"):
+						game.open_container_screen(structure)
+				"toggle_fire":
+					if game.has_method("_add_message"):
+						game._add_message(result.message, Color(0.9, 0.7, 0.4))
+					EventBus.fire_toggled.emit(structure, structure.is_active)
 
 ## Toggle auto-pickup setting
 func _toggle_auto_pickup() -> void:

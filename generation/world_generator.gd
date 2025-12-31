@@ -10,7 +10,7 @@ const GameTile = preload("res://maps/game_tile.gd")
 ## Generate the overworld map
 static func generate_overworld(seed_value: int) -> GameMap:
 	var rng = SeededRandom.new(seed_value)
-	var map = GameMap.new("overworld", 20, 20, seed_value)
+	var map = GameMap.new("overworld", 40, 40, seed_value)
 
 	# Create noise generator for terrain
 	var noise = FastNoiseLite.new()

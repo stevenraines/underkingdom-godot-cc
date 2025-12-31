@@ -44,5 +44,13 @@ signal craft_succeeded(recipe, result)  # Recipe, Item
 signal craft_failed(recipe)  # Recipe
 signal recipe_discovered(recipe)  # Recipe
 
+# Structure signals
+signal structure_placed(structure)  # Structure
+signal structure_removed(structure)  # Structure
+signal structure_interacted(structure, player)  # Structure, Player
+signal container_opened(structure)  # Structure
+signal container_closed(structure)  # Structure
+signal fire_toggled(structure, is_lit: bool)  # Structure
+
 func _ready() -> void:
 	print("EventBus initialized")

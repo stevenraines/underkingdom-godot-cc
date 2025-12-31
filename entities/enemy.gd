@@ -9,6 +9,8 @@ extends Entity
 var behavior_type: String = "wander"  # "wander", "guardian", "aggressive", "pack"
 var aggro_range: int = 5
 var is_aggressive: bool = false
+var feared_components: Array[String] = []  # Component types to avoid (e.g., "fire", "holy")
+var fear_distance: int = 4  # How close they'll get to feared components
 
 # Loot
 var loot_table: String = ""  # Reference to loot table ID
@@ -58,6 +60,12 @@ static func create(enemy_data: Dictionary) -> Enemy:
 	enemy.loot_table = enemy_data.get("loot_table", "")
 	enemy.xp_value = enemy_data.get("xp_value", 10)
 
+	# Feared components (convert from JSON array to typed array)
+	var feared_comps = enemy_data.get("feared_components", [])
+	for comp in feared_comps:
+		enemy.feared_components.append(comp)
+	enemy.fear_distance = enemy_data.get("fear_distance", 4)
+
 	# Combat properties
 	enemy.base_damage = enemy_data.get("base_damage", 2)
 	enemy.armor = enemy_data.get("armor", 0)
@@ -92,7 +100,13 @@ func _execute_behavior(player: Player) -> void:
 	# First, check if we should attack (player is adjacent)
 	if _attempt_attack_if_adjacent():
 		return  # Attack consumes the turn
-	
+
+	# Check for feared components - flee if near any
+	if not feared_components.is_empty() and _is_near_feared_component():
+		var threat_pos = _get_nearest_feared_component_position()
+		_move_away_from(threat_pos)
+		return  # Fleeing consumes the turn
+
 	# Otherwise, execute movement behavior
 	match behavior_type:
 		"aggressive":
@@ -187,3 +201,84 @@ func _wander() -> void:
 ## Calculate Manhattan distance to a position
 func _distance_to(target: Vector2i) -> int:
 	return abs(target.x - position.x) + abs(target.y - position.y)
+
+## Check if there's a feared component nearby that we should avoid
+func _is_near_feared_component() -> bool:
+	if feared_components.is_empty() or not MapManager.current_map:
+		return false
+
+	var map_id = MapManager.current_map.map_id
+	var structures = StructureManager.get_structures_on_map(map_id)
+
+	for structure in structures:
+		# Check if this structure has any component we fear
+		for feared_comp in feared_components:
+			var comp = structure.get_component(feared_comp)
+			if comp:
+				# Special handling for fire component - check if lit
+				if feared_comp == "fire" and "is_lit" in comp:
+					if not comp.is_lit:
+						continue
+
+				# Check distance
+				var distance = _distance_to(structure.position)
+				if distance <= fear_distance:
+					return true
+
+	return false
+
+## Find the nearest feared component position (for fleeing away from it)
+func _get_nearest_feared_component_position() -> Vector2i:
+	if not MapManager.current_map:
+		return position
+
+	var map_id = MapManager.current_map.map_id
+	var structures = StructureManager.get_structures_on_map(map_id)
+	var nearest_pos = position
+	var nearest_distance = 999
+
+	for structure in structures:
+		# Check if this structure has any component we fear
+		for feared_comp in feared_components:
+			var comp = structure.get_component(feared_comp)
+			if comp:
+				# Special handling for fire component - check if lit
+				if feared_comp == "fire" and "is_lit" in comp:
+					if not comp.is_lit:
+						continue
+
+				# Check distance
+				var distance = _distance_to(structure.position)
+				if distance < nearest_distance:
+					nearest_distance = distance
+					nearest_pos = structure.position
+
+	return nearest_pos
+
+## Move away from a position (flee behavior)
+func _move_away_from(threat: Vector2i) -> void:
+	var diff = position - threat
+	var move_dir = Vector2i.ZERO
+
+	# Move in the direction AWAY from the threat
+	if abs(diff.x) >= abs(diff.y):
+		move_dir.x = sign(diff.x) if diff.x != 0 else 1
+	else:
+		move_dir.y = sign(diff.y) if diff.y != 0 else 1
+
+	var new_pos = position + move_dir
+
+	# Check if position is walkable
+	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
+		_move_to(new_pos)
+	else:
+		# Try alternate direction
+		var alt_dir = Vector2i.ZERO
+		if move_dir.x != 0:
+			alt_dir.y = sign(diff.y) if diff.y != 0 else 1
+		else:
+			alt_dir.x = sign(diff.x) if diff.x != 0 else 1
+
+		var alt_pos = position + alt_dir
+		if MapManager.current_map and MapManager.current_map.is_walkable(alt_pos):
+			_move_to(alt_pos)

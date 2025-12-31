@@ -26,6 +26,7 @@ MapManager="*res://autoload/map_manager.gd"
 EntityManager="*res://autoload/entity_manager.gd"
 ItemManager="*res://autoload/item_manager.gd"
 RecipeManager="*res://autoload/recipe_manager.gd"
+StructureManager="*res://autoload/structure_manager.gd"
 
 [display]
 

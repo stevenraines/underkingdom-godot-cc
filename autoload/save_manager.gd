@@ -9,6 +9,9 @@ const SAVE_FILE_PATTERN = "save_slot_%d.json"
 const MAX_SLOTS = 3
 const SAVE_VERSION = "1.0.0"
 
+# Pending save data for deferred loading
+var pending_save_data: Dictionary = {}
+
 func _ready():
 	_ensure_save_directory()
 	print("SaveManager initialized")
@@ -78,13 +81,26 @@ func load_game(slot: int) -> bool:
 		push_error("SaveManager: Failed to parse JSON in slot %d" % slot)
 		return false
 
-	var save_data = json.data
-	_deserialize_game_state(save_data)
+	# Store save data for deferred loading after game scene is ready
+	pending_save_data = json.data
 
-	EventBus.emit_signal("game_loaded", slot)
-	EventBus.emit_signal("message_logged", "Game loaded from slot %d." % slot)
-	print("SaveManager: Game loaded from slot %d" % slot)
+	print("SaveManager: Save data loaded from slot %d, waiting for game scene" % slot)
 	return true
+
+## Apply pending save data (called by game scene after initialization)
+func apply_pending_save() -> void:
+	if pending_save_data.is_empty():
+		return
+
+	print("SaveManager: Applying pending save data...")
+	_deserialize_game_state(pending_save_data)
+
+	EventBus.emit_signal("game_loaded", 0)
+	EventBus.emit_signal("message_logged", "Game loaded successfully.")
+	print("SaveManager: Game loaded successfully")
+
+	# Clear pending data
+	pending_save_data = {}
 
 ## Get information about a save slot
 func get_save_slot_info(slot: int) -> SaveSlotInfo:
@@ -116,6 +132,10 @@ func get_save_slot_info(slot: int) -> SaveSlotInfo:
 	info.save_name = metadata.get("save_name", "Unnamed Save")
 	info.timestamp = metadata.get("timestamp", "")
 	info.playtime_turns = metadata.get("playtime_turns", 0)
+
+	# Get world name from world data
+	if save_data.has("world"):
+		info.world_name = save_data.world.get("world_name", "Unknown World")
 
 	return info
 
@@ -157,8 +177,9 @@ func _serialize_metadata() -> Dictionary:
 func _serialize_world() -> Dictionary:
 	return {
 		"seed": GameManager.world_seed,
+		"world_name": GameManager.world_name,
 		"current_turn": TurnManager.current_turn,
-		"time_of_day": TurnManager.get_turn_of_day(),
+		"time_of_day": TurnManager.get_time_of_day(),
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
 		"current_dungeon_floor": MapManager.current_dungeon_floor
 	}
@@ -173,12 +194,12 @@ func _serialize_player() -> Dictionary:
 	return {
 		"position": {"x": player.position.x, "y": player.position.y},
 		"attributes": {
-			"STR": player.attributes.STR,
-			"DEX": player.attributes.DEX,
-			"CON": player.attributes.CON,
-			"INT": player.attributes.INT,
-			"WIS": player.attributes.WIS,
-			"CHA": player.attributes.CHA
+			"STR": player.attributes["STR"],
+			"DEX": player.attributes["DEX"],
+			"CON": player.attributes["CON"],
+			"INT": player.attributes["INT"],
+			"WIS": player.attributes["WIS"],
+			"CHA": player.attributes["CHA"]
 		},
 		"health": {
 			"current": player.current_health,
@@ -188,7 +209,8 @@ func _serialize_player() -> Dictionary:
 		"inventory": _serialize_inventory(player.inventory),
 		"equipment": _serialize_equipment(player.inventory.equipment),
 		"gold": player.gold,
-		"xp": player.xp,
+		"experience": player.experience,
+		"experience_to_next_level": player.experience_to_next_level,
 		"known_recipes": player.known_recipes.duplicate()
 	}
 
@@ -202,7 +224,7 @@ func _serialize_survival(survival: SurvivalSystem) -> Dictionary:
 		"thirst": survival.thirst,
 		"temperature": survival.temperature,
 		"stamina": survival.stamina,
-		"max_stamina": survival.max_stamina,
+		"base_max_stamina": survival.base_max_stamina,
 		"fatigue": survival.fatigue
 	}
 
@@ -238,23 +260,50 @@ func _serialize_equipment(equipment: Dictionary) -> Dictionary:
 			equipped[slot] = equipment[slot].id
 	return equipped
 
-## Serialize maps (only explored data, maps regenerate from seed)
+## Serialize maps (save current map tiles to preserve harvested resources)
 func _serialize_maps() -> Dictionary:
-	return {
-		"explored_tiles": {}  # Future: FOV exploration tracking
-	}
+	var maps_data = {}
 
-## Serialize entities (NPCs, persistent state)
+	# Save tiles for the current map (where player has been)
+	if MapManager.current_map:
+		var map = MapManager.current_map
+		var tiles_data = []
+
+		# Save all tiles
+		for y in range(map.height):
+			for x in range(map.width):
+				var tile = map.get_tile(Vector2i(x, y))
+				tiles_data.append({
+					"tile_type": tile.tile_type,
+					"walkable": tile.walkable,
+					"transparent": tile.transparent,
+					"ascii_char": tile.ascii_char,
+					"harvestable_resource_id": tile.harvestable_resource_id
+				})
+
+		maps_data[map.map_id] = {
+			"width": map.width,
+			"height": map.height,
+			"tiles": tiles_data
+		}
+
+	return maps_data
+
+## Serialize entities (NPCs, enemies, persistent state)
 func _serialize_entities() -> Dictionary:
 	var npcs = []
+	var enemies = []
 
-	# Serialize all NPCs for state persistence
+	# Serialize all NPCs and Enemies for state persistence
 	for entity in EntityManager.entities:
-		if entity.has("npc_type"):  # Is an NPC
+		if entity is NPC:
 			npcs.append(_serialize_npc(entity))
+		elif entity is Enemy:
+			enemies.append(_serialize_enemy(entity))
 
 	return {
 		"npcs": npcs,
+		"enemies": enemies,
 		"dead_enemies": {}  # Future: track dead enemies with loot
 	}
 
@@ -281,11 +330,27 @@ func _serialize_npc_inventory(trade_inventory: Array) -> Array:
 		})
 	return inventory
 
+## Serialize a single Enemy
+func _serialize_enemy(enemy: Enemy) -> Dictionary:
+	return {
+		"enemy_id": enemy.entity_id,
+		"position": {"x": enemy.position.x, "y": enemy.position.y},
+		"current_health": enemy.current_health,
+		"max_health": enemy.max_health,
+		"is_aggressive": enemy.is_aggressive,
+		"is_alerted": enemy.is_alerted,
+		"target_position": {"x": enemy.target_position.x, "y": enemy.target_position.y},
+		"last_known_player_pos": {"x": enemy.last_known_player_pos.x, "y": enemy.last_known_player_pos.y}
+	}
+
 # ===== DESERIALIZATION =====
 
 ## Deserialize game state from save data
 func _deserialize_game_state(save_data: Dictionary):
 	print("SaveManager: Deserializing game state...")
+
+	# Clear map cache to ensure maps regenerate with correct seed
+	MapManager.loaded_maps.clear()
 
 	_deserialize_world(save_data.world)
 	_deserialize_player(save_data.player)
@@ -296,11 +361,15 @@ func _deserialize_game_state(save_data: Dictionary):
 	MapManager.current_dungeon_floor = save_data.world.get("current_dungeon_floor", 0)
 	MapManager.transition_to_map(map_id)
 
+	# Restore map tiles (to preserve harvested resources)
+	_deserialize_maps(save_data.maps, map_id)
+
 	print("SaveManager: Deserialization complete")
 
 ## Deserialize world state
 func _deserialize_world(world_data: Dictionary):
 	GameManager.world_seed = world_data.seed
+	GameManager.world_name = world_data.get("world_name", "Unknown World")
 	TurnManager.current_turn = world_data.current_turn
 
 ## Deserialize player state
@@ -335,8 +404,13 @@ func _deserialize_player(player_data: Dictionary):
 
 	# Misc
 	player.gold = player_data.gold
-	player.xp = player_data.xp
-	player.known_recipes = player_data.known_recipes.duplicate()
+	player.experience = player_data.experience
+	player.experience_to_next_level = player_data.experience_to_next_level
+
+	# Restore known recipes (clear and append to maintain Array[String] type)
+	player.known_recipes.clear()
+	for recipe_id in player_data.known_recipes:
+		player.known_recipes.append(recipe_id)
 
 	print("SaveManager: Player deserialized")
 
@@ -349,7 +423,7 @@ func _deserialize_survival(survival: SurvivalSystem, survival_data: Dictionary):
 	survival.thirst = survival_data.thirst
 	survival.temperature = survival_data.temperature
 	survival.stamina = survival_data.stamina
-	survival.max_stamina = survival_data.max_stamina
+	survival.base_max_stamina = survival_data.base_max_stamina
 	survival.fatigue = survival_data.fatigue
 
 ## Deserialize inventory
@@ -360,9 +434,10 @@ func _deserialize_inventory(inventory: Inventory, items_data: Array):
 	inventory.items.clear()
 	for item_data in items_data:
 		var item = ItemManager.create_item(item_data.item_id, item_data.count)
-		if item and item_data.durability != null and item.has("durability"):
-			item.durability = item_data.durability
 		if item:
+			# Restore durability if it was saved
+			if item_data.durability != null:
+				item.durability = item_data.durability
 			inventory.items.append(item)
 
 ## Deserialize equipment
@@ -381,22 +456,60 @@ func _deserialize_equipment(inventory: Inventory, equipment_data: Dictionary):
 		if item:
 			inventory.equipment[slot] = item
 
-## Deserialize entities (primarily NPCs)
-func _deserialize_entities(entities_data: Dictionary):
-	# Clear current NPCs (they'll be respawned)
-	var npcs_to_remove = []
-	for entity in EntityManager.entities:
-		if entity.has("npc_type"):
-			npcs_to_remove.append(entity)
+## Deserialize maps (restore tiles to preserve harvested resources)
+func _deserialize_maps(maps_data: Dictionary, current_map_id: String) -> void:
+	if not maps_data.has(current_map_id):
+		return  # No saved data for this map
 
-	for npc in npcs_to_remove:
-		EntityManager.entities.erase(npc)
+	var map_data = maps_data[current_map_id]
+	var map = MapManager.current_map
+
+	if not map:
+		return
+
+	# Restore tiles from saved data
+	var tiles_data = map_data.tiles
+	var idx = 0
+	for y in range(map.height):
+		for x in range(map.width):
+			if idx >= tiles_data.size():
+				break
+
+			var tile_data = tiles_data[idx]
+			var tile = map.get_tile(Vector2i(x, y))
+
+			# Update tile properties from saved data
+			tile.tile_type = tile_data.tile_type
+			tile.walkable = tile_data.walkable
+			tile.transparent = tile_data.transparent
+			tile.ascii_char = tile_data.ascii_char
+			tile.harvestable_resource_id = tile_data.harvestable_resource_id
+
+			idx += 1
+
+	print("SaveManager: Map tiles restored for ", current_map_id)
+
+## Deserialize entities (NPCs and Enemies)
+func _deserialize_entities(entities_data: Dictionary):
+	# Clear current NPCs and Enemies (they'll be respawned from save)
+	var entities_to_remove = []
+	for entity in EntityManager.entities:
+		if entity is NPC or entity is Enemy:
+			entities_to_remove.append(entity)
+
+	for entity in entities_to_remove:
+		EntityManager.entities.erase(entity)
 		if MapManager.current_map:
-			MapManager.current_map.entities.erase(npc)
+			MapManager.current_map.entities.erase(entity)
 
 	# Restore NPC states from save
 	for npc_data in entities_data.npcs:
-		var npc = EntityManager.spawn_npc(npc_data)
+		# Convert position dictionary to Vector2i
+		var spawn_data = npc_data.duplicate()
+		var pos_dict = npc_data.position
+		spawn_data.position = Vector2i(pos_dict.x, pos_dict.y)
+
+		var npc = EntityManager.spawn_npc(spawn_data)
 
 		# Restore saved state
 		npc.gold = npc_data.gold
@@ -407,6 +520,22 @@ func _deserialize_entities(entities_data: Dictionary):
 		for item_data in npc_data.inventory:
 			npc.trade_inventory.append(item_data.duplicate())
 
+	# Restore Enemy states from save
+	if entities_data.has("enemies"):
+		for enemy_data in entities_data.enemies:
+			# Spawn enemy at saved position
+			var pos = Vector2i(enemy_data.position.x, enemy_data.position.y)
+			var enemy = EntityManager.spawn_enemy(enemy_data.enemy_id, pos)
+
+			if enemy:
+				# Restore saved state
+				enemy.current_health = enemy_data.current_health
+				enemy.max_health = enemy_data.max_health
+				enemy.is_aggressive = enemy_data.is_aggressive
+				enemy.is_alerted = enemy_data.is_alerted
+				enemy.target_position = Vector2i(enemy_data.target_position.x, enemy_data.target_position.y)
+				enemy.last_known_player_pos = Vector2i(enemy_data.last_known_player_pos.x, enemy_data.last_known_player_pos.y)
+
 	print("SaveManager: Entities deserialized")
 
 # ===== HELPER CLASSES =====
@@ -416,5 +545,6 @@ class SaveSlotInfo:
 	var slot_number: int = 0
 	var exists: bool = false
 	var save_name: String = "Empty Slot"
+	var world_name: String = ""
 	var timestamp: String = ""
 	var playtime_turns: int = 0

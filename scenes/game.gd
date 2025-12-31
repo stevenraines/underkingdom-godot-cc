@@ -19,6 +19,7 @@ var crafting_screen: Control = null
 var build_mode_screen: Control = null
 var container_screen: Control = null
 var shop_screen: Control = null
+var pause_menu: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -37,6 +38,7 @@ const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
 const BuildModeScreenScene = preload("res://ui/build_mode_screen.tscn")
 const ContainerScreenScene = preload("res://ui/container_screen.tscn")
 const ShopScreenScene = preload("res://ui/shop_screen.tscn")
+const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -63,26 +65,53 @@ func _ready() -> void:
 	# Create shop screen
 	_setup_shop_screen()
 
-	# Start new game
-	GameManager.start_new_game()
+	# Create pause menu
+	_setup_pause_menu()
 
-	# Generate overworld
-	MapManager.transition_to_map("overworld")
+	# Only initialize new game if not loading from save
+	if not GameManager.is_loading_save:
+		print("[Game] New game initialization - world_seed: %d, world_name: '%s'" % [GameManager.world_seed, GameManager.world_name])
 
-	# Create player
-	player = Player.new()
-	player.position = _find_valid_spawn_position()
-	MapManager.current_map.entities.append(player)
-	
-	# Give player some starter items
-	_give_starter_items()
+		# Start new game (only if not already started from main menu)
+		if GameManager.world_seed == 0:
+			print("[Game] World seed is 0, calling start_new_game()")
+			GameManager.start_new_game()
+		else:
+			print("[Game] World seed already set, skipping start_new_game()")
 
-	# Set player reference in input handler and EntityManager
-	input_handler.set_player(player)
-	EntityManager.player = player
+		# Generate overworld
+		print("[Game] Calling transition_to_map with seed: %d" % GameManager.world_seed)
+		MapManager.transition_to_map("overworld")
 
-	# Spawn initial enemies
-	_spawn_map_enemies()
+		# Create player
+		player = Player.new()
+		player.position = _find_valid_spawn_position()
+		MapManager.current_map.entities.append(player)
+
+		# Give player some starter items
+		_give_starter_items()
+
+		# Set player reference in input handler and EntityManager
+		input_handler.set_player(player)
+		EntityManager.player = player
+
+		# Spawn initial enemies
+		_spawn_map_enemies()
+	else:
+		# Loading from save - apply pending save data
+		GameManager.is_loading_save = false
+
+		# Create temporary player first (will be overwritten by save data)
+		player = Player.new()
+		input_handler.set_player(player)
+		EntityManager.player = player
+
+		# Apply the pending save data
+		SaveManager.apply_pending_save()
+
+		# Get the loaded player reference
+		player = EntityManager.player
+		input_handler.set_player(player)
 
 	# Initial render
 	_render_map()
@@ -152,6 +181,12 @@ func _setup_shop_screen() -> void:
 	shop_screen = ShopScreenScene.instantiate()
 	hud.add_child(shop_screen)
 	shop_screen.closed.connect(_on_shop_closed)
+
+## Setup pause menu
+func _setup_pause_menu() -> void:
+	pause_menu = PauseMenuScene.instantiate()
+	hud.add_child(pause_menu)
+	pause_menu.closed.connect(_on_pause_menu_closed)
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -484,6 +519,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Return to main menu on ESC when player is dead
 		elif event.keycode == KEY_ESCAPE and player and not player.is_alive:
 			get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+		# Open pause menu on ESC when player is alive and no other UI is open
+		elif event.keycode == KEY_ESCAPE and player and player.is_alive:
+			if not input_handler.ui_blocking_input and pause_menu and not pause_menu.visible:
+				_open_pause_menu()
+				get_viewport().set_input_as_handled()
 
 ## Restart the game
 func _restart_game() -> void:
@@ -829,6 +869,12 @@ func open_container_screen(structure: Structure) -> void:
 		container_screen.open(player, structure)
 		input_handler.ui_blocking_input = true
 
+## Open pause menu (called from ESC key)
+func _open_pause_menu() -> void:
+	if pause_menu:
+		pause_menu.open(true)  # true = save mode
+		input_handler.ui_blocking_input = true
+
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
 	# Resume normal gameplay
@@ -864,6 +910,10 @@ func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when pause menu is closed
+func _on_pause_menu_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when an item is picked up

@@ -9,28 +9,39 @@ const _HarvestSystem = preload("res://systems/harvest_system.gd")
 
 # Game state
 var world_seed: int = 0
+var world_name: String = ""  # Player-provided name for the world
 var game_state: String = "menu"  # "menu", "playing", "paused"
 var current_map_id: String = ""
+var is_loading_save: bool = false  # Flag to prevent start_new_game when loading
 
 func _ready() -> void:
 	# Load harvestable resources
 	_HarvestSystem.load_resources()
 	print("GameManager initialized")
 
-## Start a new game with optional seed
-## If seed is -1, generates a random seed
-func start_new_game(seed: int = -1) -> void:
-	if seed == -1:
+## Start a new game with world name (used as seed)
+## If world_name_input is empty, generates a random seed and default name
+func start_new_game(world_name_input: String = "") -> void:
+	if world_name_input.is_empty():
 		randomize()
 		world_seed = randi()
+		world_name = "World %d" % (world_seed % 10000)
 	else:
-		world_seed = seed
+		world_name = world_name_input
+		# Use abs() to ensure positive seed value (hash() can return negative)
+		world_seed = abs(world_name_input.hash())
+		# If hash is 0 (unlikely), use a default value
+		if world_seed == 0:
+			world_seed = 12345
 
 	game_state = "playing"
 	TurnManager.current_turn = 0
 	TurnManager.time_of_day = "dawn"
 
-	print("New game started with seed: ", world_seed)
+	# Clear map cache to ensure new world generation with new seed
+	MapManager.loaded_maps.clear()
+
+	print("New game started - World: '%s', Seed: %d" % [world_name, world_seed])
 
 ## Update the current map being played
 func set_current_map(map_id: String) -> void:

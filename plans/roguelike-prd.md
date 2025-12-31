@@ -588,28 +588,26 @@ SaveData:
 #### 1.14 Town & Shop
 - [X] Town area in overworld
 - [X] Shop NPC
-- [ ] Buy/sell interface
-- [ ] Price calculation (CHA modifier)
-- [ ] Shop inventory management
+- [X] Buy/sell interface
+- [X] Price calculation (CHA modifier)
+- [X] Shop inventory management
 
 #### 1.15 Save System
-- [ ] Save data serialization
-- [ ] Save/load functions
-- [ ] Three slot management
+- [X] Save data serialization
+- [X] Save/load functions
+- [X] Three slot management
 - [ ] Death → load prompt
-- [ ] Save anywhere trigger (menu)
+- [X] Save anywhere trigger (menu)
 - [ ] Support Saves in Web (html/wasm) deployment
 
 #### 1.16 UI Polish
 - [ ] Main menu
 - [ ] Character sheet
-- [ ] Contextual Help sheet
+- [ ] Contextual Help sheet (? key)
 
-#### 1.17 Integration & Testing
-- [ ] Full loop playtest
-- [ ] Balance pass (turn costs, drain rates)
-- [ ] Bug fixing
-- [ ] Performance check
+#### 1.17 Overworld Generation
+- [ ] Overworld Generation with perlin noise
+- [ ] Expand town to 4 buildings: general store, 
 
 ---
 

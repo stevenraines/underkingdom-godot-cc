@@ -51,6 +51,12 @@ text = "Start a new game"
 theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 
+[node name="LoadButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Load Game"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Quit"
@@ -58,4 +64,5 @@ theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 
 [connection signal="pressed" from="VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/LoadButton" to="." method="_on_load_button_pressed"]
 [connection signal="pressed" from="VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

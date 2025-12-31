@@ -1,0 +1,145 @@
+[gd_scene load_steps=3 format=3 uid="uid://pause_menu"]
+
+[ext_resource type="Script" path="res://ui/pause_menu.gd" id="1_pause"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.08, 0.12, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.6, 0.4, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="PauseMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_pause")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "◆ GAME PAUSED ◆"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SaveSlotLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Select Save Slot"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+
+[node name="SlotsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 5
+
+[node name="Slot1Button" type="Button" parent="Panel/MarginContainer/VBoxContainer/SlotsContainer"]
+layout_mode = 2
+text = "Slot 1: Empty"
+
+[node name="Slot2Button" type="Button" parent="Panel/MarginContainer/VBoxContainer/SlotsContainer"]
+layout_mode = 2
+text = "Slot 2: Empty"
+
+[node name="Slot3Button" type="Button" parent="Panel/MarginContainer/VBoxContainer/SlotsContainer"]
+layout_mode = 2
+text = "Slot 3: Empty"
+
+[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ButtonsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="ResumeButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+text = "Resume (ESC)"
+
+[node name="MainMenuButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+text = "Main Menu"
+
+[node name="HSeparator3" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ActionPanel" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="SelectLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "[Enter] Select"
+
+[node name="DeleteLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "[Del/D] Delete"
+
+[node name="NavLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 13
+text = "[↑↓] Navigate"
+
+[node name="CloseLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "[Esc] Close"

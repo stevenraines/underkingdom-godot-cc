@@ -9,6 +9,7 @@ const _GameTile = preload("res://maps/game_tile.gd")
 
 ## Generate the overworld map
 static func generate_overworld(seed_value: int) -> GameMap:
+	print("[WorldGenerator] Generating overworld with seed: %d" % seed_value)
 	var rng = SeededRandom.new(seed_value)
 	var map = GameMap.new("overworld", 80, 40, seed_value)
 
@@ -30,15 +31,16 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	map.set_tile(entrance_pos, _create_tile("stairs_down"))
 	print("Dungeon entrance placed at: ", entrance_pos)
 
-	# Place test harvestable resources near center for testing
-	var center_x = map.width / 2
-	var center_y = map.height / 2
+	# Place harvestable resources at random locations using seeded RNG
 	# Place a few rocks
-	map.set_tile(Vector2i(center_x + 3, center_y + 2), _create_tile("rock"))
-	map.set_tile(Vector2i(center_x - 4, center_y + 3), _create_tile("rock"))
-	# Place water source
-	map.set_tile(Vector2i(center_x + 2, center_y - 3), _create_tile("water"))
-	map.set_tile(Vector2i(center_x + 3, center_y - 3), _create_tile("water"))
+	for i in range(3):
+		var rock_pos = _find_valid_location(map, rng)
+		map.set_tile(rock_pos, _create_tile("rock"))
+
+	# Place water sources
+	for i in range(2):
+		var water_pos = _find_valid_location(map, rng)
+		map.set_tile(water_pos, _create_tile("water"))
 
 	# Spawn overworld enemies (wolves in woodland biome)
 	_spawn_overworld_enemies(map, rng)

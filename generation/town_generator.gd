@@ -9,20 +9,26 @@ const GameTile = preload("res://maps/game_tile.gd")
 const SeededRandom = preload("res://generation/seeded_random.gd")
 
 # Town constants
-const TOWN_SIZE = Vector2i(15, 15)  # Smaller to fit in 20x20 map
-const TOWN_POSITION = Vector2i(2, 2)  # Top-left corner of town in 20x20 map
+const TOWN_SIZE = Vector2i(15, 15)  # Smaller to fit in 80x40 map
 const SHOP_SIZE = Vector2i(5, 5)
 
 ## Generates town in the overworld map
 static func generate_town(world_map: GameMap, world_seed: int):
 	var rng = SeededRandom.new(world_seed + 999)  # Seed offset for town generation
 
+	# Choose a random location for the town using seeded RNG
+	# Leave margins to ensure town fits in map
+	var town_pos = Vector2i(
+		rng.randi_range(5, world_map.width - TOWN_SIZE.x - 5),
+		rng.randi_range(5, world_map.height - TOWN_SIZE.y - 5)
+	)
+
 	# Clear area for town
-	var town_rect = Rect2i(TOWN_POSITION, TOWN_SIZE)
+	var town_rect = Rect2i(town_pos, TOWN_SIZE)
 	_clear_town_area(world_map, town_rect)
 
 	# Place shop building
-	var shop_pos = TOWN_POSITION + Vector2i(7, 8)
+	var shop_pos = town_pos + Vector2i(7, 8)
 	_place_building(world_map, shop_pos, SHOP_SIZE)
 
 	# Store shop NPC spawn data in metadata (will be created when map loads)
@@ -42,7 +48,7 @@ static func generate_town(world_map: GameMap, world_seed: int):
 	world_map.set_meta("npc_spawns", npc_spawns)
 
 	# Place well (water source) near town center
-	var well_pos = TOWN_POSITION + Vector2i(15, 10)
+	var well_pos = town_pos + Vector2i(15, 10)
 	_place_well(world_map, well_pos)
 
 	# Add decorative trees around perimeter
@@ -50,9 +56,9 @@ static func generate_town(world_map: GameMap, world_seed: int):
 
 	# Mark as safe zone (no enemy spawns)
 	world_map.set_meta("safe_zone", true)
-	world_map.set_meta("town_center", TOWN_POSITION)
+	world_map.set_meta("town_center", town_pos)
 
-	print("Town generated at position: ", TOWN_POSITION)
+	print("Town generated at position: ", town_pos)
 
 ## Clears the town area of trees and creates grass floor
 static func _clear_town_area(world_map: GameMap, town_rect: Rect2i):
@@ -106,7 +112,11 @@ static func _add_decorative_trees(world_map: GameMap, town_rect: Rect2i, rng: Se
 			trees_placed += 1
 
 ## Checks if a position is within the town bounds
-static func is_in_town(position: Vector2i) -> bool:
-	var town_rect = Rect2i(TOWN_POSITION, TOWN_SIZE)
+## Requires the map to have been generated with town_center metadata
+static func is_in_town(position: Vector2i, world_map: GameMap) -> bool:
+	if not world_map.has_meta("town_center"):
+		return false
+	var town_pos = world_map.get_meta("town_center")
+	var town_rect = Rect2i(town_pos, TOWN_SIZE)
 	return town_rect.has_point(position)
 

@@ -26,15 +26,23 @@ func _ready() -> void:
 			var txt := f.get_as_text()
 			f.close()
 			print("[MainMenu] read logo length:", txt.length())
-			var title = get_node("VBoxContainer/Title")
+			var title: Label = get_node("VBoxContainer/Title")
 			print("[MainMenu] title node: ", title)
 			# ensure Title control is visible and has enough space for ASCII art
 			title.visible = true
-			title.custom_minimum_size = Vector2(900, 240)
-			title.add_theme_font_size_override("font_size", 28)
-			title.bbcode_enabled = false
-			title.clear()
-			title.append_text(txt)
+			title.custom_minimum_size = Vector2(900, 180)
+
+			# Load and apply monospace font for ASCII art
+			var mono_font = load("res://fonts/DejaVuSansMono.ttf")
+			if mono_font:
+				print("[MainMenu] Loaded mono font: ", mono_font)
+				title.add_theme_font_override("font", mono_font)
+			else:
+				print("[MainMenu] Failed to load mono font")
+
+			title.add_theme_font_size_override("font_size", 14)
+			title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			title.text = txt
 		else:
 			print("[MainMenu] failed to open file handle")
 	else:

@@ -14,7 +14,6 @@ var buttons: Array[Button] = []
 
 const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
 const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_START = Color(0.6, 0.9, 0.6, 1.0)
 
 func _ready() -> void:
 	hide()
@@ -86,10 +85,7 @@ func _update_button_colors() -> void:
 		if i == selected_button_index:
 			buttons[i].modulate = COLOR_SELECTED
 		else:
-			if i == 0:  # Start button
-				buttons[i].modulate = COLOR_START
-			else:
-				buttons[i].modulate = COLOR_NORMAL
+			buttons[i].modulate = COLOR_NORMAL
 
 func _on_start_button_pressed() -> void:
 	var world_name = name_input.text.strip_edges()

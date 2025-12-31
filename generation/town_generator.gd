@@ -48,8 +48,8 @@ static func generate_town(world_map: GameMap, world_seed: int):
 	_add_decorative_trees(world_map, town_rect, rng)
 
 	# Mark as safe zone (no enemy spawns)
-	world_map.metadata["safe_zone"] = true
-	world_map.metadata["town_center"] = TOWN_POSITION
+	world_map.set_meta("safe_zone", true)
+	world_map.set_meta("town_center", TOWN_POSITION)
 
 	print("Town generated at position: ", TOWN_POSITION)
 

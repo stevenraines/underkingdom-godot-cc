@@ -160,6 +160,7 @@ func _give_starter_items() -> void:
 		{"id": "bandage", "count": 2},
 		{"id": "waterskin_full", "count": 1},
 		{"id": "flint_knife", "count": 1},
+		{"id": "axe", "count": 1},
 		{"id": "flint", "count": 1},  # For building campfire
 		# Crafting materials for testing
 		{"id": "wood", "count": 5},

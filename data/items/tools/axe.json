@@ -1,0 +1,23 @@
+{
+  "id": "axe",
+  "name": "Axe",
+  "description": "An axe for chopping wood.",
+  "category": "tool",
+  "subtype": "axe",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "two_handed": true
+  },
+  "weight": 2.0,
+  "value": 25,
+  "max_stack": 1,
+  "ascii_char": "T",
+  "ascii_color": "#666666",
+  "durability": 100,
+  "tool_type": "axe",
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 2
+}

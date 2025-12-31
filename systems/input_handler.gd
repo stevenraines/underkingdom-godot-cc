@@ -133,6 +133,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_pickup_item()
 			action_taken = true
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_T:  # T - talk/interact with NPC
+			_try_interact_npc()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -171,3 +174,25 @@ func _try_pickup_item() -> void:
 		var ground_item = ground_items[0]  # Pick up first item
 		if player.pickup_item(ground_item):
 			EntityManager.remove_entity(ground_item)
+
+## Try to interact with an adjacent NPC
+func _try_interact_npc() -> void:
+	# Check all 8 adjacent positions for NPCs
+	var adjacent_positions = [
+		player.position + Vector2i(-1, -1), player.position + Vector2i(0, -1), player.position + Vector2i(1, -1),
+		player.position + Vector2i(-1, 0),                                       player.position + Vector2i(1, 0),
+		player.position + Vector2i(-1, 1),  player.position + Vector2i(0, 1),  player.position + Vector2i(1, 1)
+	]
+
+	# Find NPCs in adjacent positions
+	var nearby_npcs = []
+	for pos in adjacent_positions:
+		var entity = EntityManager.get_blocking_entity_at(pos)
+		if entity and entity is NPC:
+			nearby_npcs.append(entity)
+
+	# Interact with the first NPC found
+	if nearby_npcs.size() > 0:
+		nearby_npcs[0].interact(player)
+	else:
+		EventBus.emit_signal("message_logged", "There's nobody here to talk to.")

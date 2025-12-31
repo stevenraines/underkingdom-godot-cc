@@ -158,7 +158,7 @@ All interconnected for emergent gameplay:
 
 ---
 
-## Current Phase: 1.10 Complete → 1.11 Next
+## Current Phase: 1.15 Complete → 1.16 Next
 
 ### Phase 1.10 (Inventory & Equipment) - ✅ COMPLETE
 - Item base class with JSON data loading
@@ -167,7 +167,42 @@ All interconnected for emergent gameplay:
 - Ground items, pickup/drop mechanics
 - Basic inventory UI
 
-### Phase 1.11 (Crafting) - 🔄 NEXT
+### Phase 1.11 (Crafting) - ✅ COMPLETE
+- Recipe data structure
+- Crafting attempt logic (success/failure)
+- Recipe memory (unlocking system)
+- Discovery hints (INT-based)
+- Tool requirement checking
+- Proximity crafting (fire sources)
+- Phase 1 recipes implemented
+- Basic crafting UI
+
+### Phase 1.12 (Harvest System) - ✅ COMPLETE
+- Generic resource harvesting with configurable behaviors
+- Three harvest behaviors: permanent destruction, renewable, non-consumable
+- Tool requirements, stamina costs, yield tables with probability
+- Resources defined in JSON files
+
+### Phase 1.13 (Items) - ✅ COMPLETE
+- All Phase 1 items implemented via JSON
+- Consumables, materials, tools, weapons, armor
+- ItemManager loads all items recursively
+
+### Phase 1.14 (Town & Shop) - ✅ COMPLETE
+- NPC base class with dialogue, gold, trade inventory
+- ShopSystem with CHA-based pricing
+- Town generation (20×20 safe zone)
+- Shop NPC spawning from metadata
+- Buy/sell interface integration
+
+### Phase 1.15 (Save System) - ✅ COMPLETE
+- SaveManager autoload with JSON serialization
+- Three save slot management
+- Comprehensive state serialization (world, player, NPCs, inventory)
+- Deterministic map regeneration from seed
+- Save/load operations with error handling
+
+### Phase 1.16 (UI Polish) - 🔄 NEXT
 **Scope**: Discovery-based crafting system
 - Recipe data structure
 - Crafting attempt logic (success/failure)
@@ -200,11 +235,14 @@ res://
 │   ├── game_manager.gd
 │   ├── map_manager.gd
 │   ├── entity_manager.gd
-│   └── item_manager.gd
+│   ├── item_manager.gd
+│   ├── recipe_manager.gd
+│   └── save_manager.gd
 ├── entities/           # Entity classes
 │   ├── entity.gd
 │   ├── player.gd
 │   ├── enemy.gd
+│   ├── npc.gd
 │   └── ground_item.gd
 ├── items/              # Item system
 │   └── item.gd
@@ -220,6 +258,7 @@ res://
 ├── generation/         # Procedural generation
 │   ├── seeded_random.gd
 │   ├── world_generator.gd
+│   ├── town_generator.gd
 │   └── dungeon_generators/
 │       └── burial_barrow.gd
 ├── rendering/          # Rendering layer
@@ -375,17 +414,13 @@ EventBus.turn_advanced.connect(func(turn): print("Turn advanced: ", turn))
 
 ---
 
-## Future Phases (Post-1.11)
+## Future Phases (Post-1.15)
 
-- Phase 1.12: Items (all Phase 1 items implemented)
-- Phase 1.13: Base Building (campfire, lean-to, chest)
-- Phase 1.14: Town & Shop (single NPC shop)
-- Phase 1.15: Save System (3 slots, JSON serialization)
-- Phase 1.16: UI Polish (main menu, HUD, message log, character sheet)
-- Phase 1.17: Integration & Testing (full playtest, balance pass)
+- Phase 1.16: UI Polish (shop UI, save/load UI, death screen, menu improvements)
+- Phase 1.17: Integration & Testing (full playtest, balance pass, bug fixes)
 
 ---
 
-**Last Updated**: December 30, 2025
-**Current Branch**: `main` (ready for `feature/crafting-system`)
-**Next Phase**: 1.11 - Crafting System
+**Last Updated**: December 31, 2025
+**Current Branch**: `feature/town-and-save-system`
+**Next Phase**: 1.16 - UI Polish (Shop & Save/Load interfaces)

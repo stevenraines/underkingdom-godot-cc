@@ -7,6 +7,8 @@ extends Node2D
 const ItemClass = preload("res://items/item.gd")
 const GroundItemClass = preload("res://entities/ground_item.gd")
 const ItemManagerScript = preload("res://autoload/item_manager.gd")
+const Structure = preload("res://entities/structure.gd")
+const StructurePlacement = preload("res://systems/structure_placement.gd")
 
 var player: Player
 var renderer: ASCIIRenderer

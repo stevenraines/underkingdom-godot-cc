@@ -4,6 +4,8 @@ extends Control
 ##
 ## Shows player inventory on left, container inventory on right.
 
+const Structure = preload("res://entities/structure.gd")
+
 signal closed()
 
 @onready var player_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/PlayerPanel/ScrollContainer/PlayerList

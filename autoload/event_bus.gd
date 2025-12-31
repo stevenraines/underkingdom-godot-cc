@@ -44,5 +44,21 @@ signal craft_succeeded(recipe, result)  # Recipe, Item
 signal craft_failed(recipe)  # Recipe
 signal recipe_discovered(recipe)  # Recipe
 
+# NPC & Shop signals
+signal npc_interacted(npc, player)  # NPC, Player
+signal shop_opened(npc, player)  # NPC, Player
+signal item_purchased(item, price: int)  # Item
+signal item_sold(item, price: int)  # Item
+signal shop_restocked(npc)  # NPC
+
+# Save/Load signals
+signal game_saved(slot: int)
+signal game_loaded(slot: int)
+signal save_failed(error: String)
+signal load_failed(error: String)
+
+# UI signals
+signal message_logged(message: String)
+
 func _ready() -> void:
 	print("EventBus initialized")

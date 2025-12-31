@@ -15,6 +15,8 @@ var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
+var gold: int = 0  # Player's gold currency
+var xp: int = 0  # Player's experience points
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)

@@ -33,6 +33,10 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	# Spawn overworld enemies (wolves in woodland biome)
 	_spawn_overworld_enemies(map, rng)
 
+	# Generate town with shop NPC
+	var TownGenerator = load("res://generation/town_generator.gd")
+	TownGenerator.generate_town(map, seed_value)
+
 	print("Overworld generated (20x20) with seed: ", seed_value)
 	return map
 

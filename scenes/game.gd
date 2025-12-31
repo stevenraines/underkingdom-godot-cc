@@ -503,15 +503,22 @@ func _add_message(text: String, color: Color = Color.WHITE) -> void:
 
 ## Spawn enemies from map metadata
 func _spawn_map_enemies() -> void:
-	if not MapManager.current_map or not MapManager.current_map.has_meta("enemy_spawns"):
+	if not MapManager.current_map:
 		return
 
-	var enemy_spawns = MapManager.current_map.get_meta("enemy_spawns")
+	# Spawn enemies from metadata
+	if MapManager.current_map.has_meta("enemy_spawns"):
+		var enemy_spawns = MapManager.current_map.get_meta("enemy_spawns")
+		for spawn_data in enemy_spawns:
+			var enemy_id = spawn_data["enemy_id"]
+			var spawn_pos = spawn_data["position"]
+			EntityManager.spawn_enemy(enemy_id, spawn_pos)
 
-	for spawn_data in enemy_spawns:
-		var enemy_id = spawn_data["enemy_id"]
-		var spawn_pos = spawn_data["position"]
-		EntityManager.spawn_enemy(enemy_id, spawn_pos)
+	# Spawn NPCs from metadata
+	if MapManager.current_map.has_meta("npc_spawns"):
+		var npc_spawns = MapManager.current_map.get_meta("npc_spawns")
+		for spawn_data in npc_spawns:
+			EntityManager.spawn_npc(spawn_data)
 
 ## Render all entities on the current map
 func _render_all_entities() -> void:

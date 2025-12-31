@@ -603,12 +603,18 @@ SaveData:
 #### 1.16 UI Polish
 - [X] Main menu
 - [ ] Character sheet
-- [ ] Contextual Help sheet (? key)
+- [ ] Contextual Help for Game sheet (? key - show all keys available to character)
 
 #### 1.17 Overworld Generation
-- [ ] Overworld Generation with perlin noise
 - [ ] Expand town to 2 buildings: general store (general goods) and blacksmith (armour)
 - [ ] Mining for ore (rocks with ore in it)
+- [ ] Overworld Generation with perlin noise
+- [ ] Pop-up map of entire island (in miniature)
+
+#### 1.18 Enhanced Combat
+- [ ] Targeting an enemy
+- [ ] Ranged weapon attacks
+
 
 ---
 

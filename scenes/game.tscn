@@ -65,6 +65,17 @@ theme_override_colors/font_color = Color(0.7, 0.85, 0.7, 1)
 theme_override_font_sizes/font_size = 13
 text = "HP: 60/60  Stam: 100/100  Hun: 100%  Thr: 100%  Tmp: 68°F  Turn: 0"
 
+[node name="XPLabel" type="Label" parent="HUD/TopBar"]
+layout_mode = 0
+offset_left = 1060.0
+offset_top = 6.0
+offset_right = 1278.0
+offset_bottom = 24.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "Exp: 0/100"
+horizontal_alignment = 2
+
 [node name="RightSidebar" type="ColorRect" parent="HUD"]
 anchor_left = 0.75
 anchor_top = 0.0

@@ -26,6 +26,7 @@ var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for pla
 @onready var location_label: Label = $HUD/RightSidebar/LocationLabel
 @onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
+@onready var xp_label: Label = $HUD/TopBar/XPLabel
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
@@ -338,6 +339,12 @@ func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionar
 	_add_message(message, color)
 	
 	# Update HUD to show health changes
+	# If player killed an enemy, award XP
+	if result.defender_died and is_player_attacker and _defender and _defender is Enemy:
+		var xp_gain = _defender.xp_value if "xp_value" in _defender else 0
+		player.experience += xp_gain
+		_add_message("Gained %d XP." % xp_gain, Color(0.6, 0.9, 0.6))
+
 	_update_hud()
 
 ## Called when player dies
@@ -454,6 +461,12 @@ func _update_hud() -> void:
 			survival_text = "  %s  %s  %s  %s" % [stam_text, hunger_text, thirst_text, temp_text]
 
 		status_line.text = "%s%s  %s  %s" % [hp_text, survival_text, turn_text, time_text]
+
+	# Update XP label if present
+	if xp_label and player:
+		var cur_xp = player.experience if "experience" in player else 0
+		var next_xp = player.experience_to_next_level if "experience_to_next_level" in player else 100
+		xp_label.text = "Exp: %d/%d" % [cur_xp, next_xp]
 		
 		# Color code based on most critical state
 		var status_color = _get_status_color()

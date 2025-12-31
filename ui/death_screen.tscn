@@ -1,6 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://build_mode_screen"]
+[gd_scene load_steps=3 format=3 uid="uid://death_screen"]
 
-[ext_resource type="Script" path="res://ui/build_mode_screen.gd" id="1_build"]
+[ext_resource type="Script" path="res://ui/death_screen.gd" id="1_death"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.08, 0.08, 0.12, 0.98)
@@ -8,20 +8,20 @@ border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.4, 0.6, 0.4, 1)
+border_color = Color(0.8, 0.2, 0.2, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="BuildModeScreen" type="Control"]
+[node name="DeathScreen" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_build")
+script = ExtResource("1_death")
 
 [node name="Dimmer" type="ColorRect" parent="."]
 layout_mode = 1
@@ -30,7 +30,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
+color = Color(0, 0, 0, 0.85)
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1
@@ -40,9 +40,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -400.0
-offset_top = -250.0
+offset_top = -300.0
 offset_right = 400.0
-offset_bottom = 250.0
+offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -65,9 +65,9 @@ theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
-theme_override_font_sizes/font_size = 20
-text = "◆ BUILD MODE ◆"
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "☠ GAME OVER ☠"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
@@ -79,51 +79,61 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="StructuresPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
-custom_minimum_size = Vector2(280, 0)
+[node name="StatsPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+custom_minimum_size = Vector2(350, 0)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_constants/separation = 2
 
-[node name="StructuresTitle" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/StructuresPanel"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.5, 1)
-theme_override_font_sizes/font_size = 15
-text = "══ STRUCTURES ══"
-horizontal_alignment = 1
-
-[node name="StructureList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/StructuresPanel"]
+[node name="StatsLabel" type="RichTextLabel" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/StatsPanel"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 1
+theme_override_colors/default_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
+text = "Your journey has ended..."
+fit_content = true
+scroll_active = false
 
 [node name="VSeparator" type="VSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="DetailsPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+[node name="SavesPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="DetailsTitle" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/DetailsPanel"]
+[node name="SavesTitle" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/SavesPanel"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.5, 1)
 theme_override_font_sizes/font_size = 15
-text = "══ DETAILS ══"
+text = "══ LOAD SAVE ══"
 horizontal_alignment = 1
 
-[node name="DetailScroll" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/DetailsPanel"]
+[node name="SaveList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/SavesPanel"]
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 0
+theme_override_constants/separation = 4
 
-[node name="DetailLabel" type="RichTextLabel" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/DetailsPanel/DetailScroll"]
+[node name="HelpLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/SavesPanel"]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/default_color = Color(0.85, 0.85, 0.85, 1)
-theme_override_font_sizes/normal_font_size = 13
-bbcode_enabled = true
-text = "Select a structure to see details"
-fit_content = true
-scroll_active = false
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "↑↓ Navigate  |  Enter to load"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ButtonPanel" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="MenuLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ButtonPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "[M] Main Menu"

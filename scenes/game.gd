@@ -20,6 +20,7 @@ var build_mode_screen: Control = null
 var container_screen: Control = null
 var shop_screen: Control = null
 var pause_menu: Control = null
+var death_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -39,6 +40,7 @@ const BuildModeScreenScene = preload("res://ui/build_mode_screen.tscn")
 const ContainerScreenScene = preload("res://ui/container_screen.tscn")
 const ShopScreenScene = preload("res://ui/shop_screen.tscn")
 const PauseMenuScene = preload("res://ui/pause_menu.tscn")
+const DeathScreenScene = preload("res://ui/death_screen.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -67,6 +69,9 @@ func _ready() -> void:
 
 	# Create pause menu
 	_setup_pause_menu()
+
+	# Create death screen
+	_setup_death_screen()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -119,6 +124,11 @@ func _ready() -> void:
 	_render_ground_items()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
+
+	# Ensure the tree is not paused after loading/new game initialization
+	var _tree = get_tree()
+	if _tree:
+		_tree.paused = false
 
 	# Calculate initial FOV
 	var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
@@ -187,6 +197,13 @@ func _setup_pause_menu() -> void:
 	pause_menu = PauseMenuScene.instantiate()
 	hud.add_child(pause_menu)
 	pause_menu.closed.connect(_on_pause_menu_closed)
+
+## Setup death screen
+func _setup_death_screen() -> void:
+	death_screen = DeathScreenScene.instantiate()
+	hud.add_child(death_screen)
+	death_screen.load_save_requested.connect(_on_death_screen_load_save)
+	death_screen.return_to_menu_requested.connect(_on_death_screen_return_to_menu)
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -451,19 +468,36 @@ func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionar
 func _on_player_died() -> void:
 	_add_message("", Color.WHITE)  # Blank line
 	_add_message("*** YOU HAVE DIED ***", Color.RED)
-	_add_message("Press R to restart or ESC for main menu.", Color(0.7, 0.7, 0.7))
-	
-	# Disable input (handled in input_handler via is_alive check)
-	# Show game over state
-	_show_game_over()
 
-## Show game over overlay
-func _show_game_over() -> void:
-	# For now, just change the HUD to show game over state
-	# A proper overlay can be added later
-	if status_line:
-		status_line.text = "GAME OVER - Press R to restart"
-		status_line.add_theme_color_override("font_color", Color.RED)
+	# Collect player stats for death screen
+	var player_stats = {
+		"turns": TurnManager.current_turn,
+		"experience": player.experience if player else 0,
+		"gold": player.gold if player else 0,
+		"recipes_discovered": player.known_recipes.size() if player else 0,
+		"structures_built": 0  # TODO: Track this if needed
+	}
+
+	# Show death screen with stats
+	if death_screen:
+		death_screen.open(player_stats)
+
+## Handle load save request from death screen
+func _on_death_screen_load_save(slot: int) -> void:
+	# Load the save
+	var success = SaveManager.load_game(slot)
+	if success:
+		# Indicate we're loading a save so _ready applies pending save data
+		GameManager.is_loading_save = true
+		# Reload the game scene to reset everything
+		get_tree().reload_current_scene()
+	else:
+		_add_message("Failed to load save!", Color.RED)
+
+## Handle return to menu from death screen
+func _on_death_screen_return_to_menu() -> void:
+	# Return to main menu
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 ## Handle unhandled input (for game-wide controls)
 func _unhandled_input(event: InputEvent) -> void:

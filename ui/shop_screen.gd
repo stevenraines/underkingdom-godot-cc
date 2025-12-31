@@ -228,13 +228,17 @@ func _refresh_display() -> void:
 		var total_price = unit_price * (quantity if is_shop_focused and i == selected_index else 1)
 
 		var label = Label.new()
+		label.add_theme_font_size_override("font_size", 13)
+
 		var qty_text = ""
 		if is_shop_focused and i == selected_index and quantity > 1:
 			qty_text = " x%d = %dg" % [quantity, total_price]
 		else:
 			qty_text = " (%dg)" % unit_price
 
-		label.text = "%s x%d%s" % [item_name, item_data.count, qty_text]
+		# Add selection triangle
+		var prefix = "► " if (is_shop_focused and i == selected_index) else "  "
+		label.text = "%s%s x%d%s" % [prefix, item_name, item_data.count, qty_text]
 
 		# Color based on selection and affordability
 		if is_shop_focused and i == selected_index:
@@ -253,6 +257,8 @@ func _refresh_display() -> void:
 		var total_price = unit_price * (quantity if not is_shop_focused and i == selected_index else 1)
 
 		var label = Label.new()
+		label.add_theme_font_size_override("font_size", 13)
+
 		var qty_text = ""
 		if not is_shop_focused and i == selected_index and quantity > 1:
 			qty_text = " x%d = %dg" % [quantity, total_price]
@@ -261,7 +267,10 @@ func _refresh_display() -> void:
 
 		# Use stack_size for Item instances, else fallback to count for legacy/data objects
 		var display_count = item.stack_size if item is Item else item.count
-		label.text = "%s x%d%s" % [item.name, display_count, qty_text]
+
+		# Add selection triangle
+		var prefix = "► " if (not is_shop_focused and i == selected_index) else "  "
+		label.text = "%s%s x%d%s" % [prefix, item.name, display_count, qty_text]
 
 		# Color based on selection and shop's ability to afford
 		if not is_shop_focused and i == selected_index:

@@ -11,6 +11,31 @@ const UNSELECT_COLOR: Color = Color(0.7, 0.7, 0.7, 1)
 
 func _ready() -> void:
 	print("Main menu loaded")
+	# load ascii art from ui file into Title (RichTextLabel)
+	var logo_path := "res://ui/underkingdom_logo.txt"
+	print("[MainMenu] checking logo path: ", logo_path)
+	var exists := FileAccess.file_exists(logo_path)
+	print("[MainMenu] file_exists: ", exists)
+	if exists:
+		var f := FileAccess.open(logo_path, FileAccess.READ)
+		if f:
+			var txt := f.get_as_text()
+			f.close()
+			print("[MainMenu] read logo length:", txt.length())
+			var title = get_node("VBoxContainer/Title")
+			print("[MainMenu] title node: ", title)
+			# ensure Title control is visible and has enough space for ASCII art
+			title.visible = true
+			title.custom_minimum_size = Vector2(900, 240)
+			title.add_theme_font_size_override("font_size", 28)
+			title.bbcode_enabled = false
+			title.clear()
+			title.append_text(txt)
+		else:
+			print("[MainMenu] failed to open file handle")
+	else:
+		print("[MainMenu] logo file not found at path")
+
 	# collect buttons in visual order
 	var start = get_node("VBoxContainer/StartButton")
 	var quit = get_node("VBoxContainer/QuitButton")

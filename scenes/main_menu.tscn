@@ -25,9 +25,11 @@ offset_bottom = 75.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Title" type="Label" parent="VBoxContainer"]
+[node name="Title" type="RichTextLabel" parent="VBoxContainer"]
 layout_mode = 2
-text = "  _   _           _                _  _           \n | | | | ___  ___| |__   ___  _ __| || | ___ _ __ \n | |_| |/ _ \\/ __| '_ \\ / _ \\| '__| || |/ _ \\ '__|\n |  _  |  __/\__ \ | | | (_) | |  | || |  __/ |   \n |_| |_|\\___||___/_| |_|\\___/|_|  |_||_|\\___|_|   "
+bbcode_enabled = false
+fit_content_height = true
+text = "UNDERKINGDOM"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 30
 theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)

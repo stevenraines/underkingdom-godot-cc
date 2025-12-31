@@ -288,7 +288,14 @@ func _delete_current_slot() -> void:
 		return
 
 	# Ask for confirmation before deleting
-	_show_confirm("Delete save in slot %d? This cannot be undone." % slot, "delete", slot)
+	# Build a display string matching the slot list: "WorldName - MM/DD HH:MM (Turn: N)"
+	var time_str = _format_timestamp(info.timestamp)
+	var turns_str = "Turn: %d" % info.playtime_turns
+	var world_display = info.world_name if not info.world_name.is_empty() else (info.save_name if not info.save_name.is_empty() else "Slot %d" % slot)
+
+	var confirm_text = "%s - %s (%s)" % [world_display, time_str, turns_str]
+
+	_show_confirm("Delete save '%s'? This cannot be undone." % confirm_text, "delete", slot)
 
 ## SaveSlotInfo class to hold save slot data
 class SaveSlotInfo:

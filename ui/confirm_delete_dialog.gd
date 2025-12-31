@@ -28,6 +28,35 @@ func open(message: String) -> void:
 	_update_button_colors()
 	show()
 
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		var viewport = get_viewport()
+		if not viewport:
+			return
+
+		match event.keycode:
+			KEY_LEFT:
+				selected_button_index = clamp(selected_button_index - 1, 0, buttons.size() - 1)
+				_update_button_colors()
+				viewport.set_input_as_handled()
+			KEY_RIGHT:
+				selected_button_index = clamp(selected_button_index + 1, 0, buttons.size() - 1)
+				_update_button_colors()
+				viewport.set_input_as_handled()
+			KEY_TAB:
+				selected_button_index = (selected_button_index + 1) % buttons.size()
+				_update_button_colors()
+				viewport.set_input_as_handled()
+			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
+				buttons[selected_button_index].emit_signal("pressed")
+				viewport.set_input_as_handled()
+			KEY_ESCAPE:
+				_on_cancel_pressed()
+				viewport.set_input_as_handled()
+
 func _update_button_colors() -> void:
 	for i in range(buttons.size()):
 		if i == selected_button_index:

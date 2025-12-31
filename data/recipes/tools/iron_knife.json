@@ -1,0 +1,13 @@
+{
+  "id": "iron_knife",
+  "result": "iron_knife",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ore", "count": 1},
+    {"item": "wood", "count": 1}
+  ],
+  "tool_required": "hammer",
+  "fire_required": false,
+  "difficulty": 3,
+  "discovery_hint": "Metal and wood could be shaped into a superior cutting tool"
+}

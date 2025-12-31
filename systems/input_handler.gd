@@ -123,6 +123,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_I:  # I key - toggle inventory
 			_toggle_inventory()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_C:  # C key - open crafting
+			_open_crafting()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_G:  # G key - toggle auto-pickup
 			_toggle_auto_pickup()
 			get_viewport().set_input_as_handled()
@@ -147,6 +150,12 @@ func _toggle_inventory() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_inventory_screen"):
 		game.toggle_inventory_screen()
+
+## Open crafting screen
+func _open_crafting() -> void:
+	var game = get_parent()
+	if game and game.has_method("open_crafting_screen"):
+		game.open_crafting_screen()
 
 ## Toggle auto-pickup setting
 func _toggle_auto_pickup() -> void:

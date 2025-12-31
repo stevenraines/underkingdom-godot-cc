@@ -9,10 +9,12 @@ extends Entity
 const _CombatSystem = preload("res://systems/combat_system.gd")
 const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
+const CraftingSystem = preload("res://systems/crafting_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
+var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
@@ -251,3 +253,34 @@ func apply_item_effects(effects: Dictionary) -> void:
 		survival.stamina = min(survival.get_max_stamina(), survival.stamina + effects.stamina)
 	if "fatigue" in effects and survival:
 		survival.rest(effects.fatigue)
+
+## Check if player knows a recipe
+func knows_recipe(recipe_id: String) -> bool:
+	return recipe_id in known_recipes
+
+## Learn a new recipe
+func learn_recipe(recipe_id: String) -> void:
+	if not knows_recipe(recipe_id):
+		known_recipes.append(recipe_id)
+		print("Player learned recipe: ", recipe_id)
+
+## Get all recipes the player knows
+func get_known_recipes() -> Array:
+	var result: Array = []
+	for recipe_id in known_recipes:
+		var recipe = RecipeManager.get_recipe(recipe_id)
+		if recipe:
+			result.append(recipe)
+	return result
+
+## Get recipes player can currently craft (knows recipe + has ingredients)
+func get_craftable_recipes() -> Array:
+	var result: Array = []
+	var near_fire = CraftingSystem.is_near_fire(position)
+
+	for recipe_id in known_recipes:
+		var recipe = RecipeManager.get_recipe(recipe_id)
+		if recipe and recipe.has_requirements(inventory, near_fire):
+			result.append(recipe)
+
+	return result

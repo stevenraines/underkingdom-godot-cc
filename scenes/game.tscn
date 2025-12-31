@@ -36,48 +36,63 @@ script = ExtResource("3")
 
 [node name="TopBar" type="ColorRect" parent="HUD"]
 offset_right = 1280.0
-offset_bottom = 45.0
-color = Color(0, 0, 0, 0.9)
+offset_bottom = 50.0
+color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="CharacterInfo" type="Label" parent="HUD/TopBar"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 5.0
-offset_right = 400.0
-offset_bottom = 20.0
-text = "Player, Harvest Dawn 6th of Nivvum Ut"
+offset_left = 12.0
+offset_top = 6.0
+offset_right = 500.0
+offset_bottom = 24.0
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 15
+text = "Day 1st - Dawn"
 
 [node name="StatusLine" type="Label" parent="HUD/TopBar"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 22.0
-offset_right = 1270.0
-offset_bottom = 40.0
-text = "HP: 18/18  LVL: 1  Exp: 0/220  Turn: 0  dawn  QN: 100  MS: 120  AV: 3  DV: 5  MA: 5"
+offset_left = 12.0
+offset_top = 26.0
+offset_right = 1268.0
+offset_bottom = 46.0
+theme_override_colors/font_color = Color(0.7, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "HP: 60/60  Stam: 100/100  Hun: 100%  Thr: 100%  Tmp: 68°F  Turn: 0"
 
 [node name="RightSidebar" type="ColorRect" parent="HUD"]
-offset_left = 1090.0
-offset_top = 45.0
+offset_left = 965.0
+offset_top = 50.0
 offset_right = 1280.0
-offset_bottom = 720.0
-color = Color(0, 0, 0, 0.9)
+offset_bottom = 670.0
+color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="LocationLabel" type="Label" parent="HUD/RightSidebar"]
 layout_mode = 0
 offset_left = 10.0
-offset_top = 10.0
-offset_right = 180.0
-offset_bottom = 30.0
-text = "Location"
+offset_top = 8.0
+offset_right = 305.0
+offset_bottom = 28.0
+theme_override_colors/font_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_font_sizes/font_size = 15
+text = "◆ OVERWORLD ◆"
+horizontal_alignment = 1
+
+[node name="SidebarSeparator" type="HSeparator" parent="HUD/RightSidebar"]
+offset_left = 10.0
+offset_top = 32.0
+offset_right = 305.0
+offset_bottom = 36.0
 
 [node name="MessageLog" type="RichTextLabel" parent="HUD/RightSidebar"]
 layout_mode = 0
 offset_left = 10.0
-offset_top = 140.0
-offset_right = 180.0
-offset_bottom = 380.0
+offset_top = 42.0
+offset_right = 305.0
+offset_bottom = 610.0
+theme_override_colors/default_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
-text = "[color=#88CCFF]Message Log[/color]"
+text = ""
 scroll_following = true
 
 [node name="BottomBar" type="ColorRect" parent="HUD"]
@@ -85,27 +100,34 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -45.0
-offset_right = -190.0
+offset_left = 0.0
+offset_top = -50.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 0
-color = Color(0, 0, 0, 0.9)
+color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="ActiveEffects" type="Label" parent="HUD/BottomBar"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 5.0
-offset_right = 600.0
-offset_bottom = 20.0
-text = "ACTIVE EFFECTS:"
+offset_left = 12.0
+offset_top = 6.0
+offset_right = 800.0
+offset_bottom = 24.0
+theme_override_colors/font_color = Color(0.7, 0.9, 1.0, 1)
+theme_override_font_sizes/font_size = 13
+text = "EFFECTS: None"
 
 [node name="Abilities" type="HBoxContainer" parent="HUD/BottomBar"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 22.0
-offset_right = 1070.0
-offset_bottom = 42.0
+offset_left = 12.0
+offset_top = 26.0
+offset_right = 1050.0
+offset_bottom = 46.0
+theme_override_constants/separation = 24
 
 [node name="Ability1" type="Label" parent="HUD/BottomBar/Abilities"]
 layout_mode = 2
-text = "A  Sprint off <Num Del>"
+theme_override_colors/font_color = Color(0.5, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+text = "[G] Auto-pickup: ON"

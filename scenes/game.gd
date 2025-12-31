@@ -104,9 +104,8 @@ func _ready() -> void:
 	# Update HUD
 	_update_hud()
 
-	# Add welcome message
-	_add_message("Welcome to the Underkingdom. Press ? for help.", Color(0.7, 0.9, 1.0))
-	_add_message("WASD/Arrows: Move  I: Inventory  C: Crafting  B: Build  E: Interact", Color(0.8, 0.8, 0.8))
+	# Initial welcome message (controls are now shown in sidebar)
+	_add_message("Welcome to the Underkingdom!", Color(0.6, 0.9, 0.6))
 
 	print("Game scene initialized")
 
@@ -463,12 +462,13 @@ func _update_hud() -> void:
 	# Update location
 	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
-		location_label.text = map_name.replace("_", " ").capitalize()
+		var formatted_name = map_name.replace("_", " ").capitalize()
+		location_label.text = "◆ %s ◆" % formatted_name.to_upper()
 
 ## Get status line color based on player state
 func _get_status_color() -> Color:
 	if not player:
-		return Color(0.5, 1.0, 0.5)
+		return Color(0.7, 0.85, 0.7)  # Default green
 	
 	var hp_percent = float(player.current_health) / float(player.max_health)
 	
@@ -477,19 +477,19 @@ func _get_status_color() -> Color:
 		var s = player.survival
 		# Temperature thresholds in Fahrenheit: freezing < 32°F, hyperthermia > 104°F
 		if s.hunger <= 0 or s.thirst <= 0 or s.temperature < 32 or s.temperature > 104:
-			return Color.RED  # Critical survival
+			return Color(1.0, 0.3, 0.3)  # Critical survival - red
 		if s.hunger <= 25 or s.thirst <= 25:
-			return Color(1.0, 0.4, 0.4)  # Severe survival
+			return Color(1.0, 0.5, 0.3)  # Severe survival - orange
 	
 	# Health-based colors
 	if hp_percent > 0.75:
-		return Color(0.5, 1.0, 0.5)  # Green - healthy
+		return Color(0.7, 0.85, 0.7)  # Green - healthy
 	elif hp_percent > 0.5:
-		return Color(1.0, 1.0, 0.3)  # Yellow - wounded
+		return Color(0.9, 0.9, 0.4)  # Yellow - wounded
 	elif hp_percent > 0.25:
-		return Color(1.0, 0.6, 0.2)  # Orange - hurt
+		return Color(1.0, 0.7, 0.3)  # Orange - hurt
 	else:
-		return Color(1.0, 0.3, 0.3)  # Red - critical
+		return Color(1.0, 0.4, 0.4)  # Red - critical
 
 ## Update survival-specific display elements
 func _update_survival_display() -> void:
@@ -512,16 +512,16 @@ func _update_survival_display() -> void:
 	# Check for nearby enemies
 	var nearby_enemies = _count_nearby_enemies()
 	if nearby_enemies > 0:
-		effects_list.append("DANGER: %d enem%s" % [nearby_enemies, "y" if nearby_enemies == 1 else "ies"])
+		effects_list.append("⚠ %d enem%s nearby" % [nearby_enemies, "y" if nearby_enemies == 1 else "ies"])
 	
 	# Update display
 	if effects_list.size() > 0:
 		active_effects_label.text = "EFFECTS: " + ", ".join(effects_list)
 		# Color based on severity (temperature thresholds in °F: cold < 50, hot > 86)
 		if s.hunger <= 25 or s.thirst <= 25 or s.temperature < 50 or s.temperature > 86 or nearby_enemies > 0:
-			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
+			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.4))
 		else:
-			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+			active_effects_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
 	else:
 		active_effects_label.text = "EFFECTS: None"
 		active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
@@ -681,19 +681,8 @@ func _is_valid_spawn_position(pos: Vector2i) -> bool:
 
 ## Setup UI element colors
 func _setup_ui_colors() -> void:
-	if character_info_label:
-		character_info_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
-	if status_line:
-		status_line.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
-	if location_label:
-		location_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
-	if active_effects_label:
-		active_effects_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
-
-	# Set ability label color
-	var ability1 = $HUD/BottomBar/Abilities/Ability1
-	if ability1:
-		ability1.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	# Colors are now set in the .tscn file to match inventory/crafting screen style
+	pass
 
 ## Render all ground items on the map (except under player)
 func _render_ground_items() -> void:

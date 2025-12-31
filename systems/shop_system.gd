@@ -51,7 +51,7 @@ func attempt_purchase(shop_npc, item_id: String, count: int, player) -> bool:
 		return false
 
 	var item_weight = item_template.get("weight", 0.0) * count
-	if player.inventory.get_total_weight() + item_weight > player.inventory.get_max_weight():
+	if player.inventory.get_total_weight() + item_weight > player.inventory.max_weight:
 		EventBus.emit_signal("message_logged", "Too heavy to carry.")
 		return false
 

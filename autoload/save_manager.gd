@@ -213,10 +213,20 @@ func _serialize_inventory(inventory: Inventory) -> Array:
 
 	var items = []
 	for item in inventory.items:
+		# Support both Item instances and legacy/data objects
+		var count_val = item.stack_size if item is Item else item.count
+		var durability_val = null
+		if item is Item:
+			if item.durability != null and item.durability > -1:
+				durability_val = item.durability
+		else:
+			# If it's a data/dict-like object, try to read durability if present
+			durability_val = item.get("durability") if typeof(item) == TYPE_DICTIONARY else null
+
 		items.append({
 			"item_id": item.id,
-			"count": item.count,
-			"durability": item.durability if item.has("durability") else null
+			"count": count_val,
+			"durability": durability_val
 		})
 	return items
 

@@ -135,7 +135,7 @@ func _get_max_quantity() -> int:
 		var item_template = ItemManager.get_item_data(item_data.item_id)
 		if item_template:
 			var item_weight = item_template.get("weight", 0.0)
-			var remaining_capacity = player.inventory.get_max_weight() - player.inventory.get_total_weight()
+			var remaining_capacity = player.inventory.max_weight - player.inventory.get_total_weight()
 			var can_carry = int(remaining_capacity / item_weight) if item_weight > 0 else available
 			return min(available, can_afford, can_carry)
 
@@ -146,7 +146,8 @@ func _get_max_quantity() -> int:
 			return 1
 
 		var item = player.inventory.items[selected_index]
-		var available = item.count
+		# Player inventory stores Item instances (RefCounted). Use stack_size for quantity.
+		var available = item.stack_size if item is Item else item.count
 
 		# Calculate how many shop can afford
 		var unit_price = shop_system.calculate_sell_price(item.value, player.attributes["CHA"])
@@ -258,7 +259,9 @@ func _refresh_display() -> void:
 		else:
 			qty_text = " (%dg)" % unit_price
 
-		label.text = "%s x%d%s" % [item.name, item.count, qty_text]
+		# Use stack_size for Item instances, else fallback to count for legacy/data objects
+		var display_count = item.stack_size if item is Item else item.count
+		label.text = "%s x%d%s" % [item.name, display_count, qty_text]
 
 		# Color based on selection and shop's ability to afford
 		if not is_shop_focused and i == selected_index:

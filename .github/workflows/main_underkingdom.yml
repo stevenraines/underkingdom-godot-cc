@@ -32,14 +32,15 @@ jobs:
       - name: Create export directory
         run: mkdir -p build
 
-      - name: Export Godot project for Web
+      - name: Export Godot project for Web (safe filenames)
         run: |
-          godot --headless --export-release "Web" "build/Underkingdom Roguelike.html"
+          # export with a filename that has no spaces to avoid URL/serving issues
+          godot --headless --export-release "Web" "build/underkingdom.html"
 
       - name: Rename HTML to index.html for web server
         run: |
           cd build
-          mv "Underkingdom Roguelike.html" index.html
+          mv "underkingdom.html" index.html
 
       - name: Create package.json for static file serving
         run: |
@@ -111,8 +112,10 @@ jobs:
         with:
           name: godot-web-export
 
-      - name: Install dependencies for static server
-        run: npm install
+      - name: Install dependencies for static server (inside build)
+        run: |
+          cd build
+          npm install
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -127,5 +130,5 @@ jobs:
         with:
           app-name: 'underkingdom'
           slot-name: 'Production'
-          package: .
+          package: build
           

@@ -155,7 +155,7 @@ func _update_details_panel(recipe: Recipe) -> void:
 	for ingredient in recipe.ingredients:
 		var ingredient_item_data = ItemManager.get_item_data(ingredient["item"])
 		if not ingredient_item_data.is_empty():
-			var have_count = player.inventory.count_item_by_id(ingredient["item"])
+			var have_count = player.inventory.get_item_count(ingredient["item"])
 			var need_count = ingredient["count"]
 
 			var ingredient_label = Label.new()

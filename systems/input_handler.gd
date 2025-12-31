@@ -14,6 +14,9 @@ var initial_delay: float = 0.2  # Longer delay before continuous movement starts
 var move_timer: float = 0.0
 var is_initial_press: bool = true
 var blocked_direction: Vector2i = Vector2i.ZERO  # Stop continuous movement if blocked
+# Wait (rest) continuous input
+var wait_timer: float = 0.0
+var is_initial_wait_press: bool = true
 
 # Harvest mode
 var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
@@ -36,6 +39,24 @@ func _process(delta: float) -> void:
 	# Don't process movement input if UI is blocking
 	if ui_blocking_input:
 		return
+
+	# Continuous wait key handling (period key '.')
+	# If player holds the '.' key, repeatedly perform wait action with same timing as movement
+	var is_wait_pressed = Input.is_key_pressed(KEY_PERIOD) and not Input.is_key_pressed(KEY_SHIFT)
+	if is_wait_pressed:
+		wait_timer -= delta
+		if wait_timer <= 0.0:
+			_do_wait_action()
+			TurnManager.advance_turn()
+			# Use longer delay for initial press, shorter for continuous
+			wait_timer = initial_delay if is_initial_wait_press else move_delay
+			is_initial_wait_press = false
+		# When waiting, skip movement processing this frame
+		return
+	else:
+		# Reset wait state when not pressed
+		wait_timer = 0.0
+		is_initial_wait_press = true
 
 	# Check for held movement keys
 	var direction = Vector2i.ZERO

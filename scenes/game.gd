@@ -86,13 +86,14 @@ func _ready() -> void:
 	EventBus.inventory_changed.connect(_on_inventory_changed)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.item_dropped.connect(_on_item_dropped)
+	EventBus.message_logged.connect(_on_message_logged)
 
 	# Update HUD
 	_update_hud()
 
 	# Add welcome message
 	_add_message("Welcome to the Underkingdom. Press ? for help.", Color(0.7, 0.9, 1.0))
-	_add_message("WASD/Arrows: Move  I: Inventory  C: Crafting  G: Pickup", Color(0.8, 0.8, 0.8))
+	_add_message("WASD/Arrows: Move  I: Inventory  C: Crafting  G: Pickup  T: Talk", Color(0.8, 0.8, 0.8))
 
 	print("Game scene initialized")
 
@@ -660,3 +661,7 @@ func _on_item_dropped(item, pos: Vector2i) -> void:
 	# Re-render to show dropped item
 	renderer.render_entity(pos, item.ascii_char, item.get_color())
 	_update_hud()
+
+## Called when a message is logged from any system
+func _on_message_logged(message: String) -> void:
+	_add_message(message, Color.WHITE)

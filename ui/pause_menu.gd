@@ -13,10 +13,13 @@ signal main_menu_requested()
 @onready var resume_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonsContainer/ResumeButton
 @onready var main_menu_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonsContainer/MainMenuButton
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/Title
+@onready var confirm_dialog: ConfirmationDialog = null
 
 var slot_buttons: Array[Button] = []
 var selected_index: int = 0
 var mode: String = "save"  # "save" or "load"
+var pending_action: String = ""
+var pending_slot: int = -1
 
 # Colors
 const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
@@ -28,6 +31,24 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	slot_buttons = [slot1_button, slot2_button, slot3_button]
+
+	# Create a confirmation dialog for destructive actions
+	if not has_node("ConfirmDialog"):
+		var dlg = ConfirmationDialog.new()
+		dlg.name = "ConfirmDialog"
+		# Add a label to show the message
+		var msg = Label.new()
+		msg.name = "ConfirmMessage"
+		msg.autowrap_mode = TextServer.AUTOWRAP_WORD
+		dlg.add_child(msg)
+		add_child(dlg)
+		confirm_dialog = dlg
+		if not confirm_dialog.is_connected("confirmed", Callable(self, "_on_confirmed")):
+			confirm_dialog.connect("confirmed", Callable(self, "_on_confirmed"))
+	else:
+		confirm_dialog = $ConfirmDialog
+		if not confirm_dialog.is_connected("confirmed", Callable(self, "_on_confirmed")):
+			confirm_dialog.connect("confirmed", Callable(self, "_on_confirmed"))
 
 	# Connect button signals
 	slot1_button.pressed.connect(_on_slot_pressed.bind(1))
@@ -58,7 +79,8 @@ func _input(event: InputEvent) -> void:
 			KEY_ENTER:
 				_select_current()
 				viewport.set_input_as_handled()
-			KEY_DELETE, KEY_D:
+			# Accept multiple delete/backspace scancodes so physical DEL works too
+			KEY_DELETE, KEY_BACKSPACE, KEY_D:
 				print("[PauseMenu] DELETE or D key pressed")
 				_delete_current_slot()
 				viewport.set_input_as_handled()
@@ -180,7 +202,43 @@ func _on_slot_pressed(slot: int) -> void:
 	else:
 		_load_from_slot(slot)
 
+## Show a confirmation dialog for a pending action
+func _show_confirm(message: String, action: String, slot: int) -> void:
+	if not confirm_dialog:
+		return
+	var lbl = confirm_dialog.get_node_or_null("ConfirmMessage")
+	if lbl:
+		lbl.text = message
+	pending_action = action
+	pending_slot = slot
+	confirm_dialog.popup_centered()
+
+## Called when the confirmation dialog is accepted
+func _on_confirmed() -> void:
+	if pending_action == "save_over":
+		var slot = pending_slot
+		var success = SaveManager.save_game(slot)
+		if success:
+			_refresh_slot_info()
+			# Auto-close after successful save
+			await get_tree().create_timer(0.5).timeout
+			_close()
+	elif pending_action == "delete":
+		var slot = pending_slot
+		SaveManager.delete_save(slot)
+		_refresh_slot_info()
+		_update_button_colors()
+	# Clear pending
+	pending_action = ""
+	pending_slot = -1
+
 func _save_to_slot(slot: int) -> void:
+	var info = SaveManager.get_save_slot_info(slot)
+	if info.exists:
+		# Prompt for overwrite
+		_show_confirm("Slot %d already has a save. Overwrite?" % slot, "save_over", slot)
+		return
+
 	var success = SaveManager.save_game(slot)
 	if success:
 		_refresh_slot_info()
@@ -226,13 +284,8 @@ func _delete_current_slot() -> void:
 		print("[PauseMenu] Slot %d is empty, cannot delete" % slot)
 		return
 
-	print("[PauseMenu] Deleting slot %d" % slot)
-	# Delete the save
-	SaveManager.delete_save(slot)
-
-	# Refresh the slot display
-	_refresh_slot_info()
-	_update_button_colors()
+	# Ask for confirmation before deleting
+	_show_confirm("Delete save in slot %d? This cannot be undone." % slot, "delete", slot)
 
 ## SaveSlotInfo class to hold save slot data
 class SaveSlotInfo:

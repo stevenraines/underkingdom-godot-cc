@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://t8miske7ptga"
-path="res://.godot/imported/RobotoMono-Regular.ttf-a971246a894a15e1cf7dc2e4df388ce2.fontdata"
+uid="uid://cx6qt67ao6n06"
+path="res://.godot/imported/DejaVuSansMono.ttf-8e135b2c7e25a27d178cdccaa11decf7.fontdata"
 
 [deps]
 
-source_file="res://fonts/RobotoMono-Regular.ttf"
-dest_files=["res://.godot/imported/RobotoMono-Regular.ttf-a971246a894a15e1cf7dc2e4df388ce2.fontdata"]
+source_file="res://fonts/DejaVuSansMono.ttf"
+dest_files=["res://.godot/imported/DejaVuSansMono.ttf-8e135b2c7e25a27d178cdccaa11decf7.fontdata"]
 
 [params]
 

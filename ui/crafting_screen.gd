@@ -105,8 +105,10 @@ func _create_recipe_list_item(recipe: Recipe, is_selected: bool) -> Label:
 	var can_craft = recipe.has_requirements(player.inventory, near_fire)
 
 	# Get the item color
-	var item = ItemManager.get_item_data(recipe.result_item_id)
-	var item_color = item.color if item else Color.WHITE
+	var item_data = ItemManager.get_item_data(recipe.result_item_id)
+	var item_color = Color.WHITE
+	if not item_data.is_empty() and "ascii_color" in item_data:
+		item_color = Color.from_string(item_data["ascii_color"], Color.WHITE)
 
 	# Build text
 	var text = ""
@@ -133,10 +135,11 @@ func _create_recipe_list_item(recipe: Recipe, is_selected: bool) -> Label:
 ## Update the details panel on the right
 func _update_details_panel(recipe: Recipe) -> void:
 	# Update recipe name
-	var item = ItemManager.get_item_data(recipe.result_item_id)
+	var item_data = ItemManager.get_item_data(recipe.result_item_id)
 	recipe_name_label.text = recipe.get_display_name()
-	if item:
-		recipe_name_label.add_theme_color_override("font_color", item.color)
+	if not item_data.is_empty() and "ascii_color" in item_data:
+		var item_color = Color.from_string(item_data["ascii_color"], Color.WHITE)
+		recipe_name_label.add_theme_color_override("font_color", item_color)
 
 	# Clear previous details
 	_clear_details()
@@ -150,14 +153,14 @@ func _update_details_panel(recipe: Recipe) -> void:
 
 	# Show each ingredient with count
 	for ingredient in recipe.ingredients:
-		var ingredient_item = ItemManager.get_item_data(ingredient["item"])
-		if ingredient_item:
+		var ingredient_item_data = ItemManager.get_item_data(ingredient["item"])
+		if not ingredient_item_data.is_empty():
 			var have_count = player.inventory.count_item_by_id(ingredient["item"])
 			var need_count = ingredient["count"]
 
 			var ingredient_label = Label.new()
 			ingredient_label.text = "  %s: %d/%d" % [
-				ingredient_item.display_name,
+				ingredient_item_data.get("name", "Unknown"),
 				have_count,
 				need_count
 			]
@@ -209,8 +212,9 @@ func _update_details_panel(recipe: Recipe) -> void:
 	var result_label = Label.new()
 	result_label.text = "\nResult: %s (×%d)" % [recipe.get_display_name(), recipe.result_count]
 	result_label.add_theme_font_size_override("font_size", 13)
-	if item:
-		result_label.add_theme_color_override("font_color", item.color)
+	if not item_data.is_empty() and "ascii_color" in item_data:
+		var result_color = Color.from_string(item_data["ascii_color"], Color.WHITE)
+		result_label.add_theme_color_override("font_color", result_color)
 	details_container.add_child(result_label)
 
 ## Clear details panel

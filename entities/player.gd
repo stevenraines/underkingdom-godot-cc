@@ -9,7 +9,7 @@ extends Entity
 const _CombatSystem = preload("res://systems/combat_system.gd")
 const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
-const CraftingSystem = preload("res://systems/crafting_system.gd")
+const _CraftingSystem = preload("res://systems/crafting_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -318,7 +318,7 @@ func learn_recipe(recipe_id: String) -> void:
 
 ## Check if player is near a fire source for crafting
 func is_near_fire() -> bool:
-	return CraftingSystem.is_near_fire(position)
+	return _CraftingSystem.is_near_fire(position)
 
 ## Get all recipes the player knows
 func get_known_recipes() -> Array:
@@ -332,7 +332,7 @@ func get_known_recipes() -> Array:
 ## Get recipes player can currently craft (knows recipe + has ingredients)
 func get_craftable_recipes() -> Array:
 	var result: Array = []
-	var near_fire = CraftingSystem.is_near_fire(position)
+	var near_fire = _CraftingSystem.is_near_fire(position)
 
 	for recipe_id in known_recipes:
 		var recipe = RecipeManager.get_recipe(recipe_id)

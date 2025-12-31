@@ -596,18 +596,19 @@ SaveData:
 - [X] Save data serialization
 - [X] Save/load functions
 - [X] Three slot management
-- [ ] Death → load prompt
+- [ ] Death → show death splash screen and prompt to return to main menu
 - [X] Save anywhere trigger (menu)
-- [ ] Support Saves in Web (html/wasm) deployment
+- [X] Support Saves in Web (html/wasm) deployment
 
 #### 1.16 UI Polish
-- [ ] Main menu
+- [X] Main menu
 - [ ] Character sheet
 - [ ] Contextual Help sheet (? key)
 
 #### 1.17 Overworld Generation
 - [ ] Overworld Generation with perlin noise
-- [ ] Expand town to 4 buildings: general store, 
+- [ ] Expand town to 2 buildings: general store (general goods) and blacksmith (armour)
+- [ ] Mining for ore (rocks with ore in it)
 
 ---
 

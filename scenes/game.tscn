@@ -35,7 +35,13 @@ script = ExtResource("3")
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="TopBar" type="ColorRect" parent="HUD"]
-offset_right = 1280.0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
 offset_bottom = 50.0
 color = Color(0.08, 0.08, 0.12, 0.95)
 
@@ -60,10 +66,14 @@ theme_override_font_sizes/font_size = 13
 text = "HP: 60/60  Stam: 100/100  Hun: 100%  Thr: 100%  Tmp: 68°F  Turn: 0"
 
 [node name="RightSidebar" type="ColorRect" parent="HUD"]
-offset_left = 965.0
+anchor_left = 0.75
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
 offset_top = 50.0
-offset_right = 1280.0
-offset_bottom = 670.0
+offset_right = 0.0
+offset_bottom = -50.0
 color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="LocationLabel" type="Label" parent="HUD/RightSidebar"]

@@ -1,0 +1,13 @@
+{
+  "id": "wooden_shield",
+  "result": "wooden_shield",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "wood", "count": 2},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Shaped wood bound together forms a defensive barrier"
+}

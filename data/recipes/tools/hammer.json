@@ -1,0 +1,13 @@
+{
+  "id": "hammer",
+  "result": "hammer",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ore", "count": 1},
+    {"item": "wood", "count": 2}
+  ],
+  "tool_required": "",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Heavy material and a sturdy shaft create a tool for shaping metal"
+}

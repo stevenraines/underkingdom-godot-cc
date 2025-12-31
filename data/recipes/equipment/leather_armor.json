@@ -1,0 +1,13 @@
+{
+  "id": "leather_armor",
+  "result": "leather_armor",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "leather", "count": 3},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 3,
+  "discovery_hint": "Protective garment from animal hides and binding"
+}

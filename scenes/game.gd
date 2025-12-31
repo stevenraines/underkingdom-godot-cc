@@ -12,6 +12,7 @@ var player: Player
 var renderer: ASCIIRenderer
 var input_handler: Node
 var inventory_screen: Control = null
+var crafting_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
 @onready var hud: CanvasLayer = $HUD
@@ -22,6 +23,7 @@ var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
+const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -35,6 +37,9 @@ func _ready() -> void:
 	
 	# Create inventory screen
 	_setup_inventory_screen()
+
+	# Create crafting screen
+	_setup_crafting_screen()
 
 	# Start new game
 	GameManager.start_new_game()
@@ -87,7 +92,7 @@ func _ready() -> void:
 
 	# Add welcome message
 	_add_message("Welcome to the Underkingdom. Press ? for help.", Color(0.7, 0.9, 1.0))
-	_add_message("WASD/Arrows: Move  I: Inventory  G: Pickup", Color(0.8, 0.8, 0.8))
+	_add_message("WASD/Arrows: Move  I: Inventory  C: Crafting  G: Pickup", Color(0.8, 0.8, 0.8))
 
 	print("Game scene initialized")
 
@@ -97,24 +102,40 @@ func _setup_inventory_screen() -> void:
 	hud.add_child(inventory_screen)
 	inventory_screen.closed.connect(_on_inventory_closed)
 
+## Setup crafting screen
+func _setup_crafting_screen() -> void:
+	crafting_screen = CraftingScreenScene.instantiate()
+	hud.add_child(crafting_screen)
+
 ## Give player some starter items
 func _give_starter_items() -> void:
 	if not player or not player.inventory:
 		return
-	
+
 	# Add some basic starter items
 	var starter_items = [
 		{"id": "ration", "count": 3},
 		{"id": "bandage", "count": 2},
 		{"id": "waterskin_full", "count": 1},
-		{"id": "flint_knife", "count": 1}
+		{"id": "flint_knife", "count": 1},
+		# Crafting materials for testing
+		{"id": "wood", "count": 5},
+		{"id": "leather", "count": 3},
+		{"id": "cord", "count": 3},
+		{"id": "cloth", "count": 2},
+		{"id": "herb", "count": 2},
+		{"id": "raw_meat", "count": 2}
 	]
-	
+
 	var item_mgr = get_node("/root/ItemManager")
 	for item_data in starter_items:
 		var item = item_mgr.create_item(item_data.id, item_data.count)
 		if item:
 			player.inventory.add_item(item)
+
+	# Give player some starter recipes for testing
+	player.learn_recipe("bandage")
+	player.learn_recipe("flint_knife")
 
 ## Render the entire current map
 func _render_map() -> void:
@@ -609,6 +630,11 @@ func toggle_inventory_screen() -> void:
 		else:
 			inventory_screen.open(player)
 			input_handler.ui_blocking_input = true
+
+## Open crafting screen (called from input handler)
+func open_crafting_screen() -> void:
+	if crafting_screen and player:
+		crafting_screen.open(player)
 
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:

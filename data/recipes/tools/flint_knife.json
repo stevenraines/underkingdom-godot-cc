@@ -1,0 +1,13 @@
+{
+  "id": "flint_knife",
+  "result": "flint_knife",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "flint", "count": 1},
+    {"item": "wood", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": false,
+  "difficulty": 1,
+  "discovery_hint": "A sharp stone and sturdy handle make a crude cutting tool"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "cooked_meat",
+  "result": "cooked_meat",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "raw_meat", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 1,
+  "discovery_hint": "Meat could be safer to eat if heated"
+}

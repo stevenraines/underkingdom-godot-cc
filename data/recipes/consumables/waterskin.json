@@ -1,0 +1,13 @@
+{
+  "id": "waterskin",
+  "result": "waterskin_empty",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "leather", "count": 1},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Leather and cord could form a container for liquids"
+}

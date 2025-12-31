@@ -9,12 +9,14 @@ var tile_type: String  # "floor", "wall", "tree", "water", "stairs_down", etc.
 var walkable: bool
 var transparent: bool  # For FOV calculations
 var ascii_char: String  # Visual representation
+var is_fire_source: bool = false  # Used for proximity crafting
 
-func _init(type: String = "floor", is_walkable: bool = true, is_transparent: bool = true, character: String = ".") -> void:
+func _init(type: String = "floor", is_walkable: bool = true, is_transparent: bool = true, character: String = ".", fire: bool = false) -> void:
 	tile_type = type
 	walkable = is_walkable
 	transparent = is_transparent
 	ascii_char = character
+	is_fire_source = fire
 
 ## Factory method to create tiles by type
 static func create(type: String) -> GameTile:

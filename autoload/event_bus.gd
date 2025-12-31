@@ -38,5 +38,11 @@ signal item_unequipped(item, slot: String)  # Item
 signal inventory_changed()
 signal encumbrance_changed(ratio: float)
 
+# Crafting signals
+signal craft_attempted(recipe, success: bool)  # Recipe
+signal craft_succeeded(recipe, result)  # Recipe, Item
+signal craft_failed(recipe)  # Recipe
+signal recipe_discovered(recipe)  # Recipe
+
 func _ready() -> void:
 	print("EventBus initialized")

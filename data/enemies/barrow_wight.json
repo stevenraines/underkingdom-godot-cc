@@ -16,5 +16,9 @@
   "base_damage": 5,
   "armor": 2,
   "loot_table": "undead_common",
-  "xp_value": 50
+  "xp_value": 50,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 200,
+  "min_spawn_level": 5,
+  "max_spawn_level": 50
 }

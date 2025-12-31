@@ -18,6 +18,9 @@ var blocks_movement: bool = true
 var ascii_char: String = "?"
 var color: Color = Color.WHITE
 
+# Special properties
+var is_fire_source: bool = false  # Used for proximity crafting (campfires, torches)
+
 # Stats (for entities that have them - enemies, player)
 var attributes: Dictionary = {
 	"STR": 10,

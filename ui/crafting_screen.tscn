@@ -1,0 +1,187 @@
+[gd_scene load_steps=3 format=3 uid="uid://b5wjrxc8yp1kh"]
+
+[ext_resource type="Script" path="res://ui/crafting_screen.gd" id="1_crafting"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.08, 0.12, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.6, 0.4, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="CraftingScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_crafting")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 20
+text = "◆ CRAFTING ◆"
+horizontal_alignment = 1
+
+[node name="FireStatus" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "[Near Fire: NO]"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ContentContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="LeftPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RecipeListLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "Known Recipes"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="RecipeList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/LeftPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 2
+
+[node name="VSeparator" type="VSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="RecipeNameLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 16
+text = "Select a recipe"
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+
+[node name="DetailsScroll" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="DetailsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/RightPanel/DetailsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MessagePanel" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="MessageMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/MessagePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="Message" type="Label" parent="Panel/MarginContainer/VBoxContainer/MessagePanel/MessageMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = " "
+horizontal_alignment = 1
+autowrap_mode = 2
+vertical_alignment = 1
+
+[node name="HSeparator3" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ActionPanel" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="CraftLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "[Enter] Craft"
+
+[node name="SelectLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 13
+text = "[↑↓] Select"
+
+[node name="CloseLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "[Esc] Close"

@@ -153,31 +153,60 @@ static func _create_tile(type: String) -> GameTile:
 
 ## Spawn enemies in rooms
 static func _spawn_enemies(map: GameMap, rng: SeededRandom, rooms: Array[Room], floor_number: int) -> void:
-	# Enemy types for burial barrow (dungeon enemies only)
-	var enemy_types = ["grave_rat", "barrow_wight"]
-
-	# Number of enemies scales with floor depth
-	# Early floors: 1-2 enemies per room
-	# Deep floors: 2-4 enemies per room
-	var base_enemies_per_room = 1 + int(floor_number / 10.0)
-	var enemies_per_room = clamp(base_enemies_per_room, 1, 4)
+	# Get enemy data for spawn density
+	var rat_data = EntityManager.get_enemy_definition("grave_rat")
+	var wight_data = EntityManager.get_enemy_definition("barrow_wight")
 
 	# Skip first room (has stairs up, player spawns there)
 	for i in range(1, rooms.size()):
 		var room = rooms[i]
-		var num_enemies = rng.randi_range(0, enemies_per_room)  # Some rooms may have no enemies
+		var room_area = room.width * room.height
+
+		# Choose enemy type based on floor depth and spawn level restrictions
+		var enemy_id: String = ""
+		var spawn_density: int = 0
+
+		# Try wights on deeper floors
+		if floor_number >= 5 and rng.randf() > 0.6:
+			if not wight_data.is_empty():
+				var min_level = wight_data.get("min_spawn_level", 0)
+				var max_level = wight_data.get("max_spawn_level", 0)
+				# Check if this floor is within spawn range (0 means no restriction)
+				if (min_level == 0 or floor_number >= min_level) and \
+				   (max_level == 0 or floor_number <= max_level):
+					enemy_id = "barrow_wight"
+					spawn_density = wight_data.get("spawn_density_dungeon", 0)
+
+		# Fall back to rats if wights can't spawn or weren't chosen
+		if enemy_id == "" and not rat_data.is_empty():
+			var min_level = rat_data.get("min_spawn_level", 0)
+			var max_level = rat_data.get("max_spawn_level", 0)
+			# Check if this floor is within spawn range (0 means no restriction)
+			if (min_level == 0 or floor_number >= min_level) and \
+			   (max_level == 0 or floor_number <= max_level):
+				enemy_id = "grave_rat"
+				spawn_density = rat_data.get("spawn_density_dungeon", 0)
+
+		# Skip if no valid enemy or spawn density is 0
+		if enemy_id == "" or spawn_density == 0:
+			continue
+
+		# Calculate number of enemies for this room
+		var num_enemies = max(0, int(room_area / spawn_density))
+
+		# Add floor scaling (deeper = slightly more enemies)
+		var floor_bonus = int(floor_number / 10.0)
+		num_enemies += floor_bonus
+
+		# Add some randomness (±50%)
+		if num_enemies > 0:
+			var variance = max(1, int(num_enemies * 0.5))
+			num_enemies = rng.randi_range(max(0, num_enemies - variance), num_enemies + variance)
 
 		for j in range(num_enemies):
 			# Find a valid spawn position in the room
 			var spawn_pos = _find_spawn_position_in_room(map, rng, room)
 			if spawn_pos != Vector2i(-1, -1):
-				# Choose enemy type (more wights on deeper floors)
-				var enemy_id: String
-				if floor_number > 5 and rng.randf() > 0.6:
-					enemy_id = "barrow_wight"
-				else:
-					enemy_id = "grave_rat"
-
 				# Store enemy spawn data in map metadata
 				# Actual spawning happens when map is loaded in EntityManager
 				if not map.has_meta("enemy_spawns"):

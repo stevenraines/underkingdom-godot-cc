@@ -9,8 +9,8 @@ const GameTile = preload("res://maps/game_tile.gd")
 const SeededRandom = preload("res://generation/seeded_random.gd")
 
 # Town constants
-const TOWN_SIZE = Vector2i(20, 20)
-const TOWN_POSITION = Vector2i(50, 50)  # Center of overworld
+const TOWN_SIZE = Vector2i(15, 15)  # Smaller to fit in 20x20 map
+const TOWN_POSITION = Vector2i(2, 2)  # Top-left corner of town in 20x20 map
 const SHOP_SIZE = Vector2i(5, 5)
 
 ## Generates town in the overworld map

@@ -4,7 +4,7 @@
   "description": "A warming fire that can be used for cooking. Provides heat within 3 tiles.",
   "ascii_char": "^",
   "ascii_color": "#FF6600",
-  "blocks_movement": true,
+  "blocks_movement": false,
   "structure_type": "campfire",
   "durability": 100,
   "components": {

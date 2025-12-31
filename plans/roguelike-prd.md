@@ -500,120 +500,114 @@ SaveData:
 **Goal**: Playable loop validating all systems with minimal content
 
 #### 1.1 Project Setup
-- [ ] Create Godot 4 project
+- [X] Create Godot 4 project
 - [ ] Install and configure Gaea plugin
-- [ ] Establish folder structure
-- [ ] Create autoload singletons (GameManager, EventBus)
+- [X] Establish folder structure
+- [X] Create autoload singletons (GameManager, EventBus)
 
 #### 1.2 Turn System & Time
-- [ ] Implement turn manager
-- [ ] Day/night cycle
-- [ ] Action queue system
-- [ ] Turn counter display
+- [X] Implement turn manager
+- [X] Day/night cycle
+- [X] Action queue system
+- [X] Turn counter display
 
 #### 1.3 Rendering Foundation
-- [ ] Create ASCII tileset (bitmap font or generated)
-- [ ] Implement RenderInterface base class
-- [ ] Implement ASCIIRenderer
-- [ ] Camera following player
+- [X] Create ASCII tileset (bitmap font or generated)
+- [X] Implement RenderInterface base class
+- [X] Implement ASCIIRenderer
+- [X] Camera following player
 
 #### 1.4 Map System
-- [ ] Tile data structure
-- [ ] Map class (holds tiles, entities)
-- [ ] Map manager (handles multiple maps, transitions)
-- [ ] Basic FOV/visibility
+- [X] Tile data structure
+- [X] Map class (holds tiles, entities)
+- [X] Map manager (handles multiple maps, transitions)
+- [X] Basic FOV/visibility
 
 #### 1.5 Procedural Generation
 - [ ] Gaea learning/prototyping
-- [ ] Seeded random wrapper
-- [ ] Overworld generator (simple version)
-- [ ] Burial barrow generator
-- [ ] Regeneration verification tests
+- [X] Seeded random wrapper
+- [X] Overworld generator (simple version)
+- [X] Burial barrow generator
+- [X] Regeneration verification tests
 
 #### 1.6 Player & Movement
-- [ ] Player entity
-- [ ] Turn-based movement (arrow keys/WASD)
-- [ ] Collision detection
-- [ ] Map transitions (stairs, dungeon entrance)
+- [X] Player entity
+- [X] Turn-based movement (arrow keys/WASD)
+- [X] Collision detection
+- [X] Map transitions (stairs, dungeon entrance)
 
 #### 1.7 Entity System
-- [ ] Base Entity class
-- [ ] Component system (or composition pattern)
-- [ ] Entity manager
-- [ ] Basic enemy entities
+- [X] Base Entity class
+- [X] Component system (or composition pattern)
+- [X] Entity manager
+- [X] Basic enemy entities
 
 #### 1.8 Combat
-- [ ] Attack resolution
-- [ ] Health/damage
-- [ ] Death handling
-- [ ] Enemy AI (one per INT tier: 2, 5)
+- [X] Attack resolution
+- [X] Health/damage
+- [X] Death handling
+- [X] Enemy AI (one per INT tier: 2, 5)
 
 #### 1.9 Survival Systems
-- [ ] Survival stats (hunger, thirst, temp, stamina, fatigue)
-- [ ] Stat drain over time
-- [ ] Effect application
-- [ ] UI indicators
+- [X] Survival stats (hunger, thirst, temp, stamina, fatigue)
+- [X] Stat drain over time
+- [X] Effect application
+- [X] UI indicators
 
 #### 1.10 Inventory & Equipment
-- [ ] Inventory data structure
-- [ ] Equipment slots
-- [ ] Weight/encumbrance
-- [ ] Pickup/drop
-- [ ] Equip/unequip
-- [ ] Basic UI
+- [X] Inventory data structure
+- [X] Equipment slots
+- [X] Weight/encumbrance
+- [X] Pickup/drop
+- [X] Equip/unequip
+- [X] Basic UI
 
 #### 1.11 Crafting
-- [ ] Recipe data structure
-- [ ] Crafting attempt logic
-- [ ] Recipe memory
+- [X] Recipe data structure
+- [X] Crafting attempt logic
+- [X] Recipe memory
 - [ ] Discovery hints
-- [ ] Tool requirement checking
-- [ ] Phase 1 recipes implemented
-- [ ] Basic UI
+- [X] Tool requirement checking
+- [X] Phase 1 recipes implemented
+- [X] Basic UI
 
 #### 1.12 Items
-- [ ] Item base class
-- [ ] Consumables (food, bandages)
-- [ ] Equipment (weapon, armor)
-- [ ] Tools
-- [ ] Materials
-- [ ] Phase 1 items implemented
+- [X] Item base class
+- [X] Consumables (food, bandages)
+- [X] Equipment (weapon, armor)
+- [X] Tools
+- [X] Materials
+- [X] Phase 1 items implemented
 
 #### 1.13 Base Building
-- [ ] Placeable structure system
-- [ ] Campfire (warmth, cooking)
-- [ ] Lean-to (shelter)
-- [ ] Storage chest
+- [X] Placeable structure system
+- [X] Campfire (warmth, cooking)
+- [X] Lean-to (shelter)
+- [X] Storage chest
 
 #### 1.14 Town & Shop
-- [ ] Town area in overworld
-- [ ] Shop NPC
-- [ ] Buy/sell interface
-- [ ] Price calculation (CHA modifier)
-- [ ] Shop inventory management
+- [X] Town area in overworld
+- [X] Shop NPC
+- [X] Buy/sell interface
+- [X] Price calculation (CHA modifier)
+- [X] Shop inventory management
 
 #### 1.15 Save System
-- [ ] Save data serialization
-- [ ] Save/load functions
-- [ ] Three slot management
+- [X] Save data serialization
+- [X] Save/load functions
+- [X] Three slot management
 - [ ] Death → load prompt
-- [ ] Save anywhere trigger (menu)
+- [X] Save anywhere trigger (menu)
 - [ ] Support Saves in Web (html/wasm) deployment
 
 #### 1.16 UI Polish
 - [ ] Main menu
-- [ ] HUD (health, survival stats, turn counter)
-- [ ] Inventory screen
-- [ ] Crafting screen
-- [ ] Message log
 - [ ] Character sheet
-- [ ] Contextual Help sheet
+- [ ] Contextual Help sheet (? key)
 
-#### 1.17 Integration & Testing
-- [ ] Full loop playtest
-- [ ] Balance pass (turn costs, drain rates)
-- [ ] Bug fixing
-- [ ] Performance check
+#### 1.17 Overworld Generation
+- [ ] Overworld Generation with perlin noise
+- [ ] Expand town to 4 buildings: general store, 
 
 ---
 

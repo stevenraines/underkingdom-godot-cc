@@ -5,6 +5,9 @@ extends Node
 ## Loads structure definitions from JSON files and manages placed structures.
 ## Tracks structures per map to persist them across map regeneration.
 
+# Preload Structure class
+const Structure = preload("res://entities/structure.gd")
+
 # Structure data cache (id -> data dictionary)
 var structure_definitions: Dictionary = {}
 
@@ -70,7 +73,7 @@ func _load_structure_from_file(path: String) -> void:
 		push_warning("StructureManager: Invalid structure file format in %s" % path)
 
 ## Create a structure instance from definition
-func create_structure(structure_id: String, pos: Vector2i) -> Structure:
+func create_structure(structure_id: String, pos: Vector2i):
 	if not structure_definitions.has(structure_id):
 		push_error("StructureManager: Unknown structure ID: %s" % structure_id)
 		return null
@@ -79,7 +82,7 @@ func create_structure(structure_id: String, pos: Vector2i) -> Structure:
 	return Structure.create_from_data(data, pos)
 
 ## Place a structure on a map (registers for persistence)
-func place_structure(map_id: String, structure: Structure) -> void:
+func place_structure(map_id: String, structure) -> void:
 	if not placed_structures.has(map_id):
 		placed_structures[map_id] = []
 
@@ -87,7 +90,7 @@ func place_structure(map_id: String, structure: Structure) -> void:
 	EventBus.structure_placed.emit(structure)
 
 ## Remove a structure from a map
-func remove_structure(map_id: String, structure: Structure) -> void:
+func remove_structure(map_id: String, structure) -> void:
 	if not placed_structures.has(map_id):
 		return
 
@@ -98,19 +101,19 @@ func remove_structure(map_id: String, structure: Structure) -> void:
 		EventBus.structure_removed.emit(structure)
 
 ## Get all structures on a map
-func get_structures_on_map(map_id: String) -> Array[Structure]:
+func get_structures_on_map(map_id: String) -> Array:
 	if not placed_structures.has(map_id):
 		return []
 
 	# Return a copy to prevent external modification
-	var result: Array[Structure] = []
+	var result: Array = []
 	for structure in placed_structures[map_id]:
 		result.append(structure)
 	return result
 
 ## Get structures at a specific position
-func get_structures_at(pos: Vector2i, map_id: String) -> Array[Structure]:
-	var result: Array[Structure] = []
+func get_structures_at(pos: Vector2i, map_id: String) -> Array:
+	var result: Array = []
 
 	if not placed_structures.has(map_id):
 		return result
@@ -122,8 +125,8 @@ func get_structures_at(pos: Vector2i, map_id: String) -> Array[Structure]:
 	return result
 
 ## Get structures within a radius of a position (Manhattan distance)
-func get_structures_in_radius(center: Vector2i, radius: int, map_id: String) -> Array[Structure]:
-	var result: Array[Structure] = []
+func get_structures_in_radius(center: Vector2i, radius: int, map_id: String) -> Array:
+	var result: Array = []
 
 	if not placed_structures.has(map_id):
 		return result
@@ -136,8 +139,8 @@ func get_structures_in_radius(center: Vector2i, radius: int, map_id: String) -> 
 	return result
 
 ## Get fire sources within radius (convenience method for crafting)
-func get_fire_sources_in_radius(center: Vector2i, radius: int, map_id: String) -> Array[Structure]:
-	var result: Array[Structure] = []
+func get_fire_sources_in_radius(center: Vector2i, radius: int, map_id: String) -> Array:
+	var result: Array = []
 
 	var nearby = get_structures_in_radius(center, radius, map_id)
 	for structure in nearby:

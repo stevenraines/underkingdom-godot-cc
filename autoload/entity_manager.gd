@@ -163,11 +163,46 @@ func get_ground_items_at(pos: Vector2i) -> Array[GroundItem]:
 func spawn_ground_item(item: Item, pos: Vector2i, despawn_turns: int = -1) -> GroundItem:
 	var ground_item = GroundItem.create(item, pos, despawn_turns)
 	entities.append(ground_item)
-	
+
 	if MapManager.current_map:
 		MapManager.current_map.entities.append(ground_item)
-	
+
 	return ground_item
+
+## Spawn an NPC from spawn data
+func spawn_npc(spawn_data: Dictionary):
+	var NPCClass = load("res://entities/npc.gd")
+	var npc = NPCClass.new(
+		spawn_data.get("npc_id", "npc"),
+		spawn_data.get("position", Vector2i.ZERO),
+		"@",
+		Color("#FFAA00"),
+		true
+	)
+
+	npc.entity_type = "npc"
+	npc.npc_type = spawn_data.get("npc_type", "generic")
+	npc.name = spawn_data.get("name", "NPC")
+	npc.gold = spawn_data.get("gold", 0)
+	npc.restock_interval = spawn_data.get("restock_interval", 500)
+	npc.last_restock_turn = 0
+
+	# Set dialogue for shop NPCs
+	if npc.npc_type == "shop":
+		npc.dialogue = {
+			"greeting": "Welcome to my shop, traveler! I have supplies for your journey.",
+			"buy": "Take a look at my wares. Fair prices, I assure you!",
+			"sell": "Let me see what you have. I'll pay a fair price.",
+			"farewell": "Safe travels, friend! Watch out for those barrows..."
+		}
+		npc.load_shop_inventory()
+
+	entities.append(npc)
+
+	if MapManager.current_map:
+		MapManager.current_map.entities.append(npc)
+
+	return npc
 
 ## Get entity blocking movement at position (returns first blocking entity)
 func get_blocking_entity_at(pos: Vector2i) -> Entity:
@@ -180,8 +215,12 @@ func get_blocking_entity_at(pos: Vector2i) -> Entity:
 ## Process all entity turns (called after player turn)
 func process_entity_turns() -> void:
 	for entity in entities:
-		if entity.is_alive and entity is Enemy:
-			(entity as Enemy).take_turn()
+		if entity.is_alive:
+			if entity is Enemy:
+				(entity as Enemy).take_turn()
+			elif entity.has_method("process_turn"):
+				# NPC or other entity with turn processing
+				entity.process_turn()
 
 ## Clear all entities (for map transitions)
 func clear_entities() -> void:

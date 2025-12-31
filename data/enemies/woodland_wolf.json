@@ -12,6 +12,9 @@
     "wis": 10,
     "cha": 6
   },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 1, "max_count": 3}
+  ],
   "behavior": "pack",
   "base_damage": 4,
   "armor": 0,
@@ -19,7 +22,7 @@
   "fear_distance": 4,
   "loot_table": "beast_common",
   "xp_value": 30,
-  "spawn_density_overworld": 200,
+  "spawn_density_overworld": 400,
   "spawn_density_dungeon": 0,
   "min_spawn_level": 0,
   "max_spawn_level": 0

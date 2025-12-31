@@ -5,12 +5,13 @@ class_name WorldGenerator
 ## Uses FastNoiseLite for terrain generation (Gaea optional for future).
 ## Creates a deterministic world based on seed.
 
-const GameTile = preload("res://maps/game_tile.gd")
+const _GameTile = preload("res://maps/game_tile.gd")
 
 ## Generate the overworld map
 static func generate_overworld(seed_value: int) -> GameMap:
+	print("[WorldGenerator] Generating overworld with seed: %d" % seed_value)
 	var rng = SeededRandom.new(seed_value)
-	var map = GameMap.new("overworld", 40, 40, seed_value)
+	var map = GameMap.new("overworld", 80, 40, seed_value)
 
 	# Create noise generator for terrain
 	var noise = FastNoiseLite.new()
@@ -30,18 +31,23 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	map.set_tile(entrance_pos, _create_tile("stairs_down"))
 	print("Dungeon entrance placed at: ", entrance_pos)
 
-	# Place test harvestable resources near center for testing
-	var center_x = map.width / 2
-	var center_y = map.height / 2
+	# Place harvestable resources at random locations using seeded RNG
 	# Place a few rocks
-	map.set_tile(Vector2i(center_x + 3, center_y + 2), _create_tile("rock"))
-	map.set_tile(Vector2i(center_x - 4, center_y + 3), _create_tile("rock"))
-	# Place water source
-	map.set_tile(Vector2i(center_x + 2, center_y - 3), _create_tile("water"))
-	map.set_tile(Vector2i(center_x + 3, center_y - 3), _create_tile("water"))
+	for i in range(3):
+		var rock_pos = _find_valid_location(map, rng)
+		map.set_tile(rock_pos, _create_tile("rock"))
+
+	# Place water sources
+	for i in range(2):
+		var water_pos = _find_valid_location(map, rng)
+		map.set_tile(water_pos, _create_tile("water"))
 
 	# Spawn overworld enemies (wolves in woodland biome)
 	_spawn_overworld_enemies(map, rng)
+
+	# Generate town with shop NPC
+	var TownGenerator = load("res://generation/town_generator.gd")
+	TownGenerator.generate_town(map, seed_value)
 
 	print("Overworld generated (20x20) with seed: ", seed_value)
 	return map
@@ -66,9 +72,9 @@ static func _biome_from_noise(noise_val: float, rng: SeededRandom) -> String:
 			return "floor"  # Grass/dirt
 
 ## Create a tile by type (helper function)
-## Uses GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly
-static func _create_tile(type: String) -> GameTile:
-	return GameTile.create(type)
+## Uses _GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly
+static func _create_tile(type: String) -> _GameTile:
+	return _GameTile.create(type)
 
 ## Find a valid walkable location for dungeon entrance
 static func _find_valid_location(map: GameMap, rng: SeededRandom) -> Vector2i:

@@ -1,5 +1,7 @@
 extends Control
 
+signal closed
+
 ## CraftingScreen - UI for crafting recipes
 ##
 ## Displays known recipes and allows crafting attempts.
@@ -39,6 +41,7 @@ func open(p: Player) -> void:
 func close() -> void:
 	hide()
 	player = null
+	emit_signal("closed")
 
 func _input(event: InputEvent) -> void:
 	if not visible:

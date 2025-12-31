@@ -81,5 +81,31 @@ signal container_closed(structure)  # Structure
 @warning_ignore("unused_signal")
 signal fire_toggled(structure, is_lit: bool)  # Structure
 
+# NPC & Shop signals
+@warning_ignore("unused_signal")
+signal npc_interacted(npc, player)  # NPC, Player
+@warning_ignore("unused_signal")
+signal shop_opened(npc, player)  # NPC, Player
+@warning_ignore("unused_signal")
+signal item_purchased(item, price: int)  # Item
+@warning_ignore("unused_signal")
+signal item_sold(item, price: int)  # Item
+@warning_ignore("unused_signal")
+signal shop_restocked(npc)  # NPC
+
+# Save/Load signals
+@warning_ignore("unused_signal")
+signal game_saved(slot: int)
+@warning_ignore("unused_signal")
+signal game_loaded(slot: int)
+@warning_ignore("unused_signal")
+signal save_failed(error: String)
+@warning_ignore("unused_signal")
+signal load_failed(error: String)
+
+# UI signals
+@warning_ignore("unused_signal")
+signal message_logged(message: String)
+
 func _ready() -> void:
 	print("EventBus initialized")

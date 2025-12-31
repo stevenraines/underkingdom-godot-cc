@@ -7,6 +7,9 @@ extends Node2D
 const ItemClass = preload("res://items/item.gd")
 const GroundItemClass = preload("res://entities/ground_item.gd")
 const ItemManagerScript = preload("res://autoload/item_manager.gd")
+const JsonHelperScript = preload("res://autoload/json_helper.gd")
+const Structure = preload("res://entities/structure.gd")
+const StructurePlacement = preload("res://systems/structure_placement.gd")
 
 var player: Player
 var renderer: ASCIIRenderer
@@ -15,6 +18,8 @@ var inventory_screen: Control = null
 var crafting_screen: Control = null
 var build_mode_screen: Control = null
 var container_screen: Control = null
+var shop_screen: Control = null
+var pause_menu: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -32,6 +37,8 @@ const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
 const BuildModeScreenScene = preload("res://ui/build_mode_screen.tscn")
 const ContainerScreenScene = preload("res://ui/container_screen.tscn")
+const ShopScreenScene = preload("res://ui/shop_screen.tscn")
+const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -55,26 +62,56 @@ func _ready() -> void:
 	# Create container screen
 	_setup_container_screen()
 
-	# Start new game
-	GameManager.start_new_game()
+	# Create shop screen
+	_setup_shop_screen()
 
-	# Generate overworld
-	MapManager.transition_to_map("overworld")
+	# Create pause menu
+	_setup_pause_menu()
 
-	# Create player
-	player = Player.new()
-	player.position = _find_valid_spawn_position()
-	MapManager.current_map.entities.append(player)
-	
-	# Give player some starter items
-	_give_starter_items()
+	# Only initialize new game if not loading from save
+	if not GameManager.is_loading_save:
+		print("[Game] New game initialization - world_seed: %d, world_name: '%s'" % [GameManager.world_seed, GameManager.world_name])
 
-	# Set player reference in input handler and EntityManager
-	input_handler.set_player(player)
-	EntityManager.player = player
+		# Start new game (only if not already started from main menu)
+		if GameManager.world_seed == 0:
+			print("[Game] World seed is 0, calling start_new_game()")
+			GameManager.start_new_game()
+		else:
+			print("[Game] World seed already set, skipping start_new_game()")
 
-	# Spawn initial enemies
-	_spawn_map_enemies()
+		# Generate overworld
+		print("[Game] Calling transition_to_map with seed: %d" % GameManager.world_seed)
+		MapManager.transition_to_map("overworld")
+
+		# Create player
+		player = Player.new()
+		player.position = _find_valid_spawn_position()
+		MapManager.current_map.entities.append(player)
+
+		# Give player some starter items
+		_give_starter_items()
+
+		# Set player reference in input handler and EntityManager
+		input_handler.set_player(player)
+		EntityManager.player = player
+
+		# Spawn initial enemies
+		_spawn_map_enemies()
+	else:
+		# Loading from save - apply pending save data
+		GameManager.is_loading_save = false
+
+		# Create temporary player first (will be overwritten by save data)
+		player = Player.new()
+		input_handler.set_player(player)
+		EntityManager.player = player
+
+		# Apply the pending save data
+		SaveManager.apply_pending_save()
+
+		# Get the loaded player reference
+		player = EntityManager.player
+		input_handler.set_player(player)
 
 	# Initial render
 	_render_map()
@@ -100,7 +137,9 @@ func _ready() -> void:
 	EventBus.inventory_changed.connect(_on_inventory_changed)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.item_dropped.connect(_on_item_dropped)
+	EventBus.message_logged.connect(_on_message_logged)
 	EventBus.structure_placed.connect(_on_structure_placed)
+	EventBus.shop_opened.connect(_on_shop_opened)
 
 	# Update HUD
 	_update_hud()
@@ -120,6 +159,9 @@ func _setup_inventory_screen() -> void:
 func _setup_crafting_screen() -> void:
 	crafting_screen = CraftingScreenScene.instantiate()
 	hud.add_child(crafting_screen)
+	# Ensure crafting screen blocks player input while open
+	if crafting_screen.has_signal("closed"):
+		crafting_screen.closed.connect(_on_crafting_closed)
 
 ## Setup build mode screen
 func _setup_build_mode_screen() -> void:
@@ -134,36 +176,45 @@ func _setup_container_screen() -> void:
 	hud.add_child(container_screen)
 	container_screen.closed.connect(_on_container_closed)
 
+## Setup shop screen
+func _setup_shop_screen() -> void:
+	shop_screen = ShopScreenScene.instantiate()
+	hud.add_child(shop_screen)
+	shop_screen.closed.connect(_on_shop_closed)
+
+## Setup pause menu
+func _setup_pause_menu() -> void:
+	pause_menu = PauseMenuScene.instantiate()
+	hud.add_child(pause_menu)
+	pause_menu.closed.connect(_on_pause_menu_closed)
+
 ## Give player some starter items
 func _give_starter_items() -> void:
 	if not player or not player.inventory:
 		return
 
-	# Add some basic starter items
-	var starter_items = [
-		{"id": "ration", "count": 3},
-		{"id": "bandage", "count": 2},
-		{"id": "waterskin_full", "count": 1},
-		{"id": "flint_knife", "count": 1},
-		{"id": "flint", "count": 1},  # For building campfire
-		# Crafting materials for testing
-		{"id": "wood", "count": 5},
-		{"id": "leather", "count": 3},
-		{"id": "cord", "count": 3},
-		{"id": "cloth", "count": 2},
-		{"id": "herb", "count": 2},
-		{"id": "raw_meat", "count": 2}
-	]
+	# Load starter items from configuration JSON (falls back to empty)
+	var starter_path: String = "res://data/configuration/starter_items.json"
+	var items_data: Array = JsonHelper.load_json_file(starter_path)
+	if typeof(items_data) != TYPE_ARRAY:
+		push_warning("Game: starter_items.json did not return an array, using empty list")
+		items_data = []
 
 	var item_mgr = get_node("/root/ItemManager")
-	for item_data in starter_items:
-		var item = item_mgr.create_item(item_data.id, item_data.count)
-		if item:
-			player.inventory.add_item(item)
+	for item_data in items_data:
+		var item_id = item_data.get("id", "")
+		var count = int(item_data.get("count", 1))
+		if item_id == "":
+			continue
+		var stacks = item_mgr.create_item_stacks(item_id, count)
+		for it in stacks:
+			if it:
+				player.inventory.add_item(it)
 
 	# Give player some starter recipes for testing
 	player.learn_recipe("bandage")
 	player.learn_recipe("flint_knife")
+	player.learn_recipe("cooked_meat")
 
 ## Render the entire current map
 func _render_map() -> void:
@@ -217,6 +268,19 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()
+
+	# If player stepped onto a structure, show a contextual message
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_at(new_pos, map_id)
+	if structures.size() > 0:
+		# Show only the first structure's message to avoid spamming
+		var structure = structures[0]
+		var entry_msg = "You are near %s." % structure.name
+		if structure.has_component("fire"):
+			var fire = structure.get_component("fire")
+			var lit_text = "lit" if fire.is_lit else "unlit"
+			entry_msg += " The fire is %s." % lit_text
+		_add_message(entry_msg, Color(0.9, 0.8, 0.6))
 
 	# Check if standing on stairs and update message
 	_update_message()
@@ -316,7 +380,43 @@ func _on_entity_died(entity: Entity) -> void:
 	if entity == player:
 		EventBus.player_died.emit()
 	else:
-		# Enemy died - remove from EntityManager
+		# If the entity defines yields, generate drops similar to harvesting
+		var drop_messages: Array[String] = []
+		if entity and entity is Enemy and entity.yields.size() > 0:
+			# Use yields array (array of dicts with item_id, min_count, max_count, chance)
+			print("[DEBUG] Entity died: ", entity.entity_id, " at ", entity.position)
+			print("[DEBUG] yields array: ", entity.yields)
+			var total_yields: Dictionary = {}
+			for yield_data in entity.yields:
+				var item_id = yield_data.get("item_id", "")
+				var min_count = int(yield_data.get("min_count", 1))
+				var max_count = int(yield_data.get("max_count", 1))
+				var chance = float(yield_data.get("chance", 1.0))
+				if randf() > chance:
+					continue
+				var range_size = max_count - min_count + 1
+				var count = min_count + (randi() % max(1, range_size))
+				if count > 0:
+					if item_id in total_yields:
+						total_yields[item_id] += count
+					else:
+						total_yields[item_id] = count
+			print("[DEBUG] total_yields computed: ", total_yields)
+			# Create and spawn items as ground items
+			for item_id in total_yields:
+				var count = total_yields[item_id]
+				# Create stacks as needed
+				var stacks = ItemManager.create_item_stacks(item_id, count)
+				for it in stacks:
+					print("[DEBUG] Spawning ground item stack: ", item_id, " count ", it.stack_size)
+					EntityManager.spawn_ground_item(it, entity.position)
+				drop_messages.append("%d %s" % [count, ItemManager.get_item_data(item_id).get("name", item_id)])
+			if drop_messages.size() > 0:
+				_add_message("Dropped: %s" % ", ".join(drop_messages), Color(0.8, 0.8, 0.6))
+				# Ensure dropped ground items are rendered immediately
+				_render_ground_item_at(entity.position)
+
+		# Remove entity from managers
 		EntityManager.remove_entity(entity)
 
 ## Called when an attack is performed
@@ -419,6 +519,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Return to main menu on ESC when player is dead
 		elif event.keycode == KEY_ESCAPE and player and not player.is_alive:
 			get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+		# Open pause menu on ESC when player is alive and no other UI is open
+		elif event.keycode == KEY_ESCAPE and player and player.is_alive:
+			if not input_handler.ui_blocking_input and pause_menu and not pause_menu.visible:
+				_open_pause_menu()
+				get_viewport().set_input_as_handled()
 
 ## Restart the game
 func _restart_game() -> void:
@@ -598,15 +703,22 @@ func _add_message(text: String, color: Color = Color.WHITE) -> void:
 
 ## Spawn enemies from map metadata
 func _spawn_map_enemies() -> void:
-	if not MapManager.current_map or not MapManager.current_map.has_meta("enemy_spawns"):
+	if not MapManager.current_map:
 		return
 
-	var enemy_spawns = MapManager.current_map.get_meta("enemy_spawns")
+	# Spawn enemies from metadata
+	if MapManager.current_map.has_meta("enemy_spawns"):
+		var enemy_spawns = MapManager.current_map.get_meta("enemy_spawns")
+		for spawn_data in enemy_spawns:
+			var enemy_id = spawn_data["enemy_id"]
+			var spawn_pos = spawn_data["position"]
+			EntityManager.spawn_enemy(enemy_id, spawn_pos)
 
-	for spawn_data in enemy_spawns:
-		var enemy_id = spawn_data["enemy_id"]
-		var spawn_pos = spawn_data["position"]
-		EntityManager.spawn_enemy(enemy_id, spawn_pos)
+	# Spawn NPCs from metadata
+	if MapManager.current_map.has_meta("npc_spawns"):
+		var npc_spawns = MapManager.current_map.get_meta("npc_spawns")
+		for spawn_data in npc_spawns:
+			EntityManager.spawn_npc(spawn_data)
 
 ## Render all entities on the current map
 func _render_all_entities() -> void:
@@ -725,6 +837,19 @@ func toggle_inventory_screen() -> void:
 func open_crafting_screen() -> void:
 	if crafting_screen and player:
 		crafting_screen.open(player)
+		# Block player movement while crafting UI is open
+		if input_handler:
+			input_handler.ui_blocking_input = true
+		# Center HUD focus if necessary
+		_render_ground_items()
+		_update_hud()
+		get_viewport().set_input_as_handled()
+
+
+func _on_crafting_closed() -> void:
+	# Called when crafting screen closes to re-enable player input
+	if input_handler:
+		input_handler.ui_blocking_input = false
 
 ## Toggle build mode (called from input handler)
 func toggle_build_mode() -> void:
@@ -742,6 +867,12 @@ func toggle_build_mode() -> void:
 func open_container_screen(structure: Structure) -> void:
 	if container_screen and player:
 		container_screen.open(player, structure)
+		input_handler.ui_blocking_input = true
+
+## Open pause menu (called from ESC key)
+func _open_pause_menu() -> void:
+	if pause_menu:
+		pause_menu.open(true)  # true = save mode
 		input_handler.ui_blocking_input = true
 
 ## Called when inventory screen is closed
@@ -771,6 +902,20 @@ func _on_structure_selected(structure_id: String) -> void:
 func _on_container_closed() -> void:
 	input_handler.ui_blocking_input = false
 
+## Called when shop is opened
+func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
+	if shop_screen and shop_player:
+		shop_screen.open(shop_player, shop_npc)
+		input_handler.ui_blocking_input = true
+
+## Called when shop screen is closed
+func _on_shop_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when pause menu is closed
+func _on_pause_menu_closed() -> void:
+	input_handler.ui_blocking_input = false
+
 ## Called when an item is picked up
 func _on_item_picked_up(item) -> void:
 	_add_message("Picked up: %s" % item.name, Color(0.6, 0.9, 0.6))
@@ -783,6 +928,10 @@ func _on_item_dropped(item, pos: Vector2i) -> void:
 	# Re-render to show dropped item
 	renderer.render_entity(pos, item.ascii_char, item.get_color())
 	_update_hud()
+
+## Called when a message is logged from any system
+func _on_message_logged(message: String) -> void:
+	_add_message(message, Color.WHITE)
 
 ## Called when a structure is placed
 func _on_structure_placed(structure: Structure) -> void:

@@ -10,13 +10,14 @@ const _CombatSystem = preload("res://systems/combat_system.gd")
 const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
 const _CraftingSystem = preload("res://systems/crafting_system.gd")
-const HarvestSystem = preload("res://systems/harvest_system.gd")
+const _HarvestSystem = preload("res://systems/harvest_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
- 
+var gold: int = 0  # Player's gold currency
+
 # Experience
 var experience: int = 0
 var experience_to_next_level: int = 100
@@ -161,7 +162,7 @@ func harvest_resource(direction: Vector2i) -> Dictionary:
 		return {"success": false, "message": "Nothing to harvest there"}
 
 	# Delegate to HarvestSystem
-	return HarvestSystem.harvest(self, target_pos, tile.harvestable_resource_id)
+	return _HarvestSystem.harvest(self, target_pos, tile.harvestable_resource_id)
 
 ## Get total weapon damage (base + equipped weapon bonus)
 func get_weapon_damage() -> int:

@@ -165,7 +165,7 @@ func _serialize_world() -> Dictionary:
 
 ## Serialize player state
 func _serialize_player() -> Dictionary:
-	var player = GameManager.player
+	var player = EntityManager.player
 	if not player:
 		push_error("SaveManager: No player to serialize")
 		return {}
@@ -295,7 +295,7 @@ func _deserialize_world(world_data: Dictionary):
 
 ## Deserialize player state
 func _deserialize_player(player_data: Dictionary):
-	var player = GameManager.player
+	var player = EntityManager.player
 	if not player:
 		push_error("SaveManager: No player to deserialize into")
 		return

@@ -4,6 +4,7 @@ extends Control
 ##
 ## Provides options to start a new game or quit.
 
+@onready var continue_button: Button = $VBoxContainer/ContinueButton
 @onready var start_button: Button = $VBoxContainer/StartButton
 @onready var load_button: Button = $VBoxContainer/LoadButton
 @onready var quit_button: Button = $VBoxContainer/QuitButton
@@ -27,7 +28,7 @@ func _ready() -> void:
 	
 
 	# collect buttons in visual order using @onready references
-	buttons = [start_button, load_button, quit_button]
+	buttons = [continue_button, start_button, load_button, quit_button]
 
 	for i in range(buttons.size()):
 		var b = buttons[i]
@@ -36,7 +37,14 @@ func _ready() -> void:
 			# Disable automatic focus navigation to prevent conflicts
 			b.focus_mode = Control.FOCUS_NONE
 
-	# default selection to first button (Start a new game)
+	# Hide Continue button if there are no saves
+	var recent = _get_most_recent_save_slot()
+	if recent == -1:
+		continue_button.visible = false
+		# remove it from navigation
+		buttons.erase(continue_button)
+
+	# default selection to first visible button
 	selected_index = 0
 	update_selection()
 
@@ -98,6 +106,20 @@ func _on_world_name_cancelled() -> void:
 	print("World name dialog cancelled")
 	# Just return to main menu, nothing to do
 
+func _get_most_recent_save_slot() -> int:
+	var best_slot: int = -1
+	var best_ts: String = ""
+	for i in range(1, 4):
+		var info = SaveManager.get_save_slot_info(i)
+		if not info.exists:
+			continue
+		var ts = info.timestamp if info.timestamp else ""
+		# ISO timestamp sorts lexicographically so we can compare strings
+		if ts > best_ts:
+			best_ts = ts
+			best_slot = i
+	return best_slot
+
 func _on_load_button_pressed() -> void:
 	print("Opening load game screen...")
 	# Create and show the pause menu in load mode
@@ -105,6 +127,18 @@ func _on_load_button_pressed() -> void:
 	var pause_menu = PauseMenuScene.instantiate()
 	add_child(pause_menu)
 	pause_menu.open(false)  # false = load mode
+
+func _on_continue_button_pressed() -> void:
+	# Find the most recent save slot and load it
+	var slot = _get_most_recent_save_slot()
+	if slot == -1:
+		print("No saves available to continue")
+		return
+
+	GameManager.is_loading_save = true
+	var success = SaveManager.load_game(slot)
+	if success:
+		get_tree().change_scene_to_file("res://scenes/game.tscn")
 
 func _on_quit_button_pressed() -> void:
 	print("Quitting game...")

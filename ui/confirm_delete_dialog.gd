@@ -22,8 +22,12 @@ func _ready() -> void:
 	for b in buttons:
 		b.focus_mode = Control.FOCUS_NONE
 
-func open(message: String) -> void:
+func open(message: String, positive_text: String = "Delete") -> void:
 	message_label.text = message
+	# Set the positive button label (e.g., "Delete" or "Overwrite")
+	if positive_text and not positive_text.is_empty():
+		delete_button.text = positive_text
+
 	selected_button_index = 1 # default to cancel
 	_update_button_colors()
 	show()

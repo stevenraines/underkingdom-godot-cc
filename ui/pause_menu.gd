@@ -13,7 +13,7 @@ signal main_menu_requested()
 @onready var resume_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonsContainer/ResumeButton
 @onready var main_menu_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonsContainer/MainMenuButton
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/Title
-@onready var confirm_dialog: ConfirmationDialog = null
+@onready var confirm_dialog: Control = null
 
 var slot_buttons: Array[Button] = []
 var selected_index: int = 0
@@ -32,19 +32,18 @@ func _ready() -> void:
 
 	slot_buttons = [slot1_button, slot2_button, slot3_button]
 
-	# Create a confirmation dialog for destructive actions
+	# Create or instance a styled confirm-delete dialog (matches new-world dialog)
 	if not has_node("ConfirmDialog"):
-		var dlg = ConfirmationDialog.new()
+		var dlg_scene = load("res://ui/confirm_delete_dialog.tscn")
+		var dlg = dlg_scene.instantiate()
 		dlg.name = "ConfirmDialog"
-		# Add a label to show the message
-		var msg = Label.new()
-		msg.name = "ConfirmMessage"
-		msg.autowrap_mode = TextServer.AUTOWRAP_WORD
-		dlg.add_child(msg)
 		add_child(dlg)
 		confirm_dialog = dlg
+		# Connect signals
 		if not confirm_dialog.is_connected("confirmed", Callable(self, "_on_confirmed")):
 			confirm_dialog.connect("confirmed", Callable(self, "_on_confirmed"))
+		if not confirm_dialog.is_connected("cancelled", Callable(self, "_on_confirm_cancelled")):
+			confirm_dialog.connect("cancelled", Callable(self, "_on_confirm_cancelled"))
 	else:
 		confirm_dialog = $ConfirmDialog
 		if not confirm_dialog.is_connected("confirmed", Callable(self, "_on_confirmed")):
@@ -206,12 +205,11 @@ func _on_slot_pressed(slot: int) -> void:
 func _show_confirm(message: String, action: String, slot: int) -> void:
 	if not confirm_dialog:
 		return
-	var lbl = confirm_dialog.get_node_or_null("ConfirmMessage")
-	if lbl:
-		lbl.text = message
+	# Use the styled dialog's open() method
+	if confirm_dialog.has_method("open"):
+		confirm_dialog.open(message)
 	pending_action = action
 	pending_slot = slot
-	confirm_dialog.popup_centered()
 
 ## Called when the confirmation dialog is accepted
 func _on_confirmed() -> void:
@@ -229,6 +227,11 @@ func _on_confirmed() -> void:
 		_refresh_slot_info()
 		_update_button_colors()
 	# Clear pending
+	pending_action = ""
+	pending_slot = -1
+
+func _on_confirm_cancelled() -> void:
+	# Clear pending state when user cancels the confirm dialog
 	pending_action = ""
 	pending_slot = -1
 

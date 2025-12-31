@@ -15,6 +15,9 @@ var move_timer: float = 0.0
 var is_initial_press: bool = true
 var blocked_direction: Vector2i = Vector2i.ZERO  # Stop continuous movement if blocked
 
+# Harvest mode
+var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
+
 func _ready() -> void:
 	set_process_unhandled_input(true)
 	set_process(true)
@@ -140,6 +143,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_pickup_item()
 			action_taken = true
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
+			_start_harvest_mode()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -208,3 +214,30 @@ func _try_pickup_item() -> void:
 		var ground_item = ground_items[0]  # Pick up first item
 		if player.pickup_item(ground_item):
 			EntityManager.remove_entity(ground_item)
+
+## Start harvest mode - player will be prompted for direction
+func _start_harvest_mode() -> void:
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		game._add_message("Harvest which direction? (Arrow keys or WASD)", Color(1.0, 1.0, 0.6))
+
+	# Set a flag to await direction input
+	ui_blocking_input = true
+	_awaiting_harvest_direction = true
+
+## Try to harvest a tree in the given direction
+func _try_harvest(direction: Vector2i) -> bool:
+	var result = player.harvest_tree(direction)
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
+		game._add_message(result.message, color)
+
+	# If successful, trigger a map re-render to show the tree is gone
+	if result.success and game and game.has_method("_render_map"):
+		game._render_map()
+		game._render_all_entities()
+		game._render_ground_items()
+
+	return result.success

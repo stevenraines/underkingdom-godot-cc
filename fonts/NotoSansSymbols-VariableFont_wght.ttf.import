@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://g72lbe5or0v0"
-path="res://.godot/imported/RobotoMono-Regular.ttf-a971246a894a15e1cf7dc2e4df388ce2.fontdata"
+uid="uid://colnw2ujneckg"
+path="res://.godot/imported/NotoSansSymbols-VariableFont_wght.ttf-750d3a9138e6e1a9ea29cdc26bb72028.fontdata"
 
 [deps]
 
-source_file="res://fonts/RobotoMono-Regular.ttf"
-dest_files=["res://.godot/imported/RobotoMono-Regular.ttf-a971246a894a15e1cf7dc2e4df388ce2.fontdata"]
+source_file="res://fonts/NotoSansSymbols-VariableFont_wght.ttf"
+dest_files=["res://.godot/imported/NotoSansSymbols-VariableFont_wght.ttf-750d3a9138e6e1a9ea29cdc26bb72028.fontdata"]
 
 [params]
 
@@ -29,7 +29,7 @@ oversampling=0.0
 Fallbacks=null
 fallbacks=[]
 Compress=null
-compress=false
+compress=true
 preload=[]
 language_support={}
 script_support={}

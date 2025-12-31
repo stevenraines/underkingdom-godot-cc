@@ -1,0 +1,6 @@
+[gd_resource type="Theme" load_steps=2 format=3 uid="uid://cf1mduu0v1a5"]
+
+[ext_resource type="FontFile" uid="uid://cggp40dw40q23" path="res://fonts/DejaVuSans.tres" id="1_aajjp"]
+
+[resource]
+default_font = ExtResource("1_aajjp")

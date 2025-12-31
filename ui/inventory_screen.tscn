@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://ca48lxdxhqr2f"]
+[gd_scene load_steps=5 format=3 uid="uid://ca48lxdxhqr2f"]
 
-[ext_resource type="Script" path="res://ui/inventory_screen.gd" id="1_inventory"]
+[ext_resource type="Script" uid="uid://cj7m4k8p2q6hw" path="res://ui/inventory_screen.gd" id="1_inventory"]
+[ext_resource type="Theme" uid="uid://cf1mduu0v1a5" path="res://ui/themes/DejaVuSans.tres" id="2_j3mmr"]
+[ext_resource type="Theme" uid="uid://c7q6510one1wh" path="res://ui/themes/Underkingdom.tres" id="3_fvt8w"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.08, 0.08, 0.12, 0.98)
@@ -21,6 +23,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_fvt8w")
 script = ExtResource("1_inventory")
 
 [node name="Dimmer" type="ColorRect" parent="."]
@@ -30,6 +33,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_j3mmr")
 color = Color(0, 0, 0, 0.7)
 
 [node name="Panel" type="Panel" parent="."]
@@ -45,6 +49,7 @@ offset_right = 340.0
 offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_fvt8w")
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="Panel"]
@@ -164,4 +169,3 @@ bbcode_enabled = true
 text = "Select an item to see details"
 fit_content = true
 scroll_active = false
-

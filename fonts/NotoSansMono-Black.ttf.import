@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://g72lbe5or0v0"
-path="res://.godot/imported/RobotoMono-Regular.ttf-a971246a894a15e1cf7dc2e4df388ce2.fontdata"
+uid="uid://cd530qkodxmyv"
+path="res://.godot/imported/NotoSansMono-Black.ttf-ac0395c927aed076747a2a4d56a4940e.fontdata"
 
 [deps]
 
-source_file="res://fonts/RobotoMono-Regular.ttf"
-dest_files=["res://.godot/imported/RobotoMono-Regular.ttf-a971246a894a15e1cf7dc2e4df388ce2.fontdata"]
+source_file="res://fonts/NotoSansMono-Black.ttf"
+dest_files=["res://.godot/imported/NotoSansMono-Black.ttf-ac0395c927aed076747a2a4d56a4940e.fontdata"]
 
 [params]
 
@@ -29,7 +29,7 @@ oversampling=0.0
 Fallbacks=null
 fallbacks=[]
 Compress=null
-compress=false
+compress=true
 preload=[]
 language_support={}
 script_support={}

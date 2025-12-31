@@ -17,6 +17,7 @@ var inventory_screen: Control = null
 var crafting_screen: Control = null
 var build_mode_screen: Control = null
 var container_screen: Control = null
+var shop_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -34,6 +35,7 @@ const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
 const BuildModeScreenScene = preload("res://ui/build_mode_screen.tscn")
 const ContainerScreenScene = preload("res://ui/container_screen.tscn")
+const ShopScreenScene = preload("res://ui/shop_screen.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -56,6 +58,9 @@ func _ready() -> void:
 
 	# Create container screen
 	_setup_container_screen()
+
+	# Create shop screen
+	_setup_shop_screen()
 
 	# Start new game
 	GameManager.start_new_game()
@@ -104,6 +109,7 @@ func _ready() -> void:
 	EventBus.item_dropped.connect(_on_item_dropped)
 	EventBus.message_logged.connect(_on_message_logged)
 	EventBus.structure_placed.connect(_on_structure_placed)
+	EventBus.shop_opened.connect(_on_shop_opened)
 
 	# Update HUD
 	_update_hud()
@@ -136,6 +142,12 @@ func _setup_container_screen() -> void:
 	container_screen = ContainerScreenScene.instantiate()
 	hud.add_child(container_screen)
 	container_screen.closed.connect(_on_container_closed)
+
+## Setup shop screen
+func _setup_shop_screen() -> void:
+	shop_screen = ShopScreenScene.instantiate()
+	hud.add_child(shop_screen)
+	shop_screen.closed.connect(_on_shop_closed)
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -779,6 +791,16 @@ func _on_structure_selected(structure_id: String) -> void:
 
 ## Called when container screen is closed
 func _on_container_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when shop is opened
+func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
+	if shop_screen and shop_player:
+		shop_screen.open(shop_player, shop_npc)
+		input_handler.ui_blocking_input = true
+
+## Called when shop screen is closed
+func _on_shop_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when an item is picked up

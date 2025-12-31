@@ -5,7 +5,7 @@ class_name WorldGenerator
 ## Uses FastNoiseLite for terrain generation (Gaea optional for future).
 ## Creates a deterministic world based on seed.
 
-const GameTile = preload("res://maps/game_tile.gd")
+const _GameTile = preload("res://maps/game_tile.gd")
 
 ## Generate the overworld map
 static func generate_overworld(seed_value: int) -> GameMap:
@@ -70,9 +70,9 @@ static func _biome_from_noise(noise_val: float, rng: SeededRandom) -> String:
 			return "floor"  # Grass/dirt
 
 ## Create a tile by type (helper function)
-## Uses GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly
-static func _create_tile(type: String) -> GameTile:
-	return GameTile.create(type)
+## Uses _GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly
+static func _create_tile(type: String) -> _GameTile:
+	return _GameTile.create(type)
 
 ## Find a valid walkable location for dungeon entrance
 static func _find_valid_location(map: GameMap, rng: SeededRandom) -> Vector2i:

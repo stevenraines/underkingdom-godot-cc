@@ -130,6 +130,9 @@ func _setup_inventory_screen() -> void:
 func _setup_crafting_screen() -> void:
 	crafting_screen = CraftingScreenScene.instantiate()
 	hud.add_child(crafting_screen)
+	# Ensure crafting screen blocks player input while open
+	if crafting_screen.has_signal("closed"):
+		crafting_screen.closed.connect(_on_crafting_closed)
 
 ## Setup build mode screen
 func _setup_build_mode_screen() -> void:
@@ -781,6 +784,19 @@ func toggle_inventory_screen() -> void:
 func open_crafting_screen() -> void:
 	if crafting_screen and player:
 		crafting_screen.open(player)
+		# Block player movement while crafting UI is open
+		if input_handler:
+			input_handler.ui_blocking_input = true
+		# Center HUD focus if necessary
+		_render_ground_items()
+		_update_hud()
+		get_viewport().set_input_as_handled()
+
+
+func _on_crafting_closed() -> void:
+	# Called when crafting screen closes to re-enable player input
+	if input_handler:
+		input_handler.ui_blocking_input = false
 
 ## Toggle build mode (called from input handler)
 func toggle_build_mode() -> void:

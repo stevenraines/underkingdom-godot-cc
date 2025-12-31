@@ -54,6 +54,10 @@ func open_shop(player: Player):
 	## Opens shop interface for trading
 	EventBus.emit_signal("shop_opened", self, player)
 
+	# Temporary message until shop UI is implemented
+	EventBus.emit_signal("message_logged", "%s: %s" % [name, dialogue.get("greeting", "Welcome to my shop!")])
+	EventBus.emit_signal("message_logged", "[Shop UI not yet implemented - Coming in Phase 1.16]")
+
 func speak_greeting():
 	## Displays greeting dialogue
 	var greeting = dialogue.get("greeting", "Hello, traveler.")

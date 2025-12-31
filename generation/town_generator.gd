@@ -36,7 +36,8 @@ static func generate_town(world_map: GameMap, world_seed: int):
 		"npc_id": "shop_keeper",
 		"position": npc_pos,
 		"name": "Olaf the Trader",
-		"gold": 500
+		"gold": 500,
+		"restock_interval": 500
 	})
 	world_map.set_meta("npc_spawns", npc_spawns)
 

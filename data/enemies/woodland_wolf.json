@@ -16,5 +16,9 @@
   "base_damage": 4,
   "armor": 0,
   "loot_table": "beast_common",
-  "xp_value": 30
+  "xp_value": 30,
+  "spawn_density_overworld": 100,
+  "spawn_density_dungeon": 0,
+  "min_spawn_level": 0,
+  "max_spawn_level": 0
 }

@@ -122,9 +122,27 @@ static func _find_valid_location(map: GameMap, rng: SeededRandom) -> Vector2i:
 
 ## Spawn enemies on the overworld
 static func _spawn_overworld_enemies(map: GameMap, rng: SeededRandom) -> void:
-	# Woodland wolves scattered across the overworld
-	# Spawn density: roughly 1 wolf per 20 tiles (for 20x20 = ~20 wolves)
-	var num_enemies = rng.randi_range(3, 8)  # Reduced for 20x20 map
+	# Calculate total map tiles
+	var total_tiles = map.width * map.height
+
+	# Get wolf enemy data to read spawn density
+	var wolf_data = EntityManager.get_enemy_definition("woodland_wolf")
+	if wolf_data.is_empty():
+		push_warning("WorldGenerator: woodland_wolf enemy data not found")
+		return
+
+	# Calculate number of enemies based on overworld spawn density
+	# spawn_density_overworld is tiles per enemy (e.g., 100 = 1 enemy per 100 tiles)
+	# If 0, this enemy doesn't spawn in overworld
+	var spawn_density = wolf_data.get("spawn_density_overworld", 0)
+	if spawn_density == 0:
+		return  # Don't spawn this enemy in overworld
+
+	var num_enemies = int(total_tiles / spawn_density)
+
+	# Add some randomness (±25%)
+	var variance = int(num_enemies * 0.25)
+	num_enemies = rng.randi_range(max(1, num_enemies - variance), num_enemies + variance)
 
 	for i in range(num_enemies):
 		var spawn_pos = _find_enemy_spawn_location(map, rng)

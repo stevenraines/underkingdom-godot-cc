@@ -156,7 +156,7 @@ func _update_display() -> void:
 
 ## Add the attributes section (STR, DEX, CON, INT, WIS, CHA)
 func _add_attributes_section() -> void:
-	var section_header = _create_section_header("══ ATTRIBUTES ══")
+	var section_header = _create_section_header("== ATTRIBUTES ==")
 	content_container.add_child(section_header)
 
 	var attributes = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
@@ -180,12 +180,16 @@ func _add_attributes_section() -> void:
 		var name_label = Label.new()
 		name_label.text = "%s:" % attribute_names[attr]
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if theme != null:
+			name_label.theme = theme
 		name_label.add_theme_color_override("font_color", COLOR_LABEL)
 		name_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(name_label)
 
 		# Value display (right-aligned)
 		var value_label = Label.new()
+		if theme != null:
+			value_label.theme = theme
 		if modifier != 0:
 			var modifier_text = "+%d" % modifier if modifier > 0 else "%d" % modifier
 			value_label.text = "%d %s = %d" % [base_value, modifier_text, effective]
@@ -301,6 +305,8 @@ func _add_stat_line(label_text: String, value_text: String, value_color: Color) 
 	var label = Label.new()
 	label.text = "%s:" % label_text
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if theme != null:
+		label.theme = theme
 	label.add_theme_color_override("font_color", COLOR_LABEL)
 	label.add_theme_font_size_override("font_size", 14)
 	line.add_child(label)
@@ -309,6 +315,8 @@ func _add_stat_line(label_text: String, value_text: String, value_color: Color) 
 	value.text = value_text
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value.custom_minimum_size.x = 180
+	if theme != null:
+		value.theme = theme
 	value.add_theme_color_override("font_color", value_color)
 	value.add_theme_font_size_override("font_size", 14)
 	line.add_child(value)
@@ -320,6 +328,9 @@ func _create_section_header(text: String) -> Label:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Set theme first, then override specific properties
+	if has_theme():
+		header.theme = theme
 	header.add_theme_color_override("font_color", COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	return header

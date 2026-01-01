@@ -44,9 +44,10 @@ func set_tile(pos: Vector2i, tile: GameTile) -> void:
 
 ## Check if position is walkable
 func is_walkable(pos: Vector2i) -> bool:
-	# Check bounds
-	if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
-		return false
+	# Check bounds (skip for chunk-based infinite maps)
+	if not chunk_based:
+		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
+			return false
 
 	var tile = get_tile(pos)
 	if not tile.walkable:
@@ -67,9 +68,10 @@ func is_walkable(pos: Vector2i) -> bool:
 
 ## Check if position is transparent (for FOV)
 func is_transparent(pos: Vector2i) -> bool:
-	# Out of bounds is not transparent
-	if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
-		return false
+	# Out of bounds is not transparent (skip check for chunk-based infinite maps)
+	if not chunk_based:
+		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
+			return false
 
 	return get_tile(pos).transparent
 

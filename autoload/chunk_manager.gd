@@ -99,10 +99,11 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		if coords not in active_chunks:
 			load_chunk(coords)
 
-	# Unload distant chunks
+	# Unload distant chunks (using Chebyshev distance for consistent square patterns)
 	var chunks_to_unload: Array[Vector2i] = []
 	for coords in active_chunks:
-		var distance = (coords - player_chunk).length()
+		# Chebyshev distance (max of x/y differences) for square loading area
+		var distance = max(abs(coords.x - player_chunk.x), abs(coords.y - player_chunk.y))
 		if distance > unload_radius:
 			chunks_to_unload.append(coords)
 

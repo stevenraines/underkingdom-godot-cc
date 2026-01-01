@@ -93,9 +93,10 @@ static func _scan(origin: Vector2i, max_range: int, row: Row, direction: int, ma
 	for col in row.tiles():
 		var tile_pos = transform_tile(origin, col, row.depth, direction)
 
-		# Check if within map bounds
-		if tile_pos.x < 0 or tile_pos.x >= map.width or tile_pos.y < 0 or tile_pos.y >= map.height:
-			continue
+		# Check if within map bounds (skip for chunk-based infinite maps)
+		if not map.chunk_based:
+			if tile_pos.x < 0 or tile_pos.x >= map.width or tile_pos.y < 0 or tile_pos.y >= map.height:
+				continue
 
 		# Check if within range
 		var distance = (tile_pos - origin).length()

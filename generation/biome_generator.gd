@@ -5,26 +5,43 @@ class_name BiomeGenerator
 ## Uses dual Perlin noise layers to create varied, realistic biomes
 ## Based on Whittaker life zones and Red Blob Games polygon map generation
 
+# Cached noise generators (reused across calls to avoid massive performance hit)
+static var elevation_noise_cache: Dictionary = {}  # seed -> FastNoiseLite
+static var moisture_noise_cache: Dictionary = {}   # seed -> FastNoiseLite
+
+## Get or create cached elevation noise generator for a seed
+static func _get_elevation_noise(seed_value: int) -> FastNoiseLite:
+	if not elevation_noise_cache.has(seed_value):
+		var noise = FastNoiseLite.new()
+		noise.seed = seed_value
+		noise.noise_type = FastNoiseLite.TYPE_PERLIN
+		noise.frequency = 0.03  # Larger features
+		noise.fractal_octaves = 3  # More detail
+		noise.fractal_lacunarity = 2.0
+		noise.fractal_gain = 0.5
+		elevation_noise_cache[seed_value] = noise
+	return elevation_noise_cache[seed_value]
+
+## Get or create cached moisture noise generator for a seed
+static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
+	var moisture_seed = seed_value + 1000  # Different seed for variation
+	if not moisture_noise_cache.has(moisture_seed):
+		var noise = FastNoiseLite.new()
+		noise.seed = moisture_seed
+		noise.noise_type = FastNoiseLite.TYPE_PERLIN
+		noise.frequency = 0.05  # Smaller features
+		noise.fractal_octaves = 2
+		noise.fractal_lacunarity = 2.0
+		noise.fractal_gain = 0.5
+		moisture_noise_cache[moisture_seed] = noise
+	return moisture_noise_cache[moisture_seed]
+
 ## Generate biome at world position
 ## Returns BiomeDefinition for the given coordinates
 static func get_biome_at(x: int, y: int, seed_value: int) -> BiomeDefinition:
-	# Create elevation noise (slower-changing, more octaves for detail)
-	var elevation_noise = FastNoiseLite.new()
-	elevation_noise.seed = seed_value
-	elevation_noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	elevation_noise.frequency = 0.03  # Larger features
-	elevation_noise.fractal_octaves = 3  # More detail
-	elevation_noise.fractal_lacunarity = 2.0
-	elevation_noise.fractal_gain = 0.5
-
-	# Create moisture noise (faster-changing, fewer octaves)
-	var moisture_noise = FastNoiseLite.new()
-	moisture_noise.seed = seed_value + 1000  # Different seed for variation
-	moisture_noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	moisture_noise.frequency = 0.05  # Smaller features
-	moisture_noise.fractal_octaves = 2
-	moisture_noise.fractal_lacunarity = 2.0
-	moisture_noise.fractal_gain = 0.5
+	# Get cached noise generators (massive performance improvement)
+	var elevation_noise = _get_elevation_noise(seed_value)
+	var moisture_noise = _get_moisture_noise(seed_value)
 
 	# Get noise values and normalize from [-1, 1] to [0, 1]
 	var elevation_raw = elevation_noise.get_noise_2d(float(x), float(y))
@@ -42,24 +59,14 @@ static func get_biome_at(x: int, y: int, seed_value: int) -> BiomeDefinition:
 
 ## Get elevation value at position (for use in other systems)
 static func get_elevation_at(x: int, y: int, seed_value: int) -> float:
-	var noise = FastNoiseLite.new()
-	noise.seed = seed_value
-	noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise.frequency = 0.03
-	noise.fractal_octaves = 3
-
+	var noise = _get_elevation_noise(seed_value)
 	var raw = noise.get_noise_2d(float(x), float(y))
 	var normalized = (raw + 1.0) / 2.0
 	return pow(normalized, 1.5)
 
 ## Get moisture value at position (for use in other systems)
 static func get_moisture_at(x: int, y: int, seed_value: int) -> float:
-	var noise = FastNoiseLite.new()
-	noise.seed = seed_value + 1000
-	noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise.frequency = 0.05
-	noise.fractal_octaves = 2
-
+	var noise = _get_moisture_noise(seed_value)
 	var raw = noise.get_noise_2d(float(x), float(y))
 	return (raw + 1.0) / 2.0
 

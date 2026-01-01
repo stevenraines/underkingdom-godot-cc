@@ -88,8 +88,10 @@ func _update_minimap() -> void:
 		# Draw chunk as small rectangle
 		_draw_chunk_rect(pixel_x, pixel_y, color)
 
-	# Update texture
-	minimap_texture.update(minimap_image)
+	# Update texture (Godot 4 API)
+	minimap_texture = ImageTexture.create_from_image(minimap_image)
+	if texture_rect:
+		texture_rect.texture = minimap_texture
 
 ## Draw a chunk rectangle on the minimap
 func _draw_chunk_rect(x: int, y: int, color: Color) -> void:

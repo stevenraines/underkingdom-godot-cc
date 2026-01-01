@@ -1,9 +1,9 @@
 class_name WorldGenerator
 
-## WorldGenerator - Generate 100x100 overworld with temperate woodland biome
+## WorldGenerator - Generate 100x100 overworld island with temperate woodland biome
 ##
-## Uses multiple layers of FastNoiseLite for terrain generation.
-## Creates a deterministic world based on seed with distinct terrain regions.
+## Uses multiple layers of FastNoiseLite combined with radial island mask.
+## Creates a single cohesive island with natural shorelines.
 
 const _GameTile = preload("res://maps/game_tile.gd")
 
@@ -11,28 +11,29 @@ const _GameTile = preload("res://maps/game_tile.gd")
 const MAP_WIDTH = 100
 const MAP_HEIGHT = 100
 
+# Island shape parameters
+const ISLAND_RADIUS = 0.42  # Proportion of map size for base island radius
+const SHORE_BLEND = 0.15    # Width of the shore transition zone
+
 ## Generate the overworld map
 static func generate_overworld(seed_value: int) -> GameMap:
-	print("[WorldGenerator] Generating overworld with seed: %d" % seed_value)
+	print("[WorldGenerator] Generating overworld island with seed: %d" % seed_value)
 	var rng = SeededRandom.new(seed_value)
 	var map = GameMap.new("overworld", MAP_WIDTH, MAP_HEIGHT, seed_value)
 
 	# Create multiple noise layers for varied terrain
 	var terrain_noise = _create_terrain_noise(seed_value)
 	var forest_noise = _create_forest_noise(seed_value)
-	var water_noise = _create_water_noise(seed_value)
+	var shore_noise = _create_shore_noise(seed_value)
 
-	# Generate terrain based on layered noise
+	# Generate island terrain
 	for y in range(map.height):
 		for x in range(map.width):
-			var tile_type = _get_tile_from_noise(x, y, terrain_noise, forest_noise, water_noise, rng)
+			var tile_type = _get_island_tile(x, y, terrain_noise, forest_noise, shore_noise)
 			map.set_tile(Vector2i(x, y), _create_tile(tile_type))
 
-	# Create island border (water around edges for island feel)
-	_create_island_border(map)
-
 	# Place dungeon entrance at a random walkable location (away from edges)
-	var entrance_pos = _find_valid_location(map, rng, 15)
+	var entrance_pos = _find_valid_location(map, rng, 20)
 	map.set_tile(entrance_pos, _create_tile("stairs_down"))
 	print("Dungeon entrance placed at: ", entrance_pos)
 
@@ -42,11 +43,11 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	# Spawn overworld enemies (wolves in woodland biome)
 	_spawn_overworld_enemies(map, rng)
 
-	# Generate town with shop NPCs
+	# Generate town with shop NPCs (find valid location first)
 	var TownGenerator = load("res://generation/town_generator.gd")
 	TownGenerator.generate_town(map, seed_value)
 
-	print("Overworld generated (%dx%d) with seed: %d" % [MAP_WIDTH, MAP_HEIGHT, seed_value])
+	print("Overworld island generated (%dx%d) with seed: %d" % [MAP_WIDTH, MAP_HEIGHT, seed_value])
 	return map
 
 ## Create main terrain noise (elevation-like)
@@ -54,9 +55,9 @@ static func _create_terrain_noise(seed_value: int) -> FastNoiseLite:
 	var noise = FastNoiseLite.new()
 	noise.seed = seed_value
 	noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise.frequency = 0.03
+	noise.frequency = 0.025
 	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
-	noise.fractal_octaves = 3
+	noise.fractal_octaves = 4
 	noise.fractal_lacunarity = 2.0
 	noise.fractal_gain = 0.5
 	return noise
@@ -66,63 +67,78 @@ static func _create_forest_noise(seed_value: int) -> FastNoiseLite:
 	var noise = FastNoiseLite.new()
 	noise.seed = seed_value + 1000  # Offset seed for variety
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise.frequency = 0.08
+	noise.frequency = 0.06
 	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
 	noise.fractal_octaves = 2
 	return noise
 
-## Create water body noise (lakes and rivers)
-static func _create_water_noise(seed_value: int) -> FastNoiseLite:
+## Create shore variation noise (makes coastline irregular)
+static func _create_shore_noise(seed_value: int) -> FastNoiseLite:
 	var noise = FastNoiseLite.new()
-	noise.seed = seed_value + 2000  # Different offset
-	noise.noise_type = FastNoiseLite.TYPE_CELLULAR
-	noise.frequency = 0.04
-	noise.cellular_distance_function = FastNoiseLite.DISTANCE_EUCLIDEAN
-	noise.cellular_return_type = FastNoiseLite.RETURN_DISTANCE
+	noise.seed = seed_value + 3000
+	noise.noise_type = FastNoiseLite.TYPE_PERLIN
+	noise.frequency = 0.05
+	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	noise.fractal_octaves = 3
 	return noise
 
-## Determine tile type from combined noise layers
-static func _get_tile_from_noise(x: int, y: int, terrain: FastNoiseLite, forest: FastNoiseLite, water: FastNoiseLite, _rng: SeededRandom) -> String:
+## Calculate island mask value (0 = deep water, 1 = island center)
+static func _get_island_mask(x: int, y: int, shore_noise: FastNoiseLite) -> float:
+	# Normalize coordinates to -1 to 1 range centered on map
+	var nx = (float(x) / float(MAP_WIDTH) - 0.5) * 2.0
+	var ny = (float(y) / float(MAP_HEIGHT) - 0.5) * 2.0
+
+	# Calculate distance from center (0 at center, 1 at corners)
+	var dist = sqrt(nx * nx + ny * ny)
+
+	# Add noise variation to shoreline
+	var shore_variation = shore_noise.get_noise_2d(float(x), float(y)) * 0.15
+
+	# Create gradient: 1 at center, 0 at edge
+	# ISLAND_RADIUS determines base island size
+	var mask = 1.0 - (dist / (ISLAND_RADIUS * 2.0 + shore_variation))
+
+	return clamp(mask, 0.0, 1.0)
+
+## Determine tile type using island mask and noise
+static func _get_island_tile(x: int, y: int, terrain: FastNoiseLite, forest: FastNoiseLite, shore_noise: FastNoiseLite) -> String:
+	var island_mask = _get_island_mask(x, y, shore_noise)
+
+	# Deep water outside island
+	if island_mask < 0.1:
+		return "water"
+
+	# Shallow water / beach transition
+	if island_mask < 0.2:
+		# Some variation in shoreline
+		var hash_val = _position_hash(x, y)
+		if hash_val < 0.4:
+			return "water"
+		return "floor"  # Beach/sand
+
+	# Island interior - use terrain noise for variation
 	var terrain_val = (terrain.get_noise_2d(float(x), float(y)) + 1.0) / 2.0
 	var forest_val = (forest.get_noise_2d(float(x), float(y)) + 1.0) / 2.0
-	var water_val = water.get_noise_2d(float(x), float(y))
 
-	# Water bodies form in cellular noise low points
-	if water_val < -0.4:
+	# Interior lakes (only in center of island, low terrain)
+	if island_mask > 0.5 and terrain_val < 0.25:
 		return "water"
 
 	# Dense forest where forest noise is high
-	if forest_val > 0.65:
+	if forest_val > 0.6:
 		return "tree"
 
-	# Medium forest density based on terrain
-	if terrain_val < 0.35 and forest_val > 0.4:
+	# More trees toward island center
+	if forest_val > 0.4 and island_mask > 0.4:
 		return "tree"
 
-	# Scattered trees in clearings
-	if forest_val > 0.5:
-		# Use position-based randomness for determinism
+	# Scattered trees
+	if forest_val > 0.35:
 		var hash_val = _position_hash(x, y)
-		if hash_val < 0.15:
+		if hash_val < 0.2:
 			return "tree"
 
 	return "floor"
-
-## Create water border around map edges for island effect
-static func _create_island_border(map: GameMap) -> void:
-	var border_size = 3
-
-	for x in range(map.width):
-		for y in range(map.height):
-			var dist_to_edge = min(x, y, map.width - 1 - x, map.height - 1 - y)
-
-			if dist_to_edge < border_size:
-				# Fade probability: closer to edge = more likely water
-				var water_chance = 1.0 - (float(dist_to_edge) / float(border_size))
-				var hash_val = _position_hash(x, y)
-
-				if hash_val < water_chance:
-					map.set_tile(Vector2i(x, y), _create_tile("water"))
 
 ## Simple position-based hash for deterministic randomness
 static func _position_hash(x: int, y: int) -> float:

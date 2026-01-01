@@ -9,6 +9,7 @@ const WorldChunk = preload("res://maps/world_chunk.gd")
 
 var active_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> WorldChunk
 var chunk_cache: Dictionary = {}  # Long-term cache of generated chunks
+var visited_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> bool (for minimap)
 var load_radius: int = 3  # Load chunks within 3 chunk distance of player
 var unload_radius: int = 5  # Unload chunks beyond 5 chunk distance
 
@@ -59,6 +60,7 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 	active_chunks[chunk_coords] = chunk
 	chunk_cache[chunk_coords] = chunk
+	visited_chunks[chunk_coords] = true  # Mark as visited for minimap
 
 	EventBus.chunk_loaded.emit(chunk_coords)
 	return chunk
@@ -138,6 +140,7 @@ func get_active_chunk_coords() -> Array[Vector2i]:
 func clear_chunks() -> void:
 	active_chunks.clear()
 	chunk_cache.clear()
+	visited_chunks.clear()
 	print("[ChunkManager] All chunks cleared")
 
 ## Handle map changes
@@ -146,6 +149,13 @@ func _on_map_changed(map_id: String) -> void:
 		# Disable chunk mode for dungeons
 		is_chunk_mode = false
 		clear_chunks()
+
+## Get all visited chunk coordinates (for minimap)
+func get_visited_chunks() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for coords in visited_chunks:
+		result.append(coords)
+	return result
 
 ## Serialize chunks for saving
 func save_chunks() -> Array:
@@ -162,6 +172,7 @@ func load_chunks(chunks_data: Array) -> void:
 	for chunk_data in chunks_data:
 		var chunk = WorldChunk.from_dict(chunk_data, world_seed)
 		chunk_cache[chunk.chunk_coords] = chunk
+		visited_chunks[chunk.chunk_coords] = true  # Mark as visited
 		# Don't add to active_chunks yet - will load on demand
 
 	print("[ChunkManager] Loaded %d chunks from save" % chunks_data.size())

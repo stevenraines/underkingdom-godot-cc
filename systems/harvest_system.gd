@@ -244,6 +244,9 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 				var new_tile = GameTile.create(resource.replacement_tile)
 				MapManager.current_map.set_tile(target_pos, new_tile)
 
+			# Remove from ResourceSpawner tracking
+			ResourceSpawner.remove_resource_at(MapManager.current_map, target_pos)
+
 		HarvestBehavior.DESTROY_RENEWABLE:
 			# Replace tile and track for respawn
 			if resource.replacement_tile:
@@ -259,6 +262,11 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 				respawn_turn
 			)
 			_renewable_resources.append(renewable)
+
+			# Also update ResourceSpawner for renewable resources
+			var spawned_resource = ResourceSpawner.get_resource_at(MapManager.current_map, target_pos)
+			if spawned_resource:
+				ResourceSpawner.schedule_respawn(MapManager.current_map, spawned_resource, resource.respawn_turns)
 
 		HarvestBehavior.NON_CONSUMABLE:
 			# Don't change the tile at all

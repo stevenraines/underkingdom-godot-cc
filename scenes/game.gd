@@ -126,6 +126,10 @@ func _ready() -> void:
 		player = EntityManager.player
 		input_handler.set_player(player)
 
+	# Load initial chunks for overworld
+	if MapManager.current_map and MapManager.current_map.chunk_based:
+		ChunkManager.update_active_chunks(player.position)
+
 	# Initial render
 	_render_map()
 	_render_all_entities()
@@ -301,6 +305,10 @@ func _render_map() -> void:
 
 ## Called when player moves
 func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
+	# Update chunk loading for overworld
+	if MapManager.current_map and MapManager.current_map.chunk_based:
+		ChunkManager.update_active_chunks(new_pos)
+
 	# In dungeons, wall visibility depends on player position
 	# So we need to re-render the entire map when player moves
 	var is_dungeon = MapManager.current_map and MapManager.current_map.map_id.begins_with("dungeon_")
@@ -312,10 +320,10 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
-	
+
 	# Re-render any ground item at old position that was hidden under player
 	_render_ground_item_at(old_pos)
-	
+
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
 
@@ -812,7 +820,12 @@ func _find_valid_spawn_position() -> Vector2i:
 		return Vector2i(10, 10)  # Fallback
 
 	@warning_ignore("integer_division")
-	var center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
+	var center: Vector2i
+	if MapManager.current_map.chunk_based:
+		# For chunk-based maps, start in chunk 5,5 (center area near town)
+		center = Vector2i(5 * 32 + 10, 5 * 32 + 10)
+	else:
+		center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
 
 	# Try to find a position with open space around it (not just a single walkable tile)
 	# Search in expanding rings from center

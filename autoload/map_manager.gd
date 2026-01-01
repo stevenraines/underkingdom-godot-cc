@@ -28,13 +28,42 @@ func get_or_generate_map(map_id: String, seed: int) -> GameMap:
 func transition_to_map(map_id: String) -> void:
 	current_map = get_or_generate_map(map_id, GameManager.world_seed)
 	GameManager.set_current_map(map_id)
+
+	# Enable chunk mode for overworld
+	if map_id == "overworld":
+		current_map.chunk_based = true
+		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
+	else:
+		current_map.chunk_based = false
+		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
+
 	EventBus.map_changed.emit(map_id)
 	print("Transitioned to map: ", map_id)
 
 ## Generate a map based on its ID
 func _generate_map(map_id: String, seed: int) -> GameMap:
 	if map_id == "overworld":
-		return WorldGenerator.generate_overworld(seed)
+		# For overworld, create empty map shell - chunks generated on demand
+		print("[MapManager] Creating chunk-based overworld map")
+		var map = GameMap.new("overworld", 10000, 10000, seed)  # Virtually infinite bounds
+		map.chunk_based = true
+
+		# Note: Terrain generation happens in ChunkManager on demand
+		# But we still need to place special features (dungeon entrance, town, water sources)
+		# These will be placed at fixed positions based on seed
+
+		var rng = SeededRandom.new(seed)
+
+		# Place dungeon entrance at a fixed location (chunk 5, 5) - center-ish
+		var entrance_pos = Vector2i(5 * 32 + 16, 5 * 32 + 16)  # Center of chunk 5,5
+		# Will be set when chunk loads
+
+		# Store special positions in map metadata
+		map.set_meta("dungeon_entrance", entrance_pos)
+		map.set_meta("town_center", Vector2i(4 * 32 + 16, 5 * 32 + 16))  # Adjacent chunk
+
+		return map
+
 	elif map_id.begins_with("dungeon_barrow_floor_"):
 		# Extract floor number from map_id
 		var floor_str = map_id.replace("dungeon_barrow_floor_", "")

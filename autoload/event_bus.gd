@@ -18,6 +18,10 @@ signal player_moved(old_pos: Vector2i, new_pos: Vector2i)
 # Map signals
 @warning_ignore("unused_signal")
 signal map_changed(map_id: String)
+@warning_ignore("unused_signal")
+signal chunk_loaded(chunk_coords: Vector2i)
+@warning_ignore("unused_signal")
+signal chunk_unloaded(chunk_coords: Vector2i)
 
 # Entity signals
 @warning_ignore("unused_signal")

@@ -2,14 +2,14 @@ extends Node
 ## TownGenerator - Generates town area in the overworld
 ##
 ## Creates a safe zone with buildings, NPCs, and resources.
-## Phase 1: Single town with one shop NPC.
+## Phase 1.17: Town with general store and blacksmith.
 
 # Type references
 const GameTile = preload("res://maps/game_tile.gd")
 const SeededRandom = preload("res://generation/seeded_random.gd")
 
 # Town constants
-const TOWN_SIZE = Vector2i(15, 15)  # Smaller to fit in 80x40 map
+const TOWN_SIZE = Vector2i(20, 15)  # Expanded for two buildings
 const SHOP_SIZE = Vector2i(5, 5)
 
 ## Generates town in the overworld map
@@ -27,28 +27,43 @@ static func generate_town(world_map: GameMap, world_seed: int):
 	var town_rect = Rect2i(town_pos, TOWN_SIZE)
 	_clear_town_area(world_map, town_rect)
 
-	# Place shop building
-	var shop_pos = town_pos + Vector2i(7, 8)
-	_place_building(world_map, shop_pos, SHOP_SIZE)
-
-	# Store shop NPC spawn data in metadata (will be created when map loads)
-	var npc_pos = shop_pos + Vector2i(2, 2)
+	# Initialize NPC spawns metadata
 	if not world_map.has_meta("npc_spawns"):
 		world_map.set_meta("npc_spawns", [])
-
 	var npc_spawns = world_map.get_meta("npc_spawns")
+
+	# Place General Store (left side)
+	var general_store_pos = town_pos + Vector2i(3, 8)
+	_place_building(world_map, general_store_pos, SHOP_SIZE)
+	var general_npc_pos = general_store_pos + Vector2i(2, 2)
 	npc_spawns.append({
 		"npc_type": "shop",
+		"shop_type": "general",
 		"npc_id": "shop_keeper",
-		"position": npc_pos,
+		"position": general_npc_pos,
 		"name": "Olaf the Trader",
 		"gold": 500,
 		"restock_interval": 500
 	})
+
+	# Place Blacksmith (right side)
+	var blacksmith_pos = town_pos + Vector2i(12, 8)
+	_place_building(world_map, blacksmith_pos, SHOP_SIZE)
+	var blacksmith_npc_pos = blacksmith_pos + Vector2i(2, 2)
+	npc_spawns.append({
+		"npc_type": "shop",
+		"shop_type": "blacksmith",
+		"npc_id": "blacksmith",
+		"position": blacksmith_npc_pos,
+		"name": "Grenda the Smith",
+		"gold": 800,
+		"restock_interval": 500
+	})
+
 	world_map.set_meta("npc_spawns", npc_spawns)
 
-	# Place well (water source) near town center
-	var well_pos = town_pos + Vector2i(15, 10)
+	# Place well (water source) between the two buildings
+	var well_pos = town_pos + Vector2i(10, 5)
 	_place_well(world_map, well_pos)
 
 	# Add decorative trees around perimeter

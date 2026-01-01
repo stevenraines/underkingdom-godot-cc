@@ -182,6 +182,7 @@ func spawn_npc(spawn_data: Dictionary):
 
 	npc.entity_type = "npc"
 	npc.npc_type = spawn_data.get("npc_type", "generic")
+	npc.shop_type = spawn_data.get("shop_type", "general")
 	npc.name = spawn_data.get("name", "NPC")
 	npc.gold = spawn_data.get("gold", 0)
 	npc.restock_interval = spawn_data.get("restock_interval", 500)
@@ -189,12 +190,20 @@ func spawn_npc(spawn_data: Dictionary):
 
 	# Set dialogue for shop NPCs
 	if npc.npc_type == "shop":
-		npc.dialogue = {
-			"greeting": "Welcome to my shop, traveler! I have supplies for your journey.",
-			"buy": "Take a look at my wares. Fair prices, I assure you!",
-			"sell": "Let me see what you have. I'll pay a fair price.",
-			"farewell": "Safe travels, friend! Watch out for those barrows..."
-		}
+		if npc.shop_type == "blacksmith":
+			npc.dialogue = {
+				"greeting": "Well met! Looking for quality arms and armor?",
+				"buy": "Fine craftsmanship, all of it. Made with my own hands!",
+				"sell": "Got some metal to sell? I'll pay fair prices.",
+				"farewell": "May your blade stay sharp, traveler!"
+			}
+		else:
+			npc.dialogue = {
+				"greeting": "Welcome to my shop, traveler! I have supplies for your journey.",
+				"buy": "Take a look at my wares. Fair prices, I assure you!",
+				"sell": "Let me see what you have. I'll pay a fair price.",
+				"farewell": "Safe travels, friend! Watch out for those barrows..."
+			}
 		npc.load_shop_inventory()
 
 	entities.append(npc)

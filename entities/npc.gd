@@ -7,6 +7,7 @@ class_name NPC
 
 # NPC-specific properties
 var npc_type: String = "generic"  ## Type: "shop", "quest", "guard", etc.
+var shop_type: String = "general"  ## Shop subtype: "general", "blacksmith", etc.
 var dialogue: Dictionary = {}  ## Dialogue lines for different contexts
 var schedule: Array = []  ## Future: time-based behavior patterns
 var faction: String = "neutral"  ## Faction affiliation
@@ -60,26 +61,54 @@ func speak_greeting():
 	EventBus.emit_signal("message_logged", "%s: %s" % [name if name else "NPC", greeting])
 
 func load_shop_inventory():
-	## Loads default shop inventory
-	## This should be overridden when creating specific NPCs
-	## or loaded from JSON data in the future
+	## Loads default shop inventory based on shop_type
+	## Different shop types have different inventories
 
-	# Phase 1 default shop inventory
-	if npc_type == "shop":
-		trade_inventory = [
-			{"item_id": "raw_meat", "count": 10, "base_price": 5},
-			{"item_id": "cooked_meat", "count": 5, "base_price": 8},
-			{"item_id": "waterskin_empty", "count": 5, "base_price": 10},
-			{"item_id": "torch", "count": 20, "base_price": 3},
-			{"item_id": "bandage", "count": 8, "base_price": 12},
-			{"item_id": "cord", "count": 15, "base_price": 2},
-			{"item_id": "cloth", "count": 10, "base_price": 3},
-			{"item_id": "flint", "count": 8, "base_price": 5},
-			{"item_id": "pickaxe", "count": 2, "base_price": 10},
-			{"item_id": "iron_ore", "count": 10, "base_price": 2},	
-			{"item_id": "hammer", "count": 2, "base_price": 2}
+	if npc_type != "shop":
+		return
 
-		]
+	match shop_type:
+		"blacksmith":
+			_load_blacksmith_inventory()
+		_:  # "general" and default
+			_load_general_inventory()
+
+func _load_general_inventory():
+	## General store inventory - food, tools, materials
+	trade_inventory = [
+		{"item_id": "raw_meat", "count": 10, "base_price": 5},
+		{"item_id": "cooked_meat", "count": 5, "base_price": 8},
+		{"item_id": "waterskin_empty", "count": 5, "base_price": 10},
+		{"item_id": "torch", "count": 20, "base_price": 3},
+		{"item_id": "bandage", "count": 8, "base_price": 12},
+		{"item_id": "cord", "count": 15, "base_price": 2},
+		{"item_id": "cloth", "count": 10, "base_price": 3},
+		{"item_id": "flint", "count": 8, "base_price": 5},
+		{"item_id": "pickaxe", "count": 2, "base_price": 25},
+		{"item_id": "wood", "count": 20, "base_price": 3},
+	]
+
+func _load_blacksmith_inventory():
+	## Blacksmith inventory - armor, weapons, metal tools
+	trade_inventory = [
+		# Armor
+		{"item_id": "leather_armor", "count": 2, "base_price": 30},
+		{"item_id": "leather_cap", "count": 3, "base_price": 15},
+		{"item_id": "leather_gloves", "count": 3, "base_price": 10},
+		{"item_id": "leather_pants", "count": 2, "base_price": 20},
+		{"item_id": "leather_boots", "count": 3, "base_price": 15},
+		{"item_id": "wooden_shield", "count": 2, "base_price": 25},
+		# Weapons
+		{"item_id": "iron_sword", "count": 2, "base_price": 40},
+		{"item_id": "wooden_club", "count": 3, "base_price": 10},
+		{"item_id": "wooden_staff", "count": 2, "base_price": 15},
+		# Tools
+		{"item_id": "hammer", "count": 3, "base_price": 20},
+		{"item_id": "iron_knife", "count": 3, "base_price": 15},
+		# Materials
+		{"item_id": "iron_ore", "count": 15, "base_price": 8},
+		{"item_id": "leather", "count": 10, "base_price": 5},
+	]
 
 func get_shop_item(item_id: String) -> Dictionary:
 	## Returns shop item data if available
@@ -126,6 +155,7 @@ func to_dict() -> Dictionary:
 	data["name"] = name
 	data["position"] = {"x": position.x, "y": position.y}
 	data["npc_type"] = npc_type
+	data["shop_type"] = shop_type
 	data["dialogue"] = dialogue.duplicate()
 	data["faction"] = faction
 	data["gold"] = gold
@@ -147,6 +177,7 @@ func from_dict(data: Dictionary):
 	var pos = data.get("position", {"x": 0, "y": 0})
 	position = Vector2i(pos.x, pos.y)
 	npc_type = data.get("npc_type", "generic")
+	shop_type = data.get("shop_type", "general")
 	dialogue = data.get("dialogue", {})
 	faction = data.get("faction", "neutral")
 	gold = data.get("gold", 0)

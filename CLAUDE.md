@@ -232,26 +232,19 @@ All interconnected for emergent gameplay:
 - Deterministic map regeneration from seed
 - Save/load operations with error handling
 
-### Phase 1.16 (UI Polish) - 🔄 NEXT
-**Scope**: Discovery-based crafting system
-- Recipe data structure
-- Crafting attempt logic (success/failure)
-- Recipe memory (unlocking system)
-- Discovery hints (INT-based)
-- Tool requirement checking
-- Proximity crafting (fire sources)
-- Phase 1 recipes (consumables, tools, equipment)
-- Basic crafting UI
+### Phase 1.16 (UI Polish) - ✅ COMPLETE
+- Main menu with new game/load/quit options
+- Character sheet (P key) with attributes, combat stats, survival stats
+- Help screen (F1/? key) with keybindings and tips
+- Keyboard navigation for all screens
+- Consistent styling across inventory, character, and help screens
 
-**Phase 1 Recipes** (from PRD):
-- Cooked Meat: Raw Meat + Fire (3 tiles)
-- Bandage: Cloth + Herb
-- Waterskin: Leather + Cord + Knife
-- Flint Knife: Flint + Wood
-- Iron Knife: Iron Ore + Wood + Hammer
-- Hammer: Iron Ore + Wood×2
-- Leather Armor: Leather×3 + Cord + Knife
-- Wooden Shield: Wood×2 + Cord + Knife
+### Phase 1.17 (Overworld Generation) - 🔄 IN PROGRESS
+**Scope**: Enhanced overworld with improved town and generation
+- [x] Expand town to 2 buildings: general store and blacksmith
+- [ ] Overworld generation with perlin noise
+- [ ] Pop-up map of entire island (miniature)
+- [ ] Mining for ore (rocks with ore)
 
 ---
 
@@ -452,13 +445,13 @@ EventBus.turn_advanced.connect(func(turn): print("Turn advanced: ", turn))
 
 ---
 
-## Future Phases (Post-1.15)
+## Future Phases (Post-1.17)
 
-- Phase 1.16: UI Polish (shop UI, save/load UI, death screen, menu improvements)
-- Phase 1.17: Integration & Testing (full playtest, balance pass, bug fixes)
+- Phase 1.18: Enhanced Combat (targeting, ranged weapons)
+- Phase 2: Systems Expansion (weather, player leveling, damage types)
 
 ---
 
 **Last Updated**: December 31, 2025
-**Current Branch**: `feature/town-and-save-system`
-**Next Phase**: 1.16 - UI Polish (Shop & Save/Load interfaces)
+**Current Branch**: `feature/town-blacksmith`
+**Next Phase**: 1.17 - Overworld Generation (perlin noise, minimap, mining)

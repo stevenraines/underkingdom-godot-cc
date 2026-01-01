@@ -82,6 +82,13 @@ func open(p_player: Player, p_shop_npc: NPC) -> void:
 	selected_index = 0
 	quantity = 1
 
+	# Set shop title based on shop type
+	match shop_npc.shop_type:
+		"blacksmith":
+			shop_title_label.text = "◆ BLACKSMITH ◆"
+		_:
+			shop_title_label.text = "◆ GENERAL STORE ◆"
+
 	# Display shop keeper greeting
 	var greeting = shop_npc.dialogue.get("greeting", "Welcome to my shop!")
 	shopkeeper_label.text = "%s: \"%s\"" % [shop_npc.name, greeting]

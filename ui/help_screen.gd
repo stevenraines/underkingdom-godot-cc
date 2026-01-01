@@ -85,6 +85,8 @@ func _build_ui() -> void:
 	var title = Label.new()
 	title.text = "◆ HELP & KEYBINDINGS ◆"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if theme != null:
+		title.theme = theme
 	title.add_theme_color_override("font_color", COLOR_TITLE)
 	title.add_theme_font_size_override("font_size", 20)
 	vbox.add_child(title)
@@ -115,6 +117,8 @@ func _build_ui() -> void:
 	var footer = Label.new()
 	footer.text = "↑↓ Scroll  |  [?] [F1] [ESC] Close"
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if theme != null:
+		footer.theme = theme
 	footer.add_theme_color_override("font_color", COLOR_FOOTER)
 	footer.add_theme_font_size_override("font_size", 13)
 	vbox.add_child(footer)
@@ -195,6 +199,8 @@ func _add_section_header(text: String) -> void:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if theme != null:
+		header.theme = theme
 	header.add_theme_color_override("font_color", COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	content_container.add_child(header)
@@ -206,6 +212,8 @@ func _add_keybind(key: String, description: String) -> void:
 	var key_label = Label.new()
 	key_label.text = "[%s]" % key
 	key_label.custom_minimum_size.x = 180
+	if theme != null:
+		key_label.theme = theme
 	key_label.add_theme_color_override("font_color", COLOR_KEY)
 	key_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(key_label)
@@ -213,6 +221,8 @@ func _add_keybind(key: String, description: String) -> void:
 	var desc_label = Label.new()
 	desc_label.text = description
 	desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if theme != null:
+		desc_label.theme = theme
 	desc_label.add_theme_color_override("font_color", COLOR_DESC)
 	desc_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(desc_label)
@@ -224,6 +234,8 @@ func _add_help_text(text: String) -> void:
 	var label = Label.new()
 	label.text = "  • " + text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if theme != null:
+		label.theme = theme
 	label.add_theme_color_override("font_color", COLOR_TIP)
 	label.add_theme_font_size_override("font_size", 14)
 	content_container.add_child(label)

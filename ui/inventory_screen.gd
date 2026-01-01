@@ -12,9 +12,20 @@ signal closed()
 @onready var inventory_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer
 @onready var weight_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/WeightLabel
 @onready var encumbrance_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/EncumbranceLabel
-@onready var tooltip_label: RichTextLabel = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipMargin/TooltipLabel
 @onready var equipment_title: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentTitle
 @onready var inventory_title: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/InventoryTitle
+
+# New tooltip UI elements (3-column layout)
+@onready var item_name_label: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/NameColumn/ItemName
+@onready var item_desc_label: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/NameColumn/ItemDesc
+@onready var stat_line_1: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/StatsColumn/StatLine1
+@onready var stat_line_2: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/StatsColumn/StatLine2
+@onready var stat_line_3: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/StatsColumn/StatLine3
+@onready var weight_line: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/ValueColumn/WeightLine
+@onready var value_line: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns/ValueColumn/ValueLine
+@onready var action_e: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionE
+@onready var action_u: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionU
+@onready var action_d: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionD
 
 var player: Player = null
 var selected_item: Item = null
@@ -349,77 +360,128 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 			row.add_theme_color_override("font_color", COLOR_EMPTY)
 
 func _update_tooltip() -> void:
-	if not tooltip_label:
+	if not item_name_label:
 		return
-	
+
 	if selected_item:
-		tooltip_label.text = _format_item_tooltip(selected_item)
+		_populate_item_tooltip(selected_item)
 	elif selected_slot != "":
 		var slot_name = SLOT_DISPLAY_NAMES.get(selected_slot, selected_slot)
 		# Check if off_hand is blocked
 		if selected_slot == "off_hand" and player and player.inventory and player.inventory.is_off_hand_blocked():
-			tooltip_label.text = "[color=#ff8888]%s slot is BLOCKED[/color]\n\n[color=#888888]A two-handed weapon is equipped in main hand.[/color]\n\nUnequip the weapon to use this slot.\n\n[color=#666666][Tab] Switch panel | [ESC] Close[/color]"  % slot_name
+			item_name_label.text = "%s slot is BLOCKED" % slot_name
+			item_name_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+			item_desc_label.text = "A two-handed weapon is equipped"
+			stat_line_1.text = "Unequip weapon to use"
+			stat_line_2.text = ""
+			stat_line_3.text = ""
 		else:
-			tooltip_label.text = "[color=#888888]Empty %s slot[/color]\n\nSelect an item to equip here.\n\n[color=#666666][E] Browse items | [Tab] Switch panel | [ESC] Close[/color]" % slot_name
+			item_name_label.text = "Empty %s slot" % slot_name
+			item_name_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+			item_desc_label.text = "Select an item to equip"
+			stat_line_1.text = "[E] Browse items"
+			stat_line_2.text = ""
+			stat_line_3.text = ""
+		weight_line.text = ""
+		value_line.text = ""
+		_update_action_visibility(null)
 	else:
-		tooltip_label.text = "[color=#888888]Use [Tab] to switch between Equipment and Backpack[/color]\n\n[color=#666666][ESC] Close[/color]"
+		item_name_label.text = "No item selected"
+		item_name_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		item_desc_label.text = "Use [Tab] to switch panels"
+		stat_line_1.text = ""
+		stat_line_2.text = ""
+		stat_line_3.text = ""
+		weight_line.text = ""
+		value_line.text = ""
+		_update_action_visibility(null)
 
-## Format item tooltip with BBCode
-func _format_item_tooltip(item: Item) -> String:
-	var tooltip = "[color=#%s][b]%s[/b][/color]\n" % [item.get_color().to_html(false), item.name]
-	tooltip += "[color=#888888]%s[/color]\n\n" % item.description
-	
-	# Stats based on item type
+## Populate the tooltip UI with item data
+func _populate_item_tooltip(item: Item) -> void:
+	# Name column
+	item_name_label.text = item.name
+	item_name_label.add_theme_color_override("font_color", item.get_color())
+	item_desc_label.text = item.description
+
+	# Stats column - build stat lines based on item type
+	var stats: Array[String] = []
+
 	match item.item_type:
 		"consumable":
 			if item.effects.has("health") and item.effects["health"] > 0:
-				tooltip += "[color=#88ff88]♥ Heals: %d HP[/color]\n" % item.effects["health"]
+				stats.append("♥ Heals: %d HP" % item.effects["health"])
 			if item.effects.has("hunger") and item.effects["hunger"] > 0:
-				tooltip += "[color=#ffcc88]◆ Hunger: +%d%%[/color]\n" % item.effects["hunger"]
+				stats.append("◆ Hunger: +%d%%" % item.effects["hunger"])
 			if item.effects.has("thirst") and item.effects["thirst"] > 0:
-				tooltip += "[color=#88ccff]◇ Thirst: +%d%%[/color]\n" % item.effects["thirst"]
+				stats.append("◇ Thirst: +%d%%" % item.effects["thirst"])
 		"weapon":
-			tooltip += "[color=#ff8888]⚔ Damage: +%d[/color]\n" % item.damage_bonus
+			stats.append("⚔ Damage: +%d" % item.damage_bonus)
 			if item.is_two_handed():
-				tooltip += "[color=#cc88cc]◊ Two-Handed[/color]\n"
+				stats.append("◊ Two-Handed")
 		"armor":
-			tooltip += "[color=#8888ff]◈ Armor: %d[/color]\n" % item.armor_value
+			stats.append("◈ Armor: %d" % item.armor_value)
 		"tool":
 			if item.tool_type != "":
-				tooltip += "[color=#cccccc]⚒ Tool: %s[/color]\n" % item.tool_type.capitalize()
+				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
 			if item.is_two_handed():
-				tooltip += "[color=#cc88cc]◊ Two-Handed[/color]\n"
-	
+				stats.append("◊ Two-Handed")
+
 	# Equip slot info for multi-slot items
 	var slots = item.get_equip_slots()
 	if slots.size() > 1:
 		var slot_names = []
 		for slot in slots:
 			slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
-		tooltip += "[color=#aaaaaa]Slots: %s[/color]\n" % ", ".join(slot_names)
-	
-	tooltip += "\n[color=#666666]Weight: %.1f kg  |  Value: %d gold[/color]" % [item.weight, item.value]
-	
-	# Dynamic action hints based on item flags and context - styled like bottom panel
-	var actions = []
+		stats.append("Slots: %s" % ", ".join(slot_names))
 
+	# Assign stats to the 3 stat lines
+	stat_line_1.text = stats[0] if stats.size() > 0 else ""
+	stat_line_2.text = stats[1] if stats.size() > 1 else ""
+	stat_line_3.text = stats[2] if stats.size() > 2 else ""
+
+	# Set stat colors based on type
+	var stat_color = Color(0.7, 0.9, 0.7)
+	match item.item_type:
+		"consumable":
+			stat_color = Color(0.5, 0.9, 0.5)
+		"weapon":
+			stat_color = Color(1.0, 0.5, 0.5)
+		"armor":
+			stat_color = Color(0.5, 0.5, 1.0)
+		"tool":
+			stat_color = Color(0.8, 0.8, 0.8)
+
+	stat_line_1.add_theme_color_override("font_color", stat_color)
+	stat_line_2.add_theme_color_override("font_color", stat_color)
+	stat_line_3.add_theme_color_override("font_color", stat_color)
+
+	# Value column
+	weight_line.text = "%.1f kg" % item.weight
+	value_line.text = "%d gold" % item.value
+
+	# Update action visibility
+	_update_action_visibility(item)
+
+## Update which action labels are visible based on item
+func _update_action_visibility(item: Item) -> void:
+	if not item:
+		action_e.visible = false
+		action_u.visible = false
+		action_d.visible = false
+		return
+
+	# Show/hide actions based on item properties and context
 	if is_equipment_focused and selected_slot != "":
-		# Item is equipped - show unequip option
-		actions.append("[color=#9acc9a][E] Equip[/color]")
+		# Item is equipped - show unequip
+		action_e.text = "[E] Unequip"
+		action_e.visible = true
 	else:
-		# Item is in inventory - show contextual options
-		if item.is_consumable():
-			actions.append("[color=#9acc9a][U] Use[/color]")
-		if item.is_equippable():
-			actions.append("[color=#9acc9a][E] Equip[/color]")
+		# Item is in inventory
+		action_e.text = "[E] Equip"
+		action_e.visible = item.is_equippable()
 
-	actions.append("[color=#9acc9a][D] Drop[/color]")
-	actions.append("[color=#7fb3cc][Tab] Switch[/color]")
-	actions.append("[color=#cc9999][Esc] Close[/color]")
-
-	tooltip += "\n\n%s" % "  ".join(actions)
-	
-	return tooltip
+	action_u.visible = item.is_consumable()
+	action_d.visible = true
 
 func _navigate(direction: int) -> void:
 	if is_equipment_focused:
@@ -482,12 +544,28 @@ func _show_items_for_slot(slot: String) -> void:
 	# Check if off_hand is blocked
 	if slot == "off_hand" and player.inventory.is_off_hand_blocked():
 		# Show message in tooltip
-		tooltip_label.text = "[color=#ff8888]Off-hand slot is blocked by two-handed weapon![/color]\n\nUnequip your main weapon first."
+		item_name_label.text = "Off-hand slot is blocked!"
+		item_name_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+		item_desc_label.text = "Unequip your main weapon first"
+		stat_line_1.text = ""
+		stat_line_2.text = ""
+		stat_line_3.text = ""
+		weight_line.text = ""
+		value_line.text = ""
+		_update_action_visibility(null)
 		return
-	
+
 	var items = player.inventory.get_items_for_slot(slot)
 	if items.is_empty():
-		tooltip_label.text = "[color=#888888]No items in backpack can be equipped here.[/color]"
+		item_name_label.text = "No items available"
+		item_name_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		item_desc_label.text = "No items can be equipped here"
+		stat_line_1.text = ""
+		stat_line_2.text = ""
+		stat_line_3.text = ""
+		weight_line.text = ""
+		value_line.text = ""
+		_update_action_visibility(null)
 		return
 	
 	slot_selection_mode = true
@@ -515,25 +593,31 @@ func _show_slot_picker(item: Item) -> void:
 func _update_slot_picker_display() -> void:
 	if not _pending_slot_picker_item:
 		return
-	
+
 	var item = _pending_slot_picker_item
 	var slots = item.get_equip_slots()
-	
-	var tooltip = "[color=#99cc99][b]Select Slot for %s[/b][/color]\n\n" % item.name
+
+	# Show slot picker in tooltip area
+	item_name_label.text = "Select Slot for %s" % item.name
+	item_name_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
+
+	# Build slot list for description
+	var slot_lines: Array[String] = []
 	for i in range(slots.size()):
 		var slot = slots[i]
 		var slot_name = SLOT_DISPLAY_NAMES.get(slot, slot)
 		var current = player.inventory.get_equipped(slot)
 		var current_text = current.name if current else "Empty"
 		var marker = "► " if i == _slot_picker_index else "  "
-		# Highlight selected slot in yellow
-		if i == _slot_picker_index:
-			tooltip += "[color=#ffff99]%s[%d] %s: %s[/color]\n" % [marker, i + 1, slot_name, current_text]
-		else:
-			tooltip += "%s[%d] %s: %s\n" % [marker, i + 1, slot_name, current_text]
-	
-	tooltip += "\n[color=#666666]↑↓ Navigate | Enter to equip | 1-%d Quick select | ESC Cancel[/color]" % slots.size()
-	tooltip_label.text = tooltip
+		slot_lines.append("%s[%d] %s: %s" % [marker, i + 1, slot_name, current_text])
+
+	item_desc_label.text = "\n".join(slot_lines)
+	stat_line_1.text = "↑↓ Navigate"
+	stat_line_2.text = "Enter to equip"
+	stat_line_3.text = "ESC Cancel"
+	weight_line.text = ""
+	value_line.text = ""
+	_update_action_visibility(null)
 
 var _pending_slot_picker_item: Item = null
 var _slot_picker_index: int = 0  # Track selected slot in slot picker
@@ -603,21 +687,27 @@ func _confirm_slot_selection() -> void:
 func _update_slot_selection_display() -> void:
 	if slot_selection_items.is_empty():
 		return
-	
+
 	var slot_name = SLOT_DISPLAY_NAMES.get(pending_equip_slot, pending_equip_slot)
-	var tooltip = "[color=#99cc99][b]Select item to equip in %s:[/b][/color]\n\n" % slot_name
-	
+
+	# Show item picker in tooltip area
+	item_name_label.text = "Select item for %s" % slot_name
+	item_name_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
+
+	# Build item list for description
+	var item_lines: Array[String] = []
 	for i in range(slot_selection_items.size()):
 		var item = slot_selection_items[i]
 		var marker = "► " if i == slot_selection_index else "  "
-		# Highlight selected item in yellow
-		if i == slot_selection_index:
-			tooltip += "[color=#ffff99]%s%s[/color]\n" % [marker, item.name]
-		else:
-			tooltip += "%s[color=#%s]%s[/color]\n" % [marker, item.get_color().to_html(false), item.name]
-	
-	tooltip += "\n[color=#666666]↑↓ Navigate | Enter to equip | ESC to cancel[/color]"
-	tooltip_label.text = tooltip
+		item_lines.append("%s%s" % [marker, item.name])
+
+	item_desc_label.text = "\n".join(item_lines)
+	stat_line_1.text = "↑↓ Navigate"
+	stat_line_2.text = "Enter to equip"
+	stat_line_3.text = "ESC Cancel"
+	weight_line.text = ""
+	value_line.text = ""
+	_update_action_visibility(null)
 
 func _use_selected() -> void:
 	if not player or not selected_item:

@@ -566,7 +566,6 @@ SaveData:
 - [X] Recipe data structure
 - [X] Crafting attempt logic
 - [X] Recipe memory
-- [ ] Discovery hints
 - [X] Tool requirement checking
 - [X] Phase 1 recipes implemented
 - [X] Basic UI
@@ -596,20 +595,20 @@ SaveData:
 - [X] Save data serialization
 - [X] Save/load functions
 - [X] Three slot management
-- [ ] Death → show death splash screen and prompt to return to main menu
+- [X] Death → show death splash screen and prompt to return to main menu
 - [X] Save anywhere trigger (menu)
 - [X] Support Saves in Web (html/wasm) deployment
 
 #### 1.16 UI Polish
 - [X] Main menu
-- [ ] Character sheet
-- [ ] Contextual Help for Game sheet (? key - show all keys available to character)
+- [X] Character sheet
+- [X] Contextual Help for Game sheet (? key - show all keys available to character)
 
 #### 1.17 Overworld Generation
 - [ ] Expand town to 2 buildings: general store (general goods) and blacksmith (armour)
-- [ ] Mining for ore (rocks with ore in it)
 - [ ] Overworld Generation with perlin noise
 - [ ] Pop-up map of entire island (in miniature)
+- [ ] Mining for ore (rocks with ore in it)
 
 #### 1.18 Enhanced Combat
 - [ ] Targeting an enemy

@@ -207,6 +207,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
 			_start_harvest_mode()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_P:  # P key - character sheet
+			_open_character_sheet()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed):  # F1 or ? (Shift+/) - help screen
+			_open_help_screen()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -307,6 +313,24 @@ func _start_harvest_mode() -> void:
 	# Set a flag to await direction input
 	ui_blocking_input = true
 	_awaiting_harvest_direction = true
+
+## Open character sheet
+func _open_character_sheet() -> void:
+	print("[InputHandler] Opening character sheet")
+	var game = get_parent()
+	if game and game.has_method("open_character_sheet"):
+		game.open_character_sheet()
+	else:
+		print("[InputHandler] ERROR: game or open_character_sheet method not found")
+
+## Open help screen
+func _open_help_screen() -> void:
+	print("[InputHandler] Opening help screen")
+	var game = get_parent()
+	if game and game.has_method("open_help_screen"):
+		game.open_help_screen()
+	else:
+		print("[InputHandler] ERROR: game or open_help_screen method not found")
 
 ## Try to harvest a resource in the given direction
 func _try_harvest(direction: Vector2i) -> bool:

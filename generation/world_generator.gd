@@ -29,9 +29,11 @@ static func generate_overworld(seed_value: int) -> GameMap:
 
 			map.set_tile(Vector2i(x, y), tile)
 
-	# Spawn procedural resources (trees, rocks) based on biome densities
-	print("[WorldGenerator] Spawning procedural resources...")
-	ResourceSpawner.spawn_resources(map, seed_value)
+	# NOTE: Resource spawning removed for chunk-based maps
+	# Resources are now spawned on-demand in WorldChunk.generate() for chunk-based overworld
+	# This prevents duplicate spawning and improves performance
+	# If this generator is ever used for static (non-chunk) maps, uncomment below:
+	# ResourceSpawner.spawn_resources(map, seed_value)
 
 	# Place dungeon entrance at a random walkable location
 	var entrance_pos = _find_valid_location(map, rng)

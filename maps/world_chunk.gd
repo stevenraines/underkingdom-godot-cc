@@ -34,6 +34,11 @@ func generate(world_seed: int) -> void:
 
 	var rng = SeededRandom.new(seed)
 
+	# Check if this chunk contains special features
+	var map = MapManager.current_map
+	var dungeon_entrance_pos = map.get_meta("dungeon_entrance", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
+	var town_center_pos = map.get_meta("town_center", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
+
 	# Generate all tiles in chunk using biome system
 	for local_y in range(CHUNK_SIZE):
 		for local_x in range(CHUNK_SIZE):
@@ -49,10 +54,27 @@ func generate(world_seed: int) -> void:
 			if biome.base_tile == "floor":
 				tile.ascii_char = biome.grass_char
 
+			# Check for special features at this position
+			if world_pos == dungeon_entrance_pos:
+				# Place dungeon entrance
+				tile = GameTile.create("stairs_down")
+				print("[WorldChunk] Placed dungeon entrance at %v" % world_pos)
+			elif town_center_pos != Vector2i(-1, -1):
+				# Check if within town area (20x20 around center)
+				var dist_to_town = (world_pos - town_center_pos).length()
+				if dist_to_town <= 10:
+					# This tile is within town boundary
+					# Town generation will be handled by TownGenerator when chunk loads
+					# For now, just ensure it's walkable floor
+					if tile.tile_type != "floor":
+						tile = GameTile.create("floor")
+						tile.ascii_char = biome.grass_char
+
 			tiles[Vector2i(local_x, local_y)] = tile
 
-			# Try to spawn resources on floor tiles
-			if tile.walkable and tile.tile_type == "floor":
+			# Try to spawn resources on floor tiles (skip in town area)
+			var dist_to_town = (world_pos - town_center_pos).length() if town_center_pos != Vector2i(-1, -1) else 999
+			if tile.walkable and tile.tile_type == "floor" and dist_to_town > 10:
 				# Try to spawn tree
 				if rng.randf() < biome.tree_density:
 					var resource_instance = ResourceSpawner.ResourceInstance.new("tree", world_pos, chunk_coords)

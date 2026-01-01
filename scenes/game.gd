@@ -35,6 +35,7 @@ var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for pla
 @onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
 @onready var xp_label: Label = $HUD/TopBar/XPLabel
+@onready var minimap: Control = $HUD/Minimap
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
@@ -405,6 +406,9 @@ func toggle_auto_pickup() -> void:
 ## Called when map changes (dungeon transitions, etc.)
 func _on_map_changed(map_id: String) -> void:
 	print("Map changed to: ", map_id)
+
+	# Invalidate FOV cache since map changed
+	FOVSystem.invalidate_cache()
 
 	# Clear existing entities from EntityManager
 	EntityManager.clear_entities()
@@ -1000,6 +1004,15 @@ func open_help_screen() -> void:
 		input_handler.ui_blocking_input = true
 	else:
 		print("[Game] ERROR: help_screen is null")
+
+## Toggle minimap visibility (called from M key)
+func toggle_minimap() -> void:
+	if minimap:
+		minimap.visible = !minimap.visible
+		var state = "shown" if minimap.visible else "hidden"
+		_add_message("Minimap %s" % state, Color(0.7, 0.7, 0.7))
+	else:
+		print("[Game] ERROR: minimap is null")
 
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:

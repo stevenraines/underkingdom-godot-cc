@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://bkt0gfnv2fxc7"]
+[gd_scene load_steps=7 format=3 uid="uid://bkt0gfnv2fxc7"]
 
 [ext_resource type="Script" uid="uid://bl5fpk0yyvree" path="res://scenes/game.gd" id="1"]
 [ext_resource type="Script" uid="uid://ce5bl6t6e1uhb" path="res://rendering/ascii_renderer.gd" id="2"]
 [ext_resource type="Script" uid="uid://exbh7mltocr1" path="res://systems/input_handler.gd" id="3"]
 [ext_resource type="Script" uid="uid://bgrsijr2w0gq7" path="res://rendering/terrain_layer.gd" id="4"]
 [ext_resource type="Script" uid="uid://k2nqf83q2uiy" path="res://rendering/entity_layer.gd" id="5"]
+[ext_resource type="PackedScene" uid="uid://dpvo1y4m8xfyr" path="res://ui/minimap.tscn" id="6"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
@@ -33,6 +34,19 @@ zoom = Vector2(0.4, 0.3)
 script = ExtResource("3")
 
 [node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Minimap" parent="HUD" instance=ExtResource("6")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -170.0
+offset_top = 60.0
+offset_right = -20.0
+offset_bottom = 210.0
+grow_horizontal = 0
+grow_vertical = 1
 
 [node name="TopBar" type="ColorRect" parent="HUD"]
 anchor_left = 0.0

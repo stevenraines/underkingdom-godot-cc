@@ -272,6 +272,10 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 			# Don't change the tile at all
 			pass
 
+	# Invalidate FOV cache if tiles were modified (transparency may have changed)
+	if resource.harvest_behavior == HarvestBehavior.DESTROY_PERMANENT or resource.harvest_behavior == HarvestBehavior.DESTROY_RENEWABLE:
+		FOVSystem.invalidate_cache()
+
 	# Format message
 	var yield_str = ", ".join(yield_messages) if not yield_messages.is_empty() else "nothing"
 	var message = resource.harvest_message.replace("%tool%", tool_check.tool_name).replace("%yield%", yield_str)

@@ -49,18 +49,20 @@ func _generate_map(map_id: String, seed: int) -> GameMap:
 		map.chunk_based = true
 
 		# Note: Terrain generation happens in ChunkManager on demand
-		# But we still need to place special features (dungeon entrance, town, water sources)
-		# These will be placed at fixed positions based on seed
+		# Use SpecialFeaturePlacer to find suitable biome-based locations for special features
 
-		var rng = SeededRandom.new(seed)
+		# Place dungeon entrance in suitable biome (rocky hills, mountains, barren rock)
+		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(seed)
 
-		# Place dungeon entrance at a fixed location (chunk 5, 5) - center-ish
-		var entrance_pos = Vector2i(5 * 32 + 16, 5 * 32 + 16)  # Center of chunk 5,5
-		# Will be set when chunk loads
+		# Place town in suitable biome (grassland, woodland) not too close to dungeon
+		var town_pos = SpecialFeaturePlacer.place_town(seed, entrance_pos)
 
 		# Store special positions in map metadata
+		# ChunkManager will check these and place actual tiles when chunks load
 		map.set_meta("dungeon_entrance", entrance_pos)
-		map.set_meta("town_center", Vector2i(4 * 32 + 16, 5 * 32 + 16))  # Adjacent chunk
+		map.set_meta("town_center", town_pos)
+
+		print("[MapManager] Special features placed: dungeon=%v, town=%v" % [entrance_pos, town_pos])
 
 		return map
 

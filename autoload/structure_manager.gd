@@ -89,6 +89,9 @@ func place_structure(map_id: String, structure) -> void:
 	placed_structures[map_id].append(structure)
 	EventBus.structure_placed.emit(structure)
 
+	# Invalidate FOV cache since structure placement may block vision
+	FOVSystem.invalidate_cache()
+
 ## Remove a structure from a map
 func remove_structure(map_id: String, structure) -> void:
 	if not placed_structures.has(map_id):
@@ -98,6 +101,9 @@ func remove_structure(map_id: String, structure) -> void:
 	var index = structures.find(structure)
 	if index >= 0:
 		structures.remove_at(index)
+
+		# Invalidate FOV cache since structure removal may change vision
+		FOVSystem.invalidate_cache()
 		EventBus.structure_removed.emit(structure)
 
 ## Get all structures on a map

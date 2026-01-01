@@ -215,7 +215,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_P:  # P key - character sheet
 			_open_character_sheet()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed):  # F1 or ? (Shift+/) - help screen
+		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed) or event.unicode == 63:  # F1 or ? (Shift+/ or unicode 63) - help screen
 			_open_help_screen()
 			get_viewport().set_input_as_handled()
 

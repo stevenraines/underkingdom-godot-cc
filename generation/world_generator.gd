@@ -2,18 +2,18 @@ class_name WorldGenerator
 
 ## WorldGenerator - Generate 100x100 overworld island with temperate woodland biome
 ##
-## Uses multiple layers of FastNoiseLite combined with radial island mask.
-## Creates a single cohesive island with natural shorelines.
+## Uses multiple layers of FastNoiseLite combined with organic island mask.
+## Creates a single irregular island with natural shorelines.
 
 const _GameTile = preload("res://maps/game_tile.gd")
 
 # Map dimensions per PRD
-const MAP_WIDTH = 100
-const MAP_HEIGHT = 100
+const MAP_WIDTH = 250
+const MAP_HEIGHT = 175
 
-# Island shape parameters
-const ISLAND_RADIUS = 0.42  # Proportion of map size for base island radius
-const SHORE_BLEND = 0.15    # Width of the shore transition zone
+# Island shape parameters - larger island that fills more of the map
+const ISLAND_BASE_SIZE = 0.75  # Base proportion of map covered by island
+const SHORE_WIDTH = 0.08      # Width of the shore transition zone
 
 ## Generate the overworld map
 static func generate_overworld(seed_value: int) -> GameMap:
@@ -25,11 +25,12 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	var terrain_noise = _create_terrain_noise(seed_value)
 	var forest_noise = _create_forest_noise(seed_value)
 	var shore_noise = _create_shore_noise(seed_value)
+	var shape_noise = _create_shape_noise(seed_value)
 
 	# Generate island terrain
 	for y in range(map.height):
 		for x in range(map.width):
-			var tile_type = _get_island_tile(x, y, terrain_noise, forest_noise, shore_noise)
+			var tile_type = _get_island_tile(x, y, terrain_noise, forest_noise, shore_noise, shape_noise)
 			map.set_tile(Vector2i(x, y), _create_tile(tile_type))
 
 	# Place dungeon entrance at a random walkable location (away from edges)
@@ -77,32 +78,55 @@ static func _create_shore_noise(seed_value: int) -> FastNoiseLite:
 	var noise = FastNoiseLite.new()
 	noise.seed = seed_value + 3000
 	noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise.frequency = 0.05
+	noise.frequency = 0.03  # Lower frequency for larger features
+	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	noise.fractal_octaves = 4
+	noise.fractal_lacunarity = 2.0
+	noise.fractal_gain = 0.6
+	return noise
+
+## Create island shape noise (makes island non-circular)
+static func _create_shape_noise(seed_value: int) -> FastNoiseLite:
+	var noise = FastNoiseLite.new()
+	noise.seed = seed_value + 4000
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.frequency = 0.02  # Very low frequency for large-scale shape
 	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
 	noise.fractal_octaves = 3
 	return noise
 
 ## Calculate island mask value (0 = deep water, 1 = island center)
-static func _get_island_mask(x: int, y: int, shore_noise: FastNoiseLite) -> float:
+## Uses noise to create an organic, non-circular island shape
+static func _get_island_mask(x: int, y: int, shore_noise: FastNoiseLite, shape_noise: FastNoiseLite) -> float:
 	# Normalize coordinates to -1 to 1 range centered on map
 	var nx = (float(x) / float(MAP_WIDTH) - 0.5) * 2.0
 	var ny = (float(y) / float(MAP_HEIGHT) - 0.5) * 2.0
 
-	# Calculate distance from center (0 at center, 1 at corners)
-	var dist = sqrt(nx * nx + ny * ny)
+	# Use shape noise to distort the distance calculation
+	# This makes the island non-circular
+	var shape_distort = shape_noise.get_noise_2d(float(x), float(y)) * 0.4
+	var angle_distort = shape_noise.get_noise_2d(float(x) + 100.0, float(y) + 100.0) * 0.3
 
-	# Add noise variation to shoreline
-	var shore_variation = shore_noise.get_noise_2d(float(x), float(y)) * 0.15
+	# Apply distortion to coordinates before distance calculation
+	var distorted_x = nx + shape_distort * nx
+	var distorted_y = ny + angle_distort * ny
+
+	# Calculate distance from center with distortion (creates irregular shape)
+	var dist = sqrt(distorted_x * distorted_x + distorted_y * distorted_y)
+
+	# Add shore noise for detailed coastline variation
+	var shore_variation = shore_noise.get_noise_2d(float(x), float(y)) * 0.2
 
 	# Create gradient: 1 at center, 0 at edge
-	# ISLAND_RADIUS determines base island size
-	var mask = 1.0 - (dist / (ISLAND_RADIUS * 2.0 + shore_variation))
+	# Larger base size means more of the map is island
+	var edge_distance = ISLAND_BASE_SIZE + shore_variation
+	var mask = 1.0 - (dist / edge_distance)
 
 	return clamp(mask, 0.0, 1.0)
 
 ## Determine tile type using island mask and noise
-static func _get_island_tile(x: int, y: int, terrain: FastNoiseLite, forest: FastNoiseLite, shore_noise: FastNoiseLite) -> String:
-	var island_mask = _get_island_mask(x, y, shore_noise)
+static func _get_island_tile(x: int, y: int, terrain: FastNoiseLite, forest: FastNoiseLite, shore_noise: FastNoiseLite, shape_noise: FastNoiseLite) -> String:
+	var island_mask = _get_island_mask(x, y, shore_noise, shape_noise)
 
 	# Deep water outside island
 	if island_mask < 0.1:

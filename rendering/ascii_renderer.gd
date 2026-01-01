@@ -239,6 +239,39 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> voi
 	terrain_modulated_cells[position] = tile_color
 	terrain_layer.notify_runtime_tile_data_update()
 
+## Render an entire chunk (optimized batch rendering)
+func render_chunk(chunk: WorldChunk) -> void:
+	if not terrain_layer:
+		return
+
+	var bounds = chunk.get_world_bounds()
+	var min_pos = bounds.min
+	var max_pos = bounds.max
+
+	# Render all tiles in chunk
+	for world_y in range(min_pos.y, max_pos.y + 1):
+		for world_x in range(min_pos.x, max_pos.x + 1):
+			var world_pos = Vector2i(world_x, world_y)
+			var local_pos = chunk.world_to_chunk_position(world_pos)
+			var tile = chunk.get_tile(local_pos)
+
+			# Get tile character
+			var tile_char = tile.ascii_char
+
+			# Render tile
+			var tile_index = _char_to_index(tile_char)
+			var col = tile_index % TILES_PER_ROW
+			var row = tile_index / TILES_PER_ROW
+
+			terrain_layer.set_cell(world_pos, 0, Vector2i(col, row))
+
+			# Set color modulation
+			var tile_color = default_terrain_colors.get(tile_char, Color.WHITE)
+			terrain_modulated_cells[world_pos] = tile_color
+
+	# Notify once after batch update
+	terrain_layer.notify_runtime_tile_data_update()
+
 ## Render an entity
 func render_entity(position: Vector2i, entity_type: String, color: Color = Color.WHITE) -> void:
 	if not entity_layer:

@@ -207,7 +207,7 @@ func _add_attributes_section() -> void:
 
 ## Add the combat section
 func _add_combat_section() -> void:
-	var section_header = _create_section_header("══ COMBAT ══")
+	var section_header = _create_section_header("== COMBAT ==")
 	content_container.add_child(section_header)
 
 	# Health
@@ -246,7 +246,7 @@ func _add_combat_section() -> void:
 
 ## Add the survival section
 func _add_survival_section() -> void:
-	var section_header = _create_section_header("══ SURVIVAL ══")
+	var section_header = _create_section_header("== SURVIVAL ==")
 	content_container.add_child(section_header)
 
 	if not player.survival:
@@ -282,7 +282,7 @@ func _add_survival_section() -> void:
 
 ## Add the progression section
 func _add_progression_section() -> void:
-	var section_header = _create_section_header("══ PROGRESSION ══")
+	var section_header = _create_section_header("== PROGRESSION ==")
 	content_container.add_child(section_header)
 
 	# Experience
@@ -329,7 +329,7 @@ func _create_section_header(text: String) -> Label:
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# Set theme first, then override specific properties
-	if has_theme():
+	if theme != null:
 		header.theme = theme
 	header.add_theme_color_override("font_color", COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)

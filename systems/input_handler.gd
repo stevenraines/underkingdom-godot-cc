@@ -175,8 +175,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_up":
+				# Position player BEFORE map transition to load correct chunks
+				var target_pos = GameManager.last_overworld_position if GameManager.last_overworld_position != Vector2i.ZERO else Vector2i(800, 800)
+				player.position = target_pos
 				MapManager.ascend_dungeon()
-				player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
 		elif is_wait_key:

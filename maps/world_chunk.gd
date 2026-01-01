@@ -76,10 +76,10 @@ func generate(world_seed: int) -> void:
 			var dist_to_town = (world_pos - town_center_pos).length() if town_center_pos != Vector2i(-1, -1) else 999
 			if tile.walkable and tile.tile_type == "floor" and dist_to_town > 10:
 				# Try to spawn tree
-				# Get blended densities for smooth biome transitions
-				var blended_data = BiomeGenerator.get_blended_biome_data(world_pos.x, world_pos.y, world_seed)
+				# Use biome data we already fetched (avoids expensive blending call)
+				# This eliminates 3500 extra noise samples per chunk
 
-				if rng.randf() < blended_data.tree_density:
+				if rng.randf() < biome.tree_density:
 					var resource_instance = ResourceSpawner.ResourceInstance.new("tree", world_pos, chunk_coords)
 					resources.append(resource_instance)
 
@@ -91,7 +91,7 @@ func generate(world_seed: int) -> void:
 					continue  # Don't spawn rock in same spot
 
 				# Try to spawn rock
-				if rng.randf() < blended_data.rock_density:
+				if rng.randf() < biome.rock_density:
 					var resource_instance = ResourceSpawner.ResourceInstance.new("rock", world_pos, chunk_coords)
 					resources.append(resource_instance)
 

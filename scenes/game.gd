@@ -411,19 +411,20 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] 1/8 Invalidating FOV cache")
 	FOVSystem.invalidate_cache()
 
-	# Load chunks around player if returning to overworld
-	if MapManager.current_map and MapManager.current_map.chunk_based and player:
-		print("[Game] 2/8 Loading chunks around player at %v" % player.position)
-		ChunkManager.update_active_chunks(player.position)
-		print("[Game] 2/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
-
 	# Clear existing entities from EntityManager
-	print("[Game] 3/8 Clearing entities")
+	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
 
 	# Spawn enemies for the new map
-	print("[Game] 4/8 Spawning enemies")
+	print("[Game] 3/8 Spawning enemies")
 	_spawn_map_enemies()
+
+	# Load chunks at current player position before rendering
+	# Player position has been set before map transition in input_handler
+	if MapManager.current_map and MapManager.current_map.chunk_based and player:
+		print("[Game] 4/8 Loading chunks at player position %v" % player.position)
+		ChunkManager.update_active_chunks(player.position)
+		print("[Game] 4/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
 
 	# Render map and entities
 	print("[Game] 5/8 Rendering map")

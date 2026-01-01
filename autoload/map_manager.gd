@@ -57,8 +57,8 @@ func _generate_map(map_id: String, seed: int) -> GameMap:
 		# Place dungeon entrance 10-20 tiles from town in suitable biome
 		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(seed, town_pos)
 
-		# Place player spawn just outside town (12 tiles away, opposite from dungeon)
-		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos)
+		# Place player spawn just outside town (10 tiles away, opposite from dungeon)
+		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos, seed)
 
 		# Store special positions in map metadata
 		# ChunkManager will check these and place actual tiles when chunks load

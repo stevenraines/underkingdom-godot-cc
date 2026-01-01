@@ -723,6 +723,28 @@ func _update_hud() -> void:
 
 		location_label.text = location_text
 
+	# Update debug info
+	if debug_info_label and player:
+		# Calculate chunk position
+		const WorldChunk = preload("res://maps/world_chunk.gd")
+		var chunk_size = WorldChunk.CHUNK_SIZE
+		var chunk_pos = Vector2i(
+			floor(float(player.position.x) / chunk_size),
+			floor(float(player.position.y) / chunk_size)
+		)
+
+		# Get screen position of player (camera center)
+		var screen_pos = Vector2i(0, 0)
+		if renderer and renderer.camera:
+			var viewport_pos = renderer.camera.get_screen_center_position()
+			screen_pos = Vector2i(int(viewport_pos.x), int(viewport_pos.y))
+
+		debug_info_label.text = "Chunk: (%d,%d) | Tile: (%d,%d) | Screen Y: %d" % [
+			chunk_pos.x, chunk_pos.y,
+			player.position.x, player.position.y,
+			screen_pos.y
+		]
+
 ## Get status line color based on player state
 func _get_status_color() -> Color:
 	if not player:

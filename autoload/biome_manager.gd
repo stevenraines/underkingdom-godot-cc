@@ -69,6 +69,12 @@ func _set_default_config() -> void:
 			"load_radius": 3,
 			"unload_radius": 5,
 			"cache_max_size": 100
+		},
+		"island_settings": {
+			"width_chunks": 50,
+			"height_chunks": 50,
+			"falloff_start": 0.7,
+			"falloff_strength": 3.0
 		}
 	}
 
@@ -190,3 +196,6 @@ func get_moisture_noise_config() -> Dictionary:
 
 func get_chunk_settings() -> Dictionary:
 	return generation_config.get("chunk_settings", {})
+
+func get_island_settings() -> Dictionary:
+	return generation_config.get("island_settings", {})

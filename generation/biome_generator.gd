@@ -36,6 +36,42 @@ static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
 		moisture_noise_cache[moisture_seed] = noise
 	return moisture_noise_cache[moisture_seed]
 
+## Apply island falloff to create bounded landmass
+## Reduces elevation near edges to force ocean around island
+static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
+	var island_settings = BiomeManager.get_island_settings()
+
+	# Get island dimensions in tiles (chunks × chunk_size)
+	var chunk_size = 32  # WorldChunk.CHUNK_SIZE
+	var island_width = island_settings.get("width_chunks", 50) * chunk_size
+	var island_height = island_settings.get("height_chunks", 50) * chunk_size
+	var falloff_start = island_settings.get("falloff_start", 0.7)  # Start falloff at 70% of island radius
+	var falloff_strength = island_settings.get("falloff_strength", 3.0)  # Exponential falloff power
+
+	# Calculate center of island
+	var center_x = island_width / 2.0
+	var center_y = island_height / 2.0
+
+	# Calculate normalized distance from center (0 = center, 1 = edge)
+	var dx = abs(float(x) - center_x) / (island_width / 2.0)
+	var dy = abs(float(y) - center_y) / (island_height / 2.0)
+	var distance = max(dx, dy)  # Use Chebyshev distance for rectangular island
+
+	# No falloff in center area
+	if distance < falloff_start:
+		return elevation
+
+	# Calculate falloff multiplier (smooth transition to ocean)
+	var falloff_range = 1.0 - falloff_start
+	var normalized_falloff = (distance - falloff_start) / falloff_range
+	normalized_falloff = clamp(normalized_falloff, 0.0, 1.0)
+
+	# Apply exponential falloff
+	var falloff_multiplier = 1.0 - pow(normalized_falloff, falloff_strength)
+
+	# Reduce elevation (forces ocean at edges)
+	return elevation * falloff_multiplier
+
 ## Generate biome at world position
 ## Returns Dictionary with biome data loaded from JSON
 static func get_biome_at(x: int, y: int, seed_value: int) -> Dictionary:
@@ -53,6 +89,9 @@ static func get_biome_at(x: int, y: int, seed_value: int) -> Dictionary:
 	# Apply elevation curve to create more variation
 	# This creates more ocean and more mountains, less "medium" elevation
 	elevation = pow(elevation, 1.5)
+
+	# Apply island falloff to create bounded landmass
+	elevation = _apply_island_falloff(x, y, elevation)
 
 	# Lookup biome from elevation × moisture matrix (data-driven via BiomeManager)
 	var biome_id = BiomeManager.get_biome_id_from_values(elevation, moisture)
@@ -78,7 +117,8 @@ static func get_elevation_at(x: int, y: int, seed_value: int) -> float:
 	var noise = _get_elevation_noise(seed_value)
 	var raw = noise.get_noise_2d(float(x), float(y))
 	var normalized = (raw + 1.0) / 2.0
-	return pow(normalized, 1.5)
+	var elevation = pow(normalized, 1.5)
+	return _apply_island_falloff(x, y, elevation)
 
 ## Get moisture value at position (for use in other systems)
 static func get_moisture_at(x: int, y: int, seed_value: int) -> float:

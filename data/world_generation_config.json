@@ -19,6 +19,12 @@
 		"unload_radius": 5,
 		"cache_max_size": 100
 	},
+	"island_settings": {
+		"width_chunks": 50,
+		"height_chunks": 50,
+		"falloff_start": 0.7,
+		"falloff_strength": 3.0
+	},
 	"biome_matrix": {
 		"elevation_thresholds": [0.25, 0.4, 0.55, 0.7, 0.85],
 		"moisture_thresholds": [0.2, 0.4, 0.6, 0.8],

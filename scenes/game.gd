@@ -405,31 +405,45 @@ func toggle_auto_pickup() -> void:
 
 ## Called when map changes (dungeon transitions, etc.)
 func _on_map_changed(map_id: String) -> void:
-	print("Map changed to: ", map_id)
+	print("[Game] === Map change START: %s ===" % map_id)
 
 	# Invalidate FOV cache since map changed
+	print("[Game] 1/8 Invalidating FOV cache")
 	FOVSystem.invalidate_cache()
 
+	# Load chunks around player if returning to overworld
+	if MapManager.current_map and MapManager.current_map.chunk_based and player:
+		print("[Game] 2/8 Loading chunks around player at %v" % player.position)
+		ChunkManager.update_active_chunks(player.position)
+		print("[Game] 2/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
+
 	# Clear existing entities from EntityManager
+	print("[Game] 3/8 Clearing entities")
 	EntityManager.clear_entities()
 
 	# Spawn enemies for the new map
+	print("[Game] 4/8 Spawning enemies")
 	_spawn_map_enemies()
 
 	# Render map and entities
+	print("[Game] 5/8 Rendering map")
 	_render_map()
+	print("[Game] 6/8 Rendering entities")
 	_render_all_entities()
 
 	# Re-render player at new position
+	print("[Game] 7/8 Rendering player")
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
 
 	# Update FOV
+	print("[Game] 8/8 Calculating FOV")
 	var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
 	renderer.update_fov(visible_tiles)
 
 	# Update message
 	_update_message()
+	print("[Game] === Map change COMPLETE ===")
 
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
@@ -852,7 +866,8 @@ func _find_valid_spawn_position() -> Vector2i:
 
 	# Try to find a position with open space around it (not just a single walkable tile)
 	# Search in expanding rings from center
-	var max_radius = max(MapManager.current_map.width, MapManager.current_map.height)
+	# Use reasonable radius for chunk-based maps (don't search the entire 10000x10000 world!)
+	var max_radius = 50 if MapManager.current_map.chunk_based else max(MapManager.current_map.width, MapManager.current_map.height)
 
 	for radius in range(0, max_radius):
 		for angle in range(0, 360, 15):  # Check every 15 degrees
@@ -864,12 +879,21 @@ func _find_valid_spawn_position() -> Vector2i:
 			if _is_open_spawn_position(pos):
 				return pos
 
-	# Fallback: find ANY position with at least 1 walkable neighbor
-	for y in range(MapManager.current_map.height):
-		for x in range(MapManager.current_map.width):
-			var pos = Vector2i(x, y)
-			if _is_valid_spawn_position(pos):
-				return pos
+	# Fallback: search a limited area for chunk-based maps
+	if MapManager.current_map.chunk_based:
+		# Search a 100x100 area around center
+		for dy in range(-50, 50):
+			for dx in range(-50, 50):
+				var pos = center + Vector2i(dx, dy)
+				if _is_valid_spawn_position(pos):
+					return pos
+	else:
+		# For dungeons, search entire map
+		for y in range(MapManager.current_map.height):
+			for x in range(MapManager.current_map.width):
+				var pos = Vector2i(x, y)
+				if _is_valid_spawn_position(pos):
+					return pos
 
 	# Absolute fallback
 	push_warning("Could not find valid spawn position, using center anyway")

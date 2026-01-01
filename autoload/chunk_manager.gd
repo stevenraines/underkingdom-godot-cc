@@ -11,8 +11,8 @@ var active_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> WorldChunk
 var chunk_cache: Dictionary = {}  # LRU cache of generated chunks
 var chunk_access_order: Array[Vector2i] = []  # LRU tracking: most recent at end
 var visited_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> bool (for minimap)
-var load_radius: int = 3  # Load chunks within 3 chunk distance of player
-var unload_radius: int = 5  # Unload chunks beyond 5 chunk distance
+var load_radius: int = 2  # Load chunks within 2 chunk distance (5x5 grid = 160x160 tiles covers 80x40 viewport)
+var unload_radius: int = 4  # Unload chunks beyond 4 chunk distance
 var max_cache_size: int = 100  # Maximum cached chunks (prevents memory growth)
 
 var world_seed: int = 0  # Set when map is loaded
@@ -65,6 +65,17 @@ func get_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 ## Load/generate a chunk
 func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
+	# Check if chunk is within island bounds
+	var island_settings = BiomeManager.get_island_settings()
+	var max_chunk_x = island_settings.get("width_chunks", 50)
+	var max_chunk_y = island_settings.get("height_chunks", 50)
+
+	# Prevent generation outside island bounds (return ocean chunk)
+	if chunk_coords.x < 0 or chunk_coords.x >= max_chunk_x or chunk_coords.y < 0 or chunk_coords.y >= max_chunk_y:
+		print("[ChunkManager] Chunk %v is outside island bounds (%d×%d), skipping generation" % [chunk_coords, max_chunk_x, max_chunk_y])
+		# Return null - caller should handle this gracefully
+		return null
+
 	var chunk = WorldChunk.new(chunk_coords, world_seed)
 	chunk.generate(world_seed)
 
@@ -130,17 +141,27 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 
 	var player_chunk = world_to_chunk(player_pos)
 
+	# Get island bounds
+	var island_settings = BiomeManager.get_island_settings()
+	var max_chunk_x = island_settings.get("width_chunks", 50)
+	var max_chunk_y = island_settings.get("height_chunks", 50)
+
 	# Calculate which chunks should be loaded
 	var chunks_to_load: Array[Vector2i] = []
 	for dy in range(-load_radius, load_radius + 1):
 		for dx in range(-load_radius, load_radius + 1):
 			var chunk_coords = player_chunk + Vector2i(dx, dy)
-			chunks_to_load.append(chunk_coords)
+			# Skip chunks outside island bounds
+			if chunk_coords.x >= 0 and chunk_coords.x < max_chunk_x and chunk_coords.y >= 0 and chunk_coords.y < max_chunk_y:
+				chunks_to_load.append(chunk_coords)
 
 	# Load new chunks
 	for coords in chunks_to_load:
 		if coords not in active_chunks:
-			load_chunk(coords)
+			var chunk = load_chunk(coords)
+			# load_chunk returns null if outside bounds, skip it
+			if not chunk:
+				continue
 
 	# Unload distant chunks (using Chebyshev distance for consistent square patterns)
 	var chunks_to_unload: Array[Vector2i] = []
@@ -165,8 +186,8 @@ func get_tile(world_pos: Vector2i) -> GameTile:
 		local_pos.y = clampi(local_pos.y, 0, WorldChunk.CHUNK_SIZE - 1)
 		return chunk.get_tile(local_pos)
 
-	# Fallback to default floor
-	return GameTile.create("floor")
+	# Outside island bounds - return ocean tile
+	return GameTile.create("water")
 
 ## Set tile at world position (chunk-based access)
 func set_tile(world_pos: Vector2i, tile: GameTile) -> void:

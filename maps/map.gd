@@ -68,10 +68,16 @@ func is_walkable(pos: Vector2i) -> bool:
 
 ## Check if position is transparent (for FOV)
 func is_transparent(pos: Vector2i) -> bool:
-	# Out of bounds is not transparent (skip check for chunk-based infinite maps)
+	# Out of bounds is not transparent
 	if not chunk_based:
 		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
 			return false
+	else:
+		# For chunk-based maps, only check tiles in loaded chunks
+		# Don't trigger chunk loading from FOV calculations
+		var chunk_coords = ChunkManager.world_to_chunk(pos)
+		if chunk_coords not in ChunkManager.active_chunks:
+			return false  # Unloaded chunks are considered opaque
 
 	return get_tile(pos).transparent
 

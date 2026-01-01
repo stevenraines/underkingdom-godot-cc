@@ -43,7 +43,11 @@ func _ready() -> void:
 
 ## Update minimap display
 func _update_minimap() -> void:
-	if not MapManager.current_map or not MapManager.current_map.chunk_based:
+	if not MapManager.current_map:
+		visible = false
+		return
+
+	if not MapManager.current_map.chunk_based:
 		visible = false
 		return
 

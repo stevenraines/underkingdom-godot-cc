@@ -13,6 +13,7 @@ var world_name: String = ""  # Player-provided name for the world
 var game_state: String = "menu"  # "menu", "playing", "paused"
 var current_map_id: String = ""
 var is_loading_save: bool = false  # Flag to prevent start_new_game when loading
+var last_overworld_position: Vector2i = Vector2i.ZERO  # Player's position when entering dungeon
 
 func _ready() -> void:
 	# Load harvestable resources

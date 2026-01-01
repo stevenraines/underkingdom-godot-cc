@@ -78,14 +78,27 @@ func _char_to_index(character: String) -> int:
 
 # Default terrain colors (tiles should define their own colors)
 var default_terrain_colors: Dictionary = {
-	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor
+	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor (basic/tundra/beach)
 	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (legacy)
 	"░": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (CP437 light shade)
 	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up
 	"T": Color(0.0, 0.71, 0.0),        # Green - Tree
-	"~": Color(0.2, 0.4, 1.0),         # Blue - Water
+
+	# Biome grass characters
+	"\"": Color(0.5, 0.7, 0.3),        # Green - Grassland/Woodland/Rainforest grass
+	",": Color(0.4, 0.6, 0.4),         # Dark Green - Forest/Marsh grass
+	"^": Color(0.6, 0.6, 0.5),         # Gray-Brown - Rocky Hills
+	"*": Color(0.85, 0.85, 0.9),       # White - Snow
+	"·": Color(0.5, 0.5, 0.5),         # Gray - Barren Rock
+	"~": Color(0.2, 0.4, 1.0),         # Blue - Water (Swamp/Ocean)
+	"≈": Color(0.1, 0.3, 0.8),         # Dark Blue - Deep Ocean
+	"▲": Color(0.6, 0.6, 0.65),        # Light Gray - Mountains/Snow Mountains
+
+	# Harvestable resources
+	"◆": Color(0.6, 0.6, 0.6),         # Gray - Rock
+	"◊": Color(0.7, 0.5, 0.3),         # Rusty Brown - Iron Ore
 }
 
 var visible_tiles: Array[Vector2i] = []

@@ -147,12 +147,19 @@ static func _position_hash(x: int, y: int) -> float:
 
 ## Place harvestable resources
 static func _place_resources(map: GameMap, rng: SeededRandom) -> void:
-	# Place rocks (more on larger map)
-	var num_rocks = rng.randi_range(8, 15)
+	# Place regular rocks
+	var num_rocks = rng.randi_range(6, 10)
 	for i in range(num_rocks):
-		var rock_pos = _find_valid_location(map, rng, 5)
+		var rock_pos = _find_valid_location(map, rng, 10)
 		if rock_pos != Vector2i(-1, -1):
 			map.set_tile(rock_pos, _create_tile("rock"))
+
+	# Place iron ore deposits (less common than rocks)
+	var num_ore = rng.randi_range(4, 8)
+	for i in range(num_ore):
+		var ore_pos = _find_valid_location(map, rng, 15)
+		if ore_pos != Vector2i(-1, -1):
+			map.set_tile(ore_pos, _create_tile("iron_ore"))
 
 ## Create a tile by type (helper function)
 ## Uses _GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly

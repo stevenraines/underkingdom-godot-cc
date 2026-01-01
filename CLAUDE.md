@@ -239,12 +239,12 @@ All interconnected for emergent gameplay:
 - Keyboard navigation for all screens
 - Consistent styling across inventory, character, and help screens
 
-### Phase 1.17 (Overworld Generation) - 🔄 IN PROGRESS
+### Phase 1.17 (Overworld Generation) - ✅ COMPLETE
 **Scope**: Enhanced overworld with improved town and generation
 - [x] Expand town to 2 buildings: general store and blacksmith
 - [x] Overworld generation with perlin noise (100x100 island map)
 - [x] Pop-up map of entire island (M key - miniature island view)
-- [ ] Mining for ore (rocks with ore)
+- [x] Mining for ore (iron ore deposits spawn on island)
 
 ---
 

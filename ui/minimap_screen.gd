@@ -25,6 +25,7 @@ const TERRAIN_COLORS = {
 	"water": Color(0.2, 0.4, 0.7, 1),       # Blue water
 	"wall": Color(0.4, 0.35, 0.3, 1),       # Brown walls
 	"rock": Color(0.5, 0.5, 0.5, 1),        # Gray rocks
+	"iron_ore": Color(0.7, 0.4, 0.2, 1),   # Orange-brown iron ore
 	"stairs_down": Color(0.9, 0.7, 0.2, 1), # Gold dungeon entrance
 	"door": Color(0.6, 0.4, 0.2, 1),        # Brown door
 }
@@ -169,6 +170,7 @@ func _build_legend() -> void:
 	_add_legend_item("♠ Forest", TERRAIN_COLORS["tree"])
 	_add_legend_item("≈ Water", TERRAIN_COLORS["water"])
 	_add_legend_item("● Rocks", TERRAIN_COLORS["rock"])
+	_add_legend_item("◊ Iron Ore", TERRAIN_COLORS["iron_ore"])
 
 ## Add a legend item
 func _add_legend_item(text: String, color: Color) -> void:

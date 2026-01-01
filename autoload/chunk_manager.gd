@@ -62,7 +62,13 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	chunk_cache[chunk_coords] = chunk
 	visited_chunks[chunk_coords] = true  # Mark as visited for minimap
 
+	# Emit chunk loaded event
 	EventBus.chunk_loaded.emit(chunk_coords)
+
+	# Show feedback message for first few chunks (helps player understand world is generating)
+	if visited_chunks.size() <= 5:
+		EventBus.message_logged.emit("Exploring chunk %v..." % chunk_coords)
+
 	return chunk
 
 ## Unload a chunk from active memory

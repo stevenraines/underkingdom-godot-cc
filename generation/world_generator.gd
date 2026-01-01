@@ -2,12 +2,20 @@ class_name WorldGenerator
 
 ## WorldGenerator - Generate overworld with biome-based terrain
 ##
+## IMPORTANT: This generator is NOT used for the chunk-based overworld system.
+## For chunk-based overworld:
+##   - MapManager creates an empty shell map
+##   - WorldChunk.generate() handles terrain generation on-demand
+##   - SpecialFeaturePlacer handles dungeon/town placement
+##
+## This generator is kept for potential future static (non-chunk) maps.
 ## Uses dual-noise (elevation + moisture) for realistic biome generation.
 ## Creates a deterministic world based on seed.
 
 const _GameTile = preload("res://maps/game_tile.gd")
 
-## Generate the overworld map
+## Generate the overworld map (STATIC VERSION - not used for chunk-based overworld)
+## Only kept for potential future non-chunk static maps
 static func generate_overworld(seed_value: int) -> GameMap:
 	print("[WorldGenerator] Generating overworld with seed: %d" % seed_value)
 	var rng = SeededRandom.new(seed_value)

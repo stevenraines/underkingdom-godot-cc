@@ -62,3 +62,32 @@ static func get_moisture_at(x: int, y: int, seed_value: int) -> float:
 
 	var raw = noise.get_noise_2d(float(x), float(y))
 	return (raw + 1.0) / 2.0
+
+## Get blended biome data at position (smooths biome transitions)
+## Samples nearby tiles and blends their densities for smoother transitions
+static func get_blended_biome_data(x: int, y: int, seed_value: int) -> Dictionary:
+	# Sample center biome
+	var center_biome = get_biome_at(x, y, seed_value)
+
+	# Sample 4 adjacent tiles for blending
+	var blend_samples = [
+		get_biome_at(x + 1, y, seed_value),
+		get_biome_at(x - 1, y, seed_value),
+		get_biome_at(x, y + 1, seed_value),
+		get_biome_at(x, y - 1, seed_value)
+	]
+
+	# Calculate average densities (50% center, 50% average of neighbors)
+	var total_tree_density = center_biome.tree_density * 0.5
+	var total_rock_density = center_biome.rock_density * 0.5
+
+	for sample in blend_samples:
+		total_tree_density += sample.tree_density * 0.125  # 0.5 / 4 = 0.125
+		total_rock_density += sample.rock_density * 0.125
+
+	# Return blended data
+	return {
+		"biome": center_biome,
+		"tree_density": total_tree_density,
+		"rock_density": total_rock_density
+	}

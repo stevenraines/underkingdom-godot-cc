@@ -51,18 +51,33 @@ func _generate_map(map_id: String, seed: int) -> GameMap:
 		# Note: Terrain generation happens in ChunkManager on demand
 		# Use SpecialFeaturePlacer to find suitable biome-based locations for special features
 
-		# Place dungeon entrance in suitable biome (rocky hills, mountains, barren rock)
-		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(seed)
+		# Place town first in suitable biome (grassland, woodland)
+		var town_pos = SpecialFeaturePlacer.place_town(seed)
 
-		# Place town in suitable biome (grassland, woodland) not too close to dungeon
-		var town_pos = SpecialFeaturePlacer.place_town(seed, entrance_pos)
+		# Place dungeon entrance 10-20 tiles from town in suitable biome
+		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(seed, town_pos)
+
+		# Place player spawn just outside town (12 tiles away, opposite from dungeon)
+		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos)
 
 		# Store special positions in map metadata
 		# ChunkManager will check these and place actual tiles when chunks load
 		map.set_meta("dungeon_entrance", entrance_pos)
 		map.set_meta("town_center", town_pos)
+		map.set_meta("player_spawn", player_spawn)
 
-		print("[MapManager] Special features placed: dungeon=%v, town=%v" % [entrance_pos, town_pos])
+		# Store shop NPC spawn data in metadata
+		var shop_npc_pos = town_pos  # Center of shop (5x5 building centered on town_pos)
+		map.set_meta("npc_spawns", [{
+			"npc_type": "shop",
+			"npc_id": "shop_keeper",
+			"position": shop_npc_pos,
+			"name": "Olaf the Trader",
+			"gold": 500,
+			"restock_interval": 500
+		}])
+
+		print("[MapManager] Special features placed: town=%v, dungeon=%v, spawn=%v" % [town_pos, entrance_pos, player_spawn])
 
 		return map
 

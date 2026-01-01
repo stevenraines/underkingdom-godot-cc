@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://bepmm0yw8d75x"]
+[gd_scene load_steps=4 format=3 uid="uid://bfbfwpcl556jn"]
 
 [ext_resource type="Script" path="res://ui/world_name_dialog.gd" id="1"]
+[ext_resource type="Theme" uid="uid://c7q6510one1wh" path="res://ui/themes/Underkingdom.tres" id="2_8rh20"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.08, 0.08, 0.12, 0.98)
@@ -13,10 +14,10 @@ corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
-expand_margin_left = 2
-expand_margin_top = 2
-expand_margin_right = 2
-expand_margin_bottom = 2
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
 
 [node name="WorldNameDialog" type="Control"]
 layout_mode = 3
@@ -49,6 +50,7 @@ offset_right = 250.0
 offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_8rh20")
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="Panel"]
@@ -69,20 +71,20 @@ theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 20
 text = "◆ NEW GAME ◆"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 
 [node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="DescriptionLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
 text = "Name Your World"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 
 [node name="NameInput" type="LineEdit" parent="Panel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(400, 0)
@@ -111,8 +113,8 @@ layout_mode = 2
 
 [node name="ActionPanel" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 24
+alignment = 1
 
 [node name="EnterLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
 layout_mode = 2

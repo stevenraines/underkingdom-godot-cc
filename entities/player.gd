@@ -142,7 +142,13 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 				print("Player positioned at saved overworld location: ", position)
 				EventBus.player_moved.emit(old_pos, position)
 				return
-			# Fallback: get dungeon entrance position from metadata
+			# New game: spawn at player spawn position (just outside town)
+			elif MapManager.current_map.has_meta("player_spawn"):
+				position = MapManager.current_map.get_meta("player_spawn")
+				print("Player positioned at spawn location: ", position)
+				EventBus.player_moved.emit(old_pos, position)
+				return
+			# Fallback: get dungeon entrance position from metadata (old saves)
 			elif MapManager.current_map.has_meta("dungeon_entrance"):
 				position = MapManager.current_map.get_meta("dungeon_entrance")
 				print("Player positioned at ", stairs_type, ": ", position)

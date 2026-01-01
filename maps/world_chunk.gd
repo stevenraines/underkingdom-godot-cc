@@ -30,7 +30,7 @@ func _init(coords: Vector2i, world_seed: int) -> void:
 
 ## Generate chunk content (terrain + resources)
 func generate(world_seed: int) -> void:
-	print("[WorldChunk] Generating chunk %v with seed %d" % [chunk_coords, seed])
+	#print("[WorldChunk] Generating chunk %v with seed %d" % [chunk_coords, seed])
 
 	var rng = SeededRandom.new(seed)
 
@@ -38,6 +38,9 @@ func generate(world_seed: int) -> void:
 	var map = MapManager.current_map
 	var dungeon_entrance_pos = map.get_meta("dungeon_entrance", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
 	var town_center_pos = map.get_meta("town_center", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
+
+	if town_center_pos != Vector2i(-1, -1):
+		print("[WorldChunk] Chunk %v: Town center found at %v" % [chunk_coords, town_center_pos])
 
 	# Generate all tiles in chunk using biome system
 	for local_y in range(CHUNK_SIZE):
@@ -98,6 +101,7 @@ func generate(world_seed: int) -> void:
 					tile.transparent = false
 					tile.ascii_char = "T"
 					tile.harvestable_resource_id = "tree"
+					tile.color = Color.WHITE  # Reset color - tree uses default renderer color
 					continue  # Don't spawn rock in same spot
 
 				# Try to spawn rock
@@ -110,10 +114,22 @@ func generate(world_seed: int) -> void:
 					tile.transparent = false
 					tile.ascii_char = "◆"
 					tile.harvestable_resource_id = "rock"
+					tile.color = Color.WHITE  # Reset color - rock uses default renderer color
+
+	# Generate town structures if this chunk contains the town center
+	if town_center_pos != Vector2i(-1, -1):
+		var town_chunk = Vector2i(
+			floori(float(town_center_pos.x) / CHUNK_SIZE),
+			floori(float(town_center_pos.y) / CHUNK_SIZE)
+		)
+		print("[WorldChunk] Chunk %v checking town: town_chunk=%v, match=%s" % [chunk_coords, town_chunk, chunk_coords == town_chunk])
+		if chunk_coords == town_chunk:
+			print("[WorldChunk] *** GENERATING TOWN STRUCTURES in chunk %v ***" % [chunk_coords])
+			_generate_town_structures(town_center_pos, world_seed)
 
 	is_loaded = true
 	is_dirty = true
-	print("[WorldChunk] Generated chunk %v with %d resources" % [chunk_coords, resources.size()])
+	#print("[WorldChunk] Generated chunk %v with %d resources" % [chunk_coords, resources.size()])
 
 ## Get tile at local coordinates (0-31)
 func get_tile(local_pos: Vector2i) -> GameTile:
@@ -205,3 +221,48 @@ static func from_dict(data: Dictionary, world_seed: int) -> WorldChunk:
 		chunk.resources.append(ResourceSpawner.ResourceInstance.from_dict(resource_data))
 
 	return chunk
+
+## Generate town structures within this chunk
+func _generate_town_structures(town_center: Vector2i, world_seed: int) -> void:
+	var rng = SeededRandom.new(world_seed + 999)
+
+	# Town is 15x15 centered on town_center
+	var town_size = Vector2i(15, 15)
+	var town_start = town_center - town_size / 2
+
+	# Shop building (5x5)
+	var shop_size = Vector2i(5, 5)
+	var shop_start = town_center - shop_size / 2
+
+	# Place shop walls and floor
+	for x in range(shop_size.x):
+		for y in range(shop_size.y):
+			var world_pos = shop_start + Vector2i(x, y)
+			var local_pos = world_to_chunk_position(world_pos)
+
+			# Check if position is in this chunk
+			if local_pos.x < 0 or local_pos.x >= CHUNK_SIZE or local_pos.y < 0 or local_pos.y >= CHUNK_SIZE:
+				continue
+
+			var is_wall = (x == 0 or x == shop_size.x - 1 or y == 0 or y == shop_size.y - 1)
+			var is_door = (x == shop_size.x / 2 and y == shop_size.y - 1)
+
+			var tile: GameTile
+			if is_door:
+				tile = GameTile.create("door")
+			elif is_wall:
+				tile = GameTile.create("wall")
+			else:
+				tile = GameTile.create("floor")
+				tile.color = Color.WHITE  # Indoor floor uses default color
+
+			tiles[local_pos] = tile
+
+	# Place well (water source) near shop
+	var well_pos = town_center + Vector2i(4, 4)
+	var well_local = world_to_chunk_position(well_pos)
+	if well_local.x >= 0 and well_local.x < CHUNK_SIZE and well_local.y >= 0 and well_local.y < CHUNK_SIZE:
+		var well_tile = GameTile.create("water")
+		tiles[well_local] = well_tile
+
+	print("[WorldChunk] Generated town structures in chunk %v" % [chunk_coords])

@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://bkt0gfnv2fxc7"]
+[gd_scene load_steps=7 format=3 uid="uid://bkt0gfnv2fxc7"]
 
 [ext_resource type="Script" uid="uid://bl5fpk0yyvree" path="res://scenes/game.gd" id="1"]
 [ext_resource type="Script" uid="uid://ce5bl6t6e1uhb" path="res://rendering/ascii_renderer.gd" id="2"]
 [ext_resource type="Script" uid="uid://exbh7mltocr1" path="res://systems/input_handler.gd" id="3"]
 [ext_resource type="Script" uid="uid://bgrsijr2w0gq7" path="res://rendering/terrain_layer.gd" id="4"]
 [ext_resource type="Script" uid="uid://k2nqf83q2uiy" path="res://rendering/entity_layer.gd" id="5"]
+[ext_resource type="Theme" uid="uid://c7q6510one1wh" path="res://ui/themes/Underkingdom.tres" id="6_p57ef"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
@@ -38,14 +39,10 @@ color = Color(0, 0, 0, 1)
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="TopBar" type="ColorRect" parent="HUD"]
-anchor_left = 0.0
-anchor_top = 0.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 0.0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
 offset_bottom = 50.0
+theme = ExtResource("6_p57ef")
 color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="CharacterInfo" type="Label" parent="HUD/TopBar"]
@@ -80,14 +77,13 @@ text = "Exp: 0/100"
 horizontal_alignment = 2
 
 [node name="RightSidebar" type="ColorRect" parent="HUD"]
+anchors_preset = -1
 anchor_left = 0.75
-anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 0.0
 offset_top = 50.0
-offset_right = 0.0
 offset_bottom = -50.0
+theme = ExtResource("6_p57ef")
 color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="LocationLabel" type="Label" parent="HUD/RightSidebar"]
@@ -102,6 +98,7 @@ text = "◆ OVERWORLD ◆"
 horizontal_alignment = 1
 
 [node name="SidebarSeparator" type="HSeparator" parent="HUD/RightSidebar"]
+layout_mode = 0
 offset_left = 10.0
 offset_top = 72.0
 offset_right = 305.0
@@ -116,7 +113,6 @@ offset_bottom = 610.0
 theme_override_colors/default_color = Color(0.8, 0.8, 0.8, 1)
 theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
-text = ""
 scroll_following = true
 
 [node name="BottomBar" type="ColorRect" parent="HUD"]
@@ -124,12 +120,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 0.0
 offset_top = -50.0
-offset_right = 0.0
-offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 0
+theme = ExtResource("6_p57ef")
 color = Color(0.08, 0.08, 0.12, 0.95)
 
 [node name="ActiveEffects" type="Label" parent="HUD/BottomBar"]
@@ -138,7 +132,7 @@ offset_left = 12.0
 offset_top = 6.0
 offset_right = 800.0
 offset_bottom = 24.0
-theme_override_colors/font_color = Color(0.7, 0.9, 1.0, 1)
+theme_override_colors/font_color = Color(0.7, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 13
 text = "EFFECTS: None"
 

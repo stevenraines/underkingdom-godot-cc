@@ -291,15 +291,24 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 	if not entity_layer:
 		return
 
-	# Hide floor tile underneath entity (don't render the period)
+	# Hide ground tiles underneath entity (floor/grass characters)
 	if terrain_layer and terrain_layer.get_cell_source_id(position) != -1:
-		# Check if this is a floor tile (period character)
-		var floor_index = _char_to_index(".")
-		var floor_col = floor_index % TILES_PER_ROW
-		var floor_row = floor_index / TILES_PER_ROW
+		# Ground tile characters that should be hidden under entities
+		var ground_chars = [".", "\"", ","]
 		var current_atlas = terrain_layer.get_cell_atlas_coords(position)
-		if current_atlas == Vector2i(floor_col, floor_row):
-			# Store the floor data and hide it
+
+		# Check if current tile is a ground tile
+		var is_ground_tile = false
+		for ground_char in ground_chars:
+			var ground_index = _char_to_index(ground_char)
+			var ground_col = ground_index % TILES_PER_ROW
+			var ground_row = ground_index / TILES_PER_ROW
+			if current_atlas == Vector2i(ground_col, ground_row):
+				is_ground_tile = true
+				break
+
+		if is_ground_tile:
+			# Store the ground tile data and hide it
 			hidden_floor_positions[position] = {
 				"atlas": current_atlas,
 				"color": terrain_modulated_cells.get(position, Color.WHITE)

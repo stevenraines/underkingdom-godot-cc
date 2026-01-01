@@ -712,14 +712,16 @@ func _update_hud() -> void:
 			# Get biome at player position
 			var biome_data = BiomeGenerator.get_biome_at(player.position.x, player.position.y, GameManager.world_seed)
 			var biome_name = biome_data.get("biome_name", "Unknown")
+			var biome_id = biome_data.get("biome_name", "")
 			biome_name = biome_name.replace("_", " ").capitalize()
 
-			# Get ground tile type
+			# Get ground character name
 			var tile = MapManager.current_map.get_tile(player.position)
-			var ground_type = tile.tile_type.capitalize()
+			var ground_char = tile.ascii_char
+			var ground_name = _get_terrain_name(ground_char, biome_id)
 
-			# Format as "Biome: Name\nGround: Type"
-			location_text += "\nBiome: %s\nGround: %s" % [biome_name, ground_type]
+			# Format as "Biome, Ground"
+			location_text += "\n%s, %s" % [biome_name, ground_name]
 
 		location_label.text = location_text
 
@@ -842,6 +844,44 @@ func _get_day_suffix(day: int) -> String:
 		3: return "rd"
 		_: return "th"
 
+## Get display name for terrain character
+func _get_terrain_name(terrain_char: String, biome_id: String = "") -> String:
+	# For floor tiles, use biome-specific names
+	if terrain_char == ".":
+		var biome_floor_names = {
+			"beach": "Sand",
+			"snow": "Snow",
+			"snow_mountains": "Snow",
+			"tundra": "Tundra",
+			"barren_rock": "Rock",
+			"ocean": "Water",
+			"deep_ocean": "Water",
+			"swamp": "Mud",
+			"marsh": "Mud"
+		}
+		return biome_floor_names.get(biome_id, "Dirt")
+
+	# Standard terrain names
+	var terrain_names = {
+		"#": "Wall",
+		"░": "Wall",
+		"T": "Tree",
+		"\"": "Grass",
+		",": "Grass",
+		"^": "Rocky",
+		"*": "Snow",
+		"·": "Barren",
+		"~": "Water",
+		"≈": "Deep Water",
+		"▲": "Mountain",
+		"◆": "Rock",
+		"◊": "Iron Ore",
+		">": "Stairs Down",
+		"<": "Stairs Up",
+		"+": "Door"
+	}
+	return terrain_names.get(terrain_char, "Unknown")
+
 ## Update message based on player position
 func _update_message() -> void:
 	if not message_log or not player or not MapManager.current_map:
@@ -902,7 +942,12 @@ func _find_valid_spawn_position() -> Vector2i:
 	@warning_ignore("integer_division")
 	var center: Vector2i
 	if MapManager.current_map.chunk_based:
-		# For chunk-based maps, start in chunk 5,5 (center area near town)
+		# For chunk-based maps, use player_spawn metadata if available
+		if MapManager.current_map.has_meta("player_spawn"):
+			var spawn_pos = MapManager.current_map.get_meta("player_spawn")
+			print("[Game] Using player_spawn metadata: %v" % spawn_pos)
+			return spawn_pos
+		# Fallback: start in chunk 5,5 (center area near town)
 		center = Vector2i(5 * 32 + 10, 5 * 32 + 10)
 	else:
 		center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)

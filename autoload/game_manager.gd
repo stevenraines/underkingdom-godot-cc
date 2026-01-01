@@ -42,6 +42,12 @@ func start_new_game(world_name_input: String = "") -> void:
 	# Clear map cache to ensure new world generation with new seed
 	MapManager.loaded_maps.clear()
 
+	# Clear chunk cache to ensure fresh chunk generation with new colors
+	ChunkManager.clear_chunks()
+
+	# Reset last overworld position
+	last_overworld_position = Vector2i.ZERO
+
 	print("New game started - World: '%s', Seed: %d" % [world_name, world_seed])
 
 ## Update the current map being played

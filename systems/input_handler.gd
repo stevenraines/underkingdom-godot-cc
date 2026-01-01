@@ -218,9 +218,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed):  # F1 or ? (Shift+/) - help screen
 			_open_help_screen()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_M:  # M key - toggle minimap
-			_toggle_minimap()
-			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -339,15 +336,6 @@ func _open_help_screen() -> void:
 		game.open_help_screen()
 	else:
 		print("[InputHandler] ERROR: game or open_help_screen method not found")
-
-## Toggle minimap visibility
-func _toggle_minimap() -> void:
-	print("[InputHandler] Toggling minimap")
-	var game = get_parent()
-	if game and game.has_method("toggle_minimap"):
-		game.toggle_minimap()
-	else:
-		print("[InputHandler] ERROR: game or toggle_minimap method not found")
 
 ## Try to harvest a resource in the given direction
 func _try_harvest(direction: Vector2i) -> bool:

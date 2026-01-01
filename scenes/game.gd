@@ -35,7 +35,7 @@ var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for pla
 @onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
 @onready var xp_label: Label = $HUD/TopBar/XPLabel
-@onready var minimap: Control = $HUD/Minimap
+@onready var debug_info_label: Label = $HUD/BottomBar/DebugInfo
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
@@ -144,8 +144,9 @@ func _ready() -> void:
 		_tree.paused = false
 
 	# Calculate initial FOV
-	var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	# TEMP: Commented out to debug gray overlay
+	#var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
+	#renderer.update_fov(visible_tiles)
 
 	# Connect signals
 	EventBus.player_moved.connect(_on_player_moved)
@@ -348,8 +349,9 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	renderer.center_camera(new_pos)
 
 	# Update FOV
-	var visible_tiles = FOVSystem.calculate_fov(new_pos, player.perception_range, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	# TEMP: Commented out to debug gray overlay
+	#var visible_tiles = FOVSystem.calculate_fov(new_pos, player.perception_range, MapManager.current_map)
+	#renderer.update_fov(visible_tiles)
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()
@@ -408,8 +410,9 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change START: %s ===" % map_id)
 
 	# Invalidate FOV cache since map changed
-	print("[Game] 1/8 Invalidating FOV cache")
-	FOVSystem.invalidate_cache()
+	# TEMP: Commented out to debug gray overlay
+	#print("[Game] 1/8 Invalidating FOV cache")
+	#FOVSystem.invalidate_cache()
 
 	# Clear existing entities from EntityManager
 	print("[Game] 2/8 Clearing entities")
@@ -438,9 +441,10 @@ func _on_map_changed(map_id: String) -> void:
 	renderer.center_camera(player.position)
 
 	# Update FOV
-	print("[Game] 8/8 Calculating FOV")
-	var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	# TEMP: Commented out to debug gray overlay
+	#print("[Game] 8/8 Calculating FOV")
+	#var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
+	#renderer.update_fov(visible_tiles)
 
 	# Update message
 	_update_message()
@@ -701,7 +705,23 @@ func _update_hud() -> void:
 	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
 		var formatted_name = map_name.replace("_", " ").capitalize()
-		location_label.text = "◆ %s ◆" % formatted_name.to_upper()
+		var location_text = "◆ %s ◆" % formatted_name.to_upper()
+
+		# Add biome and ground type for overworld
+		if MapManager.current_map and MapManager.current_map.map_id == "overworld" and player:
+			# Get biome at player position
+			var biome_data = BiomeGenerator.get_biome_at(player.position.x, player.position.y, GameManager.world_seed)
+			var biome_name = biome_data.get("biome_name", "Unknown")
+			biome_name = biome_name.replace("_", " ").capitalize()
+
+			# Get ground tile type
+			var tile = MapManager.current_map.get_tile(player.position)
+			var ground_type = tile.tile_type.capitalize()
+
+			# Format as "Biome: Name\nGround: Type"
+			location_text += "\nBiome: %s\nGround: %s" % [biome_name, ground_type]
+
+		location_label.text = location_text
 
 ## Get status line color based on player state
 func _get_status_color() -> Color:
@@ -1029,15 +1049,6 @@ func open_help_screen() -> void:
 		input_handler.ui_blocking_input = true
 	else:
 		print("[Game] ERROR: help_screen is null")
-
-## Toggle minimap visibility (called from M key)
-func toggle_minimap() -> void:
-	if minimap:
-		minimap.visible = !minimap.visible
-		var state = "shown" if minimap.visible else "hidden"
-		_add_message("Minimap %s" % state, Color(0.7, 0.7, 0.7))
-	else:
-		print("[Game] ERROR: minimap is null")
 
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:

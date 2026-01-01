@@ -212,6 +212,7 @@ func clear_chunks() -> void:
 	active_chunks.clear()
 	chunk_cache.clear()
 	visited_chunks.clear()
+	chunk_access_order.clear()  # Clear LRU tracking
 	print("[ChunkManager] All chunks cleared")
 
 ## Handle map changes

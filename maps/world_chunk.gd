@@ -50,9 +50,14 @@ func generate(world_seed: int) -> void:
 			# Create base tile from biome
 			var tile = GameTile.create(biome.base_tile)
 
-			# Override floor character for visual variety
+			# Override floor character and color for visual variety
 			if biome.base_tile == "floor":
 				tile.ascii_char = biome.grass_char
+				# Set color based on whether it's a grass character or floor
+				if biome.grass_char == ".":
+					tile.color = biome.color_floor
+				else:
+					tile.color = biome.color_grass
 
 			# Check for special features at this position
 			if world_pos == dungeon_entrance_pos:
@@ -69,6 +74,11 @@ func generate(world_seed: int) -> void:
 					if tile.tile_type != "floor":
 						tile = GameTile.create("floor")
 						tile.ascii_char = biome.grass_char
+						# Set color for town floor tiles
+						if biome.grass_char == ".":
+							tile.color = biome.color_floor
+						else:
+							tile.color = biome.color_grass
 
 			tiles[Vector2i(local_x, local_y)] = tile
 

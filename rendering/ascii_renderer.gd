@@ -279,7 +279,8 @@ func render_chunk(chunk: WorldChunk) -> void:
 			terrain_layer.set_cell(world_pos, 0, Vector2i(col, row))
 
 			# Set color modulation
-			var tile_color = default_terrain_colors.get(tile_char, Color.WHITE)
+			# Use tile's color if set (from biome data), otherwise fall back to default
+			var tile_color = tile.color if tile.color != Color.WHITE else default_terrain_colors.get(tile_char, Color.WHITE)
 			terrain_modulated_cells[world_pos] = tile_color
 
 	# Notify once after batch update
@@ -358,3 +359,7 @@ func clear_all() -> void:
 		terrain_layer.clear()
 	if entity_layer:
 		entity_layer.clear()
+	# Clear color modulation dictionaries to prevent stale color data
+	terrain_modulated_cells.clear()
+	entity_modulated_cells.clear()
+	hidden_floor_positions.clear()

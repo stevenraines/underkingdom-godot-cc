@@ -137,7 +137,7 @@ func close() -> void:
 ## Build all help content
 func _build_help_content() -> void:
 	# Movement & Actions
-	_add_section_header("══ MOVEMENT & ACTIONS ══")
+	_add_section_header("== MOVEMENT & ACTIONS ==")
 	_add_keybind("Arrow Keys / WASD", "Move & attack enemies")
 	_add_keybind(". (period)", "Wait / rest (bonus stamina)")
 	_add_keybind("> (Shift + .)", "Descend stairs")
@@ -146,7 +146,7 @@ func _build_help_content() -> void:
 	_add_spacer()
 
 	# Inventory & Equipment
-	_add_section_header("══ INVENTORY & EQUIPMENT ══")
+	_add_section_header("== INVENTORY & EQUIPMENT ==")
 	_add_keybind("I", "Open inventory")
 	_add_keybind("Tab (in inventory)", "Switch equipment/backpack")
 	_add_keybind("E (in inventory)", "Equip/Unequip item")
@@ -156,7 +156,7 @@ func _build_help_content() -> void:
 	_add_spacer()
 
 	# Crafting & Building
-	_add_section_header("══ CRAFTING & BUILDING ══")
+	_add_section_header("== CRAFTING & BUILDING ==")
 	_add_keybind("C", "Open crafting menu")
 	_add_keybind("H", "Harvest resource (then direction)")
 	_add_keybind("B", "Open build mode")
@@ -164,7 +164,7 @@ func _build_help_content() -> void:
 	_add_spacer()
 
 	# NPCs & Shopping
-	_add_section_header("══ NPCs & SHOPPING ══")
+	_add_section_header("== NPCs & SHOPPING ==")
 	_add_keybind("T", "Talk to adjacent NPC")
 	_add_keybind("Tab (in shop)", "Switch buy/sell mode")
 	_add_keybind("+/-", "Adjust quantity")
@@ -172,7 +172,7 @@ func _build_help_content() -> void:
 	_add_spacer()
 
 	# Menus & UI
-	_add_section_header("══ MENUS & UI ══")
+	_add_section_header("== MENUS & UI ==")
 	_add_keybind("P", "Character sheet")
 	_add_keybind("? or F1", "This help screen")
 	_add_keybind("ESC", "Pause menu / close UI")
@@ -180,7 +180,7 @@ func _build_help_content() -> void:
 	_add_spacer()
 
 	# Survival Tips
-	_add_section_header("══ SURVIVAL TIPS ══")
+	_add_section_header("== SURVIVAL TIPS ==")
 	_add_help_text("Hunger and thirst drain over time")
 	_add_help_text("Temperature affects your stats")
 	_add_help_text("Stamina is used for movement and combat")
@@ -188,7 +188,7 @@ func _build_help_content() -> void:
 	_add_spacer()
 
 	# Combat Tips
-	_add_section_header("══ COMBAT TIPS ══")
+	_add_section_header("== COMBAT TIPS ==")
 	_add_help_text("Bump into enemies to attack them")
 	_add_help_text("Hit chance = Your Accuracy - Enemy Evasion")
 	_add_help_text("Damage = Weapon + STR bonus - Armor")

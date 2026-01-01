@@ -23,6 +23,7 @@ var pause_menu: Control = null
 var death_screen: Control = null
 var character_sheet: Control = null
 var help_screen: Control = null
+var minimap_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -80,6 +81,9 @@ func _ready() -> void:
 
 	# Create help screen
 	_setup_help_screen()
+
+	# Create minimap screen
+	_setup_minimap_screen()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -244,6 +248,22 @@ func _setup_help_screen() -> void:
 		print("[Game] Help screen created and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load help_screen.gd script")
+
+## Setup minimap screen
+func _setup_minimap_screen() -> void:
+	print("[Game] Setting up minimap screen programmatically...")
+	var MinimapScreenScript = load("res://ui/minimap_screen.gd")
+	if MinimapScreenScript:
+		print("[Game] Minimap screen script loaded")
+		minimap_screen = Control.new()
+		minimap_screen.set_script(MinimapScreenScript)
+		minimap_screen.name = "MinimapScreen"
+		hud.add_child(minimap_screen)
+		if minimap_screen.has_signal("closed"):
+			minimap_screen.closed.connect(_on_minimap_screen_closed)
+		print("[Game] Minimap screen created and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load minimap_screen.gd script")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -969,6 +989,16 @@ func open_help_screen() -> void:
 	else:
 		print("[Game] ERROR: help_screen is null")
 
+## Open minimap screen (called from M key)
+func open_minimap() -> void:
+	print("[Game] open_minimap called - minimap_screen: ", minimap_screen)
+	if minimap_screen:
+		print("[Game] Opening minimap screen UI")
+		minimap_screen.open()
+		input_handler.ui_blocking_input = true
+	else:
+		print("[Game] ERROR: minimap_screen is null")
+
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
 	# Resume normal gameplay
@@ -1016,6 +1046,10 @@ func _on_character_sheet_closed() -> void:
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when minimap screen is closed
+func _on_minimap_screen_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when an item is picked up

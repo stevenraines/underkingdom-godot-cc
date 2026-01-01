@@ -242,7 +242,7 @@ All interconnected for emergent gameplay:
 ### Phase 1.17 (Overworld Generation) - 🔄 IN PROGRESS
 **Scope**: Enhanced overworld with improved town and generation
 - [x] Expand town to 2 buildings: general store and blacksmith
-- [ ] Overworld generation with perlin noise
+- [x] Overworld generation with perlin noise (100x100 island map)
 - [ ] Pop-up map of entire island (miniature)
 - [ ] Mining for ore (rocks with ore)
 

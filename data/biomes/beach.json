@@ -1,0 +1,10 @@
+{
+  "id": "beach",
+  "name": "Beach",
+  "base_tile": "floor",
+  "grass_char": ".",
+  "tree_density": 0.0,
+  "rock_density": 0.05,
+  "color_floor": [0.8, 0.7, 0.5],
+  "color_grass": [0.85, 0.75, 0.55]
+}

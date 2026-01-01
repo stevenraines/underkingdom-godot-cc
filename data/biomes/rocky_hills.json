@@ -1,0 +1,10 @@
+{
+  "id": "rocky_hills",
+  "name": "Rocky Hills",
+  "base_tile": "floor",
+  "grass_char": "^",
+  "tree_density": 0.03,
+  "rock_density": 0.2,
+  "color_floor": [0.5, 0.4, 0.3],
+  "color_grass": [0.55, 0.45, 0.35]
+}

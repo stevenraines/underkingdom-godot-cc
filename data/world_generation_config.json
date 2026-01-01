@@ -1,0 +1,47 @@
+{
+	"elevation_noise": {
+		"frequency": 0.03,
+		"octaves": 3,
+		"lacunarity": 2.0,
+		"gain": 0.5,
+		"elevation_curve": 1.5
+	},
+	"moisture_noise": {
+		"frequency": 0.05,
+		"octaves": 2,
+		"lacunarity": 2.0,
+		"gain": 0.5,
+		"seed_offset": 1000
+	},
+	"chunk_settings": {
+		"chunk_size": 32,
+		"load_radius": 3,
+		"unload_radius": 5,
+		"cache_max_size": 100
+	},
+	"biome_matrix": {
+		"elevation_thresholds": [0.25, 0.4, 0.55, 0.7, 0.85],
+		"moisture_thresholds": [0.2, 0.4, 0.6, 0.8],
+		"matrix": [
+			["deep_ocean", "ocean", "ocean", "marsh", "swamp"],
+			["ocean", "beach", "grassland", "woodland", "forest"],
+			["beach", "grassland", "grassland", "forest", "rainforest"],
+			["barren_rock", "tundra", "grassland", "woodland", "forest"],
+			["barren_rock", "rocky_hills", "rocky_hills", "mountains", "mountains"],
+			["barren_rock", "snow", "snow", "snow_mountains", "snow_mountains"]
+		]
+	},
+	"special_features": {
+		"dungeon_entrance": {
+			"preferred_biomes": ["rocky_hills", "mountains", "barren_rock"],
+			"min_distance_from_spawn": 2,
+			"max_distance_from_spawn": 10,
+			"tile_type": "stairs_down"
+		},
+		"town": {
+			"preferred_biomes": ["grassland", "woodland", "forest"],
+			"min_distance_from_dungeon": 3,
+			"size": 20
+		}
+	}
+}

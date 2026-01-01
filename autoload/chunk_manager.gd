@@ -8,10 +8,12 @@ extends Node
 const WorldChunk = preload("res://maps/world_chunk.gd")
 
 var active_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> WorldChunk
-var chunk_cache: Dictionary = {}  # Long-term cache of generated chunks
+var chunk_cache: Dictionary = {}  # LRU cache of generated chunks
+var chunk_access_order: Array[Vector2i] = []  # LRU tracking: most recent at end
 var visited_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> bool (for minimap)
 var load_radius: int = 3  # Load chunks within 3 chunk distance of player
 var unload_radius: int = 5  # Unload chunks beyond 5 chunk distance
+var max_cache_size: int = 100  # Maximum cached chunks (prevents memory growth)
 
 var world_seed: int = 0  # Set when map is loaded
 var is_chunk_mode: bool = false  # True for overworld, false for dungeons
@@ -19,6 +21,12 @@ var is_chunk_mode: bool = false  # True for overworld, false for dungeons
 func _ready() -> void:
 	print("ChunkManager initialized")
 	EventBus.map_changed.connect(_on_map_changed)
+
+	# Load max cache size from BiomeManager config
+	var chunk_settings = BiomeManager.get_chunk_settings()
+	if chunk_settings.has("cache_max_size"):
+		max_cache_size = chunk_settings["cache_max_size"]
+		print("[ChunkManager] Max cache size set to %d chunks" % max_cache_size)
 
 ## Enable chunk mode for a map
 func enable_chunk_mode(map_id: String, seed: int) -> void:
@@ -41,6 +49,7 @@ static func world_to_chunk(world_pos: Vector2i) -> Vector2i:
 func get_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	# Check active chunks first
 	if chunk_coords in active_chunks:
+		_touch_chunk_lru(chunk_coords)
 		return active_chunks[chunk_coords]
 
 	# Check cache
@@ -48,6 +57,7 @@ func get_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		var chunk = chunk_cache[chunk_coords]
 		chunk.is_loaded = true
 		active_chunks[chunk_coords] = chunk
+		_touch_chunk_lru(chunk_coords)
 		return chunk
 
 	# Generate new chunk
@@ -62,6 +72,12 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	chunk_cache[chunk_coords] = chunk
 	visited_chunks[chunk_coords] = true  # Mark as visited for minimap
 
+	# Update LRU tracking
+	_touch_chunk_lru(chunk_coords)
+
+	# Evict old chunks if cache is full (LRU policy)
+	_evict_old_chunks_if_needed()
+
 	# Emit chunk loaded event
 	EventBus.chunk_loaded.emit(chunk_coords)
 
@@ -70,6 +86,33 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		EventBus.message_logged.emit("Exploring chunk %v..." % chunk_coords)
 
 	return chunk
+
+## Update LRU access tracking for a chunk
+func _touch_chunk_lru(chunk_coords: Vector2i) -> void:
+	# Remove from current position if exists
+	var idx = chunk_access_order.find(chunk_coords)
+	if idx >= 0:
+		chunk_access_order.remove_at(idx)
+
+	# Add to end (most recently used)
+	chunk_access_order.append(chunk_coords)
+
+## Evict least recently used chunks if cache exceeds max size
+func _evict_old_chunks_if_needed() -> void:
+	while chunk_cache.size() > max_cache_size and chunk_access_order.size() > 0:
+		# Evict least recently used (first in list)
+		var oldest_chunk = chunk_access_order[0]
+
+		# Don't evict if it's currently active
+		if oldest_chunk in active_chunks:
+			chunk_access_order.remove_at(0)
+			chunk_access_order.append(oldest_chunk)  # Move to end
+			continue
+
+		# Evict from cache
+		chunk_cache.erase(oldest_chunk)
+		chunk_access_order.remove_at(0)
+		print("[ChunkManager] Evicted chunk %v from cache (LRU)" % oldest_chunk)
 
 ## Unload a chunk from active memory
 func unload_chunk(chunk_coords: Vector2i) -> void:

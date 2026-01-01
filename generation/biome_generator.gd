@@ -37,8 +37,8 @@ static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
 	return moisture_noise_cache[moisture_seed]
 
 ## Generate biome at world position
-## Returns BiomeDefinition for the given coordinates
-static func get_biome_at(x: int, y: int, seed_value: int) -> BiomeDefinition:
+## Returns Dictionary with biome data loaded from JSON
+static func get_biome_at(x: int, y: int, seed_value: int) -> Dictionary:
 	# Get cached noise generators (massive performance improvement)
 	var elevation_noise = _get_elevation_noise(seed_value)
 	var moisture_noise = _get_moisture_noise(seed_value)
@@ -54,8 +54,24 @@ static func get_biome_at(x: int, y: int, seed_value: int) -> BiomeDefinition:
 	# This creates more ocean and more mountains, less "medium" elevation
 	elevation = pow(elevation, 1.5)
 
-	# Lookup biome from elevation × moisture matrix
-	return BiomeDefinition.get_biome(elevation, moisture)
+	# Lookup biome from elevation × moisture matrix (data-driven via BiomeManager)
+	var biome_id = BiomeManager.get_biome_id_from_values(elevation, moisture)
+	var biome_data = BiomeManager.get_biome(biome_id)
+
+	# Return biome data as dictionary (compatible with existing code)
+	# Convert color arrays to Color objects
+	var floor_color_array = biome_data.get("color_floor", [0.4, 0.6, 0.3])
+	var grass_color_array = biome_data.get("color_grass", [0.5, 0.7, 0.4])
+
+	return {
+		"biome_name": biome_data.get("id", "grassland"),
+		"base_tile": biome_data.get("base_tile", "floor"),
+		"grass_char": biome_data.get("grass_char", "\""),
+		"tree_density": biome_data.get("tree_density", 0.05),
+		"rock_density": biome_data.get("rock_density", 0.01),
+		"color_floor": Color(floor_color_array[0], floor_color_array[1], floor_color_array[2]),
+		"color_grass": Color(grass_color_array[0], grass_color_array[1], grass_color_array[2])
+	}
 
 ## Get elevation value at position (for use in other systems)
 static func get_elevation_at(x: int, y: int, seed_value: int) -> float:

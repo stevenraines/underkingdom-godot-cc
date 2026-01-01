@@ -83,7 +83,7 @@ func _build_ui() -> void:
 
 	# Title
 	var title = Label.new()
-	title.text = "◆ HELP & KEYBINDINGS ◆"
+	title.text = "* HELP & KEYBINDINGS *"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if theme != null:
 		title.theme = theme

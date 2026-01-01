@@ -84,8 +84,10 @@ func _build_ui() -> void:
 
 	# Title
 	var title = Label.new()
-	title.text = "◆ CHARACTER SHEET ◆"
+	title.text = "* CHARACTER SHEET *"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if theme != null:
+		title.theme = theme
 	title.add_theme_color_override("font_color", COLOR_TITLE)
 	title.add_theme_font_size_override("font_size", 20)
 	vbox.add_child(title)

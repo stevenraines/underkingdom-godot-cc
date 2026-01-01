@@ -60,9 +60,9 @@ grow_vertical = 2
 
 [node name="Header" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.85, 1, 1)
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 theme_override_font_sizes/font_size = 20
-text = "═══ HELP & KEYBINDINGS ═══"
+text = "◆ HELP & KEYBINDINGS ◆"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Panel/VBoxContainer"]

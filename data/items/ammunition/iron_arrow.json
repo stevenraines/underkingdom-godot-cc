@@ -1,0 +1,18 @@
+{
+  "id": "iron_arrow",
+  "name": "Iron Arrow",
+  "description": "A well-crafted arrow with an iron head.",
+  "category": "ammunition",
+  "ammunition_type": "arrow",
+  "flags": {
+    "ammunition": true,
+    "craftable": true
+  },
+  "weight": 0.08,
+  "value": 5,
+  "max_stack": 20,
+  "ascii_char": "/",
+  "ascii_color": "#AAAAAA",
+  "damage_bonus": 2,
+  "recovery_chance": 0.6
+}

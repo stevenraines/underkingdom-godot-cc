@@ -1,0 +1,21 @@
+{
+  "id": "throwing_axe",
+  "name": "Throwing Axe",
+  "description": "A small axe balanced for throwing.",
+  "category": "weapon",
+  "subtype": "thrown",
+  "attack_type": "thrown",
+  "attack_range": 3,
+  "accuracy_modifier": -5,
+  "recovery_chance": 0.8,
+  "flags": {
+    "throwable": true,
+    "craftable": true
+  },
+  "weight": 0.8,
+  "value": 15,
+  "max_stack": 3,
+  "ascii_char": "P",
+  "ascii_color": "#8B7355",
+  "damage_bonus": 5
+}

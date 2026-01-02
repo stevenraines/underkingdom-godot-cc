@@ -84,9 +84,20 @@ func _build_help_content() -> void:
 	_add_help_text("Encumbrance slows you down")
 	_add_spacer()
 
+	# Combat
+	_add_section_header("== COMBAT ==")
+	_add_keybind("Arrow/WASD", "Bump attack (melee)")
+	_add_keybind("R", "Ranged attack (with bow/crossbow)")
+	_add_keybind("Tab (targeting)", "Cycle targets")
+	_add_keybind("Enter/F (targeting)", "Fire at target")
+	_add_keybind("ESC (targeting)", "Cancel targeting")
+	_add_spacer()
+
 	# Combat Tips
 	_add_section_header("== COMBAT TIPS ==")
-	_add_help_text("Bump into enemies to attack them")
+	_add_help_text("Bump into enemies to attack them (melee)")
+	_add_help_text("Ranged weapons require ammunition")
+	_add_help_text("Thrown weapons are consumed but may be recovered")
 	_add_help_text("Hit chance = Your Accuracy - Enemy Evasion")
 	_add_help_text("Damage = Weapon + STR bonus - Armor")
 	_add_help_text("Higher DEX improves accuracy and evasion")

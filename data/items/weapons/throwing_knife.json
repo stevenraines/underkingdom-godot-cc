@@ -1,0 +1,21 @@
+{
+  "id": "throwing_knife",
+  "name": "Throwing Knife",
+  "description": "A balanced knife designed for throwing.",
+  "category": "weapon",
+  "subtype": "thrown",
+  "attack_type": "thrown",
+  "attack_range": 4,
+  "accuracy_modifier": 0,
+  "recovery_chance": 0.75,
+  "flags": {
+    "throwable": true,
+    "craftable": true
+  },
+  "weight": 0.3,
+  "value": 8,
+  "max_stack": 5,
+  "ascii_char": "/",
+  "ascii_color": "#AAAAAA",
+  "damage_bonus": 3
+}

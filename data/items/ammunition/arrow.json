@@ -1,0 +1,18 @@
+{
+  "id": "arrow",
+  "name": "Arrow",
+  "description": "A simple wooden arrow with a stone tip.",
+  "category": "ammunition",
+  "ammunition_type": "arrow",
+  "flags": {
+    "ammunition": true,
+    "craftable": true
+  },
+  "weight": 0.05,
+  "value": 2,
+  "max_stack": 20,
+  "ascii_char": "/",
+  "ascii_color": "#8B7355",
+  "damage_bonus": 1,
+  "recovery_chance": 0.5
+}

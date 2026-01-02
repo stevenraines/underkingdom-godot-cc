@@ -1,0 +1,24 @@
+{
+  "id": "crossbow",
+  "name": "Crossbow",
+  "description": "A mechanical bow that fires bolts with deadly accuracy.",
+  "category": "weapon",
+  "subtype": "crossbow",
+  "attack_type": "ranged",
+  "attack_range": 8,
+  "ammunition_type": "bolt",
+  "accuracy_modifier": 10,
+  "flags": {
+    "equippable": true,
+    "two_handed": true,
+    "craftable": true
+  },
+  "weight": 2.5,
+  "value": 75,
+  "max_stack": 1,
+  "ascii_char": "}",
+  "ascii_color": "#8B4513",
+  "durability": 100,
+  "equip_slots": ["main_hand", "off_hand"],
+  "damage_bonus": 7
+}

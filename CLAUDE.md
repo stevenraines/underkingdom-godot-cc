@@ -102,6 +102,21 @@ ASCIIRenderer (TileMapLayer-based)
 - Attack resolution: `Hit Chance = Attacker Accuracy - Defender Evasion`
 - Damage: `Weapon Base + STR Modifier - Armor`
 
+**Ranged Combat**:
+- Press `R` to enter targeting mode with ranged weapon
+- `Tab`/Arrow keys cycle through valid targets
+- `Enter`/`F` to fire, `Escape` to cancel
+- Ranged weapons (bows, crossbows, slings) require ammunition
+- Thrown weapons (throwing_knife, throwing_axe) are consumed on throw
+- Ammunition can be recovered (based on `recovery_chance` property)
+- Range penalty: -5% accuracy per tile beyond half range
+- Line-of-sight required (uses Bresenham's algorithm)
+
+**Weapon Types**:
+- `attack_type: "melee"` - Standard bump-to-attack weapons
+- `attack_type: "ranged"` - Bows, crossbows, slings (require `ammunition_type`)
+- `attack_type: "thrown"` - Throwing knives, axes (consumed on use)
+
 **Enemy AI** (based on INT):
 - INT 1-3: Direct approach, no tactics
 - INT 4-6: Flanking, retreats when low health
@@ -278,6 +293,8 @@ res://
 │   └── item.gd
 ├── systems/            # Game systems
 │   ├── combat_system.gd
+│   ├── ranged_combat_system.gd
+│   ├── targeting_system.gd
 │   ├── survival_system.gd
 │   ├── inventory_system.gd
 │   ├── harvest_system.gd
@@ -411,6 +428,20 @@ static func create():
 ```
 
 This pattern is used in `DungeonGeneratorFactory` and `BurialBarrowGenerator` for loading dungeon generators.
+
+### Data Value Conventions
+**IMPORTANT**: Use consistent value formats across all JSON data files:
+
+- **Probability/Chance values**: Always use decimal (0.0-1.0), never percentages (0-100)
+  - `"recovery_chance": 0.5` (correct - 50% chance)
+  - `"recovery_chance": 50` (incorrect - don't use percentages)
+  - `"spawn_chance": 0.25` (correct - 25% chance)
+
+- **Weight values**: Use kilograms as the unit
+  - `"weight": 1.5` (1.5 kg)
+
+- **Distance/Range values**: Use tiles as the unit (integers)
+  - `"attack_range": 6` (6 tiles)
 
 ---
 

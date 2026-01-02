@@ -42,6 +42,13 @@ var equip_slots: Array[String] = [] # Which slots this can equip to (e.g., ["mai
 var armor_value: int = 0            # Damage reduction when equipped
 var damage_bonus: int = 0           # Added to base damage when equipped
 
+# Ranged weapon properties
+var attack_type: String = "melee"   # "melee", "ranged", or "thrown"
+var attack_range: int = 1           # Maximum attack distance in tiles
+var ammunition_type: String = ""    # Required ammo type (e.g., "arrow", "bolt")
+var accuracy_modifier: int = 0      # Bonus/penalty to hit chance
+var recovery_chance: float = 0.5    # Chance ammo/thrown weapon can be recovered (0.0-1.0)
+
 # Tool properties
 var tool_type: String = ""          # "knife", "hammer", etc. for crafting requirements
 
@@ -101,7 +108,14 @@ static func create_from_data(data: Dictionary) -> Item:
 	
 	item.armor_value = data.get("armor_value", 0)
 	item.damage_bonus = data.get("damage_bonus", 0)
-	
+
+	# Ranged weapon properties
+	item.attack_type = data.get("attack_type", "melee")
+	item.attack_range = data.get("attack_range", 1)
+	item.ammunition_type = data.get("ammunition_type", "")
+	item.accuracy_modifier = data.get("accuracy_modifier", 0)
+	item.recovery_chance = data.get("recovery_chance", 0.5)
+
 	# Tool
 	item.tool_type = data.get("tool_type", "")
 	
@@ -135,6 +149,11 @@ func duplicate_item() -> Item:
 	copy.equip_slots = equip_slots.duplicate()
 	copy.armor_value = armor_value
 	copy.damage_bonus = damage_bonus
+	copy.attack_type = attack_type
+	copy.attack_range = attack_range
+	copy.ammunition_type = ammunition_type
+	copy.accuracy_modifier = accuracy_modifier
+	copy.recovery_chance = recovery_chance
 	copy.tool_type = tool_type
 	copy.effects = effects.duplicate()
 	copy.transforms_into = transforms_into
@@ -340,3 +359,28 @@ func get_color() -> Color:
 ## Check if item stack is empty
 func is_empty() -> bool:
 	return stack_size <= 0
+
+## Check if this item is a ranged weapon (bow, crossbow, sling)
+func is_ranged_weapon() -> bool:
+	return attack_type == "ranged"
+
+## Check if this item is a thrown weapon
+func is_thrown_weapon() -> bool:
+	return attack_type == "thrown" or flags.get("throwable", false)
+
+## Check if this item is ammunition
+func is_ammunition() -> bool:
+	return flags.get("ammunition", false) or category == "ammunition"
+
+## Check if this item can be used for ranged attack (ranged or thrown)
+func can_attack_at_range() -> bool:
+	return is_ranged_weapon() or is_thrown_weapon()
+
+## Get the effective attack range
+## For thrown weapons, this is modified by STR
+func get_effective_range(str_stat: int = 0) -> int:
+	if is_thrown_weapon():
+		# Thrown range = base_range + STR/2
+		@warning_ignore("integer_division")
+		return attack_range + (str_stat / 2)
+	return attack_range

@@ -5,6 +5,9 @@ extends Node
 ## Handles input only on player's turn and advances the turn after actions.
 ## Supports continuous movement while holding WASD/arrow keys.
 
+const TargetingSystemClass = preload("res://systems/targeting_system.gd")
+const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
 
@@ -21,9 +24,13 @@ var is_initial_wait_press: bool = true
 # Harvest mode
 var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
 
+# Ranged targeting mode
+var targeting_system = null  # TargetingSystem instance
+
 func _ready() -> void:
 	set_process_unhandled_input(true)
 	set_process(true)
+	targeting_system = TargetingSystemClass.new()
 
 func set_player(p: Player) -> void:
 	player = p
@@ -110,6 +117,11 @@ func _try_move_or_attack(direction: Vector2i) -> bool:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:
+		return
+
+	# If in targeting mode, handle targeting input
+	if targeting_system and targeting_system.is_active() and event is InputEventKey and event.pressed and not event.echo:
+		_handle_targeting_input(event)
 		return
 
 	# If awaiting harvest direction, handle directional input
@@ -246,6 +258,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed) or event.unicode == 63:  # F1 or ? (Shift+/ or unicode 63) - help screen
 			_open_help_screen()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_R:  # R key - ranged attack / fire
+			_start_ranged_targeting()
 			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
@@ -405,3 +420,201 @@ func _try_harvest(direction: Vector2i) -> bool:
 			game.renderer.render_entity(player.position, "@", Color.YELLOW)
 
 	return result.success
+
+
+## Start ranged targeting mode
+func _start_ranged_targeting() -> void:
+	var game = get_parent()
+
+	# Check if player has a ranged weapon equipped
+	var weapon = _get_equipped_ranged_weapon()
+	if not weapon:
+		if game and game.has_method("_add_message"):
+			game._add_message("No ranged weapon equipped.", Color(0.9, 0.6, 0.4))
+		return
+
+	# For ranged weapons (not thrown), check for ammo
+	var ammo: Item = null
+	if weapon.is_ranged_weapon() and weapon.ammunition_type != "":
+		ammo = _get_ammunition_for_weapon(weapon)
+		if not ammo:
+			if game and game.has_method("_add_message"):
+				game._add_message("No %s ammunition." % weapon.ammunition_type, Color(0.9, 0.6, 0.4))
+			return
+
+	# Start targeting
+	var has_targets = targeting_system.start_targeting(player, weapon, ammo)
+	if not has_targets:
+		if game and game.has_method("_add_message"):
+			game._add_message("No valid targets in range.", Color(0.7, 0.7, 0.7))
+		return
+
+	# Block other input while targeting
+	ui_blocking_input = true
+
+	# Show targeting UI
+	if game and game.has_method("show_targeting_ui"):
+		game.show_targeting_ui(targeting_system)
+	elif game and game.has_method("_add_message"):
+		game._add_message(targeting_system.get_status_text(), Color(0.8, 0.9, 1.0))
+		game._add_message(targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
+
+
+## Handle input while in targeting mode
+func _handle_targeting_input(event: InputEventKey) -> void:
+	var game = get_parent()
+
+	match event.keycode:
+		KEY_TAB, KEY_RIGHT, KEY_D:
+			# Cycle to next target
+			targeting_system.cycle_next()
+			_update_targeting_display()
+			get_viewport().set_input_as_handled()
+
+		KEY_LEFT, KEY_A:
+			# Cycle to previous target
+			targeting_system.cycle_previous()
+			_update_targeting_display()
+			get_viewport().set_input_as_handled()
+
+		KEY_ENTER, KEY_SPACE, KEY_R, KEY_F:
+			# Confirm target and fire
+			var result = targeting_system.confirm_target()
+			_process_ranged_attack_result(result)
+			ui_blocking_input = false
+			get_viewport().set_input_as_handled()
+
+		KEY_ESCAPE:
+			# Cancel targeting
+			targeting_system.cancel()
+			ui_blocking_input = false
+			if game and game.has_method("hide_targeting_ui"):
+				game.hide_targeting_ui()
+			if game and game.has_method("_add_message"):
+				game._add_message("Targeting cancelled.", Color(0.7, 0.7, 0.7))
+			get_viewport().set_input_as_handled()
+
+
+## Update targeting display after cycling targets
+func _update_targeting_display() -> void:
+	var game = get_parent()
+	if game and game.has_method("update_targeting_ui"):
+		game.update_targeting_ui(targeting_system)
+	elif game and game.has_method("_add_message"):
+		game._add_message(targeting_system.get_status_text(), Color(0.8, 0.9, 1.0))
+
+
+## Process the result of a ranged attack
+func _process_ranged_attack_result(result: Dictionary) -> void:
+	var game = get_parent()
+
+	if result.has("error"):
+		if game and game.has_method("_add_message"):
+			game._add_message(result.error, Color(0.9, 0.5, 0.5))
+		return
+
+	# Consume ammunition
+	if result.get("is_ranged", false) and not result.get("is_thrown", false):
+		_consume_ammunition(targeting_system.ammo)
+	elif result.get("is_thrown", false):
+		_consume_thrown_weapon(targeting_system.weapon)
+
+	# Display combat message
+	var message = RangedCombatSystemClass.get_ranged_attack_message(result, true)
+	var color = Color(0.6, 0.9, 0.6) if result.hit else Color(0.7, 0.7, 0.7)
+	if game and game.has_method("_add_message"):
+		game._add_message(message, color)
+
+	# Handle ammo recovery on miss
+	if not result.hit and result.get("ammo_recovered", false):
+		_spawn_recovered_ammo(result)
+
+	# Hide targeting UI
+	if game and game.has_method("hide_targeting_ui"):
+		game.hide_targeting_ui()
+
+	# Advance turn
+	TurnManager.advance_turn()
+
+	# Refresh rendering
+	if game and game.has_method("_render_all_entities"):
+		game._render_all_entities()
+		game._render_ground_items()
+
+
+## Get the equipped ranged or thrown weapon
+func _get_equipped_ranged_weapon() -> Item:
+	if not player or not player.inventory:
+		return null
+
+	# Check main hand first
+	var main_hand = player.inventory.equipment.get("main_hand")
+	if main_hand and main_hand.can_attack_at_range():
+		return main_hand
+
+	# Check off hand
+	var off_hand = player.inventory.equipment.get("off_hand")
+	if off_hand and off_hand.can_attack_at_range():
+		return off_hand
+
+	return null
+
+
+## Get ammunition matching the weapon's ammunition_type
+func _get_ammunition_for_weapon(weapon: Item) -> Item:
+	if not player or not player.inventory or weapon.ammunition_type == "":
+		return null
+
+	# Search inventory for matching ammo
+	for item in player.inventory.items:
+		if item.is_ammunition() and item.ammunition_type == weapon.ammunition_type:
+			return item
+
+	return null
+
+
+## Consume one ammunition from inventory
+func _consume_ammunition(ammo: Item) -> void:
+	if not ammo or not player or not player.inventory:
+		return
+
+	ammo.remove_from_stack(1)
+	if ammo.is_empty():
+		player.inventory.remove_item(ammo)
+
+
+## Consume thrown weapon from inventory
+func _consume_thrown_weapon(weapon: Item) -> void:
+	if not weapon or not player or not player.inventory:
+		return
+
+	# For thrown weapons, remove one from stack or remove entirely
+	weapon.remove_from_stack(1)
+	if weapon.is_empty():
+		player.inventory.remove_item(weapon)
+
+
+## Spawn recovered ammo/thrown weapon on the ground
+func _spawn_recovered_ammo(result: Dictionary) -> void:
+	var recovery_pos = result.get("recovery_position", Vector2i.ZERO)
+	if recovery_pos == Vector2i.ZERO:
+		return
+
+	var item_id = ""
+	if result.get("is_thrown", false):
+		item_id = targeting_system.weapon.id if targeting_system.weapon else ""
+	else:
+		item_id = targeting_system.ammo.id if targeting_system.ammo else ""
+
+	if item_id == "":
+		return
+
+	# Create ground item
+	var item = ItemManager.create_item(item_id, 1)
+	if item:
+		var ground_item = GroundItem.create(item, recovery_pos)
+		EntityManager.add_entity(ground_item)
+
+		var game = get_parent()
+		if game and game.has_method("_add_message"):
+			game._add_message("Your %s lands on the ground." % item.name, Color(0.7, 0.8, 0.7))

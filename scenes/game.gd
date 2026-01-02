@@ -293,23 +293,43 @@ func _render_map() -> void:
 		return
 
 	# Traditional full-map rendering for dungeons
-	var visible_walls: Dictionary = {}
 	var is_dungeon = MapManager.current_map.map_id.begins_with("dungeon_")
 
-	if is_dungeon and player:
-		visible_walls = MapManager.current_map.get_visible_walls(player.position)
+	# For dungeons, only render tiles that exist in the dictionary
+	if is_dungeon:
+		for pos in MapManager.current_map.tiles.keys():
+			var tile = MapManager.current_map.tiles[pos]
 
-	for y in range(MapManager.current_map.height):
-		for x in range(MapManager.current_map.width):
-			var pos = Vector2i(x, y)
-			var tile = MapManager.current_map.get_tile(pos)
-
-			# Skip inaccessible walls in dungeons
-			if is_dungeon and tile.tile_type == "wall":
-				if pos not in visible_walls:
+			# Skip walls that aren't adjacent to any walkable tile
+			if not tile.walkable and not tile.transparent:
+				if not _is_wall_adjacent_to_walkable(pos):
 					continue  # Don't render this wall
 
 			renderer.render_tile(pos, tile.ascii_char)
+	else:
+		# Traditional rendering for non-dungeon, non-chunk maps
+		for y in range(MapManager.current_map.height):
+			for x in range(MapManager.current_map.width):
+				var pos = Vector2i(x, y)
+				var tile = MapManager.current_map.get_tile(pos)
+				renderer.render_tile(pos, tile.ascii_char)
+
+
+## Check if a wall position is adjacent to any walkable tile
+func _is_wall_adjacent_to_walkable(pos: Vector2i) -> bool:
+	var neighbors = [
+		Vector2i(pos.x - 1, pos.y - 1), Vector2i(pos.x, pos.y - 1), Vector2i(pos.x + 1, pos.y - 1),
+		Vector2i(pos.x - 1, pos.y),                                 Vector2i(pos.x + 1, pos.y),
+		Vector2i(pos.x - 1, pos.y + 1), Vector2i(pos.x, pos.y + 1), Vector2i(pos.x + 1, pos.y + 1)
+	]
+
+	for neighbor in neighbors:
+		if neighbor in MapManager.current_map.tiles:
+			var neighbor_tile = MapManager.current_map.tiles[neighbor]
+			if neighbor_tile.walkable:
+				return true
+
+	return false
 
 ## Called when player moves
 func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
@@ -904,16 +924,28 @@ func _spawn_map_enemies() -> void:
 	if not MapManager.current_map:
 		return
 
-	# Spawn enemies from metadata
-	if MapManager.current_map.has_meta("enemy_spawns"):
+	# Spawn enemies from metadata dictionary (used by dungeon generators)
+	if MapManager.current_map.metadata.has("enemy_spawns"):
+		var enemy_spawns = MapManager.current_map.metadata["enemy_spawns"]
+		for spawn_data in enemy_spawns:
+			var enemy_id = spawn_data["enemy_id"]
+			var spawn_pos = spawn_data["position"]
+			EntityManager.spawn_enemy(enemy_id, spawn_pos)
+	# Fallback: check Node meta (used by older overworld generation)
+	elif MapManager.current_map.has_meta("enemy_spawns"):
 		var enemy_spawns = MapManager.current_map.get_meta("enemy_spawns")
 		for spawn_data in enemy_spawns:
 			var enemy_id = spawn_data["enemy_id"]
 			var spawn_pos = spawn_data["position"]
 			EntityManager.spawn_enemy(enemy_id, spawn_pos)
 
-	# Spawn NPCs from metadata
-	if MapManager.current_map.has_meta("npc_spawns"):
+	# Spawn NPCs from metadata dictionary (used by dungeon/town generators)
+	if MapManager.current_map.metadata.has("npc_spawns"):
+		var npc_spawns = MapManager.current_map.metadata["npc_spawns"]
+		for spawn_data in npc_spawns:
+			EntityManager.spawn_npc(spawn_data)
+	# Fallback: check Node meta (used by older generation)
+	elif MapManager.current_map.has_meta("npc_spawns"):
 		var npc_spawns = MapManager.current_map.get_meta("npc_spawns")
 		for spawn_data in npc_spawns:
 			EntityManager.spawn_npc(spawn_data)

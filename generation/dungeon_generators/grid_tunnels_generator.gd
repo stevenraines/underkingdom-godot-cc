@@ -18,9 +18,9 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 
 	# Extract generation parameters from JSON
 	var tunnel_spacing: int = _get_param(dungeon_def, "tunnel_spacing", 5)
-	var shaft_freq: float = _get_param(dungeon_def, "shaft_frequency", 0.2)
-	var support_density: float = _get_param(dungeon_def, "support_beam_density", 0.3)
-	var ore_vein_count: int = _get_param(dungeon_def, "ore_vein_count", 3)
+	var _shaft_freq: float = _get_param(dungeon_def, "shaft_frequency", 0.2)
+	var _support_density: float = _get_param(dungeon_def, "support_beam_density", 0.3)
+	var _ore_vein_count: int = _get_param(dungeon_def, "ore_vein_count", 3)
 
 	# Extract tile definitions
 	var tiles: Dictionary = dungeon_def.get("tiles", {})
@@ -36,7 +36,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	map.map_id = "%s_floor_%d" % [dungeon_id, floor_number]
 	map.width = width
 	map.height = height
-	map.tiles = []
+	map.tiles = {}
 	map.entities = []
 	map.metadata = {
 		"dungeon_id": dungeon_id,
@@ -45,12 +45,10 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Fill with walls
+	# Fill with walls (dictionary uses Vector2i keys)
 	for y in range(height):
-		var row: Array[GameTile] = []
 		for x in range(width):
-			row.append(GameTile.create(wall_tile))
-		map.tiles.append(row)
+			map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 	# Generate mine tunnels
 	_carve_horizontal_tunnels(map, tunnel_spacing, floor_tile)
@@ -58,7 +56,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	_add_collapsed_sections(map, rng, wall_tile)
 
 	# Place stairs
-	_add_stairs(map, rng, floor_number)
+	_add_stairs(map, floor_number)
 
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rng)
@@ -72,11 +70,11 @@ func _carve_horizontal_tunnels(map: GameMap, spacing: int, floor_tile: String) -
 	while y < map.height - spacing:
 		for x in range(1, map.width - 1):
 			# Carve 3-wide tunnel
-			map.tiles[y][x] = GameTile.create(floor_tile)
+			map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 			if y > 0:
-				map.tiles[y - 1][x] = GameTile.create(floor_tile)
+				map.tiles[Vector2i(x, y - 1)] = GameTile.create(floor_tile)
 			if y < map.height - 1:
-				map.tiles[y + 1][x] = GameTile.create(floor_tile)
+				map.tiles[Vector2i(x, y + 1)] = GameTile.create(floor_tile)
 		y += spacing
 
 
@@ -86,11 +84,11 @@ func _carve_vertical_tunnels(map: GameMap, spacing: int, floor_tile: String) -> 
 	while x < map.width - spacing:
 		for y in range(1, map.height - 1):
 			# Carve 3-wide tunnel
-			map.tiles[y][x] = GameTile.create(floor_tile)
+			map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 			if x > 0:
-				map.tiles[y][x - 1] = GameTile.create(floor_tile)
+				map.tiles[Vector2i(x - 1, y)] = GameTile.create(floor_tile)
 			if x < map.width - 1:
-				map.tiles[y][x + 1] = GameTile.create(floor_tile)
+				map.tiles[Vector2i(x + 1, y)] = GameTile.create(floor_tile)
 		x += spacing
 
 
@@ -98,7 +96,7 @@ func _carve_vertical_tunnels(map: GameMap, spacing: int, floor_tile: String) -> 
 func _add_collapsed_sections(map: GameMap, rng: SeededRandom, wall_tile: String) -> void:
 	var collapse_count: int = rng.randi_range(2, 5)
 
-	for i in range(collapse_count):
+	for _i in range(collapse_count):
 		var cx: int = rng.randi_range(5, map.width - 6)
 		var cy: int = rng.randi_range(5, map.height - 6)
 
@@ -108,18 +106,19 @@ func _add_collapsed_sections(map: GameMap, rng: SeededRandom, wall_tile: String)
 				var x: int = cx + dx
 				var y: int = cy + dy
 				if x > 0 and x < map.width and y > 0 and y < map.height:
-					map.tiles[y][x] = GameTile.create(wall_tile)
+					map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 
 ## Place stairs in valid floor positions
-func _add_stairs(map: GameMap, rng: SeededRandom, floor_number: int) -> void:
+func _add_stairs(map: GameMap, floor_number: int) -> void:
 	var floor_positions: Array[Vector2i] = []
 
 	# Collect walkable positions
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable:
+				floor_positions.append(pos)
 
 	if floor_positions.size() < 2:
 		return
@@ -129,12 +128,12 @@ func _add_stairs(map: GameMap, rng: SeededRandom, floor_number: int) -> void:
 	# Place stairs up (if not first floor)
 	if floor_number > 1:
 		var up_pos: Vector2i = floor_positions[0]
-		map.tiles[up_pos.y][up_pos.x] = GameTile.create("stairs_up")
+		map.tiles[up_pos] = GameTile.create("stairs_up")
 		map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down
 	var down_pos: Vector2i = floor_positions[floor_positions.size() - 1]
-	map.tiles[down_pos.y][down_pos.x] = GameTile.create("stairs_down")
+	map.tiles[down_pos] = GameTile.create("stairs_down")
 	map.metadata["stairs_down"] = down_pos
 
 
@@ -164,8 +163,9 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 	var floor_positions: Array[Vector2i] = []
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable and map.tiles[y][x].tile_type not in ["stairs_up", "stairs_down"]:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable and map.tiles[pos].tile_type not in ["stairs_up", "stairs_down"]:
+				floor_positions.append(pos)
 
 	floor_positions.shuffle()
 	var spawned: int = 0

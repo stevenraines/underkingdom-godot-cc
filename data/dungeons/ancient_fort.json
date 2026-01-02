@@ -21,9 +21,9 @@
   },
 
   "tiles": {
-    "wall": "fortress_wall",
-    "floor": "dirt_floor",
-    "door": "wooden_door"
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
   },
   "lighting": {
     "base_visibility": 0.7,

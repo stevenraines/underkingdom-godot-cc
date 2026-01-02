@@ -34,7 +34,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	map.map_id = "%s_floor_%d" % [dungeon_id, floor_number]
 	map.width = width
 	map.height = height
-	map.tiles = []
+	map.tiles = {}
 	map.entities = []
 	map.metadata = {
 		"dungeon_id": dungeon_id,
@@ -43,12 +43,10 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Fill with walls
+	# Fill with walls (dictionary uses Vector2i keys)
 	for y in range(height):
-		var row: Array[GameTile] = []
 		for x in range(width):
-			row.append(GameTile.create(wall_tile))
-		map.tiles.append(row)
+			map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 	# Generate sewer system
 	var main_path: Array = _generate_main_trunk(map, tunnel_width, floor_tile, rng)
@@ -56,7 +54,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	_add_alcoves(map, rng, floor_tile)
 
 	# Place stairs
-	_add_stairs(map, main_path, rng, floor_number)
+	_add_stairs(map, main_path, floor_number)
 
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rng)
@@ -79,10 +77,11 @@ func _generate_main_trunk(map: GameMap, width: int, floor_tile: String, rng: See
 			for dx in range(-half_width, half_width + 1):
 				var tx: int = x + dx
 				var ty: int = y + dy
+				var pos := Vector2i(tx, ty)
 
 				if tx > 0 and tx < map.width - 1 and ty > 0 and ty < map.height - 1:
-					map.tiles[ty][tx] = GameTile.create(floor_tile)
-					path.append(Vector2i(tx, ty))
+					map.tiles[pos] = GameTile.create(floor_tile)
+					path.append(pos)
 
 		# Random horizontal drift
 		if rng.randf() < 0.3:
@@ -116,15 +115,16 @@ func _add_branching_tunnels(map: GameMap, main_path: Array, branching: float, wi
 			var length: int = rng.randi_range(5, 15)
 			var current: Vector2i = start_pos
 
-			for step in range(length):
+			for _step in range(length):
 				# Carve tunnel at current position
 				for dy in range(-half_width, half_width + 1):
 					for dx in range(-half_width, half_width + 1):
-						var x: int = current.x + dx
-						var y: int = current.y + dy
+						var tx: int = current.x + dx
+						var ty: int = current.y + dy
+						var pos := Vector2i(tx, ty)
 
-						if x > 0 and x < map.width - 1 and y > 0 and y < map.height - 1:
-							map.tiles[y][x] = GameTile.create(floor_tile)
+						if tx > 0 and tx < map.width - 1 and ty > 0 and ty < map.height - 1:
+							map.tiles[pos] = GameTile.create(floor_tile)
 
 				current += direction * 2
 
@@ -142,7 +142,7 @@ func _add_branching_tunnels(map: GameMap, main_path: Array, branching: float, wi
 func _add_alcoves(map: GameMap, rng: SeededRandom, floor_tile: String) -> void:
 	var alcove_count: int = rng.randi_range(3, 6)
 
-	for i in range(alcove_count):
+	for _i in range(alcove_count):
 		var alcove_x: int = rng.randi_range(5, map.width - 6)
 		var alcove_y: int = rng.randi_range(5, map.height - 6)
 		var alcove_size: int = rng.randi_range(2, 4)
@@ -151,10 +151,9 @@ func _add_alcoves(map: GameMap, rng: SeededRandom, floor_tile: String) -> void:
 		var adjacent_to_tunnel: bool = false
 		for dy in range(-1, 2):
 			for dx in range(-1, 2):
-				var check_x: int = alcove_x + dx
-				var check_y: int = alcove_y + dy
-				if check_x >= 0 and check_x < map.width and check_y >= 0 and check_y < map.height:
-					if map.tiles[check_y][check_x].walkable:
+				var check_pos := Vector2i(alcove_x + dx, alcove_y + dy)
+				if check_pos.x >= 0 and check_pos.x < map.width and check_pos.y >= 0 and check_pos.y < map.height:
+					if map.tiles[check_pos].walkable:
 						adjacent_to_tunnel = true
 						break
 
@@ -162,12 +161,13 @@ func _add_alcoves(map: GameMap, rng: SeededRandom, floor_tile: String) -> void:
 			# Carve small alcove
 			for y in range(alcove_y, alcove_y + alcove_size):
 				for x in range(alcove_x, alcove_x + alcove_size):
+					var pos := Vector2i(x, y)
 					if x >= 0 and x < map.width and y >= 0 and y < map.height:
-						map.tiles[y][x] = GameTile.create(floor_tile)
+						map.tiles[pos] = GameTile.create(floor_tile)
 
 
 ## Place stairs along main path
-func _add_stairs(map: GameMap, main_path: Array, rng: SeededRandom, floor_number: int) -> void:
+func _add_stairs(map: GameMap, main_path: Array, floor_number: int) -> void:
 	if main_path.is_empty():
 		return
 
@@ -175,14 +175,14 @@ func _add_stairs(map: GameMap, main_path: Array, rng: SeededRandom, floor_number
 	if floor_number > 1 and main_path.size() > 0:
 		var up_idx: int = mini(10, main_path.size() - 1)
 		var up_pos: Vector2i = main_path[up_idx]
-		map.tiles[up_pos.y][up_pos.x] = GameTile.create("stairs_up")
+		map.tiles[up_pos] = GameTile.create("stairs_up")
 		map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down near end of path
 	if main_path.size() > 0:
 		var down_idx: int = maxi(main_path.size() - 10, 0)
 		var down_pos: Vector2i = main_path[down_idx]
-		map.tiles[down_pos.y][down_pos.x] = GameTile.create("stairs_down")
+		map.tiles[down_pos] = GameTile.create("stairs_down")
 		map.metadata["stairs_down"] = down_pos
 
 
@@ -212,8 +212,9 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 	var floor_positions: Array[Vector2i] = []
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable and map.tiles[y][x].tile_type not in ["stairs_up", "stairs_down"]:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable and map.tiles[pos].tile_type not in ["stairs_up", "stairs_down"]:
+				floor_positions.append(pos)
 
 	floor_positions.shuffle()
 	var spawned: int = 0

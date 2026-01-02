@@ -36,7 +36,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	map.map_id = "%s_floor_%d" % [dungeon_id, floor_number]
 	map.width = width
 	map.height = height
-	map.tiles = []
+	map.tiles = {}
 	map.entities = []
 	map.metadata = {
 		"dungeon_id": dungeon_id,
@@ -45,12 +45,10 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Fill with floor (courtyard ground)
+	# Fill with floor (courtyard ground) - dictionary uses Vector2i keys
 	for y in range(height):
-		var row: Array[GameTile] = []
 		for x in range(width):
-			row.append(GameTile.create(floor_tile))
-		map.tiles.append(row)
+			map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 
 	# Generate fortress structure
 	var center := Vector2i(width / 2, height / 2)
@@ -59,7 +57,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	_add_gatehouses(map, center, gatehouse_count, floor_tile)
 
 	# Place stairs
-	_add_stairs(map, center, rng, floor_number)
+	_add_stairs(map, center, floor_number)
 
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rng)
@@ -72,18 +70,20 @@ func _create_keep(map: GameMap, center: Vector2i, size: int, wall_tile: String, 
 	# Create hollow square keep
 	for y in range(center.y - size, center.y + size + 1):
 		for x in range(center.x - size, center.x + size + 1):
+			var pos := Vector2i(x, y)
 			if x >= 0 and x < map.width and y >= 0 and y < map.height:
 				# Walls on perimeter, floor inside
 				if x == center.x - size or x == center.x + size or y == center.y - size or y == center.y + size:
-					map.tiles[y][x] = GameTile.create(wall_tile)
+					map.tiles[pos] = GameTile.create(wall_tile)
 				else:
-					map.tiles[y][x] = GameTile.create(floor_tile)
+					map.tiles[pos] = GameTile.create(floor_tile)
 
 	# Add door to keep
 	var door_x: int = center.x
 	var door_y: int = center.y + size
+	var door_pos := Vector2i(door_x, door_y)
 	if door_y >= 0 and door_y < map.height:
-		map.tiles[door_y][door_x] = GameTile.create(floor_tile)
+		map.tiles[door_pos] = GameTile.create(floor_tile)
 
 
 ## Create concentric defensive walls
@@ -99,7 +99,7 @@ func _create_concentric_walls(map: GameMap, center: Vector2i, count: int, spacin
 
 				# Check if on perimeter of square
 				if x == center.x - radius or x == center.x + radius or y == center.y - radius or y == center.y + radius:
-					map.tiles[y][x] = GameTile.create(wall_tile)
+					map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 
 ## Add gatehouses at cardinal directions
@@ -126,23 +126,24 @@ func _add_gatehouses(map: GameMap, center: Vector2i, count: int, floor_tile: Str
 			for offset in range(-1, 2):
 				var x: int = gate_pos.x + (dir.y * offset)  # Perpendicular to direction
 				var y: int = gate_pos.y + (dir.x * offset)
+				var pos := Vector2i(x, y)
 
 				if x >= 0 and x < map.width and y >= 0 and y < map.height:
-					map.tiles[y][x] = GameTile.create(floor_tile)
+					map.tiles[pos] = GameTile.create(floor_tile)
 
 
 ## Place stairs
-func _add_stairs(map: GameMap, center: Vector2i, rng: SeededRandom, floor_number: int) -> void:
+func _add_stairs(map: GameMap, center: Vector2i, floor_number: int) -> void:
 	# Place stairs in keep center
 	if floor_number > 1:
 		var up_pos := Vector2i(center.x - 1, center.y - 1)
 		if up_pos.x >= 0 and up_pos.x < map.width and up_pos.y >= 0 and up_pos.y < map.height:
-			map.tiles[up_pos.y][up_pos.x] = GameTile.create("stairs_up")
+			map.tiles[up_pos] = GameTile.create("stairs_up")
 			map.metadata["stairs_up"] = up_pos
 
 	var down_pos := Vector2i(center.x + 1, center.y + 1)
 	if down_pos.x >= 0 and down_pos.x < map.width and down_pos.y >= 0 and down_pos.y < map.height:
-		map.tiles[down_pos.y][down_pos.x] = GameTile.create("stairs_down")
+		map.tiles[down_pos] = GameTile.create("stairs_down")
 		map.metadata["stairs_down"] = down_pos
 
 
@@ -172,8 +173,9 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 	var floor_positions: Array[Vector2i] = []
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable and map.tiles[y][x].tile_type not in ["stairs_up", "stairs_down"]:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable and map.tiles[pos].tile_type not in ["stairs_up", "stairs_down"]:
+				floor_positions.append(pos)
 
 	floor_positions.shuffle()
 	var spawned: int = 0

@@ -21,9 +21,9 @@
   },
 
   "tiles": {
-    "wall": "sewer_wall",
-    "floor": "stone_floor",
-    "door": "grate"
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
   },
   "lighting": {
     "base_visibility": 0.3,

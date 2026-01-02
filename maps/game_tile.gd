@@ -25,13 +25,13 @@ static func create(type: String) -> GameTile:
 	var tile = GameTile.new()
 
 	match type:
-		"floor":
-			tile.tile_type = "floor"
+		"floor", "stone_floor":
+			tile.tile_type = type
 			tile.walkable = true
 			tile.transparent = true
 			tile.ascii_char = "."
-		"wall":
-			tile.tile_type = "wall"
+		"wall", "stone_wall":
+			tile.tile_type = type
 			tile.walkable = false
 			tile.transparent = false
 			tile.ascii_char = "░"  # CP437 light shade (U+2591, index 176)
@@ -57,8 +57,8 @@ static func create(type: String) -> GameTile:
 			tile.walkable = true
 			tile.transparent = true
 			tile.ascii_char = "<"
-		"door":
-			tile.tile_type = "door"
+		"door", "wooden_door":
+			tile.tile_type = type
 			tile.walkable = true
 			tile.transparent = false
 			tile.ascii_char = "+"

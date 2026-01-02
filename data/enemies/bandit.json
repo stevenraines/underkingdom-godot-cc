@@ -1,0 +1,28 @@
+{
+  "id": "bandit",
+  "name": "Bandit",
+  "ascii_char": "h",
+  "ascii_color": "#8B0000",
+  "stats": {
+    "health": 18,
+    "str": 12,
+    "dex": 14,
+    "con": 12,
+    "int": 10,
+    "wis": 8,
+    "cha": 8
+  },
+  "yields": [
+    {"item_id": "gold_coins", "min_count": 5, "max_count": 15, "chance": 0.8},
+    {"item_id": "leather_armor", "min_count": 1, "max_count": 1, "chance": 0.2}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 5,
+  "armor": 2,
+  "loot_table": "bandit_common",
+  "xp_value": 25,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 100,
+  "min_spawn_level": 1,
+  "max_spawn_level": 15
+}

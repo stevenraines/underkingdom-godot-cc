@@ -14,6 +14,7 @@ var tiles: Dictionary = {}  # Vector2i -> GameTile (for non-chunked maps)
 var seed: int  # Seed used to generate this map
 var entities: Array = []  # Array of Entity objects
 var chunk_based: bool = false  # True for overworld (uses ChunkManager), false for dungeons
+var metadata: Dictionary = {}  # Additional map data (stairs positions, enemy spawns, etc.)
 
 func _init(id: String = "", w: int = 100, h: int = 100, s: int = 0) -> void:
 	map_id = id
@@ -129,8 +130,8 @@ func get_visible_walls(start_pos: Vector2i) -> Dictionary:
 
 			var neighbor_tile = get_tile(neighbor)
 
-			# If neighbor is a wall, mark it as visible
-			if neighbor_tile.tile_type == "wall":
+			# If neighbor is a wall (non-walkable, non-transparent), mark it as visible
+			if not neighbor_tile.walkable and not neighbor_tile.transparent:
 				visible_walls[neighbor] = true
 			# If neighbor is walkable and not visited, add to queue
 			elif neighbor_tile.walkable and neighbor not in visited_floors:

@@ -21,9 +21,9 @@
   },
 
   "tiles": {
-    "wall": "stone_wall",
-    "floor": "stone_floor",
-    "door": "wooden_door"
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
   },
   "lighting": {
     "base_visibility": 0.3,
@@ -31,6 +31,11 @@
   },
 
   "enemy_pools": [
+    {
+      "enemy_id": "rat",
+      "weight": 0.6,
+      "floor_range": [1, 5]
+    },
     {
       "enemy_id": "skeleton",
       "weight": 0.4,

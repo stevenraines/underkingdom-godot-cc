@@ -63,8 +63,9 @@ static func _get_fallback_definition() -> Dictionary:
 			"connectivity": 0.7
 		},
 		"tiles": {
-			"wall": "stone_wall",
-			"floor": "stone_floor"
+			"wall": "wall",
+			"floor": "floor",
+			"door": "door"
 		},
 		"enemy_pools": [],
 		"difficulty_curve": {

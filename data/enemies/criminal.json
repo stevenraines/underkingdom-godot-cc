@@ -1,0 +1,28 @@
+{
+  "id": "criminal",
+  "name": "Criminal",
+  "ascii_char": "c",
+  "ascii_color": "#696969",
+  "stats": {
+    "health": 15,
+    "str": 11,
+    "dex": 14,
+    "con": 10,
+    "int": 12,
+    "wis": 10,
+    "cha": 10
+  },
+  "yields": [
+    {"item_id": "gold_coins", "min_count": 10, "max_count": 30, "chance": 0.7},
+    {"item_id": "lockpick", "min_count": 1, "max_count": 2, "chance": 0.3}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 4,
+  "armor": 1,
+  "loot_table": "thief_common",
+  "xp_value": 20,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 80,
+  "min_spawn_level": 1,
+  "max_spawn_level": 15
+}

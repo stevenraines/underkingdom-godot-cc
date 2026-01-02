@@ -21,9 +21,9 @@
   },
 
   "tiles": {
-    "wall": "stone_wall",
-    "floor": "marble_floor",
-    "door": "arcane_door"
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
   },
   "lighting": {
     "base_visibility": 0.5,

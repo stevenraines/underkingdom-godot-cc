@@ -37,7 +37,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	map.map_id = "%s_floor_%d" % [dungeon_id, floor_number]
 	map.width = width
 	map.height = height
-	map.tiles = []
+	map.tiles = {}
 	map.entities = []
 	map.metadata = {
 		"dungeon_id": dungeon_id,
@@ -46,12 +46,10 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Initialize tiles array
+	# Initialize tiles (dictionary uses Vector2i keys)
 	for y in range(height):
-		var row: Array[GameTile] = []
 		for x in range(width):
-			row.append(GameTile.create(wall_tile))
-		map.tiles.append(row)
+			map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 	# Generate cave using cellular automata
 	_initialize_random_cells(map, rng, fill_prob, wall_tile, floor_tile)
@@ -60,7 +58,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	_ensure_connectivity(map, floor_tile)
 
 	# Place stairs
-	_add_stairs(map, rng, floor_number, floor_tile)
+	_add_stairs(map, floor_number)
 
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rng)
@@ -72,23 +70,24 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 func _initialize_random_cells(map: GameMap, rng: SeededRandom, fill_prob: float, wall_tile: String, floor_tile: String) -> void:
 	for y in range(map.height):
 		for x in range(map.width):
+			var pos := Vector2i(x, y)
 			# Edges are always walls
 			if x == 0 or x == map.width - 1 or y == 0 or y == map.height - 1:
-				map.tiles[y][x] = GameTile.create(wall_tile)
+				map.tiles[pos] = GameTile.create(wall_tile)
 			else:
 				var is_wall: bool = rng.randf() < fill_prob
-				map.tiles[y][x] = GameTile.create(wall_tile if is_wall else floor_tile)
+				map.tiles[pos] = GameTile.create(wall_tile if is_wall else floor_tile)
 
 
 ## Run cellular automata iterations
 func _run_cellular_automata(map: GameMap, iterations: int, birth_limit: int, death_limit: int, wall_tile: String, floor_tile: String) -> void:
-	for i in range(iterations):
+	for _i in range(iterations):
 		var changes: Array = []
 
 		for y in range(1, map.height - 1):
 			for x in range(1, map.width - 1):
 				var wall_count: int = _count_adjacent_walls(map, x, y)
-				var current_is_wall: bool = not map.tiles[y][x].walkable
+				var current_is_wall: bool = not map.tiles[Vector2i(x, y)].walkable
 
 				var should_be_wall: bool = false
 				if current_is_wall:
@@ -101,7 +100,7 @@ func _run_cellular_automata(map: GameMap, iterations: int, birth_limit: int, dea
 		# Apply changes
 		for change in changes:
 			var tile_type: String = wall_tile if change.is_wall else floor_tile
-			map.tiles[change.y][change.x] = GameTile.create(tile_type)
+			map.tiles[Vector2i(change.x, change.y)] = GameTile.create(tile_type)
 
 
 ## Count walls adjacent to a position (8-directional)
@@ -114,14 +113,14 @@ func _count_adjacent_walls(map: GameMap, x: int, y: int) -> int:
 			var nx: int = x + dx
 			var ny: int = y + dy
 			if nx >= 0 and nx < map.width and ny >= 0 and ny < map.height:
-				if not map.tiles[ny][nx].walkable:
+				if not map.tiles[Vector2i(nx, ny)].walkable:
 					count += 1
 	return count
 
 
 ## Smooth caves with additional passes using relaxed rules
 func _smooth_caves(map: GameMap, smoothing_passes: int, wall_tile: String, floor_tile: String) -> void:
-	for i in range(smoothing_passes):
+	for _i in range(smoothing_passes):
 		_run_cellular_automata(map, 1, 5, 4, wall_tile, floor_tile)
 
 
@@ -132,9 +131,9 @@ func _ensure_connectivity(map: GameMap, floor_tile: String) -> void:
 	if regions.size() <= 1:
 		return  # Already connected
 
-	# Connect all regions to the largest one
+	# Find largest region
 	var largest_region: Array = regions[0]
-	for region in regions.max(regions.size()):
+	for region in regions:
 		if region.size() > largest_region.size():
 			largest_region = region
 
@@ -151,7 +150,8 @@ func _find_floor_regions(map: GameMap) -> Array:
 
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable and not visited.has(Vector2i(x, y)):
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable and not visited.has(pos):
 				var region: Array = []
 				_flood_fill(map, x, y, visited, region)
 				if region.size() > 0:
@@ -175,7 +175,7 @@ func _flood_fill(map: GameMap, start_x: int, start_y: int, visited: Dictionary, 
 		if pos.x < 0 or pos.x >= map.width or pos.y < 0 or pos.y >= map.height:
 			continue
 
-		if not map.tiles[pos.y][pos.x].walkable:
+		if not map.tiles[pos].walkable:
 			continue
 
 		visited[pos] = true
@@ -208,24 +208,25 @@ func _connect_regions(map: GameMap, region_a: Array, region_b: Array, floor_tile
 
 	# Horizontal
 	while current.x != best_b.x:
-		map.tiles[current.y][current.x] = GameTile.create(floor_tile)
+		map.tiles[current] = GameTile.create(floor_tile)
 		current.x += 1 if current.x < best_b.x else -1
 
 	# Vertical
 	while current.y != best_b.y:
-		map.tiles[current.y][current.x] = GameTile.create(floor_tile)
+		map.tiles[current] = GameTile.create(floor_tile)
 		current.y += 1 if current.y < best_b.y else -1
 
 
 ## Place stairs in valid floor positions
-func _add_stairs(map: GameMap, rng: SeededRandom, floor_number: int, floor_tile: String) -> void:
+func _add_stairs(map: GameMap, floor_number: int) -> void:
 	var floor_positions: Array[Vector2i] = []
 
 	# Collect all floor positions
 	for y in range(1, map.height - 1):
 		for x in range(1, map.width - 1):
-			if map.tiles[y][x].walkable:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable:
+				floor_positions.append(pos)
 
 	if floor_positions.size() < 2:
 		return  # Not enough floor space
@@ -236,12 +237,12 @@ func _add_stairs(map: GameMap, rng: SeededRandom, floor_number: int, floor_tile:
 	# Place stairs up (if not first floor)
 	if floor_number > 1:
 		var up_pos: Vector2i = floor_positions[0]
-		map.tiles[up_pos.y][up_pos.x] = GameTile.create("stairs_up")
+		map.tiles[up_pos] = GameTile.create("stairs_up")
 		map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down
 	var down_pos: Vector2i = floor_positions[floor_positions.size() - 1]
-	map.tiles[down_pos.y][down_pos.x] = GameTile.create("stairs_down")
+	map.tiles[down_pos] = GameTile.create("stairs_down")
 	map.metadata["stairs_down"] = down_pos
 
 
@@ -271,8 +272,9 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 	var floor_positions: Array[Vector2i] = []
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable and map.tiles[y][x].tile_type not in ["stairs_up", "stairs_down"]:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable and map.tiles[pos].tile_type not in ["stairs_up", "stairs_down"]:
+				floor_positions.append(pos)
 
 	floor_positions.shuffle()
 	var spawned: int = 0

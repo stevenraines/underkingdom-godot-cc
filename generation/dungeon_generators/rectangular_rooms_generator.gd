@@ -69,10 +69,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Fill with walls (dictionary uses Vector2i keys)
-	for y in range(height):
-		for x in range(width):
-			map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
+	# Don't pre-fill with walls - only add walls adjacent to floor tiles later
 
 	# Generate rooms
 	var room_count: int = rng.randi_range(room_count_min, room_count_max)
@@ -100,20 +97,22 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		if valid:
 			rooms.append(new_room)
 			# Carve out room floor
-			for y in range(new_room.y, new_room.y + new_room.height):
-				for x in range(new_room.x, new_room.x + new_room.width):
-					map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
+			for ry in range(new_room.y, new_room.y + new_room.height):
+				for rx in range(new_room.x, new_room.x + new_room.width):
+					map.tiles[Vector2i(rx, ry)] = GameTile.create(floor_tile)
 
-	# Connect rooms with corridors
+	# Connect rooms with corridors - ensure all rooms are connected in sequence
 	for i in range(rooms.size() - 1):
 		var room_a: Room = rooms[i]
 		var room_b: Room = rooms[i + 1]
 
-		# Add extra connections based on connectivity parameter
-		if i > 0 and rng.randf() < connectivity:
-			room_b = rooms[rng.randi_range(0, i)]
-
+		# Always connect sequential rooms to ensure full connectivity
 		_create_corridor(map, room_a, room_b, floor_tile, corridor_width)
+
+		# Add extra connections based on connectivity parameter (creates loops)
+		if i > 0 and rng.randf() < connectivity:
+			var random_room: Room = rooms[rng.randi_range(0, i)]
+			_create_corridor(map, room_a, random_room, floor_tile, corridor_width)
 
 	# Place stairs
 	if rooms.size() > 0:
@@ -123,13 +122,15 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		map.tiles[Vector2i(stairs_x, stairs_y)] = GameTile.create("stairs_down")
 		map.metadata["stairs_down"] = Vector2i(stairs_x, stairs_y)
 
-		# Place up stairs in first room
-		if floor_number > 1:
-			var first_room: Room = rooms[0]
-			var up_stairs_x: int = first_room.x + first_room.width / 2
-			var up_stairs_y: int = first_room.y + first_room.height / 2
-			map.tiles[Vector2i(up_stairs_x, up_stairs_y)] = GameTile.create("stairs_up")
-			map.metadata["stairs_up"] = Vector2i(up_stairs_x, up_stairs_y)
+		# Place up stairs in first room (always - serves as entrance on floor 1)
+		var first_room: Room = rooms[0]
+		var up_stairs_x: int = first_room.x + first_room.width / 2
+		var up_stairs_y: int = first_room.y + first_room.height / 2
+		map.tiles[Vector2i(up_stairs_x, up_stairs_y)] = GameTile.create("stairs_up")
+		map.metadata["stairs_up"] = Vector2i(up_stairs_x, up_stairs_y)
+
+	# Add walls around all floor tiles
+	_add_walls_around_floors(map, wall_tile)
 
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rooms, rng)
@@ -159,6 +160,32 @@ func _create_corridor(map: GameMap, room_a: Room, room_b: Room, floor_tile: Stri
 			var x: int = end_x + w_offset - width / 2
 			if y >= 0 and y < map.height and x >= 0 and x < map.width:
 				map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
+
+
+## Add wall tiles around all walkable floor tiles
+func _add_walls_around_floors(map: GameMap, wall_tile: String) -> void:
+	var wall_positions: Array[Vector2i] = []
+
+	# Find all positions that need walls (adjacent to floor but not already a tile)
+	for pos in map.tiles.keys():
+		var tile = map.tiles[pos]
+		if tile.walkable:
+			# Check all 8 neighbors
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					if dx == 0 and dy == 0:
+						continue
+					var neighbor_pos := Vector2i(pos.x + dx, pos.y + dy)
+					# Add wall if position is empty and within bounds
+					if not map.tiles.has(neighbor_pos):
+						if neighbor_pos.x >= 0 and neighbor_pos.x < map.width:
+							if neighbor_pos.y >= 0 and neighbor_pos.y < map.height:
+								wall_positions.append(neighbor_pos)
+
+	# Add all wall tiles
+	for wall_pos in wall_positions:
+		if not map.tiles.has(wall_pos):
+			map.tiles[wall_pos] = GameTile.create(wall_tile)
 
 
 ## Spawn enemies from dungeon definition enemy pools

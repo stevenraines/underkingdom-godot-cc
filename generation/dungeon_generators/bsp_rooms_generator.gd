@@ -39,7 +39,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	# Extract generation parameters from JSON
 	var min_room_size: int = _get_param(dungeon_def, "min_room_size", 5)
 	var max_room_size: int = _get_param(dungeon_def, "max_room_size", 12)
-	var split_ratio: float = _get_param(dungeon_def, "split_ratio", 0.5)
+	var _split_ratio: float = _get_param(dungeon_def, "split_ratio", 0.5)
 
 	# Extract tile definitions
 	var tiles: Dictionary = dungeon_def.get("tiles", {})
@@ -55,7 +55,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	map.map_id = "%s_floor_%d" % [dungeon_id, floor_number]
 	map.width = width
 	map.height = height
-	map.tiles = []
+	map.tiles = {}
 	map.entities = []
 	map.metadata = {
 		"dungeon_id": dungeon_id,
@@ -64,12 +64,10 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Fill with walls
+	# Fill with walls (dictionary uses Vector2i keys)
 	for y in range(height):
-		var row: Array[GameTile] = []
 		for x in range(width):
-			row.append(GameTile.create(wall_tile))
-		map.tiles.append(row)
+			map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 	# Generate BSP structure
 	var root := BSPNode.new(1, 1, width - 2, height - 2)
@@ -84,13 +82,13 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		for y in range(room.position.y, room.position.y + room.size.y):
 			for x in range(room.position.x, room.position.x + room.size.x):
 				if x >= 0 and x < map.width and y >= 0 and y < map.height:
-					map.tiles[y][x] = GameTile.create(floor_tile)
+					map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 
 	# Connect rooms with corridors
 	_connect_rooms_recursive(map, root, floor_tile)
 
 	# Place stairs
-	_add_stairs(map, rooms, rng, floor_number)
+	_add_stairs(map, rooms, floor_number)
 
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rng)
@@ -202,18 +200,18 @@ func _connect_two_rooms(map: GameMap, room_a: Rect2i, room_b: Rect2i, floor_tile
 	# Horizontal segment
 	while current.x != end.x:
 		if current.x >= 0 and current.x < map.width and current.y >= 0 and current.y < map.height:
-			map.tiles[current.y][current.x] = GameTile.create(floor_tile)
+			map.tiles[current] = GameTile.create(floor_tile)
 		current.x += 1 if current.x < end.x else -1
 
 	# Vertical segment
 	while current.y != end.y:
 		if current.x >= 0 and current.x < map.width and current.y >= 0 and current.y < map.height:
-			map.tiles[current.y][current.x] = GameTile.create(floor_tile)
+			map.tiles[current] = GameTile.create(floor_tile)
 		current.y += 1 if current.y < end.y else -1
 
 
 ## Place stairs in rooms
-func _add_stairs(map: GameMap, rooms: Array, rng: SeededRandom, floor_number: int) -> void:
+func _add_stairs(map: GameMap, rooms: Array, floor_number: int) -> void:
 	if rooms.is_empty():
 		return
 
@@ -224,7 +222,7 @@ func _add_stairs(map: GameMap, rooms: Array, rng: SeededRandom, floor_number: in
 			first_room.position.x + first_room.size.x / 2,
 			first_room.position.y + first_room.size.y / 2
 		)
-		map.tiles[up_pos.y][up_pos.x] = GameTile.create("stairs_up")
+		map.tiles[up_pos] = GameTile.create("stairs_up")
 		map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down in last room
@@ -233,7 +231,7 @@ func _add_stairs(map: GameMap, rooms: Array, rng: SeededRandom, floor_number: in
 		last_room.position.x + last_room.size.x / 2,
 		last_room.position.y + last_room.size.y / 2
 	)
-	map.tiles[down_pos.y][down_pos.x] = GameTile.create("stairs_down")
+	map.tiles[down_pos] = GameTile.create("stairs_down")
 	map.metadata["stairs_down"] = down_pos
 
 
@@ -263,8 +261,9 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 	var floor_positions: Array[Vector2i] = []
 	for y in range(map.height):
 		for x in range(map.width):
-			if map.tiles[y][x].walkable and map.tiles[y][x].tile_type not in ["stairs_up", "stairs_down"]:
-				floor_positions.append(Vector2i(x, y))
+			var pos := Vector2i(x, y)
+			if map.tiles[pos].walkable and map.tiles[pos].tile_type not in ["stairs_up", "stairs_down"]:
+				floor_positions.append(pos)
 
 	floor_positions.shuffle()
 	var spawned: int = 0

@@ -156,7 +156,14 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 				return
 		# For stairs_up in dungeons, search tiles normally (handled below)
 
-	# For non-chunk-based maps (dungeons), search the tiles
+	# For non-chunk-based maps (dungeons), check metadata first for stairs position
+	if MapManager.current_map.metadata.has(stairs_type):
+		position = MapManager.current_map.metadata[stairs_type]
+		print("Player positioned at ", stairs_type, " from metadata: ", position)
+		EventBus.player_moved.emit(old_pos, position)
+		return
+
+	# Fallback: search the tiles
 	# Limit search to actual map bounds
 	var search_width = min(MapManager.current_map.width, 100)
 	var search_height = min(MapManager.current_map.height, 100)

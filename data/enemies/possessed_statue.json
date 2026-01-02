@@ -1,0 +1,28 @@
+{
+  "id": "possessed_statue",
+  "name": "Possessed Statue",
+  "ascii_char": "&",
+  "ascii_color": "#A0A0A0",
+  "stats": {
+    "health": 35,
+    "str": 16,
+    "dex": 6,
+    "con": 18,
+    "int": 6,
+    "wis": 10,
+    "cha": 4
+  },
+  "yields": [
+    {"item_id": "stone", "min_count": 2, "max_count": 5, "chance": 1.0},
+    {"item_id": "spirit_essence", "min_count": 1, "max_count": 1, "chance": 0.3}
+  ],
+  "behavior": "guardian",
+  "base_damage": 8,
+  "armor": 5,
+  "loot_table": "construct_common",
+  "xp_value": 50,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 120,
+  "min_spawn_level": 3,
+  "max_spawn_level": 25
+}

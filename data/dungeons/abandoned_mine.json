@@ -21,9 +21,9 @@
   },
 
   "tiles": {
-    "wall": "mine_wall",
-    "floor": "stone_floor",
-    "door": "reinforced_door"
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
   },
   "lighting": {
     "base_visibility": 0.4,

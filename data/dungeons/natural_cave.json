@@ -22,9 +22,9 @@
   },
 
   "tiles": {
-    "wall": "cave_wall",
-    "floor": "cave_floor",
-    "door": "none"
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
   },
   "lighting": {
     "base_visibility": 0.2,

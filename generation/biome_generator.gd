@@ -45,17 +45,17 @@ static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
 	var chunk_size = 32  # WorldChunk.CHUNK_SIZE
 	var island_width = island_settings.get("width_chunks", 50) * chunk_size
 	var island_height = island_settings.get("height_chunks", 50) * chunk_size
-	var falloff_start = island_settings.get("falloff_start", 0.7)  # Start falloff at 70% of island radius
-	var falloff_strength = island_settings.get("falloff_strength", 3.0)  # Exponential falloff power
+	var falloff_start = island_settings.get("falloff_start", 0.5)  # Start falloff at 50% of island radius
+	var falloff_strength = island_settings.get("falloff_strength", 2.0)  # Exponential falloff power
 
 	# Calculate center of island
 	var center_x = island_width / 2.0
 	var center_y = island_height / 2.0
 
-	# Calculate normalized distance from center (0 = center, 1 = edge)
-	var dx = abs(float(x) - center_x) / (island_width / 2.0)
-	var dy = abs(float(y) - center_y) / (island_height / 2.0)
-	var distance = max(dx, dy)  # Use Chebyshev distance for rectangular island
+	# Calculate normalized distance from center using Euclidean distance for round island
+	var dx = (float(x) - center_x) / (island_width / 2.0)
+	var dy = (float(y) - center_y) / (island_height / 2.0)
+	var distance = sqrt(dx * dx + dy * dy)  # Euclidean distance for circular island
 
 	# No falloff in center area
 	if distance < falloff_start:
@@ -66,7 +66,7 @@ static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
 	var normalized_falloff = (distance - falloff_start) / falloff_range
 	normalized_falloff = clamp(normalized_falloff, 0.0, 1.0)
 
-	# Apply exponential falloff
+	# Apply exponential falloff (smoother curve)
 	var falloff_multiplier = 1.0 - pow(normalized_falloff, falloff_strength)
 
 	# Reduce elevation (forces ocean at edges)

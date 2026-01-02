@@ -136,13 +136,13 @@ func _add_gatehouses(map: GameMap, center: Vector2i, count: int, floor_tile: Str
 
 
 ## Place stairs
-func _add_stairs(map: GameMap, center: Vector2i, floor_number: int) -> void:
+func _add_stairs(map: GameMap, center: Vector2i, _floor_number: int) -> void:
 	# Place stairs in keep center
-	if floor_number > 1:
-		var up_pos := Vector2i(center.x - 1, center.y - 1)
-		if up_pos.x >= 0 and up_pos.x < map.width and up_pos.y >= 0 and up_pos.y < map.height:
-			map.tiles[up_pos] = GameTile.create("stairs_up")
-			map.metadata["stairs_up"] = up_pos
+	# Always place stairs_up (floor 1 leads to overworld, deeper floors to previous floor)
+	var up_pos := Vector2i(center.x - 1, center.y - 1)
+	if up_pos.x >= 0 and up_pos.x < map.width and up_pos.y >= 0 and up_pos.y < map.height:
+		map.tiles[up_pos] = GameTile.create("stairs_up")
+		map.metadata["stairs_up"] = up_pos
 
 	var down_pos := Vector2i(center.x + 1, center.y + 1)
 	if down_pos.x >= 0 and down_pos.x < map.width and down_pos.y >= 0 and down_pos.y < map.height:

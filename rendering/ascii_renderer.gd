@@ -15,7 +15,7 @@ const TILE_HEIGHT = 64
 @onready var camera: Camera2D = $Camera
 
 # Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, 895 characters
+# Unicode tileset: 32 columns, 1295 characters (41 rows)
 # Characters indexed sequentially: col = index % 32, row = index / 32
 const TILES_PER_ROW = 32
 
@@ -29,6 +29,7 @@ func _ready() -> void:
 	print("ASCIIRenderer initialized")
 
 # Build Unicode character index mapping
+# IMPORTANT: This must match the exact order from generate_tilesets.py
 func _build_unicode_map() -> void:
 	var chars: Array = []
 
@@ -38,6 +39,14 @@ func _build_unicode_map() -> void:
 
 	# Latin-1 Supplement (160-255) - 96 chars
 	for i in range(0x00A0, 0x0100):
+		chars.append(char(i))
+
+	# Greek and Coptic (0x0370-0x03FF) - includes Δ, Ω, α, β, γ, etc.
+	for i in range(0x0370, 0x0400):
+		chars.append(char(i))
+
+	# Miscellaneous Technical (0x2300-0x23FF) - includes ⌂, ⌐, ⌠, etc.
+	for i in range(0x2300, 0x2400):
 		chars.append(char(i))
 
 	# Box Drawing (0x2500-0x257F) - 128 chars
@@ -64,6 +73,8 @@ func _build_unicode_map() -> void:
 	for i in range(chars.size()):
 		unicode_char_map[chars[i]] = i
 
+	print("[ASCIIRenderer] Built unicode map with %d characters" % chars.size())
+
 # Helper function to get tile index from character
 func _char_to_index(character: String) -> int:
 	if character.is_empty():
@@ -79,8 +90,8 @@ func _char_to_index(character: String) -> int:
 # Default terrain colors (tiles should define their own colors)
 var default_terrain_colors: Dictionary = {
 	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor (basic/tundra/beach)
-	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (legacy)
-	"░": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (CP437 light shade)
+	"#": Color(0.31, 0.31, 0.31),      # Dark Gray - Wall (muted to match floor)
+	"░": Color(0.31, 0.31, 0.31),      # Dark Gray - Wall (CP437 light shade, muted)
 	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up
@@ -149,9 +160,9 @@ func _create_ascii_tileset() -> TileSet:
 	source.separation = Vector2i(0, 0)  # No spacing between tiles
 	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
-	# Add tiles for all 895 Unicode characters in 32-column grid
-	# Characters laid out left-to-right, top-to-bottom (28 rows)
-	var num_tiles = 895
+	# Add tiles for all 1295 Unicode characters in 32-column grid
+	# Characters laid out left-to-right, top-to-bottom (41 rows)
+	var num_tiles = 1295
 	for i in range(num_tiles):
 		var col = i % TILES_PER_ROW
 		var row = i / TILES_PER_ROW

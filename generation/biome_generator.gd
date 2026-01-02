@@ -12,65 +12,121 @@ static var moisture_noise_cache: Dictionary = {}   # seed -> FastNoiseLite
 ## Get or create cached elevation noise generator for a seed
 static func _get_elevation_noise(seed_value: int) -> FastNoiseLite:
 	if not elevation_noise_cache.has(seed_value):
+		var config = BiomeManager.get_elevation_noise_config()
 		var noise = FastNoiseLite.new()
 		noise.seed = seed_value
 		noise.noise_type = FastNoiseLite.TYPE_PERLIN
-		noise.frequency = 0.03  # Larger features
-		noise.fractal_octaves = 3  # More detail
-		noise.fractal_lacunarity = 2.0
-		noise.fractal_gain = 0.5
+		noise.frequency = config.get("frequency", 0.03)
+		noise.fractal_octaves = config.get("octaves", 3)
+		noise.fractal_lacunarity = config.get("lacunarity", 2.0)
+		noise.fractal_gain = config.get("gain", 0.5)
 		elevation_noise_cache[seed_value] = noise
 	return elevation_noise_cache[seed_value]
 
 ## Get or create cached moisture noise generator for a seed
 static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
-	var moisture_seed = seed_value + 1000  # Different seed for variation
+	var config = BiomeManager.get_moisture_noise_config()
+	var seed_offset = config.get("seed_offset", 1000)
+	var moisture_seed = seed_value + seed_offset
 	if not moisture_noise_cache.has(moisture_seed):
 		var noise = FastNoiseLite.new()
 		noise.seed = moisture_seed
 		noise.noise_type = FastNoiseLite.TYPE_PERLIN
-		noise.frequency = 0.05  # Smaller features
-		noise.fractal_octaves = 2
-		noise.fractal_lacunarity = 2.0
-		noise.fractal_gain = 0.5
+		noise.frequency = config.get("frequency", 0.05)
+		noise.fractal_octaves = config.get("octaves", 2)
+		noise.fractal_lacunarity = config.get("lacunarity", 2.0)
+		noise.fractal_gain = config.get("gain", 0.5)
 		moisture_noise_cache[moisture_seed] = noise
 	return moisture_noise_cache[moisture_seed]
 
+## Cached coastline noise generator for irregular island shapes
+static var coastline_noise_cache: Dictionary = {}  # seed -> FastNoiseLite
+
+## Get or create cached coastline noise generator
+static func _get_coastline_noise(seed_value: int) -> FastNoiseLite:
+	if not coastline_noise_cache.has(seed_value):
+		var config = BiomeManager.get_coastline_noise_config()
+		var seed_offset = config.get("seed_offset", 5000)
+		var noise = FastNoiseLite.new()
+		noise.seed = seed_value + seed_offset
+		noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+		noise.frequency = config.get("frequency", 0.008)
+		noise.fractal_octaves = config.get("octaves", 4)
+		noise.fractal_lacunarity = config.get("lacunarity", 2.0)
+		noise.fractal_gain = config.get("gain", 0.5)
+		coastline_noise_cache[seed_value] = noise
+	return coastline_noise_cache[seed_value]
+
 ## Apply island falloff to create bounded landmass
-## Reduces elevation near edges to force ocean around island
-static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
+## Based on Amit Patel's mapgen2: noise must exceed threshold that increases with distance
+## This naturally creates a single connected landmass without outlying islands
+## Formula: land where noise > (base_threshold + distance_weight * distance^exponent)
+## Coastline noise is added to create irregular, organic coastlines
+static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: int = 0) -> float:
 	var island_settings = BiomeManager.get_island_settings()
 
 	# Get island dimensions in tiles (chunks × chunk_size)
 	var chunk_size = 32  # WorldChunk.CHUNK_SIZE
 	var island_width = island_settings.get("width_chunks", 50) * chunk_size
 	var island_height = island_settings.get("height_chunks", 50) * chunk_size
-	var falloff_start = island_settings.get("falloff_start", 0.7)  # Start falloff at 70% of island radius
-	var falloff_strength = island_settings.get("falloff_strength", 3.0)  # Exponential falloff power
+
+	# Get configurable shape parameters
+	var land_threshold = island_settings.get("land_threshold", 0.3)
+	var distance_weight = island_settings.get("distance_weight", 0.3)
+	var distance_exponent = island_settings.get("distance_exponent", 2.0)  # Higher = more extreme at edges
+	var coastline_amplitude = island_settings.get("coastline_amplitude", 0.3)  # How much noise affects coastline
 
 	# Calculate center of island
 	var center_x = island_width / 2.0
 	var center_y = island_height / 2.0
 
-	# Calculate normalized distance from center (0 = center, 1 = edge)
-	var dx = abs(float(x) - center_x) / (island_width / 2.0)
-	var dy = abs(float(y) - center_y) / (island_height / 2.0)
-	var distance = max(dx, dy)  # Use Chebyshev distance for rectangular island
+	# Normalize coordinates to -1 to 1 range
+	var nx = (float(x) - center_x) / (island_width / 2.0)
+	var ny = (float(y) - center_y) / (island_height / 2.0)
 
-	# No falloff in center area
-	if distance < falloff_start:
-		return elevation
+	# Calculate base distance from center (0 at center, 1 at edges, >1 at corners)
+	var distance = sqrt(nx * nx + ny * ny)
 
-	# Calculate falloff multiplier (smooth transition to ocean)
-	var falloff_range = 1.0 - falloff_start
-	var normalized_falloff = (distance - falloff_start) / falloff_range
-	normalized_falloff = clamp(normalized_falloff, 0.0, 1.0)
+	# Add coastline noise to create irregular shape
+	# This warps the distance value, creating bays and peninsulas
+	var coastline_noise = _get_coastline_noise(seed_value)
+	var noise_value = coastline_noise.get_noise_2d(float(x), float(y))
+	# Noise affects distance more at the edges than at center
+	var warped_distance = distance + noise_value * coastline_amplitude * distance
 
-	# Apply exponential falloff
-	var falloff_multiplier = 1.0 - pow(normalized_falloff, falloff_strength)
+	# Apply exponent to make falloff more extreme at edges
+	# Higher exponent = flatter in middle, steeper drop at edges
+	var distance_factor = pow(warped_distance, distance_exponent)
 
-	# Reduce elevation (forces ocean at edges)
-	return elevation * falloff_multiplier
+	# Amit Patel's mapgen2 approach:
+	# Point is land if: noise > (threshold + weight * distance^exponent)
+	# This creates irregular coastlines but ensures connectivity because
+	# the threshold increases with distance - points near center easily pass,
+	# points at edges need very high noise values
+	var required_threshold = land_threshold + distance_weight * distance_factor
+
+	# If elevation (noise) exceeds the threshold, it's land
+	# Scale the elevation based on how much it exceeds the threshold
+	if elevation > required_threshold:
+		# Normalize to 0-1 range above the threshold
+		# Higher elevations = more inland = higher terrain
+		var excess = elevation - required_threshold
+		var max_excess = 1.0 - required_threshold
+		if max_excess > 0:
+			return excess / max_excess
+		return 1.0
+	else:
+		# Below threshold = ocean
+		# Create smooth transition near coastline
+		var deficit = required_threshold - elevation
+		var ocean_depth = deficit * 2.0  # Scale for visible ocean gradient
+		return -ocean_depth  # Negative = ocean (will be clamped to ocean biome)
+
+
+## Smoothstep helper for smooth interpolation
+static func _smoothstep(x: float) -> float:
+	x = clamp(x, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
 
 ## Generate biome at world position
 ## Returns Dictionary with biome data loaded from JSON
@@ -91,7 +147,7 @@ static func get_biome_at(x: int, y: int, seed_value: int) -> Dictionary:
 	elevation = pow(elevation, 1.5)
 
 	# Apply island falloff to create bounded landmass
-	elevation = _apply_island_falloff(x, y, elevation)
+	elevation = _apply_island_falloff(x, y, elevation, seed_value)
 
 	# Lookup biome from elevation × moisture matrix (data-driven via BiomeManager)
 	var biome_id = BiomeManager.get_biome_id_from_values(elevation, moisture)
@@ -118,7 +174,7 @@ static func get_elevation_at(x: int, y: int, seed_value: int) -> float:
 	var raw = noise.get_noise_2d(float(x), float(y))
 	var normalized = (raw + 1.0) / 2.0
 	var elevation = pow(normalized, 1.5)
-	return _apply_island_falloff(x, y, elevation)
+	return _apply_island_falloff(x, y, elevation, seed_value)
 
 ## Get moisture value at position (for use in other systems)
 static func get_moisture_at(x: int, y: int, seed_value: int) -> float:

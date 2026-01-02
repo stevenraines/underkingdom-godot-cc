@@ -2,6 +2,10 @@
   "id": "wizard_tower",
   "name": "Wizard Tower",
   "description": "Vertical tower filled with magical research and arcane dangers",
+  "entrance_char": "⌠",
+  "entrance_color": "#9966FF",
+  "biome_preferences": ["any"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

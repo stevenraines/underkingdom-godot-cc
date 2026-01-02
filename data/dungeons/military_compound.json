@@ -2,6 +2,10 @@
   "id": "military_compound",
   "name": "Military Compound",
   "description": "Active or abandoned military installation with organized defenses",
+  "entrance_char": "⌐",
+  "entrance_color": "#996633",
+  "biome_preferences": ["grassland", "woodland"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

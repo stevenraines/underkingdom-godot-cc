@@ -114,7 +114,7 @@ func _create_segmented_rooms(map: GameMap, center: Vector2i, radius: int, segmen
 
 
 ## Place stairs (up and down for tower progression)
-func _add_stairs(map: GameMap, center: Vector2i, floor_number: int) -> void:
+func _add_stairs(map: GameMap, center: Vector2i, _floor_number: int) -> void:
 	# Place spiral staircase in center going both up and down
 	# Stairs up
 	var up_pos := Vector2i(center.x - 1, center.y - 1)

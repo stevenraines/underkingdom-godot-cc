@@ -83,6 +83,8 @@ func _initialize_random_cells(map: GameMap, rng: SeededRandom, fill_prob: float,
 
 
 ## Run cellular automata iterations
+## birth_limit: A floor cell becomes a wall if it has >= this many wall neighbors
+## death_limit: A wall cell becomes a floor if it has < this many wall neighbors
 func _run_cellular_automata(map: GameMap, iterations: int, birth_limit: int, death_limit: int, wall_tile: String, floor_tile: String) -> void:
 	for _i in range(iterations):
 		var changes: Array = []
@@ -94,9 +96,12 @@ func _run_cellular_automata(map: GameMap, iterations: int, birth_limit: int, dea
 
 				var should_be_wall: bool = false
 				if current_is_wall:
-					should_be_wall = wall_count >= birth_limit
-				else:
+					# Wall stays wall if it has enough wall neighbors (>= death_limit)
+					# Otherwise it becomes floor (opens up caves)
 					should_be_wall = wall_count >= death_limit
+				else:
+					# Floor becomes wall if surrounded by too many walls (>= birth_limit)
+					should_be_wall = wall_count >= birth_limit
 
 				changes.append({"x": x, "y": y, "is_wall": should_be_wall})
 
@@ -221,7 +226,7 @@ func _connect_regions(map: GameMap, region_a: Array, region_b: Array, floor_tile
 
 
 ## Place stairs in valid floor positions
-func _add_stairs(map: GameMap, floor_number: int) -> void:
+func _add_stairs(map: GameMap, _floor_number: int) -> void:
 	var floor_positions: Array[Vector2i] = []
 
 	# Collect all floor positions
@@ -237,11 +242,10 @@ func _add_stairs(map: GameMap, floor_number: int) -> void:
 	# Shuffle to randomize stair placement
 	floor_positions.shuffle()
 
-	# Place stairs up (if not first floor)
-	if floor_number > 1:
-		var up_pos: Vector2i = floor_positions[0]
-		map.tiles[up_pos] = GameTile.create("stairs_up")
-		map.metadata["stairs_up"] = up_pos
+	# Always place stairs up (floor 1 leads to overworld, deeper floors to previous floor)
+	var up_pos: Vector2i = floor_positions[0]
+	map.tiles[up_pos] = GameTile.create("stairs_up")
+	map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down
 	var down_pos: Vector2i = floor_positions[floor_positions.size() - 1]

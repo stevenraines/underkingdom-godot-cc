@@ -214,19 +214,18 @@ func _connect_two_rooms(map: GameMap, room_a: Rect2i, room_b: Rect2i, floor_tile
 
 
 ## Place stairs in rooms
-func _add_stairs(map: GameMap, rooms: Array, floor_number: int) -> void:
+func _add_stairs(map: GameMap, rooms: Array, _floor_number: int) -> void:
 	if rooms.is_empty():
 		return
 
-	# Place stairs up in first room
-	if floor_number > 1:
-		var first_room: Rect2i = rooms[0]
-		var up_pos := Vector2i(
-			first_room.position.x + first_room.size.x / 2,
-			first_room.position.y + first_room.size.y / 2
-		)
-		map.tiles[up_pos] = GameTile.create("stairs_up")
-		map.metadata["stairs_up"] = up_pos
+	# Always place stairs up in first room (floor 1 leads to overworld, deeper floors to previous floor)
+	var first_room: Rect2i = rooms[0]
+	var up_pos := Vector2i(
+		first_room.position.x + first_room.size.x / 2,
+		first_room.position.y + first_room.size.y / 2
+	)
+	map.tiles[up_pos] = GameTile.create("stairs_up")
+	map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down in last room
 	var last_room: Rect2i = rooms[rooms.size() - 1]

@@ -113,7 +113,7 @@ func _add_collapsed_sections(map: GameMap, rng: SeededRandom, wall_tile: String)
 
 
 ## Place stairs in valid floor positions
-func _add_stairs(map: GameMap, floor_number: int) -> void:
+func _add_stairs(map: GameMap, _floor_number: int) -> void:
 	var floor_positions: Array[Vector2i] = []
 
 	# Collect walkable positions
@@ -128,11 +128,10 @@ func _add_stairs(map: GameMap, floor_number: int) -> void:
 
 	floor_positions.shuffle()
 
-	# Place stairs up (if not first floor)
-	if floor_number > 1:
-		var up_pos: Vector2i = floor_positions[0]
-		map.tiles[up_pos] = GameTile.create("stairs_up")
-		map.metadata["stairs_up"] = up_pos
+	# Always place stairs up (floor 1 leads to overworld, deeper floors to previous floor)
+	var up_pos: Vector2i = floor_positions[0]
+	map.tiles[up_pos] = GameTile.create("stairs_up")
+	map.metadata["stairs_up"] = up_pos
 
 	# Place stairs down
 	var down_pos: Vector2i = floor_positions[floor_positions.size() - 1]

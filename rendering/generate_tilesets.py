@@ -57,6 +57,14 @@ UNICODE_CHARS.extend([chr(i) for i in range(0x0020, 0x007F)])
 # Latin-1 Supplement (160-255) - 96 chars
 UNICODE_CHARS.extend([chr(i) for i in range(0x00A0, 0x0100)])
 
+# Greek and Coptic (0x0370-0x03FF) - 144 chars
+# Includes Δ (Delta), Ω (Omega), α, β, γ, etc.
+UNICODE_CHARS.extend([chr(i) for i in range(0x0370, 0x0400)])
+
+# Miscellaneous Technical (0x2300-0x23FF) - 256 chars
+# Includes ⌂ (House), ⌐ (Reversed Not), ⌠ (Top Half Integral), etc.
+UNICODE_CHARS.extend([chr(i) for i in range(0x2300, 0x2400)])
+
 # Box Drawing (0x2500-0x257F) - 128 chars
 UNICODE_CHARS.extend([chr(i) for i in range(0x2500, 0x2580)])
 
@@ -76,10 +84,22 @@ print(f"Total CP437 characters: {len(CP437_CHARS)}")
 print(f"Total Unicode characters: {len(UNICODE_CHARS)}")
 
 
+def get_project_fonts_dir():
+    """Get the fonts directory in the project."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(os.path.dirname(script_dir), "fonts")
+
+
 def load_font():
     """Load a monospace font with good Unicode support."""
+    fonts_dir = get_project_fonts_dir()
+
     font_paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",  # Linux DejaVu (best)
+        # Project Noto fonts (preferred)
+        os.path.join(fonts_dir, "NotoSansMono-Black.ttf"),
+        os.path.join(fonts_dir, "NotoSansMono-VariableFont_wdth,wght.ttf"),
+        # System fallbacks
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",  # Linux DejaVu
         "/System/Library/Fonts/Menlo.ttc",  # macOS Menlo
         "/System/Library/Fonts/Courier.ttc",  # macOS Courier
         "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",  # Linux Liberation
@@ -95,6 +115,25 @@ def load_font():
 
     print("Warning: No TrueType font found, using PIL default")
     return ImageFont.load_default()
+
+
+def load_symbol_fonts():
+    """Load symbol fonts for characters not in the main font."""
+    fonts_dir = get_project_fonts_dir()
+    symbol_fonts = []
+
+    symbol_font_paths = [
+        os.path.join(fonts_dir, "NotoSansSymbols-Regular.ttf"),
+        os.path.join(fonts_dir, "NotoSansSymbols2-Regular.ttf"),
+    ]
+
+    for font_path in symbol_font_paths:
+        if os.path.exists(font_path):
+            font = ImageFont.truetype(font_path, 58)
+            print(f"Loaded symbol font: {font_path}")
+            symbol_fonts.append(font)
+
+    return symbol_fonts
 
 
 def create_cp437_tileset():
@@ -147,6 +186,21 @@ def create_cp437_tileset():
     print(f"Saved CP437 character map to: {charmap_path}")
 
 
+def font_has_glyph(font, char):
+    """Check if a font has a glyph for a character (not just a missing glyph box)."""
+    try:
+        # Try to get the glyph - if the bbox is all zeros or very small, it's likely missing
+        bbox = font.getbbox(char)
+        if bbox is None:
+            return False
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
+        # A missing glyph typically renders as a small box or nothing
+        return width > 2 and height > 2
+    except:
+        return False
+
+
 def create_unicode_tileset():
     """Create Unicode tileset (unicode_tileset.png) - comprehensive character set, 32-column grid."""
     num_chars = len(UNICODE_CHARS)
@@ -158,7 +212,11 @@ def create_unicode_tileset():
 
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    font = load_font()
+    main_font = load_font()
+    symbol_fonts = load_symbol_fonts()
+    all_fonts = [main_font] + symbol_fonts
+
+    missing_chars = []
 
     # Draw each character
     for i, char in enumerate(UNICODE_CHARS):
@@ -167,14 +225,29 @@ def create_unicode_tileset():
         x_offset = col * TILE_WIDTH
         y_offset = row * TILE_HEIGHT
 
+        # Find a font that has this character
+        selected_font = main_font
+        for font in all_fonts:
+            if font_has_glyph(font, char):
+                selected_font = font
+                break
+        else:
+            # No font has this glyph
+            missing_chars.append((char, hex(ord(char))))
+
         # Get text bounding box and center
-        bbox = draw.textbbox((0, 0), char, font=font)
+        bbox = draw.textbbox((0, 0), char, font=selected_font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
         x = x_offset + (TILE_WIDTH - text_width) // 2
         y = y_offset + (TILE_HEIGHT - text_height) // 2 - bbox[1]
 
-        draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=font)
+        draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=selected_font)
+
+    if missing_chars:
+        print(f"\nWarning: {len(missing_chars)} characters missing from all fonts:")
+        for char, code in missing_chars[:20]:  # Show first 20
+            print(f"  {code}: '{char}'")
 
     # Save Unicode tileset
     output_path = os.path.join(os.path.dirname(__file__), "tilesets", "unicode_tileset.png")

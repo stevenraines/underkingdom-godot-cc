@@ -2,6 +2,10 @@
   "id": "burial_barrow",
   "name": "Burial Barrow",
   "description": "An ancient tomb filled with restless undead",
+  "entrance_char": ">",
+  "entrance_color": "#AA88FF",
+  "biome_preferences": ["grassland", "woodland", "forest"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

@@ -2,6 +2,10 @@
   "id": "ancient_fort",
   "name": "Ancient Fort",
   "description": "Ruined defensive fortress with concentric walls and defensive structures",
+  "entrance_char": "⌐",
+  "entrance_color": "#777777",
+  "biome_preferences": ["grassland", "rocky_hills", "woodland"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

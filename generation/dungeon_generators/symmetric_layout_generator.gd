@@ -132,32 +132,33 @@ func _mirror_vertical(map: GameMap, center: Vector2i) -> void:
 
 
 ## Create cross-shaped hallways connecting all areas
-func _create_hallways(map: GameMap, center: Vector2i, width: int, floor_tile: String) -> void:
-	var half_width: int = width / 2
+func _create_hallways(map: GameMap, center: Vector2i, hallway_width: int, floor_tile: String) -> void:
+	@warning_ignore("integer_division")
+	var half_width: int = hallway_width / 2
 
-	# Horizontal hallway
-	for x in range(map.width):
+	# Horizontal hallway - but preserve 1-tile wall border
+	for x in range(1, map.width - 1):
 		for dy in range(-half_width, half_width + 1):
 			var y: int = center.y + dy
-			if y >= 0 and y < map.height:
+			if y >= 1 and y < map.height - 1:
 				map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 
-	# Vertical hallway
-	for y in range(map.height):
+	# Vertical hallway - but preserve 1-tile wall border
+	for y in range(1, map.height - 1):
 		for dx in range(-half_width, half_width + 1):
 			var hallway_x: int = center.x + dx
-			if hallway_x >= 0 and hallway_x < map.width:
+			if hallway_x >= 1 and hallway_x < map.width - 1:
 				map.tiles[Vector2i(hallway_x, y)] = GameTile.create(floor_tile)
 
 
 ## Place stairs
-func _add_stairs(map: GameMap, center: Vector2i, floor_number: int) -> void:
+func _add_stairs(map: GameMap, center: Vector2i, _floor_number: int) -> void:
 	# Place stairs near center
-	if floor_number > 1:
-		var up_pos := Vector2i(center.x - 2, center.y)
-		if up_pos.x >= 0 and up_pos.x < map.width and up_pos.y >= 0 and up_pos.y < map.height:
-			map.tiles[up_pos] = GameTile.create("stairs_up")
-			map.metadata["stairs_up"] = up_pos
+	# Always place stairs_up (floor 1 leads to overworld, deeper floors to previous floor)
+	var up_pos := Vector2i(center.x - 2, center.y)
+	if up_pos.x >= 0 and up_pos.x < map.width and up_pos.y >= 0 and up_pos.y < map.height:
+		map.tiles[up_pos] = GameTile.create("stairs_up")
+		map.metadata["stairs_up"] = up_pos
 
 	var down_pos := Vector2i(center.x + 2, center.y)
 	if down_pos.x >= 0 and down_pos.x < map.width and down_pos.y >= 0 and down_pos.y < map.height:

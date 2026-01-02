@@ -6,5 +6,6 @@
 	"blocking": false,
 	"interactable": true,
 	"interaction_verb": "destroy",
-	"can_summon_enemy": true
+	"can_summon_enemy": true,
+	"removes_on_interact": true
 }

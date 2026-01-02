@@ -12,27 +12,30 @@ static var moisture_noise_cache: Dictionary = {}   # seed -> FastNoiseLite
 ## Get or create cached elevation noise generator for a seed
 static func _get_elevation_noise(seed_value: int) -> FastNoiseLite:
 	if not elevation_noise_cache.has(seed_value):
+		var config = BiomeManager.get_elevation_noise_config()
 		var noise = FastNoiseLite.new()
 		noise.seed = seed_value
 		noise.noise_type = FastNoiseLite.TYPE_PERLIN
-		noise.frequency = 0.03  # Larger features
-		noise.fractal_octaves = 3  # More detail
-		noise.fractal_lacunarity = 2.0
-		noise.fractal_gain = 0.5
+		noise.frequency = config.get("frequency", 0.03)
+		noise.fractal_octaves = config.get("octaves", 3)
+		noise.fractal_lacunarity = config.get("lacunarity", 2.0)
+		noise.fractal_gain = config.get("gain", 0.5)
 		elevation_noise_cache[seed_value] = noise
 	return elevation_noise_cache[seed_value]
 
 ## Get or create cached moisture noise generator for a seed
 static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
-	var moisture_seed = seed_value + 1000  # Different seed for variation
+	var config = BiomeManager.get_moisture_noise_config()
+	var seed_offset = config.get("seed_offset", 1000)
+	var moisture_seed = seed_value + seed_offset
 	if not moisture_noise_cache.has(moisture_seed):
 		var noise = FastNoiseLite.new()
 		noise.seed = moisture_seed
 		noise.noise_type = FastNoiseLite.TYPE_PERLIN
-		noise.frequency = 0.05  # Smaller features
-		noise.fractal_octaves = 2
-		noise.fractal_lacunarity = 2.0
-		noise.fractal_gain = 0.5
+		noise.frequency = config.get("frequency", 0.05)
+		noise.fractal_octaves = config.get("octaves", 2)
+		noise.fractal_lacunarity = config.get("lacunarity", 2.0)
+		noise.fractal_gain = config.get("gain", 0.5)
 		moisture_noise_cache[moisture_seed] = noise
 	return moisture_noise_cache[moisture_seed]
 
@@ -42,13 +45,15 @@ static var coastline_noise_cache: Dictionary = {}  # seed -> FastNoiseLite
 ## Get or create cached coastline noise generator
 static func _get_coastline_noise(seed_value: int) -> FastNoiseLite:
 	if not coastline_noise_cache.has(seed_value):
+		var config = BiomeManager.get_coastline_noise_config()
+		var seed_offset = config.get("seed_offset", 5000)
 		var noise = FastNoiseLite.new()
-		noise.seed = seed_value + 5000  # Different seed offset
+		noise.seed = seed_value + seed_offset
 		noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-		noise.frequency = 0.008  # Large scale features for coastline variation
-		noise.fractal_octaves = 4
-		noise.fractal_lacunarity = 2.0
-		noise.fractal_gain = 0.5
+		noise.frequency = config.get("frequency", 0.008)
+		noise.fractal_octaves = config.get("octaves", 4)
+		noise.fractal_lacunarity = config.get("lacunarity", 2.0)
+		noise.fractal_gain = config.get("gain", 0.5)
 		coastline_noise_cache[seed_value] = noise
 	return coastline_noise_cache[seed_value]
 
@@ -62,6 +67,11 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	var chunk_size = 32  # WorldChunk.CHUNK_SIZE
 	var island_width = island_settings.get("width_chunks", 50) * chunk_size
 	var island_height = island_settings.get("height_chunks", 50) * chunk_size
+
+	# Get configurable shape parameters
+	var noise_amplitude = island_settings.get("coastline_noise_amplitude", 0.35)
+	var mix = island_settings.get("shape_mix", 0.7)
+	var edge_falloff_start = island_settings.get("edge_falloff_start", 0.75)
 
 	# Calculate center of island
 	var center_x = island_width / 2.0
@@ -83,7 +93,7 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 
 	# Add noise to the distance to create irregular coastlines
 	# The noise pushes the coastline in and out
-	d = d + (coast_noise - 0.5) * 0.35
+	d = d + (coast_noise - 0.5) * noise_amplitude
 
 	# Clamp distance
 	d = clamp(d, 0.0, 1.0)
@@ -91,12 +101,11 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	# Red Blob Games formula: e = lerp(e, 1-d, mix)
 	# mix controls how much the distance constrains the shape
 	# Higher mix = more influence from distance, cleaner coastline
-	var mix = 0.7
 	var shaped_elevation = lerp(elevation, 1.0 - d, mix)
 
 	# Additional falloff at edges to ensure ocean
-	if d > 0.75:
-		var edge_factor = (d - 0.75) / 0.25
+	if d > edge_falloff_start:
+		var edge_factor = (d - edge_falloff_start) / (1.0 - edge_falloff_start)
 		shaped_elevation *= 1.0 - edge_factor * edge_factor
 
 	return max(shaped_elevation, 0.0)

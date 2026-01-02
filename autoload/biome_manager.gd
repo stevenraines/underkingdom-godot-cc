@@ -199,3 +199,6 @@ func get_chunk_settings() -> Dictionary:
 
 func get_island_settings() -> Dictionary:
 	return generation_config.get("island_settings", {})
+
+func get_coastline_noise_config() -> Dictionary:
+	return generation_config.get("coastline_noise", {})

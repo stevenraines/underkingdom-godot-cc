@@ -13,6 +13,13 @@
 		"gain": 0.5,
 		"seed_offset": 1000
 	},
+	"coastline_noise": {
+		"frequency": 0.004,
+		"octaves": 5,
+		"lacunarity": 2.0,
+		"gain": 0.6,
+		"seed_offset": 5000
+	},
 	"chunk_settings": {
 		"chunk_size": 32,
 		"load_radius": 3,
@@ -22,8 +29,9 @@
 	"island_settings": {
 		"width_chunks": 50,
 		"height_chunks": 50,
-		"falloff_start": 0.5,
-		"falloff_strength": 2.0
+		"coastline_noise_amplitude": 0.5,
+		"shape_mix": 0.6,
+		"edge_falloff_start": 0.8
 	},
 	"biome_matrix": {
 		"elevation_thresholds": [0.25, 0.4, 0.55, 0.7, 0.85],

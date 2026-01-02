@@ -318,10 +318,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_U:  # U key - clear/untarget current target
 			_untarget()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_X:  # X key - close door
+			action_taken = _try_close_door()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
 			TurnManager.advance_turn()
+
+## Try to close an adjacent door
+func _try_close_door() -> bool:
+	if not player:
+		return false
+	return player.try_close_adjacent_door()
 
 ## Wait action - rest in place for bonus stamina regeneration
 func _do_wait_action() -> void:

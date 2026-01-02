@@ -11,6 +11,7 @@ const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
 const _CraftingSystem = preload("res://systems/crafting_system.gd")
 const _HarvestSystem = preload("res://systems/harvest_system.gd")
+const _FOVSystem = preload("res://systems/fov_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -59,6 +60,12 @@ func move(direction: Vector2i) -> bool:
 	if FeatureManager.has_blocking_feature(new_pos):
 		_interact_with_feature_at(new_pos)
 		return true  # Action taken, but didn't move
+
+	# Check for closed door - open it instead of moving through
+	var tile = MapManager.current_map.get_tile(new_pos) if MapManager.current_map else null
+	if tile and tile.tile_type == "door" and not tile.is_open:
+		_open_door(new_pos)
+		return true  # Action taken (opened door)
 
 	# Check if new position is walkable
 	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
@@ -481,3 +488,59 @@ func get_craftable_recipes() -> Array:
 			result.append(recipe)
 
 	return result
+
+## Open a door at the given position
+func _open_door(pos: Vector2i) -> void:
+	if not MapManager.current_map:
+		return
+
+	var tile = MapManager.current_map.get_tile(pos)
+	if tile and tile.open_door():
+		EventBus.combat_message.emit("You open the door.", Color.WHITE)
+		_FOVSystem.invalidate_cache()
+		EventBus.map_changed.emit()  # Trigger re-render
+
+## Close a door in the given direction from player
+## Returns true if successfully closed, false otherwise
+func close_door(direction: Vector2i) -> bool:
+	if not MapManager.current_map:
+		return false
+
+	var door_pos = position + direction
+	var tile = MapManager.current_map.get_tile(door_pos)
+
+	# Check if there's an open door at the position
+	if not tile or tile.tile_type != "door" or not tile.is_open:
+		return false
+
+	# Check if position is occupied by an entity
+	if EntityManager.get_blocking_entity_at(door_pos):
+		EventBus.combat_message.emit("Something is in the way.", Color.YELLOW)
+		return false
+
+	# Check for ground items (optional - doors can close over items)
+	# Close the door
+	if tile.close_door():
+		EventBus.combat_message.emit("You close the door.", Color.WHITE)
+		_FOVSystem.invalidate_cache()
+		EventBus.map_changed.emit()  # Trigger re-render
+		return true
+
+	return false
+
+## Try to close any adjacent open door
+## Returns true if a door was closed
+func try_close_adjacent_door() -> bool:
+	var directions = [
+		Vector2i(0, -1),  # Up
+		Vector2i(0, 1),   # Down
+		Vector2i(-1, 0),  # Left
+		Vector2i(1, 0),   # Right
+	]
+
+	for dir in directions:
+		if close_door(dir):
+			return true
+
+	EventBus.combat_message.emit("No open door nearby.", Color.GRAY)
+	return false

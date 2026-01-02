@@ -132,6 +132,9 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	# Add walls around all floor tiles
 	_add_walls_around_floors(map, wall_tile)
 
+	# Place doors at room entrances (some of the time)
+	_place_doors_at_entrances(map, rooms, rng)
+
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rooms, rng)
 
@@ -189,6 +192,71 @@ func _add_walls_around_floors(map: GameMap, wall_tile: String) -> void:
 	for wall_pos in wall_positions:
 		if not map.tiles.has(wall_pos):
 			map.tiles[wall_pos] = GameTile.create(wall_tile)
+
+
+## Place doors at room entrance points (where corridors meet rooms)
+func _place_doors_at_entrances(map: GameMap, rooms: Array[Room], rng: SeededRandom) -> void:
+	var door_chance: float = 0.6  # 60% chance to place a door at each entrance
+
+	for room in rooms:
+		# Check each position on the room's perimeter
+		# Top edge
+		for x in range(room.x, room.x + room.width):
+			_try_place_door_at(map, Vector2i(x, room.y - 1), room, rng, door_chance)
+		# Bottom edge
+		for x in range(room.x, room.x + room.width):
+			_try_place_door_at(map, Vector2i(x, room.y + room.height), room, rng, door_chance)
+		# Left edge
+		for y in range(room.y, room.y + room.height):
+			_try_place_door_at(map, Vector2i(room.x - 1, y), room, rng, door_chance)
+		# Right edge
+		for y in range(room.y, room.y + room.height):
+			_try_place_door_at(map, Vector2i(room.x + room.width, y), room, rng, door_chance)
+
+
+## Try to place a door at a position if it's a valid entrance
+func _try_place_door_at(map: GameMap, pos: Vector2i, _room: Room, rng: SeededRandom, door_chance: float) -> void:
+	if not map.tiles.has(pos):
+		return
+
+	var tile = map.tiles[pos]
+
+	# Only place doors on floor tiles (corridor tiles)
+	if not tile.walkable or tile.tile_type != "floor":
+		return
+
+	# Don't place doors on stairs
+	if tile.tile_type in ["stairs_up", "stairs_down"]:
+		return
+
+	# Check if this is actually an entrance (has walls on two opposite sides)
+	# This ensures we're placing doors in corridor-like positions
+	var has_wall_north = _is_wall_at(map, Vector2i(pos.x, pos.y - 1))
+	var has_wall_south = _is_wall_at(map, Vector2i(pos.x, pos.y + 1))
+	var has_wall_east = _is_wall_at(map, Vector2i(pos.x + 1, pos.y))
+	var has_wall_west = _is_wall_at(map, Vector2i(pos.x - 1, pos.y))
+
+	# Valid door position: walls on opposite sides (horizontal or vertical corridor)
+	var is_horizontal_corridor = has_wall_north and has_wall_south
+	var is_vertical_corridor = has_wall_east and has_wall_west
+
+	if not (is_horizontal_corridor or is_vertical_corridor):
+		return
+
+	# Random chance to place door
+	if rng.randf() > door_chance:
+		return
+
+	# Place a closed door
+	map.tiles[pos] = GameTile.create("door_closed")
+
+
+## Check if there's a wall at a position
+func _is_wall_at(map: GameMap, pos: Vector2i) -> bool:
+	if not map.tiles.has(pos):
+		return true  # Treat out of bounds as wall
+	var tile = map.tiles[pos]
+	return tile.tile_type == "wall" or tile.tile_type == "stone_wall"
 
 
 ## Spawn enemies from dungeon definition enemy pools

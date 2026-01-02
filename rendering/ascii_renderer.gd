@@ -100,7 +100,8 @@ var default_terrain_colors: Dictionary = {
 	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor (basic/tundra/beach)
 	"#": Color(0.31, 0.31, 0.31),      # Dark Gray - Wall (muted to match floor)
 	"░": Color(0.31, 0.31, 0.31),      # Dark Gray - Wall (CP437 light shade, muted)
-	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
+	"+": Color(0.6, 0.4, 0.2),         # Brown - Open Door
+	"'": Color(0.5, 0.35, 0.15),       # Darker Brown - Closed Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up
 	"T": Color(0.0, 0.71, 0.0),        # Green - Tree

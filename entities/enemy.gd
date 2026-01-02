@@ -5,6 +5,8 @@ extends Entity
 ##
 ## Handles enemy-specific behavior, AI, and loot.
 
+const _FOVSystem = preload("res://systems/fov_system.gd")
+
 # AI properties
 var behavior_type: String = "wander"  # "wander", "guardian", "aggressive", "pack"
 var aggro_range: int = 5
@@ -168,21 +170,25 @@ func _move_toward_target(target: Vector2i) -> void:
 		# Player is blocking - attack handled in _attempt_attack_if_adjacent
 		return
 
+	# Check for closed door - INT 5+ can open doors
+	if MapManager.current_map:
+		var tile = MapManager.current_map.get_tile(new_pos)
+		if tile and tile.tile_type == "door" and not tile.is_open:
+			if attributes["INT"] >= 5:
+				# Open the door (spends this turn)
+				tile.open_door()
+				EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
+				_FOVSystem.invalidate_cache()
+				EventBus.map_changed.emit()
+				return  # Opening door consumes the turn
+			else:
+				# Can't open door, try alternate path
+				pass
+
 	# Check if position is walkable
 	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
 		_move_to(new_pos)
 	else:
-		# Debug: log why movement failed
-		if MapManager.current_map:
-			var tile = MapManager.current_map.get_tile(new_pos)
-			if tile and not tile.walkable:
-				print("[Enemy] %s can't move to %v - tile not walkable" % [name, new_pos])
-			else:
-				# Check what entity is blocking
-				for entity in MapManager.current_map.entities:
-					if entity.position == new_pos and entity.blocks_movement:
-						print("[Enemy] %s can't move to %v - blocked by %s (type: %s)" % [name, new_pos, entity.name, entity.entity_type])
-
 		# Try alternate direction
 		var alt_dir = Vector2i.ZERO
 		if move_dir.x != 0:
@@ -191,6 +197,18 @@ func _move_toward_target(target: Vector2i) -> void:
 			alt_dir.x = sign(diff.x) if diff.x != 0 else 1
 
 		var alt_pos = position + alt_dir
+
+		# Check for closed door on alternate path too
+		if MapManager.current_map:
+			var alt_tile = MapManager.current_map.get_tile(alt_pos)
+			if alt_tile and alt_tile.tile_type == "door" and not alt_tile.is_open:
+				if attributes["INT"] >= 5:
+					alt_tile.open_door()
+					EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
+					_FOVSystem.invalidate_cache()
+					EventBus.map_changed.emit()
+					return
+
 		if MapManager.current_map and MapManager.current_map.is_walkable(alt_pos):
 			_move_to(alt_pos)
 
@@ -293,10 +311,24 @@ func _move_away_from(threat: Vector2i) -> void:
 		move_dir.y = sign(diff.y) if diff.y != 0 else 1
 
 	var new_pos = position + move_dir
+	var old_pos = position
+
+	# Check for closed door - INT 5+ can open doors even when fleeing
+	if MapManager.current_map:
+		var tile = MapManager.current_map.get_tile(new_pos)
+		if tile and tile.tile_type == "door" and not tile.is_open:
+			if attributes["INT"] >= 5:
+				tile.open_door()
+				EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
+				_FOVSystem.invalidate_cache()
+				EventBus.map_changed.emit()
+				return  # Opening door consumes the turn
 
 	# Check if position is walkable
 	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
 		_move_to(new_pos)
+		# INT 8+ closes doors behind when fleeing
+		_try_close_door_behind(old_pos, move_dir)
 	else:
 		# Try alternate direction
 		var alt_dir = Vector2i.ZERO
@@ -306,5 +338,37 @@ func _move_away_from(threat: Vector2i) -> void:
 			alt_dir.x = sign(diff.x) if diff.x != 0 else 1
 
 		var alt_pos = position + alt_dir
+
+		# Check for closed door on alternate path
+		if MapManager.current_map:
+			var alt_tile = MapManager.current_map.get_tile(alt_pos)
+			if alt_tile and alt_tile.tile_type == "door" and not alt_tile.is_open:
+				if attributes["INT"] >= 5:
+					alt_tile.open_door()
+					EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
+					_FOVSystem.invalidate_cache()
+					EventBus.map_changed.emit()
+					return
+
 		if MapManager.current_map and MapManager.current_map.is_walkable(alt_pos):
 			_move_to(alt_pos)
+			# INT 8+ closes doors behind when fleeing
+			_try_close_door_behind(old_pos, alt_dir)
+
+## Try to close a door behind when fleeing (INT 8+ only)
+func _try_close_door_behind(old_pos: Vector2i, _move_dir: Vector2i) -> void:
+	if attributes["INT"] < 8:
+		return
+
+	if not MapManager.current_map:
+		return
+
+	# Check if there was an open door at our old position
+	var tile = MapManager.current_map.get_tile(old_pos)
+	if tile and tile.tile_type == "door" and tile.is_open:
+		# Check if position is empty (no entities blocking)
+		if not EntityManager.get_blocking_entity_at(old_pos):
+			tile.close_door()
+			EventBus.combat_message.emit("%s closes a door." % name, Color.GRAY)
+			_FOVSystem.invalidate_cache()
+			EventBus.map_changed.emit()

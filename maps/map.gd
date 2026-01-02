@@ -10,9 +10,10 @@ const GameTile = preload("res://maps/game_tile.gd")
 var map_id: String  # "overworld" or "dungeon_barrow_floor_5"
 var width: int
 var height: int
-var tiles: Dictionary = {}  # Vector2i -> GameTile
+var tiles: Dictionary = {}  # Vector2i -> GameTile (for non-chunked maps)
 var seed: int  # Seed used to generate this map
 var entities: Array = []  # Array of Entity objects
+var chunk_based: bool = false  # True for overworld (uses ChunkManager), false for dungeons
 
 func _init(id: String = "", w: int = 100, h: int = 100, s: int = 0) -> void:
 	map_id = id
@@ -20,22 +21,33 @@ func _init(id: String = "", w: int = 100, h: int = 100, s: int = 0) -> void:
 	height = h
 	seed = s
 
-## Get tile at position
+## Get tile at position (handles both chunk-based and regular maps)
 func get_tile(pos: Vector2i) -> GameTile:
-	if pos in tiles:
-		return tiles[pos]
-	# Return wall if out of bounds
-	return _create_tile("wall")
+	if chunk_based:
+		# Use ChunkManager for overworld
+		return ChunkManager.get_tile(pos)
+	else:
+		# Use dictionary for dungeons
+		if pos in tiles:
+			return tiles[pos]
+		# Return wall if out of bounds
+		return _create_tile("wall")
 
-## Set tile at position
+## Set tile at position (handles both chunk-based and regular maps)
 func set_tile(pos: Vector2i, tile: GameTile) -> void:
-	tiles[pos] = tile
+	if chunk_based:
+		# Use ChunkManager for overworld
+		ChunkManager.set_tile(pos, tile)
+	else:
+		# Use dictionary for dungeons
+		tiles[pos] = tile
 
 ## Check if position is walkable
 func is_walkable(pos: Vector2i) -> bool:
-	# Check bounds
-	if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
-		return false
+	# Check bounds (skip for chunk-based infinite maps)
+	if not chunk_based:
+		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
+			return false
 
 	var tile = get_tile(pos)
 	if not tile.walkable:
@@ -57,8 +69,15 @@ func is_walkable(pos: Vector2i) -> bool:
 ## Check if position is transparent (for FOV)
 func is_transparent(pos: Vector2i) -> bool:
 	# Out of bounds is not transparent
-	if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
-		return false
+	if not chunk_based:
+		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
+			return false
+	else:
+		# For chunk-based maps, only check tiles in loaded chunks
+		# Don't trigger chunk loading from FOV calculations
+		var chunk_coords = ChunkManager.world_to_chunk(pos)
+		if chunk_coords not in ChunkManager.active_chunks:
+			return false  # Unloaded chunks are considered opaque
 
 	return get_tile(pos).transparent
 

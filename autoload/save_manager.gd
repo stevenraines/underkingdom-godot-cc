@@ -267,25 +267,37 @@ func _serialize_maps() -> Dictionary:
 	# Save tiles for the current map (where player has been)
 	if MapManager.current_map:
 		var map = MapManager.current_map
-		var tiles_data = []
 
-		# Save all tiles
-		for y in range(map.height):
-			for x in range(map.width):
-				var tile = map.get_tile(Vector2i(x, y))
-				tiles_data.append({
-					"tile_type": tile.tile_type,
-					"walkable": tile.walkable,
-					"transparent": tile.transparent,
-					"ascii_char": tile.ascii_char,
-					"harvestable_resource_id": tile.harvestable_resource_id
-				})
+		# For chunk-based maps (overworld), save chunks instead of all tiles
+		if map.chunk_based:
+			maps_data[map.map_id] = {
+				"width": map.width,
+				"height": map.height,
+				"chunk_based": true,
+				"chunks": ChunkManager.save_chunks()
+			}
+		else:
+			# For non-chunked maps (dungeons), save all tiles
+			var tiles_data = []
 
-		maps_data[map.map_id] = {
-			"width": map.width,
-			"height": map.height,
-			"tiles": tiles_data
-		}
+			# Save all tiles
+			for y in range(map.height):
+				for x in range(map.width):
+					var tile = map.get_tile(Vector2i(x, y))
+					tiles_data.append({
+						"tile_type": tile.tile_type,
+						"walkable": tile.walkable,
+						"transparent": tile.transparent,
+						"ascii_char": tile.ascii_char,
+						"harvestable_resource_id": tile.harvestable_resource_id
+					})
+
+			maps_data[map.map_id] = {
+				"width": map.width,
+				"height": map.height,
+				"chunk_based": false,
+				"tiles": tiles_data
+			}
 
 	return maps_data
 
@@ -467,7 +479,14 @@ func _deserialize_maps(maps_data: Dictionary, current_map_id: String) -> void:
 	if not map:
 		return
 
-	# Restore tiles from saved data
+	# For chunk-based maps, load chunks from save
+	if map_data.get("chunk_based", false):
+		var chunks_data = map_data.get("chunks", [])
+		ChunkManager.load_chunks(chunks_data)
+		print("SaveManager: Loaded %d chunks for %s" % [chunks_data.size(), current_map_id])
+		return
+
+	# For non-chunked maps (dungeons), restore tiles
 	var tiles_data = map_data.tiles
 	var idx = 0
 	for y in range(map.height):

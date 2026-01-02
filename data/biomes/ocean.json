@@ -1,0 +1,10 @@
+{
+  "id": "ocean",
+  "name": "Ocean",
+  "base_tile": "water",
+  "grass_char": "~",
+  "tree_density": 0.0,
+  "rock_density": 0.0,
+  "color_floor": [0.2, 0.3, 0.6],
+  "color_grass": [0.25, 0.35, 0.65]
+}

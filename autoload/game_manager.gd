@@ -13,6 +13,7 @@ var world_name: String = ""  # Player-provided name for the world
 var game_state: String = "menu"  # "menu", "playing", "paused"
 var current_map_id: String = ""
 var is_loading_save: bool = false  # Flag to prevent start_new_game when loading
+var last_overworld_position: Vector2i = Vector2i.ZERO  # Player's position when entering dungeon
 
 func _ready() -> void:
 	# Load harvestable resources
@@ -40,6 +41,12 @@ func start_new_game(world_name_input: String = "") -> void:
 
 	# Clear map cache to ensure new world generation with new seed
 	MapManager.loaded_maps.clear()
+
+	# Clear chunk cache to ensure fresh chunk generation with new colors
+	ChunkManager.clear_chunks()
+
+	# Reset last overworld position
+	last_overworld_position = Vector2i.ZERO
 
 	print("New game started - World: '%s', Seed: %d" % [world_name, world_seed])
 

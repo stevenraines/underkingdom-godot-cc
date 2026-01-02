@@ -78,14 +78,27 @@ func _char_to_index(character: String) -> int:
 
 # Default terrain colors (tiles should define their own colors)
 var default_terrain_colors: Dictionary = {
-	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor
+	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor (basic/tundra/beach)
 	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (legacy)
 	"░": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (CP437 light shade)
 	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up
 	"T": Color(0.0, 0.71, 0.0),        # Green - Tree
-	"~": Color(0.2, 0.4, 1.0),         # Blue - Water
+
+	# Biome grass characters
+	"\"": Color(0.5, 0.7, 0.3),        # Green - Grassland/Woodland/Rainforest grass
+	",": Color(0.4, 0.6, 0.4),         # Dark Green - Forest/Marsh grass
+	"^": Color(0.6, 0.6, 0.5),         # Gray-Brown - Rocky Hills
+	"*": Color(0.85, 0.85, 0.9),       # White - Snow
+	"·": Color(0.5, 0.5, 0.5),         # Gray - Barren Rock
+	"~": Color(0.2, 0.4, 1.0),         # Blue - Water (Swamp/Ocean)
+	"≈": Color(0.1, 0.3, 0.8),         # Dark Blue - Deep Ocean
+	"▲": Color(0.6, 0.6, 0.65),        # Light Gray - Mountains/Snow Mountains
+
+	# Harvestable resources
+	"◆": Color(0.6, 0.6, 0.6),         # Gray - Rock
+	"◊": Color(0.7, 0.5, 0.3),         # Rusty Brown - Iron Ore
 }
 
 var visible_tiles: Array[Vector2i] = []
@@ -239,20 +252,63 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> voi
 	terrain_modulated_cells[position] = tile_color
 	terrain_layer.notify_runtime_tile_data_update()
 
+## Render an entire chunk (optimized batch rendering)
+func render_chunk(chunk: WorldChunk) -> void:
+	if not terrain_layer:
+		return
+
+	var bounds = chunk.get_world_bounds()
+	var min_pos = bounds.min
+	var max_pos = bounds.max
+
+	# Render all tiles in chunk
+	for world_y in range(min_pos.y, max_pos.y + 1):
+		for world_x in range(min_pos.x, max_pos.x + 1):
+			var world_pos = Vector2i(world_x, world_y)
+			var local_pos = chunk.world_to_chunk_position(world_pos)
+			var tile = chunk.get_tile(local_pos)
+
+			# Get tile character
+			var tile_char = tile.ascii_char
+
+			# Render tile
+			var tile_index = _char_to_index(tile_char)
+			var col = tile_index % TILES_PER_ROW
+			var row = tile_index / TILES_PER_ROW
+
+			terrain_layer.set_cell(world_pos, 0, Vector2i(col, row))
+
+			# Set color modulation
+			# Use tile's color if set (from biome data), otherwise fall back to default
+			var tile_color = tile.color if tile.color != Color.WHITE else default_terrain_colors.get(tile_char, Color.WHITE)
+			terrain_modulated_cells[world_pos] = tile_color
+
+	# Notify once after batch update
+	terrain_layer.notify_runtime_tile_data_update()
+
 ## Render an entity
 func render_entity(position: Vector2i, entity_type: String, color: Color = Color.WHITE) -> void:
 	if not entity_layer:
 		return
 
-	# Hide floor tile underneath entity (don't render the period)
+	# Hide ground tiles underneath entity (floor/grass characters)
 	if terrain_layer and terrain_layer.get_cell_source_id(position) != -1:
-		# Check if this is a floor tile (period character)
-		var floor_index = _char_to_index(".")
-		var floor_col = floor_index % TILES_PER_ROW
-		var floor_row = floor_index / TILES_PER_ROW
+		# Ground tile characters that should be hidden under entities
+		var ground_chars = [".", "\"", ","]
 		var current_atlas = terrain_layer.get_cell_atlas_coords(position)
-		if current_atlas == Vector2i(floor_col, floor_row):
-			# Store the floor data and hide it
+
+		# Check if current tile is a ground tile
+		var is_ground_tile = false
+		for ground_char in ground_chars:
+			var ground_index = _char_to_index(ground_char)
+			var ground_col = ground_index % TILES_PER_ROW
+			var ground_row = ground_index / TILES_PER_ROW
+			if current_atlas == Vector2i(ground_col, ground_row):
+				is_ground_tile = true
+				break
+
+		if is_ground_tile:
+			# Store the ground tile data and hide it
 			hidden_floor_positions[position] = {
 				"atlas": current_atlas,
 				"color": terrain_modulated_cells.get(position, Color.WHITE)
@@ -312,3 +368,7 @@ func clear_all() -> void:
 		terrain_layer.clear()
 	if entity_layer:
 		entity_layer.clear()
+	# Clear color modulation dictionaries to prevent stale color data
+	terrain_modulated_cells.clear()
+	entity_modulated_cells.clear()
+	hidden_floor_positions.clear()

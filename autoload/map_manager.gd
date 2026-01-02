@@ -28,13 +28,59 @@ func get_or_generate_map(map_id: String, seed: int) -> GameMap:
 func transition_to_map(map_id: String) -> void:
 	current_map = get_or_generate_map(map_id, GameManager.world_seed)
 	GameManager.set_current_map(map_id)
+
+	# Enable chunk mode for overworld
+	if map_id == "overworld":
+		current_map.chunk_based = true
+		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
+	else:
+		current_map.chunk_based = false
+		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
+
 	EventBus.map_changed.emit(map_id)
 	print("Transitioned to map: ", map_id)
 
 ## Generate a map based on its ID
 func _generate_map(map_id: String, seed: int) -> GameMap:
 	if map_id == "overworld":
-		return WorldGenerator.generate_overworld(seed)
+		# For overworld, create empty map shell - chunks generated on demand
+		print("[MapManager] Creating chunk-based overworld map")
+		var map = GameMap.new("overworld", 10000, 10000, seed)  # Virtually infinite bounds
+		map.chunk_based = true
+
+		# Note: Terrain generation happens in ChunkManager on demand
+		# Use SpecialFeaturePlacer to find suitable biome-based locations for special features
+
+		# Place town first in suitable biome (grassland, woodland)
+		var town_pos = SpecialFeaturePlacer.place_town(seed)
+
+		# Place dungeon entrance 10-20 tiles from town in suitable biome
+		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(seed, town_pos)
+
+		# Place player spawn just outside town (10 tiles away, opposite from dungeon)
+		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos, seed)
+
+		# Store special positions in map metadata
+		# ChunkManager will check these and place actual tiles when chunks load
+		map.set_meta("dungeon_entrance", entrance_pos)
+		map.set_meta("town_center", town_pos)
+		map.set_meta("player_spawn", player_spawn)
+
+		# Store shop NPC spawn data in metadata
+		var shop_npc_pos = town_pos  # Center of shop (5x5 building centered on town_pos)
+		map.set_meta("npc_spawns", [{
+			"npc_type": "shop",
+			"npc_id": "shop_keeper",
+			"position": shop_npc_pos,
+			"name": "Olaf the Trader",
+			"gold": 500,
+			"restock_interval": 500
+		}])
+
+		print("[MapManager] Special features placed: town=%v, dungeon=%v, spawn=%v" % [town_pos, entrance_pos, player_spawn])
+
+		return map
+
 	elif map_id.begins_with("dungeon_barrow_floor_"):
 		# Extract floor number from map_id
 		var floor_str = map_id.replace("dungeon_barrow_floor_", "")

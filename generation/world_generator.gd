@@ -1,43 +1,54 @@
 class_name WorldGenerator
 
-## WorldGenerator - Generate 100x100 overworld with temperate woodland biome
+## WorldGenerator - Generate overworld with biome-based terrain
 ##
-## Uses FastNoiseLite for terrain generation (Gaea optional for future).
+## IMPORTANT: This generator is NOT used for the chunk-based overworld system.
+## For chunk-based overworld:
+##   - MapManager creates an empty shell map
+##   - WorldChunk.generate() handles terrain generation on-demand
+##   - SpecialFeaturePlacer handles dungeon/town placement
+##
+## This generator is kept for potential future static (non-chunk) maps.
+## Uses dual-noise (elevation + moisture) for realistic biome generation.
 ## Creates a deterministic world based on seed.
 
 const _GameTile = preload("res://maps/game_tile.gd")
 
-## Generate the overworld map
+## Generate the overworld map (STATIC VERSION - not used for chunk-based overworld)
+## Only kept for potential future non-chunk static maps
 static func generate_overworld(seed_value: int) -> GameMap:
 	print("[WorldGenerator] Generating overworld with seed: %d" % seed_value)
 	var rng = SeededRandom.new(seed_value)
 	var map = GameMap.new("overworld", 80, 40, seed_value)
 
-	# Create noise generator for terrain
-	var noise = FastNoiseLite.new()
-	noise.seed = seed_value
-	noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise.frequency = 0.05
-
-	# Generate terrain based on noise
+	# Generate terrain using biome system
+	print("[WorldGenerator] Generating biome-based terrain...")
 	for y in range(map.height):
 		for x in range(map.width):
-			var noise_val = noise.get_noise_2d(float(x), float(y))
-			var tile_type = _biome_from_noise(noise_val, rng)
-			map.set_tile(Vector2i(x, y), _create_tile(tile_type))
+			# Get biome at this position
+			var biome = BiomeGenerator.get_biome_at(x, y, seed_value)
+
+			# Create base tile from biome
+			var tile = _create_tile(biome.base_tile)
+
+			# Override floor character and color for visual variety
+			if biome.base_tile == "floor":
+				tile.ascii_char = biome.grass_char
+
+			map.set_tile(Vector2i(x, y), tile)
+
+	# NOTE: Resource spawning removed for chunk-based maps
+	# Resources are now spawned on-demand in WorldChunk.generate() for chunk-based overworld
+	# This prevents duplicate spawning and improves performance
+	# If this generator is ever used for static (non-chunk) maps, uncomment below:
+	# ResourceSpawner.spawn_resources(map, seed_value)
 
 	# Place dungeon entrance at a random walkable location
 	var entrance_pos = _find_valid_location(map, rng)
 	map.set_tile(entrance_pos, _create_tile("stairs_down"))
 	print("Dungeon entrance placed at: ", entrance_pos)
 
-	# Place harvestable resources at random locations using seeded RNG
-	# Place a few rocks
-	for i in range(3):
-		var rock_pos = _find_valid_location(map, rng)
-		map.set_tile(rock_pos, _create_tile("rock"))
-
-	# Place water sources
+	# Place a couple of water sources for harvesting
 	for i in range(2):
 		var water_pos = _find_valid_location(map, rng)
 		map.set_tile(water_pos, _create_tile("water"))
@@ -49,27 +60,8 @@ static func generate_overworld(seed_value: int) -> GameMap:
 	var TownGenerator = load("res://generation/town_generator.gd")
 	TownGenerator.generate_town(map, seed_value)
 
-	print("Overworld generated (20x20) with seed: ", seed_value)
+	print("Overworld generated (%dx%d) with biome system, seed: %d" % [map.width, map.height, seed_value])
 	return map
-
-## Map noise value to biome tile type (Temperate Woodland)
-## Biome distribution: 60% floor, 30% trees, 5% water, 5% special
-static func _biome_from_noise(noise_val: float, rng: SeededRandom) -> String:
-	# Normalize noise from [-1, 1] to [0, 1]
-	var normalized = (noise_val + 1.0) / 2.0
-
-	# Use noise for terrain variation
-	if normalized < 0.1:
-		return "water"  # 10% water (ponds/streams)
-	elif normalized < 0.4:
-		return "tree"  # 30% trees
-	else:
-		# 60% walkable floor - add some variety
-		var rand = rng.randf()
-		if rand < 0.05:
-			return "tree"  # Occasional extra tree
-		else:
-			return "floor"  # Grass/dirt
 
 ## Create a tile by type (helper function)
 ## Uses _GameTile.create() to ensure all properties (including harvestable_resource_id) are set correctly

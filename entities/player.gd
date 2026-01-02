@@ -133,9 +133,36 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 
 	var old_pos = position
 
-	# Search for stairs
-	for y in range(MapManager.current_map.height):
-		for x in range(MapManager.current_map.width):
+	# For chunk-based maps, use stored positions
+	if MapManager.current_map.chunk_based:
+		if stairs_type == "stairs_down":
+			# Returning to overworld - use saved position
+			if GameManager.last_overworld_position != Vector2i.ZERO:
+				position = GameManager.last_overworld_position
+				print("Player positioned at saved overworld location: ", position)
+				EventBus.player_moved.emit(old_pos, position)
+				return
+			# New game: spawn at player spawn position (just outside town)
+			elif MapManager.current_map.has_meta("player_spawn"):
+				position = MapManager.current_map.get_meta("player_spawn")
+				print("Player positioned at spawn location: ", position)
+				EventBus.player_moved.emit(old_pos, position)
+				return
+			# Fallback: get dungeon entrance position from metadata (old saves)
+			elif MapManager.current_map.has_meta("dungeon_entrance"):
+				position = MapManager.current_map.get_meta("dungeon_entrance")
+				print("Player positioned at ", stairs_type, ": ", position)
+				EventBus.player_moved.emit(old_pos, position)
+				return
+		# For stairs_up in dungeons, search tiles normally (handled below)
+
+	# For non-chunk-based maps (dungeons), search the tiles
+	# Limit search to actual map bounds
+	var search_width = min(MapManager.current_map.width, 100)
+	var search_height = min(MapManager.current_map.height, 100)
+
+	for y in range(search_height):
+		for x in range(search_width):
 			var pos = Vector2i(x, y)
 			var tile = MapManager.current_map.get_tile(pos)
 			if tile.tile_type == stairs_type:
@@ -146,7 +173,7 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 
 	# Fallback to center if stairs not found
 	@warning_ignore("integer_division")
-	position = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
+	position = Vector2i(search_width / 2, search_height / 2)
 	push_warning("Could not find ", stairs_type, ", positioning at center")
 	EventBus.player_moved.emit(old_pos, position)
 

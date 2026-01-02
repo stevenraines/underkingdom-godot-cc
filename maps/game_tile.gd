@@ -11,6 +11,7 @@ var transparent: bool  # For FOV calculations
 var ascii_char: String  # Visual representation
 var is_fire_source: bool = false  # Used for proximity crafting
 var harvestable_resource_id: String = ""  # ID of harvestable resource (if any)
+var color: Color = Color.WHITE  # Tile color (set by biome for floor/grass tiles)
 
 func _init(type: String = "floor", is_walkable: bool = true, is_transparent: bool = true, character: String = ".", fire: bool = false) -> void:
 	tile_type = type

@@ -1,0 +1,10 @@
+{
+  "id": "barren_rock",
+  "name": "Barren Rock",
+  "base_tile": "floor",
+  "grass_char": "·",
+  "tree_density": 0.0,
+  "rock_density": 0.25,
+  "color_floor": [0.5, 0.5, 0.5],
+  "color_grass": [0.55, 0.55, 0.55]
+}

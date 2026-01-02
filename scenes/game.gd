@@ -35,6 +35,7 @@ var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for pla
 @onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
 @onready var xp_label: Label = $HUD/TopBar/XPLabel
+@onready var debug_info_label: Label = $HUD/BottomBar/DebugInfo
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
 const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
@@ -126,6 +127,10 @@ func _ready() -> void:
 		player = EntityManager.player
 		input_handler.set_player(player)
 
+	# Load initial chunks for overworld
+	if MapManager.current_map and MapManager.current_map.chunk_based:
+		ChunkManager.update_active_chunks(player.position)
+
 	# Initial render
 	_render_map()
 	_render_all_entities()
@@ -139,8 +144,9 @@ func _ready() -> void:
 		_tree.paused = false
 
 	# Calculate initial FOV
-	var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	# TEMP: Commented out to debug gray overlay
+	#var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
+	#renderer.update_fov(visible_tiles)
 
 	# Connect signals
 	EventBus.player_moved.connect(_on_player_moved)
@@ -215,35 +221,31 @@ func _setup_death_screen() -> void:
 
 ## Setup character sheet
 func _setup_character_sheet() -> void:
-	print("[Game] Setting up character sheet programmatically...")
-	var CharacterSheetScript = load("res://ui/character_sheet.gd")
-	if CharacterSheetScript:
-		print("[Game] Character sheet script loaded")
-		character_sheet = Control.new()
-		character_sheet.set_script(CharacterSheetScript)
+	print("[Game] Setting up character sheet from scene...")
+	var CharacterSheetScene = load("res://ui/character_sheet.tscn")
+	if CharacterSheetScene:
+		character_sheet = CharacterSheetScene.instantiate()
 		character_sheet.name = "CharacterSheet"
 		hud.add_child(character_sheet)
 		if character_sheet.has_signal("closed"):
 			character_sheet.closed.connect(_on_character_sheet_closed)
-		print("[Game] Character sheet created and added to HUD")
+		print("[Game] Character sheet scene instantiated and added to HUD")
 	else:
-		print("[Game] ERROR: Could not load character_sheet.gd script")
+		print("[Game] ERROR: Could not load character_sheet.tscn scene")
 
 ## Setup help screen
 func _setup_help_screen() -> void:
-	print("[Game] Setting up help screen programmatically...")
-	var HelpScreenScript = load("res://ui/help_screen.gd")
-	if HelpScreenScript:
-		print("[Game] Help screen script loaded")
-		help_screen = Control.new()
-		help_screen.set_script(HelpScreenScript)
+	print("[Game] Setting up help screen from scene...")
+	var HelpScreenScene = load("res://ui/help_screen.tscn")
+	if HelpScreenScene:
+		help_screen = HelpScreenScene.instantiate()
 		help_screen.name = "HelpScreen"
 		hud.add_child(help_screen)
 		if help_screen.has_signal("closed"):
 			help_screen.closed.connect(_on_help_screen_closed)
-		print("[Game] Help screen created and added to HUD")
+		print("[Game] Help screen scene instantiated and added to HUD")
 	else:
-		print("[Game] ERROR: Could not load help_screen.gd script")
+		print("[Game] ERROR: Could not load help_screen.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -280,7 +282,17 @@ func _render_map() -> void:
 
 	renderer.clear_all()
 
-	# For dungeons, calculate which walls should be visible (only those adjacent to accessible areas)
+	# Chunk-based rendering for overworld
+	if MapManager.current_map.chunk_based:
+		# Only render active chunks
+		var active_chunk_coords = ChunkManager.get_active_chunk_coords()
+		for chunk_coords in active_chunk_coords:
+			var chunk = ChunkManager.get_chunk(chunk_coords)
+			if chunk and chunk.is_loaded:
+				renderer.render_chunk(chunk)
+		return
+
+	# Traditional full-map rendering for dungeons
 	var visible_walls: Dictionary = {}
 	var is_dungeon = MapManager.current_map.map_id.begins_with("dungeon_")
 
@@ -301,6 +313,19 @@ func _render_map() -> void:
 
 ## Called when player moves
 func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
+	# Update chunk loading for overworld
+	if MapManager.current_map and MapManager.current_map.chunk_based:
+		ChunkManager.update_active_chunks(new_pos)
+
+		# Re-render map for chunk-based worlds (new chunks may have loaded)
+		# Only re-render if player crossed chunk boundary
+		var old_chunk = ChunkManager.world_to_chunk(old_pos)
+		var new_chunk = ChunkManager.world_to_chunk(new_pos)
+		if old_chunk != new_chunk:
+			_render_map()
+			_render_all_entities()
+			_render_ground_items()
+
 	# In dungeons, wall visibility depends on player position
 	# So we need to re-render the entire map when player moves
 	var is_dungeon = MapManager.current_map and MapManager.current_map.map_id.begins_with("dungeon_")
@@ -312,16 +337,17 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
-	
+
 	# Re-render any ground item at old position that was hidden under player
 	_render_ground_item_at(old_pos)
-	
+
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
 
 	# Update FOV
-	var visible_tiles = FOVSystem.calculate_fov(new_pos, player.perception_range, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	# TEMP: Commented out to debug gray overlay
+	#var visible_tiles = FOVSystem.calculate_fov(new_pos, player.perception_range, MapManager.current_map)
+	#renderer.update_fov(visible_tiles)
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()
@@ -377,28 +403,48 @@ func toggle_auto_pickup() -> void:
 
 ## Called when map changes (dungeon transitions, etc.)
 func _on_map_changed(map_id: String) -> void:
-	print("Map changed to: ", map_id)
+	print("[Game] === Map change START: %s ===" % map_id)
+
+	# Invalidate FOV cache since map changed
+	# TEMP: Commented out to debug gray overlay
+	#print("[Game] 1/8 Invalidating FOV cache")
+	#FOVSystem.invalidate_cache()
 
 	# Clear existing entities from EntityManager
+	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
 
 	# Spawn enemies for the new map
+	print("[Game] 3/8 Spawning enemies")
 	_spawn_map_enemies()
 
+	# Load chunks at current player position before rendering
+	# Player position has been set before map transition in input_handler
+	if MapManager.current_map and MapManager.current_map.chunk_based and player:
+		print("[Game] 4/8 Loading chunks at player position %v" % player.position)
+		ChunkManager.update_active_chunks(player.position)
+		print("[Game] 4/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
+
 	# Render map and entities
+	print("[Game] 5/8 Rendering map")
 	_render_map()
+	print("[Game] 6/8 Rendering entities")
 	_render_all_entities()
 
 	# Re-render player at new position
+	print("[Game] 7/8 Rendering player")
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
 
 	# Update FOV
-	var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	# TEMP: Commented out to debug gray overlay
+	#print("[Game] 8/8 Calculating FOV")
+	#var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
+	#renderer.update_fov(visible_tiles)
 
 	# Update message
 	_update_message()
+	print("[Game] === Map change COMPLETE ===")
 
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
@@ -655,7 +701,47 @@ func _update_hud() -> void:
 	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
 		var formatted_name = map_name.replace("_", " ").capitalize()
-		location_label.text = "◆ %s ◆" % formatted_name.to_upper()
+		var location_text = "◆ %s ◆" % formatted_name.to_upper()
+
+		# Add biome and ground type for overworld
+		if MapManager.current_map and MapManager.current_map.map_id == "overworld" and player:
+			# Get biome at player position
+			var biome_data = BiomeGenerator.get_biome_at(player.position.x, player.position.y, GameManager.world_seed)
+			var biome_name = biome_data.get("biome_name", "Unknown")
+			var biome_id = biome_data.get("biome_name", "")
+			biome_name = biome_name.replace("_", " ").capitalize()
+
+			# Get ground character name
+			var tile = MapManager.current_map.get_tile(player.position)
+			var ground_char = tile.ascii_char
+			var ground_name = _get_terrain_name(ground_char, biome_id)
+
+			# Format as "Biome, Ground"
+			location_text += "\n%s, %s" % [biome_name, ground_name]
+
+		location_label.text = location_text
+
+	# Update debug info
+	if debug_info_label and player:
+		# Calculate chunk position
+		const WorldChunk = preload("res://maps/world_chunk.gd")
+		var chunk_size = WorldChunk.CHUNK_SIZE
+		var chunk_pos = Vector2i(
+			floor(float(player.position.x) / chunk_size),
+			floor(float(player.position.y) / chunk_size)
+		)
+
+		# Get screen position of player (camera center)
+		var screen_pos = Vector2i(0, 0)
+		if renderer and renderer.camera:
+			var viewport_pos = renderer.camera.get_screen_center_position()
+			screen_pos = Vector2i(int(viewport_pos.x), int(viewport_pos.y))
+
+		debug_info_label.text = "Chunk: (%d,%d) | Tile: (%d,%d) | Screen Y: %d" % [
+			chunk_pos.x, chunk_pos.y,
+			player.position.x, player.position.y,
+			screen_pos.y
+		]
 
 ## Get status line color based on player state
 func _get_status_color() -> Color:
@@ -754,6 +840,44 @@ func _get_day_suffix(day: int) -> String:
 		3: return "rd"
 		_: return "th"
 
+## Get display name for terrain character
+func _get_terrain_name(terrain_char: String, biome_id: String = "") -> String:
+	# For floor tiles, use biome-specific names
+	if terrain_char == ".":
+		var biome_floor_names = {
+			"beach": "Sand",
+			"snow": "Snow",
+			"snow_mountains": "Snow",
+			"tundra": "Tundra",
+			"barren_rock": "Rock",
+			"ocean": "Water",
+			"deep_ocean": "Water",
+			"swamp": "Mud",
+			"marsh": "Mud"
+		}
+		return biome_floor_names.get(biome_id, "Dirt")
+
+	# Standard terrain names
+	var terrain_names = {
+		"#": "Wall",
+		"░": "Wall",
+		"T": "Tree",
+		"\"": "Grass",
+		",": "Grass",
+		"^": "Rocky",
+		"*": "Snow",
+		"·": "Barren",
+		"~": "Water",
+		"≈": "Deep Water",
+		"▲": "Mountain",
+		"◆": "Rock",
+		"◊": "Iron Ore",
+		">": "Stairs Down",
+		"<": "Stairs Up",
+		"+": "Door"
+	}
+	return terrain_names.get(terrain_char, "Unknown")
+
 ## Update message based on player position
 func _update_message() -> void:
 	if not message_log or not player or not MapManager.current_map:
@@ -812,11 +936,22 @@ func _find_valid_spawn_position() -> Vector2i:
 		return Vector2i(10, 10)  # Fallback
 
 	@warning_ignore("integer_division")
-	var center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
+	var center: Vector2i
+	if MapManager.current_map.chunk_based:
+		# For chunk-based maps, use player_spawn metadata if available
+		if MapManager.current_map.has_meta("player_spawn"):
+			var spawn_pos = MapManager.current_map.get_meta("player_spawn")
+			print("[Game] Using player_spawn metadata: %v" % spawn_pos)
+			return spawn_pos
+		# Fallback: start in chunk 5,5 (center area near town)
+		center = Vector2i(5 * 32 + 10, 5 * 32 + 10)
+	else:
+		center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
 
 	# Try to find a position with open space around it (not just a single walkable tile)
 	# Search in expanding rings from center
-	var max_radius = max(MapManager.current_map.width, MapManager.current_map.height)
+	# Use reasonable radius for chunk-based maps (don't search the entire 10000x10000 world!)
+	var max_radius = 50 if MapManager.current_map.chunk_based else max(MapManager.current_map.width, MapManager.current_map.height)
 
 	for radius in range(0, max_radius):
 		for angle in range(0, 360, 15):  # Check every 15 degrees
@@ -828,12 +963,21 @@ func _find_valid_spawn_position() -> Vector2i:
 			if _is_open_spawn_position(pos):
 				return pos
 
-	# Fallback: find ANY position with at least 1 walkable neighbor
-	for y in range(MapManager.current_map.height):
-		for x in range(MapManager.current_map.width):
-			var pos = Vector2i(x, y)
-			if _is_valid_spawn_position(pos):
-				return pos
+	# Fallback: search a limited area for chunk-based maps
+	if MapManager.current_map.chunk_based:
+		# Search a 100x100 area around center
+		for dy in range(-50, 50):
+			for dx in range(-50, 50):
+				var pos = center + Vector2i(dx, dy)
+				if _is_valid_spawn_position(pos):
+					return pos
+	else:
+		# For dungeons, search entire map
+		for y in range(MapManager.current_map.height):
+			for x in range(MapManager.current_map.width):
+				var pos = Vector2i(x, y)
+				if _is_valid_spawn_position(pos):
+					return pos
 
 	# Absolute fallback
 	push_warning("Could not find valid spawn position, using center anyway")

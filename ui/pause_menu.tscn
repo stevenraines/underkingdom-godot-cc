@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://pause_menu"]
+[gd_scene load_steps=4 format=3 uid="uid://dsd7811og3cpn"]
 
-[ext_resource type="Script" path="res://ui/pause_menu.gd" id="1_pause"]
+[ext_resource type="Script" uid="uid://3oo0lbl1olct" path="res://ui/pause_menu.gd" id="1_pause"]
+[ext_resource type="Theme" uid="uid://c7q6510one1wh" path="res://ui/themes/Underkingdom.tres" id="2_ejwgg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.08, 0.08, 0.12, 0.98)
@@ -45,6 +46,7 @@ offset_right = 250.0
 offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_ejwgg")
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="Panel"]
@@ -65,20 +67,20 @@ theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 20
 text = "◆ GAME PAUSED ◆"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 
 [node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="SaveSlotLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 14
 text = "Select Save Slot"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 
 [node name="SlotsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -117,8 +119,8 @@ layout_mode = 2
 
 [node name="ActionPanel" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 24
+alignment = 1
 
 [node name="SelectLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionPanel"]
 layout_mode = 2

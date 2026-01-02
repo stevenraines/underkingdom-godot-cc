@@ -164,6 +164,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Descend stairs - only works on stairs_down tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_down":
+				# Save overworld position before descending
+				if MapManager.current_map.chunk_based:
+					GameManager.last_overworld_position = player.position
 				MapManager.descend_dungeon()
 				player._find_and_move_to_stairs("stairs_up")
 				action_taken = true
@@ -172,8 +175,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_up":
+				# Position player BEFORE map transition to load correct chunks
+				var target_pos = GameManager.last_overworld_position if GameManager.last_overworld_position != Vector2i.ZERO else Vector2i(800, 800)
+				player.position = target_pos
 				MapManager.ascend_dungeon()
-				player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
 		elif is_wait_key:
@@ -210,7 +215,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_P:  # P key - character sheet
 			_open_character_sheet()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed):  # F1 or ? (Shift+/) - help screen
+		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed) or event.unicode == 63:  # F1 or ? (Shift+/ or unicode 63) - help screen
 			_open_help_screen()
 			get_viewport().set_input_as_handled()
 

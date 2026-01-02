@@ -1,0 +1,10 @@
+{
+  "id": "snow",
+  "name": "Snow",
+  "base_tile": "floor",
+  "grass_char": "*",
+  "tree_density": 0.02,
+  "rock_density": 0.05,
+  "color_floor": [0.9, 0.9, 0.95],
+  "color_grass": [0.95, 0.95, 1.0]
+}

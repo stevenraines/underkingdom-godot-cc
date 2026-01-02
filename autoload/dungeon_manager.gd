@@ -128,7 +128,95 @@ func generate_floor(dungeon_id: String, floor_number: int, world_seed: int) -> G
 	var generator_type: String = dungeon_def.get("generator_type", "rectangular_rooms")
 	# Use duck typing to avoid class_name resolution issues at parse time
 	var generator = _GeneratorFactory.create(generator_type)
-	return generator.generate_floor(dungeon_def, floor_number, world_seed)
+	var map: GameMap = generator.generate_floor(dungeon_def, floor_number, world_seed)
+
+	# Process pending features and hazards stored by generator
+	_process_pending_features(map)
+	_process_pending_hazards(map)
+
+	return map
+
+
+## Process pending features stored in map metadata by generator
+## Transfers feature data to FeatureManager for runtime handling
+func _process_pending_features(map: GameMap) -> void:
+	if not map.metadata.has("pending_features"):
+		return
+
+	var pending: Array = map.metadata.pending_features
+	if pending.is_empty():
+		return
+
+	# Initialize features array in metadata
+	if not map.metadata.has("features"):
+		map.metadata["features"] = []
+
+	# Process each pending feature
+	for feature_data in pending:
+		var pos: Vector2i = feature_data.position
+		var feature_id: String = feature_data.feature_id
+		var config: Dictionary = feature_data.config
+
+		# Create feature instance
+		var feature_instance: Dictionary = {
+			"feature_id": feature_id,
+			"position": pos,
+			"config": config,
+			"interacted": false,
+			"state": {}
+		}
+
+		# Add loot if applicable
+		if config.get("contains_loot", false):
+			feature_instance.state["has_loot"] = true
+
+		# Add summon enemy if applicable
+		if config.has("summons_enemy"):
+			feature_instance.state["summons_enemy"] = config.summons_enemy
+
+		map.metadata.features.append(feature_instance)
+
+	# Clear pending features
+	map.metadata.erase("pending_features")
+	print("[DungeonManager] Processed %d features" % map.metadata.features.size())
+
+
+## Process pending hazards stored in map metadata by generator
+## Transfers hazard data to HazardManager for runtime handling
+func _process_pending_hazards(map: GameMap) -> void:
+	if not map.metadata.has("pending_hazards"):
+		return
+
+	var pending: Array = map.metadata.pending_hazards
+	if pending.is_empty():
+		return
+
+	# Initialize hazards array in metadata
+	if not map.metadata.has("hazards"):
+		map.metadata["hazards"] = []
+
+	# Process each pending hazard
+	for hazard_data in pending:
+		var pos: Vector2i = hazard_data.position
+		var hazard_id: String = hazard_data.hazard_id
+		var config: Dictionary = hazard_data.config
+
+		# Create hazard instance
+		var hazard_instance: Dictionary = {
+			"hazard_id": hazard_id,
+			"position": pos,
+			"config": config,
+			"triggered": false,
+			"detected": false,
+			"disarmed": false,
+			"damage": config.get("damage", 10)
+		}
+
+		map.metadata.hazards.append(hazard_instance)
+
+	# Clear pending hazards
+	map.metadata.erase("pending_hazards")
+	print("[DungeonManager] Processed %d hazards" % map.metadata.hazards.size())
 
 
 ## Fallback definition used when a dungeon type is not found

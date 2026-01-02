@@ -31,6 +31,8 @@ ItemManager="*res://autoload/item_manager.gd"
 RecipeManager="*res://autoload/recipe_manager.gd"
 StructureManager="*res://autoload/structure_manager.gd"
 SaveManager="*res://autoload/save_manager.gd"
+FeatureManager="*res://autoload/feature_manager.gd"
+HazardManager="*res://autoload/hazard_manager.gd"
 
 [display]
 

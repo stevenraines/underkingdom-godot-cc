@@ -61,13 +61,114 @@ func move(direction: Vector2i) -> bool:
 			if not survival.consume_stamina(survival.STAMINA_COST_MOVE):
 				# Out of stamina - still allow movement but warn player
 				pass
-		
+
 		var old_pos = position
 		position = new_pos
 		EventBus.player_moved.emit(old_pos, new_pos)
+
+		# Check for hazards at new position
+		_check_hazards_at_position(new_pos)
+
 		return true
 
 	return false
+
+
+## Check for hazards at the given position
+func _check_hazards_at_position(pos: Vector2i) -> void:
+	# First try to detect hidden hazards based on perception
+	var perception_check = 5 + int(attributes["WIS"] / 2.0)
+	HazardManager.try_detect_hazard(pos, perception_check)
+
+	# Check if hazard triggers
+	var hazard_result = HazardManager.check_hazard_trigger(pos, self)
+	if hazard_result.get("triggered", false):
+		_apply_hazard_damage(hazard_result)
+
+	# Also check proximity hazards (1 tile radius)
+	var proximity_results = HazardManager.check_proximity_hazards(pos, 1, self)
+	for result in proximity_results:
+		_apply_hazard_damage(result)
+
+
+## Apply hazard damage and effects to player
+func _apply_hazard_damage(hazard_result: Dictionary) -> void:
+	var damage: int = hazard_result.get("damage", 0)
+	var hazard_id: String = hazard_result.get("hazard_id", "trap")
+	var damage_type: String = hazard_result.get("damage_type", "physical")
+
+	if damage > 0:
+		# Apply armor reduction for physical damage
+		var actual_damage = damage
+		if damage_type == "physical":
+			actual_damage = max(1, damage - get_total_armor())
+
+		take_damage(actual_damage)
+		EventBus.combat_message.emit("You trigger a %s! (%d damage)" % [hazard_id, actual_damage], Color.ORANGE_RED)
+
+	# Apply status effects from hazard
+	for effect in hazard_result.get("effects", []):
+		var effect_type = effect.get("type", "")
+		@warning_ignore("unused_variable")
+		var duration = effect.get("duration", 100)
+		match effect_type:
+			"poison":
+				EventBus.combat_message.emit("You are poisoned!", Color.LIME_GREEN)
+				# TODO: Apply poison status effect
+			"slow":
+				EventBus.combat_message.emit("You are slowed!", Color.DARK_BLUE)
+				# TODO: Apply slow status effect
+			"curse":
+				EventBus.combat_message.emit("You are cursed!", Color.PURPLE)
+				# TODO: Apply curse status effect
+
+
+## Interact with a feature at the player's current position
+func interact_with_feature() -> Dictionary:
+	# Check if there's an interactable feature at current position
+	if not FeatureManager.has_interactable_feature(position):
+		return {"success": false, "message": "Nothing to interact with here."}
+
+	var result = FeatureManager.interact_with_feature(position)
+
+	# Process effects
+	if result.get("success", false):
+		for effect in result.get("effects", []):
+			match effect.get("type"):
+				"loot":
+					_collect_feature_loot(effect.get("items", []))
+				"summon_enemy":
+					# Enemy spawning handled by EntityManager via signal
+					pass
+				"blessing":
+					var amount = effect.get("amount", 10)
+					heal(amount)
+					EventBus.combat_message.emit("You feel blessed! (+%d HP)" % amount, Color.GOLD)
+				"hint":
+					EventBus.message_logged.emit(effect.get("text", ""))
+
+	return result
+
+
+## Collect loot from a feature
+func _collect_feature_loot(items: Array) -> void:
+	for item_data in items:
+		var item_id = item_data.get("item_id", "")
+		var count = item_data.get("count", 1)
+
+		if item_id == "gold_coins":
+			gold += count
+			EventBus.message_logged.emit("Found %d gold!" % count)
+		else:
+			var item = ItemManager.create_item(item_id, count)
+			if item and inventory:
+				if inventory.add_item(item):
+					EventBus.item_picked_up.emit(item)
+				else:
+					# Inventory full - drop on ground
+					var ground_item = GroundItem.create(item, position)
+					EntityManager.add_entity(ground_item)
+					EventBus.message_logged.emit("Inventory full! Item dropped.")
 
 ## Process survival systems for a turn
 func process_survival_turn(turn_number: int) -> Dictionary:

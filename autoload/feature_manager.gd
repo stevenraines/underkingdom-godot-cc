@@ -1,0 +1,373 @@
+extends Node
+class_name FeatureManagerClass
+## Manages dungeon features - interactive objects placed during generation
+##
+## Features include: sarcophagus, treasure_chest, tomb_inscription, altar,
+## summoning_circle, ore_vein, etc. Each feature can contain loot, summon
+## enemies, provide hints, or have other interactive effects.
+
+## Signal emitted when a feature is interacted with
+signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)
+
+## Signal emitted when a feature spawns an enemy
+signal feature_spawned_enemy(enemy_id: String, position: Vector2i)
+
+## Dictionary of active features on current map
+## Key: Vector2i position, Value: feature data dictionary
+var active_features: Dictionary = {}
+
+## Feature type definitions (base behaviors)
+var feature_definitions: Dictionary = {
+	"sarcophagus": {
+		"name": "Sarcophagus",
+		"ascii_char": "&",
+		"color": Color.GRAY,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "open",
+		"can_contain_loot": true,
+		"can_summon_enemy": true
+	},
+	"treasure_chest": {
+		"name": "Treasure Chest",
+		"ascii_char": "=",
+		"color": Color.GOLDENROD,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "open",
+		"can_contain_loot": true,
+		"can_be_trapped": true
+	},
+	"tomb_inscription": {
+		"name": "Tomb Inscription",
+		"ascii_char": "?",
+		"color": Color.LIGHT_GRAY,
+		"blocking": false,
+		"interactable": true,
+		"interaction_verb": "read",
+		"provides_hint": true
+	},
+	"altar": {
+		"name": "Altar",
+		"ascii_char": "_",
+		"color": Color.WHITE,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "pray at",
+		"can_grant_blessing": true
+	},
+	"summoning_circle": {
+		"name": "Summoning Circle",
+		"ascii_char": "*",
+		"color": Color.PURPLE,
+		"blocking": false,
+		"interactable": true,
+		"interaction_verb": "examine",
+		"can_summon_enemy": true
+	},
+	"ore_vein": {
+		"name": "Ore Vein",
+		"ascii_char": "%",
+		"color": Color.ORANGE,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "mine",
+		"harvestable": true
+	},
+	"crystal_formation": {
+		"name": "Crystal Formation",
+		"ascii_char": "^",
+		"color": Color.CYAN,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "harvest",
+		"harvestable": true
+	},
+	"mushroom_patch": {
+		"name": "Mushroom Patch",
+		"ascii_char": ",",
+		"color": Color.BROWN,
+		"blocking": false,
+		"interactable": true,
+		"interaction_verb": "gather",
+		"harvestable": true
+	},
+	"support_beam": {
+		"name": "Support Beam",
+		"ascii_char": "I",
+		"color": Color.SADDLE_BROWN,
+		"blocking": false,
+		"interactable": false
+	},
+	"weapon_rack": {
+		"name": "Weapon Rack",
+		"ascii_char": "T",
+		"color": Color.SILVER,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "search",
+		"can_contain_loot": true
+	},
+	"reliquary": {
+		"name": "Reliquary",
+		"ascii_char": "+",
+		"color": Color.GOLD,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "open",
+		"can_contain_loot": true,
+		"can_grant_blessing": true
+	},
+	"sluice_gate": {
+		"name": "Sluice Gate",
+		"ascii_char": "#",
+		"color": Color.DARK_GRAY,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "operate",
+		"toggleable": true
+	},
+	"rat_nest": {
+		"name": "Rat Nest",
+		"ascii_char": "~",
+		"color": Color.DARK_OLIVE_GREEN,
+		"blocking": false,
+		"interactable": true,
+		"interaction_verb": "destroy",
+		"can_summon_enemy": true
+	},
+	"smuggler_cache": {
+		"name": "Smuggler's Cache",
+		"ascii_char": "$",
+		"color": Color.DARK_GREEN,
+		"blocking": true,
+		"interactable": true,
+		"interaction_verb": "search",
+		"can_contain_loot": true,
+		"hidden": true
+	}
+}
+
+
+func _ready() -> void:
+	print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
+
+
+## Clear all active features (called on map transition)
+func clear_features() -> void:
+	active_features.clear()
+
+
+## Place features in a generated map based on dungeon definition
+## Called by generators after basic layout is created
+func place_features(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom) -> void:
+	var room_features: Array = dungeon_def.get("room_features", [])
+	if room_features.is_empty():
+		return
+
+	# Find valid floor positions for feature placement
+	var floor_positions: Array[Vector2i] = _get_floor_positions(map)
+	if floor_positions.is_empty():
+		return
+
+	for feature_config in room_features:
+		var feature_id: String = feature_config.get("feature_id", "")
+		var spawn_chance: float = feature_config.get("spawn_chance", 0.1)
+
+		if feature_id.is_empty():
+			continue
+
+		# Determine number of features to place
+		var feature_count: int = 0
+		for pos in floor_positions:
+			if rng.randf() < spawn_chance * 0.1:  # Scaled down for per-tile check
+				feature_count += 1
+
+		# Cap features per type
+		feature_count = mini(feature_count, 5)
+
+		# Place features
+		floor_positions.shuffle()
+		var placed: int = 0
+		for pos in floor_positions:
+			if placed >= feature_count:
+				break
+
+			if _can_place_feature_at(map, pos):
+				_place_feature(map, pos, feature_id, feature_config, rng)
+				placed += 1
+
+
+## Check if a feature can be placed at position
+func _can_place_feature_at(map: GameMap, pos: Vector2i) -> bool:
+	# Must be walkable floor
+	var tile = map.get_tile(pos)
+	if tile == null or not tile.walkable:
+		return false
+
+	# Can't be on stairs
+	if tile.tile_type in ["stairs_up", "stairs_down"]:
+		return false
+
+	# Can't already have a feature
+	if active_features.has(pos):
+		return false
+
+	return true
+
+
+## Place a feature at position
+func _place_feature(map: GameMap, pos: Vector2i, feature_id: String, config: Dictionary, rng: SeededRandom) -> void:
+	var feature_def: Dictionary = feature_definitions.get(feature_id, {})
+	if feature_def.is_empty():
+		push_warning("Unknown feature type: %s" % feature_id)
+		return
+
+	# Create feature instance data
+	var feature_data: Dictionary = {
+		"feature_id": feature_id,
+		"position": pos,
+		"definition": feature_def,
+		"config": config,
+		"interacted": false,
+		"state": {}
+	}
+
+	# Generate loot if applicable
+	if feature_def.get("can_contain_loot", false) and config.get("contains_loot", false):
+		feature_data.state["loot"] = _generate_feature_loot(config, rng)
+
+	# Set enemy to summon if applicable
+	if feature_def.get("can_summon_enemy", false) and config.has("summons_enemy"):
+		feature_data.state["summons_enemy"] = config.get("summons_enemy")
+
+	# Store in active features
+	active_features[pos] = feature_data
+
+	# Store in map metadata for persistence
+	if not map.metadata.has("features"):
+		map.metadata["features"] = []
+	map.metadata.features.append(feature_data)
+
+
+## Generate loot for a feature
+func _generate_feature_loot(config: Dictionary, rng: SeededRandom) -> Array:
+	var loot: Array = []
+	var loot_table: String = config.get("loot_table", "")
+
+	# Simple loot generation (can be expanded later)
+	if loot_table == "ancient_treasure":
+		if rng.randf() < 0.5:
+			loot.append({"item_id": "gold_coins", "count": rng.randi_range(10, 50)})
+		if rng.randf() < 0.2:
+			loot.append({"item_id": "ancient_artifact", "count": 1})
+	else:
+		# Default loot
+		if rng.randf() < 0.7:
+			loot.append({"item_id": "gold_coins", "count": rng.randi_range(5, 20)})
+
+	return loot
+
+
+## Get all floor positions in map
+func _get_floor_positions(map: GameMap) -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+
+	for pos in map.tiles:
+		var tile = map.tiles[pos]
+		if tile != null and tile.walkable:
+			positions.append(pos)
+
+	return positions
+
+
+## Interact with a feature at position
+## Returns result dictionary with effects
+func interact_with_feature(pos: Vector2i) -> Dictionary:
+	if not active_features.has(pos):
+		return {"success": false, "message": "Nothing to interact with here."}
+
+	var feature: Dictionary = active_features[pos]
+	var feature_def: Dictionary = feature.definition
+	var result: Dictionary = {"success": true, "effects": []}
+
+	if feature.interacted and not feature_def.get("repeatable", false):
+		return {"success": false, "message": "Already interacted with this %s." % feature_def.name}
+
+	# Mark as interacted
+	feature.interacted = true
+
+	# Handle loot
+	if feature.state.has("loot") and not feature.state.loot.is_empty():
+		result.effects.append({"type": "loot", "items": feature.state.loot})
+		result.message = "You found items in the %s!" % feature_def.name.to_lower()
+		feature.state.loot = []
+
+	# Handle enemy summon
+	if feature.state.has("summons_enemy"):
+		var enemy_id: String = feature.state.summons_enemy
+		result.effects.append({"type": "summon_enemy", "enemy_id": enemy_id, "position": pos})
+		result.message = "Something emerges from the %s!" % feature_def.name.to_lower()
+		feature_spawned_enemy.emit(enemy_id, pos)
+
+	# Handle hints
+	if feature_def.get("provides_hint", false):
+		result.effects.append({"type": "hint", "text": _generate_hint()})
+		result.message = "You read the inscription..."
+
+	# Handle blessing
+	if feature_def.get("can_grant_blessing", false):
+		result.effects.append({"type": "blessing", "stat": "health", "amount": 10})
+		result.message = "You feel blessed!"
+
+	feature_interacted.emit(feature.feature_id, pos, result)
+	return result
+
+
+## Generate a random hint
+func _generate_hint() -> String:
+	var hints: Array = [
+		"Beware the darkness below...",
+		"The treasure lies beyond the guardian.",
+		"Only the worthy may pass.",
+		"Death awaits the unprepared.",
+		"Seek the light in the deepest dark."
+	]
+	return hints[randi() % hints.size()]
+
+
+## Get feature at position (or null)
+func get_feature_at(pos: Vector2i) -> Dictionary:
+	return active_features.get(pos, {})
+
+
+## Check if position has interactable feature
+func has_interactable_feature(pos: Vector2i) -> bool:
+	if not active_features.has(pos):
+		return false
+	var feature: Dictionary = active_features[pos]
+	return feature.definition.get("interactable", false)
+
+
+## Load features from map metadata (for saved games and floor transitions)
+func load_features_from_map(map: GameMap) -> void:
+	clear_features()
+
+	if not map.metadata.has("features"):
+		return
+
+	for feature_data in map.metadata.features:
+		var pos: Vector2i = feature_data.position
+
+		# Ensure feature has its definition reference
+		if not feature_data.has("definition"):
+			var feature_id: String = feature_data.get("feature_id", "")
+			if feature_definitions.has(feature_id):
+				feature_data["definition"] = feature_definitions[feature_id]
+			else:
+				push_warning("[FeatureManager] Unknown feature type: %s" % feature_id)
+				continue
+
+		active_features[pos] = feature_data
+
+	print("[FeatureManager] Loaded %d features from map" % active_features.size())

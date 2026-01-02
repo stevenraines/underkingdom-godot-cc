@@ -111,5 +111,19 @@ signal load_failed(error: String)
 @warning_ignore("unused_signal")
 signal message_logged(message: String)
 
+# Feature signals
+@warning_ignore("unused_signal")
+signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)
+@warning_ignore("unused_signal")
+signal feature_spawned_enemy(enemy_id: String, position: Vector2i)
+
+# Hazard signals
+@warning_ignore("unused_signal")
+signal hazard_triggered(hazard_id: String, position: Vector2i, target, damage: int)
+@warning_ignore("unused_signal")
+signal hazard_detected(hazard_id: String, position: Vector2i)
+@warning_ignore("unused_signal")
+signal hazard_disarmed(hazard_id: String, position: Vector2i)
+
 func _ready() -> void:
 	print("EventBus initialized")

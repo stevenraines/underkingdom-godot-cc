@@ -39,8 +39,21 @@ func transition_to_map(map_id: String) -> void:
 		current_map.chunk_based = false
 		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
 
+	# Load features and hazards into their managers for dungeon maps
+	if map_id.begins_with("dungeon_"):
+		_load_features_and_hazards(current_map)
+
 	EventBus.map_changed.emit(map_id)
 	print("Transitioned to map: ", map_id)
+
+
+## Load features and hazards from map metadata into managers
+func _load_features_and_hazards(map: GameMap) -> void:
+	# Load features into FeatureManager
+	FeatureManager.load_features_from_map(map)
+
+	# Load hazards into HazardManager
+	HazardManager.load_hazards_from_map(map)
 
 ## Generate a map based on its ID
 func _generate_map(map_id: String, seed: int) -> GameMap:

@@ -59,6 +59,9 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	# Spawn enemies
 	_spawn_enemies(map, dungeon_def, floor_number, rng)
 
+	# Place features and hazards
+	_place_features_and_hazards(map, dungeon_def, rng)
+
 	return map
 
 

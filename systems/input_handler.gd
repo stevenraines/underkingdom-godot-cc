@@ -222,6 +222,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
 			_start_harvest_mode()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F:  # F key - interact with dungeon feature
+			action_taken = _try_interact_feature()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_P:  # P key - character sheet
 			_open_character_sheet()
 			get_viewport().set_input_as_handled()
@@ -346,6 +349,20 @@ func _open_help_screen() -> void:
 		game.open_help_screen()
 	else:
 		print("[InputHandler] ERROR: game or open_help_screen method not found")
+
+## Try to interact with a dungeon feature at player position
+func _try_interact_feature() -> bool:
+	var result = player.interact_with_feature()
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var message = result.get("message", "")
+		if message:
+			var color = Color(0.6, 0.9, 0.6) if result.get("success", false) else Color(0.7, 0.7, 0.7)
+			game._add_message(message, color)
+
+	return result.get("success", false)
+
 
 ## Try to harvest a resource in the given direction
 func _try_harvest(direction: Vector2i) -> bool:

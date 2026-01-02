@@ -14,5 +14,5 @@
   "ascii_char": "/",
   "ascii_color": "#8B7355",
   "damage_bonus": 1,
-  "recovery_chance": 0.3
+  "recovery_chance": 0.85
 }

@@ -174,6 +174,8 @@ func _interact_with_feature_at(pos: Vector2i) -> Dictionary:
 			match effect.get("type"):
 				"loot":
 					_collect_feature_loot(effect.get("items", []))
+				"harvest":
+					_collect_feature_loot(effect.get("items", []))
 				"summon_enemy":
 					# Enemy spawning handled by EntityManager via signal
 					pass

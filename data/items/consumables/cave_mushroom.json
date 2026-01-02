@@ -1,0 +1,21 @@
+{
+  "id": "cave_mushroom",
+  "name": "Cave Mushroom",
+  "description": "A fleshy mushroom found in dark caves. Edible but not very nutritious.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.1,
+  "value": 2,
+  "max_stack": 20,
+  "ascii_char": ",",
+  "ascii_color": "#A52A2A",
+  "effects": {
+    "hunger": 5
+  }
+}

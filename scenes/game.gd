@@ -292,8 +292,8 @@ func _render_map() -> void:
 				renderer.render_chunk(chunk)
 		return
 
-	# Traditional full-map rendering for dungeons
-	var is_dungeon = MapManager.current_map.map_id.begins_with("dungeon_")
+	# Check if this is a dungeon map (has floor number in metadata or map_id contains "_floor_")
+	var is_dungeon = MapManager.current_map.metadata.has("floor_number") or "_floor_" in MapManager.current_map.map_id
 
 	# For dungeons, only render tiles that exist in the dictionary
 	if is_dungeon:

@@ -69,14 +69,14 @@ static func create(type: String) -> GameTile:
 			tile.is_open = true
 			tile.walkable = true
 			tile.transparent = true
-			tile.ascii_char = "+"
+			tile.ascii_char = "/"
 		"door_closed":
 			# Closed door: blocks movement and vision
 			tile.tile_type = "door"
 			tile.is_open = false
 			tile.walkable = false
 			tile.transparent = false
-			tile.ascii_char = "'"
+			tile.ascii_char = "+"
 		"rock":
 			tile.tile_type = "rock"
 			tile.walkable = false
@@ -112,7 +112,7 @@ func toggle_door() -> bool:
 	is_open = !is_open
 	walkable = is_open
 	transparent = is_open
-	ascii_char = "+" if is_open else "'"
+	ascii_char = "/" if is_open else "+"
 	return true
 
 ## Open a door (if closed)
@@ -123,7 +123,7 @@ func open_door() -> bool:
 	is_open = true
 	walkable = true
 	transparent = true
-	ascii_char = "+"
+	ascii_char = "/"
 	return true
 
 ## Close a door (if open)
@@ -134,5 +134,5 @@ func close_door() -> bool:
 	is_open = false
 	walkable = false
 	transparent = false
-	ascii_char = "'"
+	ascii_char = "+"
 	return true

@@ -612,3 +612,286 @@ func _get_fallback_definition() -> Dictionary:
 
 ---
 
+### Task 1.3: Create Generator Factory Pattern
+
+**Assignee**: [Backend Developer]
+**Priority**: Critical
+**Estimated Time**: 1.5 hours
+**Dependencies**: Task 1.2 (DungeonManager exists)
+
+**Objective**: Implement factory pattern to instantiate appropriate dungeon generator based on `generator_type` from JSON.
+
+**Generator Interface**:
+
+```gdscript
+// generation/dungeon_generators/base_dungeon_generator.gd
+class_name BaseDungeonGenerator
+extends RefCounted
+
+## Base interface for all dungeon generators
+## Each generator type implements generate_floor() differently
+
+## Generate a single dungeon floor
+## @param dungeon_def: Dictionary from DungeonManager (JSON data)
+## @param floor_number: Current floor depth
+## @param world_seed: Global world seed for determinism
+## @returns: Generated GameMap
+func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int) -> GameMap:
+    push_error("BaseDungeonGenerator.generate_floor() must be overridden")
+    return null
+
+## Helper: Create floor seed from world seed + dungeon + floor
+func _create_floor_seed(world_seed: int, dungeon_id: String, floor_number: int) -> int:
+    var combined = "%s_%s_%d" % [world_seed, dungeon_id, floor_number]
+    return combined.hash()
+
+## Helper: Get generation parameters from dungeon definition
+func _get_param(dungeon_def: Dictionary, key: String, default):
+    return dungeon_def.get("generation_params", {}).get(key, default)
+```
+
+**Generator Factory Implementation**:
+
+```gdscript
+// generation/dungeon_generator_factory.gd
+class_name DungeonGeneratorFactory
+extends RefCounted
+
+## Factory for creating dungeon generators based on type string
+
+static func create(generator_type: String) -> BaseDungeonGenerator:
+    match generator_type:
+        "rectangular_rooms":
+            return RectangularRoomsGenerator.new()
+        "cellular_automata":
+            return CellularAutomataGenerator.new()
+        "grid_tunnels":
+            return GridTunnelsGenerator.new()
+        "bsp_rooms":
+            return BSPRoomsGenerator.new()
+        "circular_floors":
+            return CircularFloorsGenerator.new()
+        "concentric_rings":
+            return ConcentricRingsGenerator.new()
+        "symmetric_layout":
+            return SymmetricLayoutGenerator.new()
+        _:
+            push_warning("Unknown generator type: %s, using rectangular_rooms" % generator_type)
+            return RectangularRoomsGenerator.new()
+
+static func get_all_generator_types() -> Array[String]:
+    return [
+        "rectangular_rooms",
+        "cellular_automata",
+        "grid_tunnels",
+        "bsp_rooms",
+        "circular_floors",
+        "concentric_rings",
+        "symmetric_layout"
+    ]
+```
+
+**MapManager Integration**:
+
+```gdscript
+// autoload/map_manager.gd (MODIFIED)
+
+func get_or_generate_map(map_id: String) -> GameMap:
+    # Check cache first
+    if cached_maps.has(map_id):
+        return cached_maps[map_id]
+
+    var generated_map: GameMap = null
+
+    # NEW: Detect dungeon maps
+    if map_id.begins_with("dungeon_"):
+        generated_map = _generate_dungeon_floor(map_id)
+    elif map_id == "overworld":
+        generated_map = WorldGenerator.generate_overworld(GameManager.world_seed)
+    elif map_id == "town":
+        generated_map = TownGenerator.generate_town(GameManager.world_seed)
+    else:
+        push_error("Unknown map type: " + map_id)
+        return null
+
+    # Cache and return
+    cached_maps[map_id] = generated_map
+    return generated_map
+
+## NEW: Generate dungeon floor using factory pattern
+func _generate_dungeon_floor(map_id: String) -> GameMap:
+    # Parse map_id: "dungeon_burial_barrow_floor_5"
+    var regex = RegEx.new()
+    regex.compile("dungeon_([a-z_]+)_floor_(\\d+)")
+    var result = regex.search(map_id)
+
+    if not result:
+        push_error("Invalid dungeon map_id format: " + map_id)
+        return null
+
+    var dungeon_type = result.get_string(1)  # "burial_barrow"
+    var floor_number = int(result.get_string(2))  # 5
+
+    # Get dungeon definition
+    var dungeon_def = DungeonManager.get_dungeon(dungeon_type)
+
+    # Create generator via factory
+    var generator = DungeonGeneratorFactory.create(dungeon_def.generator_type)
+
+    # Generate floor
+    var floor_seed = _create_dungeon_seed(dungeon_type, floor_number)
+    var map = generator.generate_floor(dungeon_def, floor_number, floor_seed)
+
+    return map
+
+func _create_dungeon_seed(dungeon_type: String, floor_number: int) -> int:
+    var combined = "%s_%s_%d" % [GameManager.world_seed, dungeon_type, floor_number]
+    return combined.hash()
+```
+
+**Files Created/Modified**:
+- NEW: `generation/dungeon_generators/base_dungeon_generator.gd`
+- NEW: `generation/dungeon_generator_factory.gd`
+- MODIFIED: `autoload/map_manager.gd`
+
+**Testing Checklist**:
+- [ ] Factory creates correct generator for each type
+- [ ] Unknown generator type returns fallback (rectangular_rooms)
+- [ ] MapManager correctly parses dungeon map_id format
+- [ ] Floor seed generation is deterministic
+- [ ] Same floor_number + dungeon_type always produces same seed
+
+**Benefits**:
+- ✅ Open/Closed Principle: Add new generators without modifying factory
+- ✅ Single Responsibility: Factory only creates, generators only generate
+- ✅ Consistent interface for all generator types
+- ✅ Easy to test each generator in isolation
+
+---
+
+### Task 1.4: Refactor Existing Burial Barrow Generator
+
+**Assignee**: [Backend Developer]
+**Priority**: High
+**Estimated Time**: 1 hour
+**Dependencies**: Task 1.3 (factory exists)
+
+**Objective**: Refactor existing `burial_barrow.gd` generator to use new interface and JSON data.
+
+**Current Code** (`generation/dungeon_generators/burial_barrow.gd`):
+```gdscript
+static func generate_floor(world_seed: int, floor_number: int) -> GameMap:
+    # Hardcoded parameters
+    var map = GameMap.new("dungeon_barrow_floor_%d" % floor_number, 50, 50)
+    var num_rooms = rng.randi_range(5, 8)
+    # ... rest of generation ...
+```
+
+**Refactored Code** (NEW: `generation/dungeon_generators/rectangular_rooms_generator.gd`):
+```gdscript
+// generation/dungeon_generators/rectangular_rooms_generator.gd
+class_name RectangularRoomsGenerator
+extends BaseDungeonGenerator
+
+## Generates dungeons with rectangular rooms connected by corridors
+## Used by: Burial Barrows, Military Compounds (when using rectangular layout)
+
+func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int) -> GameMap:
+    var dungeon_id = dungeon_def.get("id", "unknown")
+    var map_size = dungeon_def.get("map_size", {"width": 50, "height": 50})
+
+    # Create map
+    var map_id = "dungeon_%s_floor_%d" % [dungeon_id, floor_number]
+    var map = GameMap.new(map_id, map_size.width, map_size.height)
+
+    # Create seeded RNG
+    var floor_seed = _create_floor_seed(world_seed, dungeon_id, floor_number)
+    var rng = SeededRandom.new(floor_seed)
+
+    # Get parameters from JSON
+    var room_count_range = _get_param(dungeon_def, "room_count_range", [5, 8])
+    var room_size_range = _get_param(dungeon_def, "room_size_range", [3, 8])
+    var corridor_width = _get_param(dungeon_def, "corridor_width", 1)
+    var connectivity = _get_param(dungeon_def, "connectivity", 0.7)
+
+    # Generate structure
+    _fill_with_walls(map, dungeon_def)
+    var rooms = _generate_rooms(map, rng, room_count_range, room_size_range)
+    _connect_rooms(map, rooms, rng, corridor_width, connectivity)
+    _add_stairs(map, rooms, rng)
+
+    # Populate with content
+    _spawn_enemies(map, dungeon_def, floor_number, rng)
+    _spawn_loot(map, dungeon_def, floor_number, rng)
+    _add_features(map, dungeon_def, rooms, rng)
+
+    # Wall culling (remove inaccessible walls)
+    _cull_inaccessible_walls(map)
+
+    return map
+
+func _fill_with_walls(map: GameMap, dungeon_def: Dictionary) -> void:
+    var wall_tile = dungeon_def.get("tiles", {}).get("wall", "stone_wall")
+
+    for x in range(map.width):
+        for y in range(map.height):
+            map.set_tile(x, y, TileManager.get_tile(wall_tile))
+
+func _generate_rooms(map: GameMap, rng: SeededRandom, count_range: Array, size_range: Array) -> Array:
+    var rooms = []
+    var num_rooms = rng.randi_range(count_range[0], count_range[1])
+
+    for i in range(num_rooms):
+        var room = _try_place_room(map, rng, size_range)
+        if room:
+            rooms.append(room)
+
+    return rooms
+
+# ... additional helper methods ...
+```
+
+**Migration Steps**:
+
+1. **Rename file**:
+   - OLD: `generation/dungeon_generators/burial_barrow.gd`
+   - NEW: `generation/dungeon_generators/rectangular_rooms_generator.gd`
+
+2. **Update class name**:
+   - OLD: `class_name BurialBarrowGenerator`
+   - NEW: `class_name RectangularRoomsGenerator`
+
+3. **Change to instance method**:
+   - OLD: `static func generate_floor(world_seed, floor_number)`
+   - NEW: `func generate_floor(dungeon_def, floor_number, world_seed)`
+
+4. **Replace hardcoded values with JSON parameters**:
+   - Room count: `_get_param(dungeon_def, "room_count_range", [5, 8])`
+   - Room size: `_get_param(dungeon_def, "room_size_range", [3, 8])`
+   - Tiles: `dungeon_def.get("tiles", {}).get("wall", "stone_wall")`
+
+5. **Add content population methods**:
+   - `_spawn_enemies()` - uses `dungeon_def.enemy_pools`
+   - `_spawn_loot()` - uses `dungeon_def.loot_tables`
+   - `_add_features()` - uses `dungeon_def.room_features`
+
+**Files Modified**:
+- RENAMED: `burial_barrow.gd` → `rectangular_rooms_generator.gd`
+- MODIFIED: Class implementation to use JSON data
+
+**Testing Checklist**:
+- [ ] Burial barrow dungeons generate identically to before (same seed)
+- [ ] Room count respects JSON parameters
+- [ ] Tile types come from JSON definition
+- [ ] Enemies spawn according to enemy_pools
+- [ ] Loot spawns according to loot_tables
+- [ ] Connectivity parameter affects corridor generation
+
+**Benefits**:
+- ✅ Removes all hardcoded values
+- ✅ Reusable for any rectangular room dungeon type
+- ✅ Consistent with new architecture
+- ✅ Backwards compatible (same generation for burial barrows)
+
+---
+

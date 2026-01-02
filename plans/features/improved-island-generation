@@ -1,0 +1,7 @@
+# Feature - Improved Island generation
+**Goal**: Make the island more realistic
+
+---
+
+Review methods for improved island generation from these sources:
+https://www.redblobgames.com/maps/terrain-from-noise/islands.html

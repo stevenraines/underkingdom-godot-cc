@@ -36,6 +36,7 @@ var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for pla
 @onready var message_log: RichTextLabel = $HUD/RightSidebar/MessageLog
 @onready var active_effects_label: Label = $HUD/BottomBar/ActiveEffects
 @onready var xp_label: Label = $HUD/TopBar/XPLabel
+@onready var gold_label: Label = $HUD/TopBar/GoldLabel
 @onready var debug_info_label: Label = $HUD/BottomBar/DebugInfo
 
 const InventoryScreenScene = preload("res://ui/inventory_screen.tscn")
@@ -799,7 +800,11 @@ func _update_hud() -> void:
 		var cur_xp = player.experience if "experience" in player else 0
 		var next_xp = player.experience_to_next_level if "experience_to_next_level" in player else 100
 		xp_label.text = "Exp: %d/%d" % [cur_xp, next_xp]
-		
+
+	# Update gold label if present
+	if gold_label and player:
+		gold_label.text = "Gold: %d" % player.gold
+
 		# Color code based on most critical state
 		var status_color = _get_status_color()
 		status_line.add_theme_color_override("font_color", status_color)

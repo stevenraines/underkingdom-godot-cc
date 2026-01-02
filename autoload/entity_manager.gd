@@ -237,12 +237,27 @@ func save_entity_states_to_map(map: GameMap) -> void:
 
 	var saved_enemies: Array = []
 	var saved_items: Array = []
+	var saved_npcs: Array = []
 
 	for entity in entities:
 		if entity is Enemy and entity.is_alive:
 			saved_enemies.append({
 				"enemy_id": entity.entity_id,
 				"position": entity.position,
+				"current_health": entity.current_health,
+				"max_health": entity.max_health
+			})
+		elif entity is NPC and entity.is_alive:
+			saved_npcs.append({
+				"npc_id": entity.entity_id,
+				"name": entity.name,
+				"position": entity.position,
+				"npc_type": entity.npc_type,
+				"ascii_char": entity.ascii_char,
+				"color": entity.color.to_html(),
+				"dialogue": entity.dialogue,
+				"trade_inventory": entity.trade_inventory,
+				"gold": entity.gold,
 				"current_health": entity.current_health,
 				"max_health": entity.max_health
 			})
@@ -255,8 +270,9 @@ func save_entity_states_to_map(map: GameMap) -> void:
 
 	map.metadata["saved_enemies"] = saved_enemies
 	map.metadata["saved_items"] = saved_items
+	map.metadata["saved_npcs"] = saved_npcs
 	map.metadata["visited"] = true
-	print("EntityManager: Saved %d enemies and %d items to map %s" % [saved_enemies.size(), saved_items.size(), map.map_id])
+	print("EntityManager: Saved %d enemies, %d items, %d NPCs to map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 
 ## Restore entity states from map metadata (for returning to visited maps)
 func restore_entity_states_from_map(map: GameMap) -> bool:
@@ -277,6 +293,18 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 		if enemy:
 			enemy.current_health = enemy_data.get("current_health", enemy.max_health)
 
+	# Restore NPCs
+	var saved_npcs = map.metadata.get("saved_npcs", [])
+	for npc_data in saved_npcs:
+		var npc = spawn_npc(npc_data)
+		if npc:
+			npc.current_health = npc_data.get("current_health", npc.max_health)
+			npc.gold = npc_data.get("gold", npc.gold)
+			# Restore trade inventory if saved
+			var saved_trade_inv = npc_data.get("trade_inventory", [])
+			if saved_trade_inv.size() > 0:
+				npc.trade_inventory = saved_trade_inv
+
 	# Restore ground items
 	var saved_items = map.metadata.get("saved_items", [])
 	for item_data in saved_items:
@@ -288,5 +316,5 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 		if item:
 			spawn_ground_item(item, item_data.get("position", Vector2i.ZERO))
 
-	print("EntityManager: Restored %d enemies and %d items from map %s" % [saved_enemies.size(), saved_items.size(), map.map_id])
+	print("EntityManager: Restored %d enemies, %d items, %d NPCs from map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 	return true

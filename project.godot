@@ -34,6 +34,10 @@ RecipeManager="*res://autoload/recipe_manager.gd"
 StructureManager="*res://autoload/structure_manager.gd"
 SaveManager="*res://autoload/save_manager.gd"
 
+[debug]
+
+gdscript/warnings/integer_division=0
+
 [display]
 
 window/size/viewport_width=1280

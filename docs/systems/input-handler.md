@@ -65,6 +65,7 @@ var current_target: Entity = null
 | E | Interact with structure |
 | F | Interact with dungeon feature |
 | G | Toggle auto-pickup |
+| O | Toggle auto-open doors |
 | , (comma) | Manual pickup |
 | H | Harvest (then direction) |
 | T | Talk to adjacent NPC |

@@ -61,11 +61,15 @@ func move(direction: Vector2i) -> bool:
 		_interact_with_feature_at(new_pos)
 		return true  # Action taken, but didn't move
 
-	# Check for closed door - open it instead of moving through
+	# Check for closed door - open it if auto-open is enabled
 	var tile = MapManager.current_map.get_tile(new_pos) if MapManager.current_map else null
 	if tile and tile.tile_type == "door" and not tile.is_open:
-		_open_door(new_pos)
-		return true  # Action taken (opened door)
+		# Check if auto-open doors is enabled
+		if GameManager.auto_open_doors:
+			_open_door(new_pos)
+			return true  # Action taken (opened door)
+		else:
+			return false  # Can't move through closed door when auto-open is off
 
 	# Check if new position is walkable
 	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
@@ -498,7 +502,7 @@ func _open_door(pos: Vector2i) -> void:
 	if tile and tile.open_door():
 		EventBus.combat_message.emit("You open the door.", Color.WHITE)
 		_FOVSystem.invalidate_cache()
-		EventBus.map_changed.emit()  # Trigger re-render
+		EventBus.tile_changed.emit(pos)  # Trigger tile re-render
 
 ## Close a door in the given direction from player
 ## Returns true if successfully closed, false otherwise
@@ -523,7 +527,7 @@ func close_door(direction: Vector2i) -> bool:
 	if tile.close_door():
 		EventBus.combat_message.emit("You close the door.", Color.WHITE)
 		_FOVSystem.invalidate_cache()
-		EventBus.map_changed.emit()  # Trigger re-render
+		EventBus.tile_changed.emit(door_pos)  # Trigger tile re-render
 		return true
 
 	return false

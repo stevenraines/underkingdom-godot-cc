@@ -156,6 +156,7 @@ func _ready() -> void:
 	# Connect signals
 	EventBus.player_moved.connect(_on_player_moved)
 	EventBus.map_changed.connect(_on_map_changed)
+	EventBus.tile_changed.connect(_on_tile_changed)
 	EventBus.turn_advanced.connect(_on_turn_advanced)
 	EventBus.entity_moved.connect(_on_entity_moved)
 	EventBus.entity_died.connect(_on_entity_died)
@@ -469,6 +470,13 @@ func toggle_auto_pickup() -> void:
 	_add_message("Auto-pickup: %s" % status, Color(0.8, 0.8, 0.6))
 	_update_toggles_display()
 
+## Toggle auto-open doors on/off
+func toggle_auto_open_doors() -> void:
+	GameManager.auto_open_doors = not GameManager.auto_open_doors
+	var status = "ON" if GameManager.auto_open_doors else "OFF"
+	_add_message("Auto-open doors: %s" % status, Color(0.8, 0.8, 0.6))
+	_update_toggles_display()
+
 ## Called when map changes (dungeon transitions, etc.)
 func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change START: %s ===" % map_id)
@@ -528,6 +536,15 @@ func _on_map_changed(map_id: String) -> void:
 	# Update message
 	_update_message()
 	print("[Game] === Map change COMPLETE ===")
+
+## Called when a single tile changes (door opened/closed, etc.)
+func _on_tile_changed(pos: Vector2i) -> void:
+	if not MapManager.current_map:
+		return
+
+	var tile = MapManager.current_map.get_tile(pos)
+	if tile:
+		renderer.render_tile(pos, tile.ascii_char)
 
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
@@ -948,6 +965,13 @@ func _update_toggles_display() -> void:
 		var autopickup_color = Color(0.5, 0.9, 0.5) if auto_pickup_enabled else Color(0.6, 0.6, 0.6)
 		ability1.text = autopickup_status
 		ability1.add_theme_color_override("font_color", autopickup_color)
+
+	var ability2 = $HUD/BottomBar/Abilities/Ability2
+	if ability2:
+		var autodoor_status = "[O] Auto-door: %s" % ("ON" if GameManager.auto_open_doors else "OFF")
+		var autodoor_color = Color(0.5, 0.9, 0.5) if GameManager.auto_open_doors else Color(0.6, 0.6, 0.6)
+		ability2.text = autodoor_status
+		ability2.add_theme_color_override("font_color", autodoor_color)
 
 ## Count enemies within aggro range of player
 func _count_nearby_enemies() -> int:

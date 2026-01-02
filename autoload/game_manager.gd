@@ -15,6 +15,9 @@ var current_map_id: String = ""
 var is_loading_save: bool = false  # Flag to prevent start_new_game when loading
 var last_overworld_position: Vector2i = Vector2i.ZERO  # Player's position when entering dungeon
 
+# Player settings
+var auto_open_doors: bool = true  # Automatically open doors when walking into them
+
 func _ready() -> void:
 	# Load harvestable resources
 	_HarvestSystem.load_resources()

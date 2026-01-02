@@ -284,6 +284,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_G:  # G key - toggle auto-pickup
 			_toggle_auto_pickup()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_O:  # O key - toggle auto-open doors
+			_toggle_auto_open_doors()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_COMMA:  # , - manual pickup
 			_try_pickup_item()
 			action_taken = true
@@ -392,6 +395,12 @@ func _toggle_auto_pickup() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_auto_pickup"):
 		game.toggle_auto_pickup()
+
+## Toggle auto-open doors setting
+func _toggle_auto_open_doors() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_auto_open_doors"):
+		game.toggle_auto_open_doors()
 
 ## Try to pick up an item at the player's position
 func _try_pickup_item() -> void:

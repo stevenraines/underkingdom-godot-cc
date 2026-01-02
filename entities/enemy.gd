@@ -179,7 +179,7 @@ func _move_toward_target(target: Vector2i) -> void:
 				tile.open_door()
 				EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
 				_FOVSystem.invalidate_cache()
-				EventBus.map_changed.emit()
+				EventBus.tile_changed.emit(new_pos)
 				return  # Opening door consumes the turn
 			else:
 				# Can't open door, try alternate path
@@ -206,7 +206,7 @@ func _move_toward_target(target: Vector2i) -> void:
 					alt_tile.open_door()
 					EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
 					_FOVSystem.invalidate_cache()
-					EventBus.map_changed.emit()
+					EventBus.tile_changed.emit(alt_pos)
 					return
 
 		if MapManager.current_map and MapManager.current_map.is_walkable(alt_pos):
@@ -321,7 +321,7 @@ func _move_away_from(threat: Vector2i) -> void:
 				tile.open_door()
 				EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
 				_FOVSystem.invalidate_cache()
-				EventBus.map_changed.emit()
+				EventBus.tile_changed.emit(new_pos)
 				return  # Opening door consumes the turn
 
 	# Check if position is walkable
@@ -347,7 +347,7 @@ func _move_away_from(threat: Vector2i) -> void:
 					alt_tile.open_door()
 					EventBus.combat_message.emit("%s opens a door." % name, Color.GRAY)
 					_FOVSystem.invalidate_cache()
-					EventBus.map_changed.emit()
+					EventBus.tile_changed.emit(alt_pos)
 					return
 
 		if MapManager.current_map and MapManager.current_map.is_walkable(alt_pos):
@@ -371,4 +371,4 @@ func _try_close_door_behind(old_pos: Vector2i, _move_dir: Vector2i) -> void:
 			tile.close_door()
 			EventBus.combat_message.emit("%s closes a door." % name, Color.GRAY)
 			_FOVSystem.invalidate_cache()
-			EventBus.map_changed.emit()
+			EventBus.tile_changed.emit(old_pos)

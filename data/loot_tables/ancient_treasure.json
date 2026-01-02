@@ -1,0 +1,14 @@
+{
+	"id": "ancient_treasure",
+	"name": "Ancient Treasure",
+	"description": "Treasure found in ancient chests and burial sites",
+	"guaranteed_drops": [
+		{"item_id": "gold_coin", "min_count": 15, "max_count": 60}
+	],
+	"drops": [
+		{"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.3},
+		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.4},
+		{"item_id": "ancient_scroll", "min_count": 1, "max_count": 1, "chance": 0.2},
+		{"item_id": "cursed_ring", "min_count": 1, "max_count": 1, "chance": 0.1}
+	]
+}

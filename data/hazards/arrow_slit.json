@@ -7,6 +7,7 @@
 	"trigger_type": "line_of_sight",
 	"damage_type": "physical",
 	"base_damage": 8,
+	"one_time": false,
 	"range": 10,
 	"can_disarm": false
 }

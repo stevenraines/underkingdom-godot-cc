@@ -1,0 +1,11 @@
+{
+	"id": "wolf_pelt",
+	"name": "Wolf Pelt",
+	"description": "A thick fur pelt from a wolf",
+	"ascii_char": "~",
+	"color": "#696969",
+	"weight": 2.0,
+	"value": 25,
+	"stack_size": 5,
+	"item_type": "material"
+}

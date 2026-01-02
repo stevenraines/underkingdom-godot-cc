@@ -65,6 +65,10 @@ func is_walkable(pos: Vector2i) -> bool:
 		if structure.blocks_movement:
 			return false
 
+	# Check if any feature blocks movement at this position
+	if FeatureManager.has_blocking_feature(pos):
+		return false
+
 	return true
 
 ## Check if position is transparent (for FOV)

@@ -131,8 +131,11 @@ func _store_hazard_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom
 			continue
 
 		# Calculate hazard count based on density
+		# For low densities, use random chance to spawn any at all
 		var hazard_count: int = int(floor_positions.size() * density)
-		hazard_count = clampi(hazard_count, 1, 10)
+		if hazard_count == 0 and rng.randf() < (floor_positions.size() * density):
+			hazard_count = 1  # Small chance to spawn 1 if density is very low
+		hazard_count = mini(hazard_count, 5)  # Cap at 5 per hazard type
 
 		var placed: int = 0
 		for pos in shuffled_positions:

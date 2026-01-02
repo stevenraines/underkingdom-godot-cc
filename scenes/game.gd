@@ -355,7 +355,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# In dungeons, wall visibility depends on player position
 	# So we need to re-render the entire map when player moves
-	var is_dungeon = MapManager.current_map and MapManager.current_map.map_id.begins_with("dungeon_")
+	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
 
 	if is_dungeon:
 		# Re-render entire map with updated wall visibility
@@ -367,6 +367,12 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Re-render any ground item at old position that was hidden under player
 	_render_ground_item_at(old_pos)
+
+	# Re-render any feature at old position that was hidden under player
+	_render_feature_at(old_pos)
+
+	# Re-render any hazard at old position that was hidden under player
+	_render_hazard_at(old_pos)
 
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
@@ -410,6 +416,27 @@ func _render_ground_item_at(pos: Vector2i) -> void:
 	if ground_items.size() > 0:
 		var item = ground_items[0]
 		renderer.render_entity(pos, item.ascii_char, item.color)
+
+
+## Render a feature at a specific position if one exists
+func _render_feature_at(pos: Vector2i) -> void:
+	if FeatureManager.active_features.has(pos):
+		var feature: Dictionary = FeatureManager.active_features[pos]
+		var definition: Dictionary = feature.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "?")
+		var color: Color = definition.get("color", Color.WHITE)
+		renderer.render_entity(pos, ascii_char, color)
+
+
+## Render a hazard at a specific position if one exists and is visible
+func _render_hazard_at(pos: Vector2i) -> void:
+	if HazardManager.has_visible_hazard(pos):
+		var hazard: Dictionary = HazardManager.active_hazards[pos]
+		var definition: Dictionary = hazard.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "^")
+		var color: Color = definition.get("color", Color.RED)
+		renderer.render_entity(pos, ascii_char, color)
+
 
 ## Auto-pickup items at the player's position
 func _auto_pickup_items() -> void:
@@ -593,7 +620,7 @@ func _on_feature_spawned_enemy(enemy_id: String, spawn_position: Vector2i) -> vo
 	if spawn_pos != Vector2i(-1, -1):
 		var enemy = EntityManager.spawn_enemy(enemy_id, spawn_pos)
 		if enemy:
-			_add_message("A %s emerges!" % enemy.entity_name, Color.ORANGE_RED)
+			_add_message("A %s emerges!" % enemy.name, Color.ORANGE_RED)
 			_render_all_entities()
 	else:
 		push_warning("[Game] Could not find spawn position for feature enemy near %v" % spawn_position)
@@ -609,8 +636,8 @@ func _find_nearby_spawn_position(center: Vector2i) -> Vector2i:
 	for dir in directions:
 		var pos = center + dir
 		if MapManager.current_map and MapManager.current_map.is_walkable(pos):
-			# Make sure no entity is already there
-			if not EntityManager.get_entity_at(pos):
+			# Make sure no blocking entity is already there
+			if not EntityManager.get_blocking_entity_at(pos):
 				return pos
 	return Vector2i(-1, -1)
 
@@ -647,6 +674,8 @@ func _on_death_screen_load_save(slot: int) -> void:
 
 ## Handle return to menu from death screen
 func _on_death_screen_return_to_menu() -> void:
+	# Ensure game is unpaused before transitioning to main menu
+	get_tree().paused = false
 	# Return to main menu
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 

@@ -7,6 +7,7 @@
 	"trigger_type": "step",
 	"damage_type": "fall",
 	"base_damage": 15,
+	"one_time": true,
 	"can_disarm": false,
 	"detection_difficulty": 14
 }

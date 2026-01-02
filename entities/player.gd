@@ -54,14 +54,15 @@ func attack(target: Entity) -> Dictionary:
 func move(direction: Vector2i) -> bool:
 	var new_pos = position + direction
 
-	# Check if new position is walkable
-	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
-		return false
-
 	# Check for blocking features (chests, altars, etc.) - interact instead of moving
+	# Must check this before is_walkable since blocking features make tiles non-walkable
 	if FeatureManager.has_blocking_feature(new_pos):
 		_interact_with_feature_at(new_pos)
 		return true  # Action taken, but didn't move
+
+	# Check if new position is walkable
+	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
+		return false
 
 	# Consume stamina for movement (allow move even if depleted, just add fatigue)
 	if survival:

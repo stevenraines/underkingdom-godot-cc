@@ -21,6 +21,9 @@ var active_features: Dictionary = {}
 ## Feature type definitions loaded from JSON
 var feature_definitions: Dictionary = {}
 
+## Current dungeon's hints (loaded from dungeon definition)
+var current_dungeon_hints: Array = []
+
 
 func _ready() -> void:
 	_load_feature_definitions()
@@ -70,6 +73,12 @@ func _load_feature_file(file_path: String) -> void:
 		data.color = Color.from_string(data.color, Color.WHITE)
 
 	feature_definitions[data.id] = data
+
+
+## Set hints for the current dungeon (called when entering a dungeon)
+func set_dungeon_hints(hints: Array) -> void:
+	current_dungeon_hints = hints
+	print("[FeatureManager] Loaded %d hints for current dungeon" % hints.size())
 
 
 ## Clear all active features (called on map transition)
@@ -253,16 +262,19 @@ func interact_with_feature(pos: Vector2i) -> Dictionary:
 	return result
 
 
-## Generate a random hint
+## Generate a random hint from the current dungeon's hints
 func _generate_hint() -> String:
-	var hints: Array = [
-		"Beware the darkness below...",
-		"The treasure lies beyond the guardian.",
-		"Only the worthy may pass.",
-		"Death awaits the unprepared.",
-		"Seek the light in the deepest dark."
+	# Use hints from the current dungeon definition
+	if current_dungeon_hints.size() > 0:
+		return current_dungeon_hints[randi() % current_dungeon_hints.size()]
+
+	# Fallback hints if no dungeon hints available
+	var fallback_hints: Array = [
+		"Ancient words fade from the stone...",
+		"The inscription is too worn to read.",
+		"Something was written here long ago."
 	]
-	return hints[randi() % hints.size()]
+	return fallback_hints[randi() % fallback_hints.size()]
 
 
 ## Get feature at position (or null)

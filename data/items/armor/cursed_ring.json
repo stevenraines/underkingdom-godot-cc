@@ -1,0 +1,12 @@
+{
+	"id": "cursed_ring",
+	"name": "Cursed Ring",
+	"description": "A tarnished ring that whispers dark promises",
+	"ascii_char": "=",
+	"color": "#4B0082",
+	"weight": 0.1,
+	"value": 150,
+	"stack_size": 1,
+	"item_type": "armor",
+	"slot": "accessory"
+}

@@ -5,8 +5,10 @@
 	"color": "#800080",
 	"hidden": false,
 	"trigger_type": "proximity",
+	"proximity_radius": 1,
 	"damage_type": "magical",
 	"base_damage": 0,
+	"one_time": true,
 	"effect": "stat_drain",
 	"duration": 100,
 	"can_disarm": false

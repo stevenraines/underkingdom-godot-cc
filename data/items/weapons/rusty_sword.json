@@ -1,0 +1,14 @@
+{
+	"id": "rusty_sword",
+	"name": "Rusty Sword",
+	"description": "A corroded sword, still sharp enough to cut",
+	"ascii_char": "/",
+	"color": "#8B4513",
+	"weight": 2.5,
+	"value": 10,
+	"stack_size": 1,
+	"item_type": "weapon",
+	"slot": "main_hand",
+	"damage": 4,
+	"attack_type": "melee"
+}

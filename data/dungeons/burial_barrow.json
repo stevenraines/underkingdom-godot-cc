@@ -97,19 +97,19 @@
   "hazards": [
     {
       "hazard_id": "floor_trap",
-      "density": 0.05,
+      "density": 0.01,
       "damage": 10,
       "detection_difficulty": 15
     },
     {
       "hazard_id": "curse_zone",
-      "density": 0.02,
+      "density": 0.005,
       "effect": "stat_drain",
       "duration": 100
     },
     {
       "hazard_id": "collapsing_ceiling",
-      "density": 0.01,
+      "density": 0.003,
       "trigger": "pressure_plate",
       "damage": 20
     }
@@ -135,5 +135,28 @@
     "enemy_count_base": 3,
     "enemy_count_per_floor": 0.5,
     "loot_quality_multiplier": 1.2
-  }
+  },
+
+  "hints": [
+    "Beware the darkness below...",
+    "The treasure lies beyond the guardian.",
+    "Only the worthy may pass.",
+    "Death awaits the unprepared.",
+    "Seek the light in the deepest dark.",
+    "The barrow lord slumbers in the depths.",
+    "Ancient curses protect these halls.",
+    "Those who disturb the dead shall join them.",
+    "The wights remember what they were.",
+    "Gold means nothing to the restless dead.",
+    "Fire is the bane of the undead.",
+    "The deeper you go, the stronger they become.",
+    "Some doors are better left unopened.",
+    "Listen for the scraping of bone on stone.",
+    "The cold grows stronger as you descend.",
+    "Trust not the shadows that move.",
+    "Ancient kings lie buried here.",
+    "Their treasures are cursed, yet men still seek them.",
+    "The stairs lead ever downward.",
+    "Turn back while you still can."
+  ]
 }

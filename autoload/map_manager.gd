@@ -55,9 +55,34 @@ func _load_features_and_hazards(map: GameMap) -> void:
 	print("[MapManager] Map metadata keys: %s" % str(map.metadata.keys()))
 	print("[MapManager] pending_features: %d" % map.metadata.get("pending_features", []).size())
 	print("[MapManager] pending_hazards: %d" % map.metadata.get("pending_hazards", []).size())
+
+	# Load dungeon hints from dungeon definition
+	var dungeon_id: String = map.metadata.get("dungeon_id", "")
+	if not dungeon_id.is_empty():
+		var hints: Array = _load_dungeon_hints(dungeon_id)
+		FeatureManager.set_dungeon_hints(hints)
+
 	FeatureManager.load_features_from_map(map)
 	HazardManager.load_hazards_from_map(map)
 	print("[MapManager] After loading - active_features: %d, active_hazards: %d" % [FeatureManager.active_features.size(), HazardManager.active_hazards.size()])
+
+
+## Load hints from a dungeon definition file
+func _load_dungeon_hints(dungeon_id: String) -> Array:
+	var file_path = "res://data/dungeons/%s.json" % dungeon_id
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_warning("[MapManager] Failed to load dungeon definition: %s" % file_path)
+		return []
+
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	if error != OK:
+		push_warning("[MapManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
+		return []
+
+	var data: Dictionary = json.data
+	return data.get("hints", [])
 
 ## Generate a map based on its ID
 func _generate_map(map_id: String, world_seed: int) -> GameMap:

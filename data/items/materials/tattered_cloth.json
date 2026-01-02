@@ -1,0 +1,11 @@
+{
+	"id": "tattered_cloth",
+	"name": "Tattered Cloth",
+	"description": "Scraps of old burial wrappings",
+	"ascii_char": "~",
+	"color": "#A9A9A9",
+	"weight": 0.1,
+	"value": 1,
+	"stack_size": 20,
+	"item_type": "material"
+}

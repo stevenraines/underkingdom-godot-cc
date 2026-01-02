@@ -230,6 +230,10 @@ func _trigger_hazard(hazard: Dictionary, entity) -> Dictionary:
 	# Mark as triggered
 	hazard.triggered = true
 
+	# Hidden hazards become permanently visible once triggered
+	if hazard_def.get("hidden", false):
+		hazard.detected = true
+
 	# Emit signal
 	hazard_triggered.emit(hazard.hazard_id, hazard.position, entity, hazard.damage)
 
@@ -377,17 +381,35 @@ func _process_pending_hazards(map: GameMap) -> void:
 
 
 ## Check hazards in radius around position (for proximity triggers)
-func check_proximity_hazards(center: Vector2i, radius: int, entity) -> Array:
+## Each proximity hazard has its own proximity_radius defined in its definition
+func check_proximity_hazards(center: Vector2i, _max_radius: int, entity) -> Array:
 	var triggered: Array = []
 
-	for dx in range(-radius, radius + 1):
-		for dy in range(-radius, radius + 1):
-			var pos := Vector2i(center.x + dx, center.y + dy)
-			if active_hazards.has(pos):
-				var hazard: Dictionary = active_hazards[pos]
-				if hazard.definition.get("trigger_type") == "proximity":
-					var result = _trigger_hazard(hazard, entity)
-					if result.triggered:
-						triggered.append(result)
+	# Check all active hazards to see if player is within their proximity radius
+	for pos in active_hazards:
+		var hazard: Dictionary = active_hazards[pos]
+		var hazard_def: Dictionary = hazard.definition
+
+		# Only check proximity triggers
+		if hazard_def.get("trigger_type") != "proximity":
+			continue
+
+		# Skip already triggered hazards (proximity hazards only trigger once)
+		if hazard.triggered:
+			continue
+
+		# Skip disarmed hazards
+		if hazard.disarmed:
+			continue
+
+		# Get the hazard's proximity radius (default to 1)
+		var proximity_radius: int = hazard_def.get("proximity_radius", 1)
+
+		# Check if player is within this hazard's proximity radius
+		var distance = max(abs(center.x - pos.x), abs(center.y - pos.y))  # Chebyshev distance
+		if distance <= proximity_radius:
+			var result = _trigger_hazard(hazard, entity)
+			if result.triggered:
+				triggered.append(result)
 
 	return triggered

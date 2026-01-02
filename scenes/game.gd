@@ -685,8 +685,8 @@ func _find_nearby_spawn_position(center: Vector2i) -> Vector2i:
 	for dir in directions:
 		var pos = center + dir
 		if MapManager.current_map and MapManager.current_map.is_walkable(pos):
-			# Make sure no blocking entity is already there
-			if not EntityManager.get_blocking_entity_at(pos):
+			# Make sure no blocking entity is already there (player is not in entities array)
+			if not EntityManager.get_blocking_entity_at(pos) and player.position != pos:
 				return pos
 	return Vector2i(-1, -1)
 

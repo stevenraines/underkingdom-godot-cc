@@ -6,8 +6,8 @@ extends Control
 
 signal closed
 
-@onready var scroll_container: ScrollContainer = $Panel/VBoxContainer/ScrollContainer
-@onready var content_container: VBoxContainer = $Panel/VBoxContainer/ScrollContainer/ContentBox
+@onready var scroll_container: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer
+@onready var content_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/ContentBox
 
 # Colors matching inventory screen
 const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)

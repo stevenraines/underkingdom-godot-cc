@@ -7,8 +7,8 @@ extends Control
 
 signal closed
 
-@onready var scroll_container: ScrollContainer = $Panel/VBoxContainer/ScrollContainer
-@onready var content_container: VBoxContainer = $Panel/VBoxContainer/ScrollContainer/ContentBox
+@onready var scroll_container: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer
+@onready var content_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/ScrollMargin/ContentBox
 
 var player = null  # Player instance
 

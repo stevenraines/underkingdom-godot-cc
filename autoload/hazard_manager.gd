@@ -304,6 +304,11 @@ func has_hazard(pos: Vector2i) -> bool:
 func load_hazards_from_map(map: GameMap) -> void:
 	clear_hazards()
 
+	# Process pending hazards from generator (stored during generation)
+	if map.metadata.has("pending_hazards"):
+		_process_pending_hazards(map)
+
+	# Load already-placed hazards (from saves or previous processing)
 	if not map.metadata.has("hazards"):
 		return
 
@@ -322,6 +327,47 @@ func load_hazards_from_map(map: GameMap) -> void:
 		active_hazards[pos] = hazard_data
 
 	print("[HazardManager] Loaded %d hazards from map" % active_hazards.size())
+
+
+## Process pending hazards stored by generator and convert to active hazards
+func _process_pending_hazards(map: GameMap) -> void:
+	var pending: Array = map.metadata.get("pending_hazards", [])
+	if pending.is_empty():
+		return
+
+	# Initialize hazards array if needed
+	if not map.metadata.has("hazards"):
+		map.metadata["hazards"] = []
+
+	for pending_data in pending:
+		var hazard_id: String = pending_data.get("hazard_id", "")
+		var pos: Vector2i = pending_data.get("position", Vector2i.ZERO)
+		var config: Dictionary = pending_data.get("config", {})
+
+		if hazard_id.is_empty() or not hazard_definitions.has(hazard_id):
+			continue
+
+		var hazard_def: Dictionary = hazard_definitions[hazard_id]
+
+		# Create full hazard data
+		var hazard_data: Dictionary = {
+			"hazard_id": hazard_id,
+			"position": pos,
+			"definition": hazard_def,
+			"config": config,
+			"triggered": false,
+			"detected": false,
+			"disarmed": false,
+			"damage": config.get("damage", hazard_def.get("base_damage", 10))
+		}
+
+		# Store in active hazards and map metadata
+		active_hazards[pos] = hazard_data
+		map.metadata.hazards.append(hazard_data)
+
+	# Clear pending after processing
+	map.metadata.pending_hazards.clear()
+	print("[HazardManager] Processed %d pending hazards" % pending.size())
 
 
 ## Check hazards in radius around position (for proximity triggers)

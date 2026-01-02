@@ -49,9 +49,13 @@ func transition_to_map(map_id: String) -> void:
 
 ## Load features and hazards from map metadata into managers
 func _load_features_and_hazards(map: GameMap) -> void:
+	print("[MapManager] Loading features/hazards for: %s" % map.map_id)
+	print("[MapManager] Map metadata keys: %s" % str(map.metadata.keys()))
+	print("[MapManager] pending_features: %d" % map.metadata.get("pending_features", []).size())
+	print("[MapManager] pending_hazards: %d" % map.metadata.get("pending_hazards", []).size())
 	FeatureManager.load_features_from_map(map)
 	HazardManager.load_hazards_from_map(map)
-	print("[MapManager] Loaded features and hazards for map: %s" % map.map_id)
+	print("[MapManager] After loading - active_features: %d, active_hazards: %d" % [FeatureManager.active_features.size(), HazardManager.active_hazards.size()])
 
 ## Generate a map based on its ID
 func _generate_map(map_id: String, world_seed: int) -> GameMap:

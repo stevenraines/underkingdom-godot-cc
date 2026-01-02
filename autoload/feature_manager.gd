@@ -272,6 +272,11 @@ func has_interactable_feature(pos: Vector2i) -> bool:
 func load_features_from_map(map: GameMap) -> void:
 	clear_features()
 
+	# Process pending features from generator (stored during generation)
+	if map.metadata.has("pending_features"):
+		_process_pending_features(map)
+
+	# Load already-placed features (from saves or previous processing)
 	if not map.metadata.has("features"):
 		return
 
@@ -290,3 +295,54 @@ func load_features_from_map(map: GameMap) -> void:
 		active_features[pos] = feature_data
 
 	print("[FeatureManager] Loaded %d features from map" % active_features.size())
+
+
+## Process pending features stored by generator and convert to active features
+func _process_pending_features(map: GameMap) -> void:
+	var pending: Array = map.metadata.get("pending_features", [])
+	if pending.is_empty():
+		return
+
+	# Initialize features array if needed
+	if not map.metadata.has("features"):
+		map.metadata["features"] = []
+
+	# Create RNG for loot generation
+	var map_seed: int = map.seed if map.seed else 12345
+	var rng = SeededRandom.new(map_seed)
+
+	for pending_data in pending:
+		var feature_id: String = pending_data.get("feature_id", "")
+		var pos: Vector2i = pending_data.get("position", Vector2i.ZERO)
+		var config: Dictionary = pending_data.get("config", {})
+
+		if feature_id.is_empty() or not feature_definitions.has(feature_id):
+			continue
+
+		var feature_def: Dictionary = feature_definitions[feature_id]
+
+		# Create full feature data
+		var feature_data: Dictionary = {
+			"feature_id": feature_id,
+			"position": pos,
+			"definition": feature_def,
+			"config": config,
+			"interacted": false,
+			"state": {}
+		}
+
+		# Generate loot if applicable
+		if feature_def.get("can_contain_loot", false) and config.get("contains_loot", false):
+			feature_data.state["loot"] = _generate_feature_loot(config, rng)
+
+		# Set enemy to summon if applicable
+		if feature_def.get("can_summon_enemy", false) and config.has("summons_enemy"):
+			feature_data.state["summons_enemy"] = config.get("summons_enemy")
+
+		# Store in active features and map metadata
+		active_features[pos] = feature_data
+		map.metadata.features.append(feature_data)
+
+	# Clear pending after processing
+	map.metadata.pending_features.clear()
+	print("[FeatureManager] Processed %d pending features" % pending.size())

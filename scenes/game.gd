@@ -973,6 +973,9 @@ func _render_all_entities() -> void:
 	# Render dungeon features
 	_render_features()
 
+	# Render dungeon hazards (visible ones only)
+	_render_hazards()
+
 
 ## Render dungeon features (chests, altars, etc.)
 func _render_features() -> void:
@@ -982,6 +985,18 @@ func _render_features() -> void:
 		var ascii_char: String = definition.get("ascii_char", "?")
 		var color: Color = definition.get("color", Color.WHITE)
 		renderer.render_entity(pos, ascii_char, color)
+
+
+## Render dungeon hazards (only visible/detected ones)
+func _render_hazards() -> void:
+	for pos in HazardManager.active_hazards:
+		# Only render if hazard is visible (detected or not hidden)
+		if HazardManager.has_visible_hazard(pos):
+			var hazard: Dictionary = HazardManager.active_hazards[pos]
+			var definition: Dictionary = hazard.get("definition", {})
+			var ascii_char: String = definition.get("ascii_char", "^")
+			var color: Color = definition.get("color", Color.RED)
+			renderer.render_entity(pos, ascii_char, color)
 
 
 ## Find a valid spawn position for the player (walkable, not occupied)

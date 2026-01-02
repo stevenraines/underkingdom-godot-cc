@@ -7,12 +7,16 @@ extends Control
 
 signal closed
 
-const CELL_SIZE: int = 2  # Each pixel represents 2x2 tiles (more detail)
+# Fixed image size for performance - texture will be scaled to fit container
+const MAP_IMAGE_SIZE: int = 200  # 200x200 pixels for the generated image
 
 var map_image: Image
 var map_texture: ImageTexture
 var is_open: bool = false
-var map_display_size: int = 400  # Will be calculated dynamically
+
+# Island dimensions (will be read from config)
+var island_width_tiles: int = 1600
+var island_height_tiles: int = 1600
 
 @onready var map_rect: TextureRect = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer/MapRect
 @onready var map_container: CenterContainer = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer
@@ -20,6 +24,11 @@ var map_display_size: int = 400  # Will be calculated dynamically
 
 func _ready() -> void:
 	visible = false
+	# Get island dimensions from config
+	var island_settings = BiomeManager.get_island_settings()
+	var chunk_size = 32
+	island_width_tiles = island_settings.get("width_chunks", 50) * chunk_size
+	island_height_tiles = island_settings.get("height_chunks", 50) * chunk_size
 
 
 func open() -> void:
@@ -27,18 +36,8 @@ func open() -> void:
 	is_open = true
 	# Wait a frame for layout to calculate container sizes
 	await get_tree().process_frame
-	_calculate_map_size()
 	_generate_map_image()
 	_populate_legend()
-
-
-func _calculate_map_size() -> void:
-	# Get available space from container
-	var container_size = map_container.size
-	# Use minimum of width/height for square map, leave some padding
-	map_display_size = int(min(container_size.x, container_size.y)) - 20
-	# Clamp to reasonable bounds
-	map_display_size = clampi(map_display_size, 200, 800)
 
 
 func close() -> void:
@@ -61,29 +60,24 @@ func _generate_map_image() -> void:
 	if not MapManager.current_map:
 		return
 
-	# Create a new image for the map
-	map_image = Image.create(map_display_size, map_display_size, false, Image.FORMAT_RGBA8)
-	map_image.fill(Color(0.1, 0.1, 0.15, 1.0))  # Dark background
+	# Create a fixed-size image (will be scaled by TextureRect)
+	map_image = Image.create(MAP_IMAGE_SIZE, MAP_IMAGE_SIZE, false, Image.FORMAT_RGBA8)
+	map_image.fill(Color(0.1, 0.2, 0.4, 1.0))  # Ocean blue background
+
+	# Calculate how many world tiles each pixel represents
+	var tiles_per_pixel: float = float(island_width_tiles) / float(MAP_IMAGE_SIZE)
 
 	# Get special feature positions
 	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
 	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i(-1, -1)
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", [])
 
-	# Calculate the center of our view (centered on player or town)
-	var center_pos = player_pos if player_pos != Vector2i(-1, -1) else town_pos
-	if center_pos == Vector2i(-1, -1):
-		center_pos = Vector2i(map_display_size * CELL_SIZE / 2, map_display_size * CELL_SIZE / 2)
-
-	# Calculate world bounds we're displaying
-	var half_world_size = (map_display_size * CELL_SIZE) / 2
-	var world_min = center_pos - Vector2i(half_world_size, half_world_size)
-
-	# Draw biome colors
-	for py in range(map_display_size):
-		for px in range(map_display_size):
-			var world_x = world_min.x + px * CELL_SIZE
-			var world_y = world_min.y + py * CELL_SIZE
+	# Draw biome colors for entire island
+	for py in range(MAP_IMAGE_SIZE):
+		for px in range(MAP_IMAGE_SIZE):
+			# Convert pixel to world coordinates
+			var world_x = int(px * tiles_per_pixel)
+			var world_y = int(py * tiles_per_pixel)
 
 			# Get biome at this position
 			var biome = BiomeGenerator.get_biome_at(world_x, world_y, GameManager.world_seed)
@@ -92,31 +86,29 @@ func _generate_map_image() -> void:
 
 	# Draw town (as a larger marker)
 	if town_pos != Vector2i(-1, -1):
-		var town_px = _world_to_map_pixel(town_pos, world_min)
-		_draw_marker(town_px, Color(1.0, 0.9, 0.5), 3)  # Yellow marker for town
+		var town_px = _world_to_map_pixel(town_pos, tiles_per_pixel)
+		_draw_marker(town_px, Color(1.0, 0.9, 0.5), 4)  # Yellow marker for town
 
 	# Draw dungeon entrances
 	for entrance in dungeon_entrances:
 		var entrance_pos = entrance.position
-		var entrance_px = _world_to_map_pixel(entrance_pos, world_min)
+		var entrance_px = _world_to_map_pixel(entrance_pos, tiles_per_pixel)
 		var color = Color.html(entrance.entrance_color)
-		_draw_marker(entrance_px, color, 2)
+		_draw_marker(entrance_px, color, 3)
 
 	# Draw player (on top)
 	if player_pos != Vector2i(-1, -1):
-		var player_px = _world_to_map_pixel(player_pos, world_min)
+		var player_px = _world_to_map_pixel(player_pos, tiles_per_pixel)
+		_draw_marker(player_px, Color.WHITE, 3)
 		_draw_marker(player_px, Color.YELLOW, 2)
-		# Add a white border around player
-		_draw_marker_outline(player_px, Color.WHITE, 2)
 
 	# Create texture from image
 	map_texture = ImageTexture.create_from_image(map_image)
 	map_rect.texture = map_texture
 
 
-func _world_to_map_pixel(world_pos: Vector2i, world_min: Vector2i) -> Vector2i:
-	var relative = world_pos - world_min
-	return Vector2i(relative.x / CELL_SIZE, relative.y / CELL_SIZE)
+func _world_to_map_pixel(world_pos: Vector2i, tiles_per_pixel: float) -> Vector2i:
+	return Vector2i(int(world_pos.x / tiles_per_pixel), int(world_pos.y / tiles_per_pixel))
 
 
 func _draw_marker(center: Vector2i, color: Color, radius: int) -> void:
@@ -124,20 +116,8 @@ func _draw_marker(center: Vector2i, color: Color, radius: int) -> void:
 		for dx in range(-radius, radius + 1):
 			var px = center.x + dx
 			var py = center.y + dy
-			if px >= 0 and px < map_display_size and py >= 0 and py < map_display_size:
+			if px >= 0 and px < MAP_IMAGE_SIZE and py >= 0 and py < MAP_IMAGE_SIZE:
 				if dx * dx + dy * dy <= radius * radius:
-					map_image.set_pixel(px, py, color)
-
-
-func _draw_marker_outline(center: Vector2i, color: Color, radius: int) -> void:
-	var outer_radius = radius + 1
-	for dy in range(-outer_radius, outer_radius + 1):
-		for dx in range(-outer_radius, outer_radius + 1):
-			var dist_sq = dx * dx + dy * dy
-			if dist_sq > radius * radius and dist_sq <= outer_radius * outer_radius:
-				var px = center.x + dx
-				var py = center.y + dy
-				if px >= 0 and px < map_display_size and py >= 0 and py < map_display_size:
 					map_image.set_pixel(px, py, color)
 
 

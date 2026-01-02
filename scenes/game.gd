@@ -970,6 +970,20 @@ func _render_all_entities() -> void:
 	for structure in structures:
 		renderer.render_entity(structure.position, structure.ascii_char, structure.color)
 
+	# Render dungeon features
+	_render_features()
+
+
+## Render dungeon features (chests, altars, etc.)
+func _render_features() -> void:
+	for pos in FeatureManager.active_features:
+		var feature: Dictionary = FeatureManager.active_features[pos]
+		var definition: Dictionary = feature.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "?")
+		var color: Color = definition.get("color", Color.WHITE)
+		renderer.render_entity(pos, ascii_char, color)
+
+
 ## Find a valid spawn position for the player (walkable, not occupied)
 func _find_valid_spawn_position() -> Vector2i:
 	if not MapManager.current_map:

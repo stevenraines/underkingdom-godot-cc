@@ -61,6 +61,10 @@ func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRando
 		if tile != null and tile.walkable and tile.tile_type not in ["stairs_up", "stairs_down"]:
 			floor_positions.append(pos)
 
+	# Shuffle positions for random placement
+	var shuffled_positions = floor_positions.duplicate()
+	shuffled_positions.shuffle()
+
 	for feature_config in room_features:
 		var feature_id: String = feature_config.get("feature_id", "")
 		var spawn_chance: float = feature_config.get("spawn_chance", 0.1)
@@ -68,14 +72,21 @@ func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRando
 		if feature_id.is_empty():
 			continue
 
-		# Randomly select positions based on spawn chance
-		for pos in floor_positions:
-			if rng.randf() < spawn_chance * 0.05:  # Very low chance per tile
+		# Calculate how many of this feature to place based on spawn chance
+		var feature_count: int = int(spawn_chance * 5)  # e.g., 0.3 spawn_chance = ~1-2 features
+		feature_count = maxi(1, feature_count)  # At least 1 if configured
+		var placed: int = 0
+
+		for pos in shuffled_positions:
+			if placed >= feature_count:
+				break
+			if rng.randf() < spawn_chance:
 				map.metadata.pending_features.append({
 					"feature_id": feature_id,
 					"position": pos,
 					"config": feature_config
 				})
+				placed += 1
 
 
 ## Fallback: Store hazard placement data in map metadata

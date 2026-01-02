@@ -119,6 +119,15 @@ static func generate_floor(world_seed: int, floor_number: int) -> GameMap:
 **Hazards**: Divine curses, holy/unholy auras, sanctified ground (affects undead)
 **Loot**: Religious artifacts, blessed items, tithes, scripture
 
+#### 8. Sewers
+**Theme**: Underground waste systems beneath cities/towns
+**Layout**: Winding tunnels with central channels, grates, maintenance platforms
+**Depth**: 5-10 floors
+**Special Features**: Sluice gates, drainage pipes, maintenance alcoves, rat nests
+**Enemies**: Rats (swarms), oozes, crocodiles, criminals, plague victims
+**Hazards**: Toxic water, disease zones, flooding, gas pockets (explosive)
+**Loot**: Lost valuables, smuggled goods, alchemical waste, town refuse
+
 ---
 
 ## Design Patterns for Each Type
@@ -134,6 +143,7 @@ static func generate_floor(world_seed: int, floor_number: int) -> GameMap:
 | **Wizard Towers** | Circular/Square Floors | floor_radius, room_segments, spiral_stairs |
 | **Ancient Forts** | Concentric Rings | wall_count, courtyard_size, keep_size |
 | **Temple Ruins** | Symmetric Mirroring | symmetry_axis, chamber_count, hallway_width |
+| **Sewers** | Winding Tunnels + Channels | tunnel_width, channel_width, platform_frequency, branching_factor |
 
 ### Common Components Across All Types
 
@@ -675,6 +685,8 @@ static func create(generator_type: String) -> BaseDungeonGenerator:
             return ConcentricRingsGenerator.new()
         "symmetric_layout":
             return SymmetricLayoutGenerator.new()
+        "winding_tunnels":
+            return WindingTunnelsGenerator.new()
         _:
             push_warning("Unknown generator type: %s, using rectangular_rooms" % generator_type)
             return RectangularRoomsGenerator.new()
@@ -687,7 +699,8 @@ static func get_all_generator_types() -> Array[String]:
         "bsp_rooms",
         "circular_floors",
         "concentric_rings",
-        "symmetric_layout"
+        "symmetric_layout",
+        "winding_tunnels"
     ]
 ```
 
@@ -1890,6 +1903,183 @@ func _pick_sacred_feature(rng: SeededRandom) -> String:
 
 ---
 
+### Task 2.7: Winding Tunnels Generator (Sewers)
+
+**Assignee**: [Procedural Generation Specialist]
+**Priority**: Medium
+**Estimated Time**: 1.5 hours
+**Dependencies**: Phase 1 complete
+
+**Objective**: Implement winding sewer tunnels with central channels and platforms.
+
+**Algorithm Overview**:
+Creates realistic sewer systems beneath towns:
+1. Generate main trunk line (central channel)
+2. Branch off into secondary tunnels
+3. Add maintenance platforms along channels
+4. Create alcoves and side chambers
+5. Place grates connecting to surface
+6. Add sluice gates and drainage systems
+
+**Implementation**:
+
+```gdscript
+// generation/dungeon_generators/winding_tunnels_generator.gd
+class_name WindingTunnelsGenerator
+extends BaseDungeonGenerator
+
+## Generates winding sewer tunnels with water channels
+## Used by: Sewers
+
+func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int) -> GameMap:
+    var dungeon_id = dungeon_def.get("id", "unknown")
+    var map_size = dungeon_def.get("map_size", {"width": 50, "height": 50})
+    var map_id = "dungeon_%s_floor_%d" % [dungeon_id, floor_number]
+    var map = GameMap.new(map_id, map_size.width, map_size.height)
+
+    var floor_seed = _create_floor_seed(world_seed, dungeon_id, floor_number)
+    var rng = SeededRandom.new(floor_seed)
+
+    # Get parameters
+    var tunnel_width = _get_param(dungeon_def, "tunnel_width", 3)
+    var channel_width = _get_param(dungeon_def, "channel_width", 1)
+    var platform_freq = _get_param(dungeon_def, "platform_frequency", 0.3)
+    var branching = _get_param(dungeon_def, "branching_factor", 0.4)
+
+    # Generate sewers
+    _fill_with_walls(map, dungeon_def)
+    var main_path = _generate_main_trunk(map, dungeon_def, tunnel_width, rng)
+    _add_branching_tunnels(map, dungeon_def, main_path, branching, tunnel_width, rng)
+    _carve_water_channels(map, dungeon_def, channel_width)
+    _add_maintenance_platforms(map, dungeon_def, rng, platform_freq)
+    _add_sewer_features(map, dungeon_def, rng)
+    _add_stairs(map, rng)
+
+    # Populate
+    _spawn_enemies(map, dungeon_def, floor_number, rng)
+    _spawn_loot(map, dungeon_def, floor_number, rng)
+
+    return map
+
+func _generate_main_trunk(map: GameMap, dungeon_def: Dictionary, width: int, rng: SeededRandom) -> Array:
+    var floor_tile = dungeon_def.get("tiles", {}).get("floor", "stone_floor")
+    var path = []
+
+    # Create winding path from top to bottom
+    var x = map.width / 2
+    var y = 2
+
+    while y < map.height - 2:
+        # Carve tunnel segment
+        for dx in range(-width/2, width/2 + 1):
+            for dy in range(width):
+                var tx = x + dx
+                var ty = y + dy
+                if tx > 0 and tx < map.width - 1 and ty > 0 and ty < map.height - 1:
+                    map.set_tile(tx, ty, TileManager.get_tile(floor_tile))
+                    path.append(Vector2i(tx, ty))
+
+        # Random horizontal drift
+        if rng.randf() < 0.3:
+            x += rng.randi_range(-2, 2)
+            x = clampi(x, width + 1, map.width - width - 1)
+
+        y += width
+
+    return path
+
+func _add_branching_tunnels(map: GameMap, dungeon_def: Dictionary, main_path: Array, branching: float, width: int, rng: SeededRandom) -> void:
+    var floor_tile = dungeon_def.get("tiles", {}).get("floor", "stone_floor")
+
+    # Create side tunnels branching from main path
+    for i in range(0, main_path.size(), 10):
+        if rng.randf() < branching:
+            var start_pos = main_path[i]
+            var direction = Vector2i(rng.randi_range(-1, 1), 0) if rng.randf() < 0.5 else Vector2i(0, rng.randi_range(-1, 1))
+
+            if direction == Vector2i.ZERO:
+                continue
+
+            # Carve branch tunnel
+            var length = rng.randi_range(5, 15)
+            var current = start_pos
+
+            for step in range(length):
+                for dx in range(-width/2, width/2 + 1):
+                    for dy in range(-width/2, width/2 + 1):
+                        var x = current.x + dx
+                        var y = current.y + dy
+                        if x > 0 and x < map.width - 1 and y > 0 and y < map.height - 1:
+                            map.set_tile(x, y, TileManager.get_tile(floor_tile))
+
+                current += direction * 2
+
+                # Occasionally change direction
+                if rng.randf() < 0.2:
+                    direction = Vector2i(rng.randi_range(-1, 1), rng.randi_range(-1, 1))
+
+func _carve_water_channels(map: GameMap, dungeon_def: Dictionary, width: int) -> void:
+    var water_tile = "sewer_water"  # Toxic water tile
+
+    # Add water channel down center of main tunnels
+    for x in range(map.width):
+        for y in range(map.height):
+            if map.tiles[x][y].walkable:
+                # Check if center of tunnel (has walls on both sides)
+                var has_left_wall = x > 0 and not map.tiles[x-1][y].walkable
+                var has_right_wall = x < map.width - 1 and not map.tiles[x+1][y].walkable
+
+                if has_left_wall or has_right_wall:
+                    map.set_tile(x, y, TileManager.get_tile(water_tile))
+
+func _add_maintenance_platforms(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom, frequency: float) -> void:
+    # Add platforms beside water channels
+    var platform_tile = "wooden_platform"
+
+    for x in range(1, map.width - 1):
+        for y in range(1, map.height - 1):
+            var tile = map.tiles[x][y]
+            if tile.tile_type == "sewer_water" and rng.randf() < frequency:
+                # Place platform adjacent to water
+                var adjacent = [Vector2i(x-1, y), Vector2i(x+1, y), Vector2i(x, y-1), Vector2i(x, y+1)]
+                for adj in adjacent:
+                    if adj.x > 0 and adj.x < map.width and adj.y > 0 and adj.y < map.height:
+                        if not map.tiles[adj.x][adj.y].walkable:
+                            map.set_tile(adj.x, adj.y, TileManager.get_tile(platform_tile))
+
+func _add_sewer_features(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom) -> void:
+    # Add sluice gates, drainage grates, etc.
+    var feature_count = rng.randi_range(3, 6)
+
+    for i in range(feature_count):
+        var feature_type = ["sluice_gate", "drainage_grate", "maintenance_ladder"][rng.randi_range(0, 2)]
+        var x = rng.randi_range(2, map.width - 3)
+        var y = rng.randi_range(2, map.height - 3)
+
+        if map.tiles[x][y].walkable:
+            map.set_tile(x, y, TileManager.get_tile(feature_type))
+
+# ... additional helper methods ...
+```
+
+**Files Created**:
+- NEW: `generation/dungeon_generators/winding_tunnels_generator.gd`
+
+**Testing Checklist**:
+- [ ] Main trunk runs through map
+- [ ] Branching tunnels create maze-like structure
+- [ ] Water channels flow through center
+- [ ] Platforms accessible beside water
+- [ ] Sewer aesthetic achieved
+
+**Benefits**:
+- ✅ Realistic sewer layout
+- ✅ Connects to town (grates to surface)
+- ✅ Hazardous water zones
+- ✅ Urban dungeon alternative
+
+---
+
 ## Phase 3: Type-Specific Features & Hazards
 
 ### Task 3.1: Feature Generator System
@@ -2438,8 +2628,96 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 }
 ```
 
+**Sewers - Content**:
+
+```json
+{
+  "id": "sewers",
+  "room_features": [
+    {
+      "feature_id": "sluice_gate",
+      "spawn_chance": 0.2,
+      "room_types": ["junction"],
+      "controllable": true,
+      "redirects_water_flow": true
+    },
+    {
+      "feature_id": "rat_nest",
+      "spawn_chance": 0.25,
+      "room_types": ["alcove"],
+      "spawns_enemies": true,
+      "destroyable": true
+    },
+    {
+      "feature_id": "drainage_grate",
+      "spawn_chance": 0.15,
+      "room_types": ["main_tunnel"],
+      "connects_to_surface": true,
+      "provides_escape": true
+    },
+    {
+      "feature_id": "smuggler_cache",
+      "spawn_chance": 0.1,
+      "room_types": ["side_chamber"],
+      "contains_loot": true,
+      "hidden": true
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "toxic_water",
+      "density": 0.3,
+      "damage_per_turn": 1,
+      "causes_disease": true,
+      "slows_movement": 0.5
+    },
+    {
+      "hazard_id": "disease_zone",
+      "density": 0.08,
+      "effect": "plague",
+      "duration": 500,
+      "contagious": true
+    },
+    {
+      "hazard_id": "explosive_gas",
+      "density": 0.04,
+      "trigger": "fire",
+      "damage": 25,
+      "area_of_effect": 3
+    },
+    {
+      "hazard_id": "sudden_flood",
+      "density": 0.02,
+      "trigger": "sluice_gate",
+      "sweeps_entities": true,
+      "damage": 15
+    }
+  ],
+  "special_rooms": [
+    {
+      "room_type": "junction_chamber",
+      "chance": 0.2,
+      "contains": "multiple_sluice_gates",
+      "puzzle_element": true
+    },
+    {
+      "room_type": "abandoned_hideout",
+      "chance": 0.15,
+      "contains": "criminal_npcs",
+      "trade_available": true
+    }
+  ],
+  "environmental_effects": {
+    "foul_odor": true,
+    "poor_visibility": 0.6,
+    "dampness": 0.9,
+    "echo_chamber": true
+  }
+}
+```
+
 **Files Modified**:
-- MODIFIED: All 7 dungeon JSON files with features, hazards, special rooms
+- MODIFIED: All 8 dungeon JSON files with features, hazards, special rooms
 
 **Testing Checklist**:
 - [ ] Each dungeon type has unique features
@@ -2455,4 +2733,642 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 - ✅ Gameplay depth via hazards/features
 
 ---
+
+## Phase 4: Dungeon Registry & Discovery
+
+### Task 4.1: Overworld Dungeon Placement
+
+**Assignee**: [Systems Programmer]
+**Priority**: High
+**Estimated Time**: 2 hours
+**Dependencies**: Phase 2 (dungeon generators exist)
+
+**Objective**: Integrate dungeons into overworld generation with entrance placement.
+
+**Dungeon Entrance System**:
+
+```gdscript
+// generation/world_generator.gd (MODIFIED)
+
+static func generate_overworld(world_seed: int) -> GameMap:
+    # ... existing overworld generation ...
+
+    # NEW: Place dungeon entrances
+    _place_dungeon_entrances(map, rng)
+
+    return map
+
+static func _place_dungeon_entrances(map: GameMap, rng: SeededRandom) -> void:
+    var dungeon_types = DungeonManager.get_all_dungeon_types()
+    var entrance_count = rng.randi_range(5, 10)  # 5-10 dungeons per overworld
+
+    for i in range(entrance_count):
+        var dungeon_type = DungeonManager.get_random_dungeon_type(rng)
+        var pos = _find_suitable_dungeon_location(map, dungeon_type, rng)
+
+        if pos:
+            _place_dungeon_entrance(map, pos, dungeon_type)
+
+static func _find_suitable_dungeon_location(map: GameMap, dungeon_type: String, rng: SeededRandom) -> Variant:
+    # Different dungeon types prefer different terrain
+    var preferred_biomes = _get_preferred_biomes(dungeon_type)
+    var attempts = 100
+
+    for i in range(attempts):
+        var x = rng.randi_range(10, map.width - 10)
+        var y = rng.randi_range(10, map.height - 10)
+        var biome = map.tiles[x][y].metadata.get("biome", "temperate")
+
+        if biome in preferred_biomes and map.tiles[x][y].walkable:
+            return Vector2i(x, y)
+
+    return null
+
+static func _get_preferred_biomes(dungeon_type: String) -> Array[String]:
+    match dungeon_type:
+        "burial_barrow":
+            return ["temperate", "plains"]  # Open fields
+        "natural_cave":
+            return ["mountain", "hills"]  # Rocky terrain
+        "abandoned_mine":
+            return ["mountain", "hills"]  # Mineral-rich areas
+        "military_compound":
+            return ["plains", "temperate"]  # Strategic locations
+        "wizard_tower":
+            return ["any"]  # Can be anywhere
+        "ancient_fort":
+            return ["hills", "plains"]  # Defensive positions
+        "temple_ruins":
+            return ["temperate", "desert"]  # Sacred sites
+        "sewers":
+            return ["town"]  # Beneath settlements
+        _:
+            return ["any"]
+
+static func _place_dungeon_entrance(map: GameMap, pos: Vector2i, dungeon_type: String) -> void:
+    # Place entrance tile
+    var entrance_tile = "dungeon_entrance_%s" % dungeon_type
+    map.set_tile(pos.x, pos.y, TileManager.get_tile(entrance_tile))
+
+    # Store dungeon metadata
+    map.tiles[pos.x][pos.y].metadata["dungeon_type"] = dungeon_type
+    map.tiles[pos.x][pos.y].metadata["dungeon_id"] = "dungeon_%s_%d" % [dungeon_type, pos.hash()]
+```
+
+**Player Interaction**:
+
+```gdscript
+// systems/input_handler.gd (MODIFIED)
+
+func _handle_enter_dungeon(player_pos: Vector2i) -> void:
+    var tile = MapManager.current_map.tiles[player_pos.x][player_pos.y]
+
+    if tile.tile_type.begins_with("dungeon_entrance"):
+        var dungeon_type = tile.metadata.get("dungeon_type", "burial_barrow")
+        var dungeon_id = tile.metadata.get("dungeon_id")
+
+        # Transition to dungeon floor 1
+        var dungeon_map_id = "%s_floor_1" % dungeon_id
+        MapManager.transition_to_map(dungeon_map_id)
+        EventBus.dungeon_entered.emit(dungeon_type, 1)
+```
+
+**Files Modified**:
+- MODIFIED: `generation/world_generator.gd`
+- MODIFIED: `systems/input_handler.gd`
+- NEW: Dungeon entrance tile definitions in TileManager
+
+**Testing Checklist**:
+- [ ] Dungeons spawn in appropriate biomes
+- [ ] Entrance tiles are visually distinct
+- [ ] Player can enter dungeons
+- [ ] Correct dungeon type loads
+- [ ] 5-10 dungeons per overworld
+
+**Benefits**:
+- ✅ Dungeons integrated into overworld
+- ✅ Logical placement based on terrain
+- ✅ Discoverable by exploration
+- ✅ Multiple dungeon types per world
+
+---
+
+### Task 4.2: Dungeon Discovery & Progression Tracking
+
+**Assignee**: [Systems Programmer]
+**Priority**: Medium
+**Estimated Time**: 1.5 hours
+**Dependencies**: Task 4.1 (dungeon entrances exist)
+
+**Objective**: Track discovered dungeons and player progression through floors.
+
+**Discovery System**:
+
+```gdscript
+// autoload/game_manager.gd (MODIFIED)
+
+var discovered_dungeons: Dictionary = {}  # dungeon_id -> {type, deepest_floor, cleared}
+
+func discover_dungeon(dungeon_id: String, dungeon_type: String) -> void:
+    if not discovered_dungeons.has(dungeon_id):
+        discovered_dungeons[dungeon_id] = {
+            "type": dungeon_type,
+            "deepest_floor": 0,
+            "cleared": false,
+            "discovered_at_turn": TurnManager.current_turn
+        }
+        EventBus.dungeon_discovered.emit(dungeon_id, dungeon_type)
+
+func record_floor_reached(dungeon_id: String, floor_number: int) -> void:
+    if discovered_dungeons.has(dungeon_id):
+        var dungeon = discovered_dungeons[dungeon_id]
+        if floor_number > dungeon.deepest_floor:
+            dungeon.deepest_floor = floor_number
+            EventBus.new_floor_reached.emit(dungeon_id, floor_number)
+
+func mark_dungeon_cleared(dungeon_id: String) -> void:
+    if discovered_dungeons.has(dungeon_id):
+        discovered_dungeons[dungeon_id].cleared = true
+        EventBus.dungeon_cleared.emit(dungeon_id)
+
+func get_discovered_dungeon_count() -> int:
+    return discovered_dungeons.size()
+
+func get_cleared_dungeon_count() -> int:
+    var count = 0
+    for dungeon_id in discovered_dungeons:
+        if discovered_dungeons[dungeon_id].cleared:
+            count += 1
+    return count
+```
+
+**UI Integration**:
+
+```gdscript
+// ui/dungeon_journal.gd (NEW)
+extends Control
+
+## Displays discovered dungeons and progression
+
+var journal_entries: VBoxContainer
+
+func _ready() -> void:
+    EventBus.dungeon_discovered.connect(_on_dungeon_discovered)
+    EventBus.new_floor_reached.connect(_on_floor_reached)
+    _refresh_journal()
+
+func _refresh_journal() -> void:
+    _clear_entries()
+
+    for dungeon_id in GameManager.discovered_dungeons:
+        var dungeon = GameManager.discovered_dungeons[dungeon_id]
+        var entry = _create_journal_entry(dungeon_id, dungeon)
+        journal_entries.add_child(entry)
+
+func _create_journal_entry(dungeon_id: String, dungeon: Dictionary) -> Control:
+    var entry = HBoxContainer.new()
+
+    var type_label = Label.new()
+    type_label.text = dungeon.type.capitalize()
+
+    var progress_label = Label.new()
+    progress_label.text = "Floor %d/%d" % [dungeon.deepest_floor, _get_max_floors(dungeon.type)]
+
+    var status_label = Label.new()
+    status_label.text = "CLEARED" if dungeon.cleared else "In Progress"
+
+    entry.add_child(type_label)
+    entry.add_child(progress_label)
+    entry.add_child(status_label)
+
+    return entry
+
+func _get_max_floors(dungeon_type: String) -> int:
+    var dungeon_def = DungeonManager.get_dungeon(dungeon_type)
+    var floor_count = dungeon_def.get("floor_count", {"min": 10, "max": 20})
+    return floor_count.max
+```
+
+**Files Created/Modified**:
+- MODIFIED: `autoload/game_manager.gd`
+- NEW: `ui/dungeon_journal.gd`
+- NEW: EventBus signals (`dungeon_discovered`, `new_floor_reached`, `dungeon_cleared`)
+
+**Testing Checklist**:
+- [ ] Dungeons marked as discovered on first visit
+- [ ] Deepest floor tracked correctly
+- [ ] Cleared status updates when boss defeated
+- [ ] Journal UI displays all discovered dungeons
+- [ ] Progression persists across sessions
+
+**Benefits**:
+- ✅ Player progression tracking
+- ✅ Sense of accomplishment
+- ✅ Journal provides overview
+- ✅ Integrates with save system
+
+---
+
+## Summary & Metrics
+
+### Implementation Summary
+
+**Total Phases**: 4
+**Total Tasks**: 13
+**Estimated Total Time**: 22-27 hours
+
+### Phase Breakdown
+
+| Phase | Tasks | Est. Time | Complexity | Priority |
+|-------|-------|-----------|------------|----------|
+| Phase 1: Data-Driven Architecture | 4 | 4-5 hours | Medium | Critical |
+| Phase 2: Multi-Type Generation Algorithms | 7 | 10.5-12 hours | High | Critical |
+| Phase 3: Type-Specific Features & Hazards | 2 | 4 hours | Medium | High |
+| Phase 4: Dungeon Registry & Discovery | 2 | 3.5-4 hours | Low | Medium |
+
+### Files Impacted
+
+**New Files (18)**:
+- `data/dungeons/*.json` (8 dungeon definitions)
+- `autoload/dungeon_manager.gd`
+- `generation/dungeon_generator_factory.gd`
+- `generation/dungeon_generators/base_dungeon_generator.gd`
+- `generation/dungeon_generators/rectangular_rooms_generator.gd`
+- `generation/dungeon_generators/cellular_automata_generator.gd`
+- `generation/dungeon_generators/grid_tunnels_generator.gd`
+- `generation/dungeon_generators/bsp_rooms_generator.gd`
+- `generation/dungeon_generators/circular_floors_generator.gd`
+- `generation/dungeon_generators/concentric_rings_generator.gd`
+- `generation/dungeon_generators/symmetric_layout_generator.gd`
+- `generation/dungeon_generators/winding_tunnels_generator.gd`
+- `systems/feature_generator.gd`
+- `ui/dungeon_journal.gd`
+
+**Modified Files (4)**:
+- `autoload/map_manager.gd`
+- `autoload/game_manager.gd`
+- `generation/world_generator.gd`
+- `systems/input_handler.gd`
+- `project.godot` (autoload registration)
+
+**Deleted Files (1)**:
+- `generation/dungeon_generators/burial_barrow.gd` (replaced by rectangular_rooms_generator.gd)
+
+### Content Additions
+
+**Dungeon Types**: 8
+1. Burial Barrows
+2. Natural Caves
+3. Abandoned Mines
+4. Military Compounds
+5. Wizard Towers
+6. Ancient Forts
+7. Temple Ruins
+8. Sewers
+
+**Generation Algorithms**: 7
+- Rectangular Rooms + Corridors
+- Cellular Automata
+- Grid Tunnels
+- Binary Space Partition (BSP)
+- Circular Floors
+- Concentric Rings
+- Symmetric Mirroring
+- Winding Tunnels
+
+**Feature Types**: 50+ unique features across all dungeon types
+**Hazard Types**: 40+ unique hazards
+**Special Room Types**: 15+ unique special rooms
+
+### Code Metrics (Estimated)
+
+**Total Lines of Code**: ~3,500 lines
+**JSON Configuration**: ~2,000 lines
+**Average Generator Length**: ~300 lines
+**Test Coverage Target**: 80%
+
+### Testing Requirements
+
+**Unit Tests**: 25-30 tests
+- DungeonManager loading
+- Factory pattern creation
+- Each generator algorithm
+- Feature placement logic
+
+**Integration Tests**: 10-15 tests
+- End-to-end dungeon generation
+- Overworld integration
+- Discovery system
+- Save/load with dungeons
+
+**Playtest Scenarios**: 8 scenarios
+- One playthrough per dungeon type
+- Verify unique feel
+- Balance testing
+- Performance validation
+
+---
+
+## Implementation Order Recommendation
+
+### Phase 1: Foundation (Week 1)
+**Priority**: Must complete before anything else
+
+1. **Day 1-2**: Task 1.1 (Dungeon Definitions)
+   - Create all 8 JSON files
+   - Validate schema
+   - Review with team
+
+2. **Day 2-3**: Task 1.2 (DungeonManager)
+   - Implement autoload
+   - Test JSON loading
+   - Integrate with project
+
+3. **Day 3-4**: Task 1.3 (Generator Factory)
+   - Create base interface
+   - Implement factory
+   - Wire up MapManager
+
+4. **Day 4-5**: Task 1.4 (Refactor Burial Barrow)
+   - Convert to new system
+   - Verify backwards compatibility
+   - Test deterministic generation
+
+### Phase 2: Generation Algorithms (Week 2-3)
+**Priority**: Core feature development
+
+**Recommended Order**:
+1. Task 2.1: Cellular Automata (Natural Caves)
+2. Task 2.2: Grid Tunnels (Abandoned Mines)
+3. Task 2.4: Circular Floors (Wizard Towers) - Unique vertical mechanic
+4. Task 2.3: BSP Rooms (Military Compounds)
+5. Task 2.5: Concentric Rings (Ancient Forts)
+6. Task 2.6: Symmetric Layout (Temple Ruins)
+7. Task 2.7: Winding Tunnels (Sewers)
+
+**Rationale**: Start with organic (caves), then structured (mines, towers), then complex spatial (BSP, concentric, symmetric), finish with hybrid (sewers)
+
+### Phase 3: Content & Polish (Week 3-4)
+**Priority**: High, adds depth
+
+1. **Day 1-2**: Task 3.1 (Feature Generator System)
+   - Implement generic system
+   - Test with simple features
+   - Integrate with all generators
+
+2. **Day 3-4**: Task 3.2 (Dungeon-Specific Content)
+   - Add features/hazards to all 8 JSON files
+   - Balance testing
+   - Playtest each type
+
+### Phase 4: Integration (Week 4)
+**Priority**: Medium, polish
+
+1. **Day 1-2**: Task 4.1 (Overworld Placement)
+   - Implement entrance system
+   - Test biome preferences
+   - Verify transitions
+
+2. **Day 2-3**: Task 4.2 (Discovery Tracking)
+   - Add progression system
+   - Build dungeon journal UI
+   - Integrate with save system
+
+### Parallel Work Opportunities
+
+**Can be done in parallel**:
+- Phase 2 generators (after Phase 1 complete)
+- Phase 3 content definitions (while generators in progress)
+- UI work (Task 4.2) can start early
+
+**Blockers**:
+- Phase 1 must complete before Phase 2
+- Generators must exist before features (Task 3.1)
+- Overworld integration (Task 4.1) needs generators
+
+---
+
+## Risk Assessment
+
+### High Risk Areas
+
+#### 1. Algorithm Complexity (High Risk, High Impact)
+**Risk**: Cellular automata, BSP, and symmetric layout algorithms are complex and error-prone.
+
+**Mitigation**:
+- Implement extensive unit tests for each algorithm
+- Create visual debugging tools to inspect generation
+- Reference existing roguelike implementations (RogueBasin, Godot examples)
+- Start with simpler algorithms (rectangular rooms) before complex ones
+
+**Contingency**: Fall back to simpler variants if algorithm fails (e.g., use rectangular rooms instead of BSP)
+
+#### 2. Performance (Medium Risk, High Impact)
+**Risk**: Generating complex dungeons on-the-fly may cause lag/hitches.
+
+**Mitigation**:
+- Profile generation performance early
+- Implement loading screens for large dungeons
+- Consider async generation with progress bars
+- Cache generated floors aggressively
+
+**Contingency**: Pre-generate floors during world creation, reduce map sizes
+
+#### 3. Save System Integration (Medium Risk, Medium Impact)
+**Risk**: Dungeon state serialization complex (floors, progression, discoveries).
+
+**Mitigation**:
+- Use existing SaveManager patterns
+- Store only critical state (floor seeds, not full maps)
+- Test save/load extensively
+- Document serialization format
+
+**Contingency**: Simplify by not saving full dungeon state, regenerate on load
+
+### Medium Risk Areas
+
+#### 4. Backwards Compatibility (Low Risk, Medium Impact)
+**Risk**: Existing burial barrow saves break after refactor.
+
+**Mitigation**:
+- Implement save version migration
+- Test with existing save files
+- Keep old generator as fallback temporarily
+
+**Contingency**: Force world reset, provide conversion tool
+
+#### 5. Balance (Medium Risk, Low Impact)
+**Risk**: Some dungeon types too easy/hard compared to others.
+
+**Mitigation**:
+- Extensive playtest all types
+- Tune enemy pools, loot tables, hazard density
+- Gather feedback early
+
+**Contingency**: Adjust JSON parameters post-launch, hotfix
+
+### Low Risk Areas
+
+#### 6. Feature Placement (Low Risk, Low Impact)
+**Risk**: Features spawn incorrectly or block paths.
+
+**Mitigation**:
+- Validate feature positions before placement
+- Ensure connectivity after all features placed
+- Test with extreme densities
+
+**Contingency**: Reduce spawn rates, disable problematic features
+
+#### 7. UI/UX (Low Risk, Low Impact)
+**Risk**: Dungeon journal unclear or not useful.
+
+**Mitigation**:
+- User testing with journal
+- Iterate on layout/information shown
+
+**Contingency**: Simplify journal, show less detail
+
+---
+
+## Future Enhancements
+
+### Post-Launch Additions
+
+#### 1. Dynamic Difficulty Scaling
+**Description**: Adjust dungeon difficulty based on player level/gear.
+
+**Implementation**:
+- Add `difficulty_multiplier` to dungeon definitions
+- Scale enemy stats, loot quality, hazard damage
+- Calculate based on player stats when entering
+
+**Estimated Effort**: 2-3 hours
+
+#### 2. Procedural Boss Encounters
+**Description**: Generate unique boss rooms with special mechanics.
+
+**Implementation**:
+- Define boss templates in JSON
+- Special room generation for boss arenas
+- Custom AI behaviors per dungeon type
+
+**Estimated Effort**: 8-10 hours
+
+#### 3. Dungeon Modifiers/Affixes
+**Description**: Apply random modifiers to dungeons (e.g., "Flooded", "Cursed", "Infested").
+
+**Implementation**:
+- Define modifiers in JSON
+- Apply effects to generation parameters
+- Display modifier in dungeon name/description
+
+**Estimated Effort**: 4-5 hours
+
+#### 4. Multi-Floor Special Rooms
+**Description**: Rare rooms that span multiple floors (shafts, vertical chambers).
+
+**Implementation**:
+- Mark tiles as "vertical connectors"
+- Align features across floors
+- Handle entity/loot placement
+
+**Estimated Effort**: 5-6 hours
+
+#### 5. Branching Paths & Shortcuts
+**Description**: Optional paths, secret passages, shortcuts between floors.
+
+**Implementation**:
+- Add alternate stairways during generation
+- Create hidden door mechanics
+- Track discovered shortcuts
+
+**Estimated Effort**: 3-4 hours
+
+#### 6. Dungeon Events/Encounters
+**Description**: Scripted events triggered at specific floors or conditions.
+
+**Implementation**:
+- Event definition system
+- Trigger conditions (floor number, time, items)
+- Narrative integration
+
+**Estimated Effort**: 6-8 hours
+
+#### 7. Procedural Puzzle Rooms
+**Description**: Generate solvable puzzles (lever sequences, tile patterns, riddles).
+
+**Implementation**:
+- Puzzle generator system
+- Solution validator
+- Reward upon completion
+
+**Estimated Effort**: 10-12 hours
+
+#### 8. Additional Dungeon Types
+**Description**: Expand dungeon variety with new types.
+
+**Candidates**:
+- **Ice Caverns**: Frozen wasteland dungeons, slippery floors, ice walls
+- **Volcanic Depths**: Lava-filled dungeons, heat zones, fire enemies
+- **Sunken Ruins**: Underwater dungeons, limited air, swimming mechanics
+- **Sky Citadels**: Floating island dungeons, falling hazards, wind effects
+- **Planar Rifts**: Otherworldly dungeons, reality distortions, alien geometry
+- **Catacombs**: Dense bone-filled crypts, narrow passages, undead swarms
+- **Research Labs**: Sci-fi/modern dungeons, security systems, experimental creatures
+
+**Estimated Effort per Type**: 6-8 hours
+
+### Modding Support
+
+#### 9. Custom Dungeon API
+**Description**: Allow modders to create custom dungeon types without code.
+
+**Features**:
+- Extended JSON schema for custom generators
+- Hook system for custom generation logic
+- Asset loading for custom tiles/enemies
+
+**Estimated Effort**: 15-20 hours
+
+#### 10. Dungeon Editor Tool
+**Description**: Visual tool for designing dungeon layouts.
+
+**Features**:
+- Tile-based editor
+- Feature placement
+- Enemy/loot configuration
+- Export to JSON
+
+**Estimated Effort**: 20-30 hours
+
+---
+
+## Conclusion
+
+This comprehensive plan transforms the dungeon generation system from a single hardcoded type into a flexible, data-driven architecture supporting 8 unique dungeon types with 7 different procedural generation algorithms. The phased approach ensures incremental progress with testable milestones, while the risk assessment identifies potential blockers and mitigation strategies.
+
+**Key Success Factors**:
+1. ✅ Complete Phase 1 before starting Phase 2 (solid foundation)
+2. ✅ Extensive testing of each generator algorithm
+3. ✅ Playtest all dungeon types for balance and feel
+4. ✅ Performance profiling early and often
+5. ✅ Clear documentation for future maintainers
+
+**Expected Outcomes**:
+- **Gameplay**: 8 unique dungeon experiences with distinct aesthetics and mechanics
+- **Replayability**: Deterministic yet varied dungeons for each playthrough
+- **Extensibility**: Easy to add new dungeon types via JSON
+- **Performance**: Efficient generation with caching and optimization
+- **Player Engagement**: Discovery system and progression tracking
+
+**Estimated Completion**: 4 weeks for full implementation and testing
+
+**Next Steps**: Review plan with team, prioritize phases, begin Phase 1 implementation.
+
+---
+
+**Document Version**: 1.0
+**Last Updated**: 2026-01-02
+**Author**: Claude (AI Assistant)
+**Status**: Ready for Review
 

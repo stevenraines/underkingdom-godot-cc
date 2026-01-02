@@ -6,122 +6,19 @@ extends Control
 
 signal closed
 
-# UI elements - created programmatically
-var panel: Panel
-var content_container: VBoxContainer
-var scroll_container: ScrollContainer
+@onready var scroll_container: ScrollContainer = $Panel/VBoxContainer/ScrollContainer
+@onready var content_container: VBoxContainer = $Panel/VBoxContainer/ScrollContainer/ContentBox
 
 # Colors matching inventory screen
-const COLOR_TITLE = Color(0.6, 0.9, 0.6, 1)
 const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
 const COLOR_KEY = Color(0.7, 0.9, 0.7)
 const COLOR_DESC = Color(0.85, 0.85, 0.7)
 const COLOR_TIP = Color(0.8, 0.8, 0.7)
-const COLOR_FOOTER = Color(0.7, 0.7, 0.7)
-const COLOR_BORDER = Color(0.4, 0.6, 0.4, 1)
 
 func _ready() -> void:
-	_build_ui()
 	_build_help_content()
 	hide()
 	set_process_unhandled_input(false)
-
-## Build the UI programmatically
-func _build_ui() -> void:
-	# Make this control fill the screen
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-	# Explicitly set size to viewport for CanvasLayer parenting
-	var viewport_size = get_viewport().get_visible_rect().size
-	size = viewport_size
-
-	# Dimmer background
-	var dimmer = ColorRect.new()
-	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dimmer.color = Color(0, 0, 0, 0.7)
-	add_child(dimmer)
-
-	# Main panel - centered in viewport
-	panel = Panel.new()
-	panel.anchor_left = 0.5
-	panel.anchor_top = 0.5
-	panel.anchor_right = 0.5
-	panel.anchor_bottom = 0.5
-	panel.offset_left = -340
-	panel.offset_top = -280
-	panel.offset_right = 340
-	panel.offset_bottom = 280
-	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.12, 0.98)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = COLOR_BORDER
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_right = 4
-	style.corner_radius_bottom_left = 4
-	panel.add_theme_stylebox_override("panel", style)
-	add_child(panel)
-
-	# Margin container
-	var margin = MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	panel.add_child(margin)
-
-	# VBox for layout
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
-	margin.add_child(vbox)
-
-	# Title
-	var title = Label.new()
-	title.text = "* HELP & KEYBINDINGS *"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if theme != null:
-		title.theme = theme
-	title.add_theme_color_override("font_color", COLOR_TITLE)
-	title.add_theme_font_size_override("font_size", 20)
-	vbox.add_child(title)
-
-	# Separator
-	var sep1 = HSeparator.new()
-	sep1.add_theme_constant_override("separation", 4)
-	vbox.add_child(sep1)
-
-	# Scroll container for content
-	scroll_container = ScrollContainer.new()
-	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vbox.add_child(scroll_container)
-
-	# Content container
-	content_container = VBoxContainer.new()
-	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_container.add_theme_constant_override("separation", 2)
-	scroll_container.add_child(content_container)
-
-	# Separator
-	var sep2 = HSeparator.new()
-	sep2.add_theme_constant_override("separation", 4)
-	vbox.add_child(sep2)
-
-	# Footer
-	var footer = Label.new()
-	footer.text = "↑↓ Scroll  |  [?] [F1] [ESC] Close"
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if theme != null:
-		footer.theme = theme
-	footer.add_theme_color_override("font_color", COLOR_FOOTER)
-	footer.add_theme_font_size_override("font_size", 13)
-	vbox.add_child(footer)
 
 ## Open the help screen
 func open() -> void:
@@ -199,8 +96,6 @@ func _add_section_header(text: String) -> void:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if theme != null:
-		header.theme = theme
 	header.add_theme_color_override("font_color", COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	content_container.add_child(header)
@@ -212,8 +107,6 @@ func _add_keybind(key: String, description: String) -> void:
 	var key_label = Label.new()
 	key_label.text = "[%s]" % key
 	key_label.custom_minimum_size.x = 180
-	if theme != null:
-		key_label.theme = theme
 	key_label.add_theme_color_override("font_color", COLOR_KEY)
 	key_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(key_label)
@@ -221,8 +114,6 @@ func _add_keybind(key: String, description: String) -> void:
 	var desc_label = Label.new()
 	desc_label.text = description
 	desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if theme != null:
-		desc_label.theme = theme
 	desc_label.add_theme_color_override("font_color", COLOR_DESC)
 	desc_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(desc_label)
@@ -234,8 +125,6 @@ func _add_help_text(text: String) -> void:
 	var label = Label.new()
 	label.text = "  • " + text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if theme != null:
-		label.theme = theme
 	label.add_theme_color_override("font_color", COLOR_TIP)
 	label.add_theme_font_size_override("font_size", 14)
 	content_container.add_child(label)

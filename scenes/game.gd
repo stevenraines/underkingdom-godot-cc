@@ -221,35 +221,31 @@ func _setup_death_screen() -> void:
 
 ## Setup character sheet
 func _setup_character_sheet() -> void:
-	print("[Game] Setting up character sheet programmatically...")
-	var CharacterSheetScript = load("res://ui/character_sheet.gd")
-	if CharacterSheetScript:
-		print("[Game] Character sheet script loaded")
-		character_sheet = Control.new()
-		character_sheet.set_script(CharacterSheetScript)
+	print("[Game] Setting up character sheet from scene...")
+	var CharacterSheetScene = load("res://ui/character_sheet.tscn")
+	if CharacterSheetScene:
+		character_sheet = CharacterSheetScene.instantiate()
 		character_sheet.name = "CharacterSheet"
 		hud.add_child(character_sheet)
 		if character_sheet.has_signal("closed"):
 			character_sheet.closed.connect(_on_character_sheet_closed)
-		print("[Game] Character sheet created and added to HUD")
+		print("[Game] Character sheet scene instantiated and added to HUD")
 	else:
-		print("[Game] ERROR: Could not load character_sheet.gd script")
+		print("[Game] ERROR: Could not load character_sheet.tscn scene")
 
 ## Setup help screen
 func _setup_help_screen() -> void:
-	print("[Game] Setting up help screen programmatically...")
-	var HelpScreenScript = load("res://ui/help_screen.gd")
-	if HelpScreenScript:
-		print("[Game] Help screen script loaded")
-		help_screen = Control.new()
-		help_screen.set_script(HelpScreenScript)
+	print("[Game] Setting up help screen from scene...")
+	var HelpScreenScene = load("res://ui/help_screen.tscn")
+	if HelpScreenScene:
+		help_screen = HelpScreenScene.instantiate()
 		help_screen.name = "HelpScreen"
 		hud.add_child(help_screen)
 		if help_screen.has_signal("closed"):
 			help_screen.closed.connect(_on_help_screen_closed)
-		print("[Game] Help screen created and added to HUD")
+		print("[Game] Help screen scene instantiated and added to HUD")
 	else:
-		print("[Game] ERROR: Could not load help_screen.gd script")
+		print("[Game] ERROR: Could not load help_screen.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:

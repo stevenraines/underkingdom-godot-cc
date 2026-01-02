@@ -582,8 +582,16 @@ func _process_ranged_attack_result(result: Dictionary) -> void:
 		game._add_message(message, color)
 
 	# Handle ammo recovery on miss
-	if not result.hit and result.get("ammo_recovered", false):
-		_spawn_recovered_ammo(result)
+	if not result.hit:
+		if result.get("ammo_recovered", false):
+			_spawn_recovered_ammo(result)
+		else:
+			# Ammo was not recovered - show break message
+			var ammo_name = result.get("ammo_name", "")
+			if ammo_name.is_empty() and result.get("is_thrown", false):
+				ammo_name = result.get("weapon_name", "projectile")
+			if not ammo_name.is_empty() and game and game.has_method("_add_message"):
+				game._add_message("The %s broke." % ammo_name, Color(0.6, 0.5, 0.4))
 
 	# Hide targeting UI
 	if game and game.has_method("hide_targeting_ui"):
@@ -777,15 +785,23 @@ func _fire_at_target() -> void:
 		game._add_message(message, color)
 
 	# Handle ammo recovery on miss
-	if not result.hit and result.get("ammo_recovered", false):
-		var recovery_pos = result.get("recovery_position", Vector2i.ZERO)
-		if recovery_pos != Vector2i.ZERO:
-			var item_id = ammo.id if ammo else weapon.id
-			var item = ItemManager.create_item(item_id, 1)
-			if item:
-				EntityManager.spawn_ground_item(item, recovery_pos)
-				if game and game.has_method("_add_message"):
-					game._add_message("Your %s lands on the ground." % item.name, Color(0.7, 0.8, 0.7))
+	if not result.hit:
+		if result.get("ammo_recovered", false):
+			var recovery_pos = result.get("recovery_position", Vector2i.ZERO)
+			if recovery_pos != Vector2i.ZERO:
+				var item_id = ammo.id if ammo else weapon.id
+				var item = ItemManager.create_item(item_id, 1)
+				if item:
+					EntityManager.spawn_ground_item(item, recovery_pos)
+					if game and game.has_method("_add_message"):
+						game._add_message("Your %s lands on the ground." % item.name, Color(0.7, 0.8, 0.7))
+		else:
+			# Ammo was not recovered - show break message
+			var ammo_name = result.get("ammo_name", "")
+			if ammo_name.is_empty() and result.get("is_thrown", false):
+				ammo_name = result.get("weapon_name", "projectile")
+			if not ammo_name.is_empty() and game and game.has_method("_add_message"):
+				game._add_message("The %s broke." % ammo_name, Color(0.6, 0.5, 0.4))
 
 	# Clear target if it died
 	if result.defender_died:

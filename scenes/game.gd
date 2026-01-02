@@ -473,6 +473,18 @@ func toggle_auto_pickup() -> void:
 func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change START: %s ===" % map_id)
 
+	# Skip entity handling during save load (SaveManager handles entities separately)
+	if SaveManager.is_deserializing:
+		print("[Game] Skipping entity handling during deserialization")
+		# Still need to render the map
+		if MapManager.current_map and MapManager.current_map.chunk_based and player:
+			ChunkManager.update_active_chunks(player.position)
+		_render_map()
+		if player:
+			renderer.center_camera(player.position)
+		print("[Game] === Map change COMPLETE (deserializing) ===")
+		return
+
 	# Invalidate FOV cache since map changed
 	# TEMP: Commented out to debug gray overlay
 	#print("[Game] 1/8 Invalidating FOV cache")

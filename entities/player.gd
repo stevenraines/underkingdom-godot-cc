@@ -55,23 +55,34 @@ func move(direction: Vector2i) -> bool:
 	var new_pos = position + direction
 
 	# Check if new position is walkable
-	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
-		# Consume stamina for movement (allow move even if depleted, just add fatigue)
-		if survival:
-			if not survival.consume_stamina(survival.STAMINA_COST_MOVE):
-				# Out of stamina - still allow movement but warn player
-				pass
+	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
+		return false
 
-		var old_pos = position
-		position = new_pos
-		EventBus.player_moved.emit(old_pos, new_pos)
+	# Check for blocking features (chests, altars, etc.) - interact instead of moving
+	if FeatureManager.has_blocking_feature(new_pos):
+		_interact_with_feature_at(new_pos)
+		return true  # Action taken, but didn't move
 
-		# Check for hazards at new position
-		_check_hazards_at_position(new_pos)
+	# Consume stamina for movement (allow move even if depleted, just add fatigue)
+	if survival:
+		if not survival.consume_stamina(survival.STAMINA_COST_MOVE):
+			# Out of stamina - still allow movement but warn player
+			pass
 
-		return true
+	var old_pos = position
+	position = new_pos
+	EventBus.player_moved.emit(old_pos, new_pos)
 
-	return false
+	# Check for hazards at new position
+	_check_hazards_at_position(new_pos)
+
+	# Check for non-blocking interactable features at new position (like inscriptions)
+	if FeatureManager.has_interactable_feature(new_pos):
+		var feature = FeatureManager.get_feature_at(new_pos)
+		if not feature.get("definition", {}).get("blocking", false):
+			_interact_with_feature_at(new_pos)
+
+	return true
 
 
 ## Check for hazards at the given position
@@ -98,6 +109,9 @@ func _apply_hazard_damage(hazard_result: Dictionary) -> void:
 	var hazard_id: String = hazard_result.get("hazard_id", "trap")
 	var damage_type: String = hazard_result.get("damage_type", "physical")
 
+	# Format hazard name for display (replace underscores with spaces)
+	var hazard_display_name = hazard_id.replace("_", " ")
+
 	# Apply damage if any
 	if damage > 0:
 		# Apply armor reduction for physical damage
@@ -106,14 +120,13 @@ func _apply_hazard_damage(hazard_result: Dictionary) -> void:
 			actual_damage = max(1, damage - get_total_armor())
 
 		take_damage(actual_damage)
-		EventBus.combat_message.emit("You trigger a %s! (%d damage)" % [hazard_id, actual_damage], Color.ORANGE_RED)
+		EventBus.combat_message.emit("You trigger a %s! (%d damage)" % [hazard_display_name, actual_damage], Color.ORANGE_RED)
+	else:
+		# No damage but still stepped into the hazard - notify player
+		EventBus.combat_message.emit("You step into a %s!" % hazard_display_name, Color.ORANGE)
 
 	# Apply status effects from hazard
 	var effects = hazard_result.get("effects", [])
-	if effects.is_empty() and damage == 0:
-		# Hazard triggered but no damage or effects - still notify
-		EventBus.combat_message.emit("You step into a %s!" % hazard_id, Color.ORANGE)
-
 	for effect in effects:
 		var effect_type = effect.get("type", "")
 		@warning_ignore("unused_variable")
@@ -137,11 +150,22 @@ func _apply_hazard_damage(hazard_result: Dictionary) -> void:
 
 ## Interact with a feature at the player's current position
 func interact_with_feature() -> Dictionary:
-	# Check if there's an interactable feature at current position
-	if not FeatureManager.has_interactable_feature(position):
+	return _interact_with_feature_at(position)
+
+
+## Interact with a feature at a specific position
+func _interact_with_feature_at(pos: Vector2i) -> Dictionary:
+	print("[Player] Attempting to interact with feature at %v" % pos)
+	# Check if there's an interactable feature at position
+	if not FeatureManager.has_interactable_feature(pos):
+		print("[Player] No interactable feature at %v" % pos)
 		return {"success": false, "message": "Nothing to interact with here."}
 
-	var result = FeatureManager.interact_with_feature(position)
+	var result = FeatureManager.interact_with_feature(pos)
+
+	# Show message to player
+	if result.has("message"):
+		EventBus.combat_message.emit(result.message, Color.GOLD)
 
 	# Process effects
 	if result.get("success", false):

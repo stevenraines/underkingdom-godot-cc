@@ -164,6 +164,8 @@ func _ready() -> void:
 	EventBus.message_logged.connect(_on_message_logged)
 	EventBus.structure_placed.connect(_on_structure_placed)
 	EventBus.shop_opened.connect(_on_shop_opened)
+	EventBus.combat_message.connect(_on_combat_message)
+	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
 	_update_hud()
@@ -577,6 +579,41 @@ func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionar
 		_add_message("Gained %d XP." % xp_gain, Color(0.6, 0.9, 0.6))
 
 	_update_hud()
+
+## Called when a combat message is emitted (hazards, traps, etc.)
+func _on_combat_message(message: String, color: Color) -> void:
+	_add_message(message, color)
+
+
+## Called when a feature spawns an enemy (e.g., sarcophagus releasing a skeleton)
+func _on_feature_spawned_enemy(enemy_id: String, spawn_position: Vector2i) -> void:
+	print("[Game] Feature spawned enemy: %s at %v" % [enemy_id, spawn_position])
+	# Find a valid spawn position near the feature (not on the feature itself)
+	var spawn_pos = _find_nearby_spawn_position(spawn_position)
+	if spawn_pos != Vector2i(-1, -1):
+		var enemy = EntityManager.spawn_enemy(enemy_id, spawn_pos)
+		if enemy:
+			_add_message("A %s emerges!" % enemy.entity_name, Color.ORANGE_RED)
+			_render_all_entities()
+	else:
+		push_warning("[Game] Could not find spawn position for feature enemy near %v" % spawn_position)
+
+
+## Find a valid spawn position near a given position
+func _find_nearby_spawn_position(center: Vector2i) -> Vector2i:
+	# Check adjacent tiles for valid spawn position
+	var directions = [
+		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+		Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)
+	]
+	for dir in directions:
+		var pos = center + dir
+		if MapManager.current_map and MapManager.current_map.is_walkable(pos):
+			# Make sure no entity is already there
+			if not EntityManager.get_entity_at(pos):
+				return pos
+	return Vector2i(-1, -1)
+
 
 ## Called when player dies
 func _on_player_died() -> void:

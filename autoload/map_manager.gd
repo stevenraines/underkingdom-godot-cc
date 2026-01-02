@@ -40,7 +40,9 @@ func transition_to_map(map_id: String) -> void:
 		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
 
 	# Load features and hazards into their managers for dungeon maps
-	if map_id.begins_with("dungeon_"):
+	# Map IDs follow format: dungeon_id_floor_N (e.g., burial_barrow_floor_1)
+	var is_dungeon = "_floor_" in map_id or current_map.metadata.has("floor_number")
+	if is_dungeon:
 		_load_features_and_hazards(current_map)
 
 	EventBus.map_changed.emit(map_id)

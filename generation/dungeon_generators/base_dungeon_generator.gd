@@ -31,6 +31,18 @@ func _get_param(dungeon_def: Dictionary, key: String, default):
 	return dungeon_def.get("generation_params", {}).get(key, default)
 
 
+## Helper: Shuffle an array using seeded RNG for deterministic results
+## Fisher-Yates shuffle algorithm with seeded random
+func _seeded_shuffle(arr: Array, rng: SeededRandom) -> Array:
+	var result = arr.duplicate()
+	for i in range(result.size() - 1, 0, -1):
+		var j = rng.randi_range(0, i)
+		var temp = result[i]
+		result[i] = result[j]
+		result[j] = temp
+	return result
+
+
 ## Helper: Place features and hazards after basic generation is complete
 ## Should be called by child generators at end of generate_floor()
 ## @param map: The generated map to populate
@@ -54,16 +66,16 @@ func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRando
 	if not map.metadata.has("pending_features"):
 		map.metadata["pending_features"] = []
 
-	# Get floor positions
+	# Get floor positions (excluding stairs)
 	var floor_positions: Array = []
 	for pos in map.tiles:
 		var tile = map.tiles[pos]
 		if tile != null and tile.walkable and tile.tile_type not in ["stairs_up", "stairs_down"]:
 			floor_positions.append(pos)
 
-	# Shuffle positions for random placement
-	var shuffled_positions = floor_positions.duplicate()
-	shuffled_positions.shuffle()
+	# Sort positions for deterministic order, then shuffle with seeded RNG
+	floor_positions.sort_custom(func(a, b): return a.x * 10000 + a.y < b.x * 10000 + b.y)
+	var shuffled_positions = _seeded_shuffle(floor_positions, rng)
 
 	for feature_config in room_features:
 		var feature_id: String = feature_config.get("feature_id", "")
@@ -100,12 +112,16 @@ func _store_hazard_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom
 	if not map.metadata.has("pending_hazards"):
 		map.metadata["pending_hazards"] = []
 
-	# Get floor positions
+	# Get floor positions (excluding stairs)
 	var floor_positions: Array = []
 	for pos in map.tiles:
 		var tile = map.tiles[pos]
 		if tile != null and tile.walkable and tile.tile_type not in ["stairs_up", "stairs_down"]:
 			floor_positions.append(pos)
+
+	# Sort positions for deterministic order, then shuffle with seeded RNG
+	floor_positions.sort_custom(func(a, b): return a.x * 10000 + a.y < b.x * 10000 + b.y)
+	var shuffled_positions = _seeded_shuffle(floor_positions, rng)
 
 	for hazard_config in hazards:
 		var hazard_id: String = hazard_config.get("hazard_id", "")
@@ -119,7 +135,7 @@ func _store_hazard_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom
 		hazard_count = clampi(hazard_count, 1, 10)
 
 		var placed: int = 0
-		for pos in floor_positions:
+		for pos in shuffled_positions:
 			if placed >= hazard_count:
 				break
 			if rng.randf() < 0.5:  # 50% chance to try this position

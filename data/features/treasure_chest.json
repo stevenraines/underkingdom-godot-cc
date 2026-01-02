@@ -1,7 +1,7 @@
 {
 	"id": "treasure_chest",
 	"name": "Treasure Chest",
-	"ascii_char": "=",
+	"ascii_char": "Z",
 	"color": "#DAA520",
 	"blocking": true,
 	"interactable": true,

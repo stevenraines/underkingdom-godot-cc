@@ -176,14 +176,14 @@ func _generate_feature_loot(config: Dictionary, rng: SeededRandom) -> Array:
 
 	# Simple loot generation (can be expanded later)
 	if loot_table == "ancient_treasure":
-		if rng.randf() < 0.5:
-			loot.append({"item_id": "gold_coins", "count": rng.randi_range(10, 50)})
-		if rng.randf() < 0.2:
+		# Ancient treasure always has gold
+		loot.append({"item_id": "gold_coins", "count": rng.randi_range(15, 60)})
+		# Chance for additional rare items
+		if rng.randf() < 0.3:
 			loot.append({"item_id": "ancient_artifact", "count": 1})
 	else:
-		# Default loot
-		if rng.randf() < 0.7:
-			loot.append({"item_id": "gold_coins", "count": rng.randi_range(5, 20)})
+		# Default loot - always give something
+		loot.append({"item_id": "gold_coins", "count": rng.randi_range(5, 25)})
 
 	return loot
 
@@ -216,17 +216,27 @@ func interact_with_feature(pos: Vector2i) -> Dictionary:
 	# Mark as interacted
 	feature.interacted = true
 
+	# Get interaction verb for default messages
+	var verb: String = feature_def.get("interaction_verb", "examine")
+	var feature_name: String = feature_def.get("name", "feature").to_lower()
+
+	# Default message - can be overwritten by specific effects
+	result.message = "You %s the %s." % [verb, feature_name]
+
 	# Handle loot
 	if feature.state.has("loot") and not feature.state.loot.is_empty():
 		result.effects.append({"type": "loot", "items": feature.state.loot})
-		result.message = "You found items in the %s!" % feature_def.name.to_lower()
+		result.message = "You %s the %s and find treasure!" % [verb, feature_name]
 		feature.state.loot = []
+	elif feature_def.get("can_contain_loot", false):
+		# Has loot capability but was empty
+		result.message = "You %s the %s but find nothing." % [verb, feature_name]
 
 	# Handle enemy summon
 	if feature.state.has("summons_enemy"):
 		var enemy_id: String = feature.state.summons_enemy
 		result.effects.append({"type": "summon_enemy", "enemy_id": enemy_id, "position": pos})
-		result.message = "Something emerges from the %s!" % feature_def.name.to_lower()
+		result.message = "Something emerges from the %s!" % feature_name
 		feature_spawned_enemy.emit(enemy_id, pos)
 
 	# Handle hints
@@ -266,6 +276,17 @@ func has_interactable_feature(pos: Vector2i) -> bool:
 		return false
 	var feature: Dictionary = active_features[pos]
 	return feature.definition.get("interactable", false)
+
+
+## Check if position has a blocking feature
+func has_blocking_feature(pos: Vector2i) -> bool:
+	if not active_features.has(pos):
+		return false
+	var feature: Dictionary = active_features[pos]
+	var is_blocking = feature.definition.get("blocking", false)
+	if is_blocking:
+		print("[FeatureManager] Blocking feature found at %v: %s" % [pos, feature.feature_id])
+	return is_blocking
 
 
 ## Load features from map metadata (for saved games and floor transitions)
@@ -331,9 +352,11 @@ func _process_pending_features(map: GameMap) -> void:
 			"state": {}
 		}
 
-		# Generate loot if applicable
-		if feature_def.get("can_contain_loot", false) and config.get("contains_loot", false):
+		# Generate loot if applicable (check contains_loot flag OR loot_table presence)
+		var should_have_loot = config.get("contains_loot", false) or config.has("loot_table")
+		if feature_def.get("can_contain_loot", false) and should_have_loot:
 			feature_data.state["loot"] = _generate_feature_loot(config, rng)
+			print("[FeatureManager] Generated loot for %s at %v: %s" % [feature_id, pos, feature_data.state.loot])
 
 		# Set enemy to summon if applicable
 		if feature_def.get("can_summon_enemy", false) and config.has("summons_enemy"):

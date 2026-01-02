@@ -6,6 +6,7 @@ extends Node
 ## generation. All dungeon types are data-driven and defined in data/dungeons/
 
 const DUNGEON_DATA_PATH = "res://data/dungeons"
+const _GeneratorFactory = preload("res://generation/dungeon_generator_factory.gd")
 
 ## Dictionary mapping dungeon IDs to their full definitions
 ## Format: { "dungeon_id": { ...dungeon_data... } }
@@ -125,7 +126,8 @@ func get_generator_type(dungeon_id: String) -> String:
 func generate_floor(dungeon_id: String, floor_number: int, world_seed: int) -> GameMap:
 	var dungeon_def: Dictionary = get_dungeon(dungeon_id)
 	var generator_type: String = dungeon_def.get("generator_type", "rectangular_rooms")
-	var generator: BaseDungeonGenerator = DungeonGeneratorFactory.create(generator_type)
+	# Use duck typing to avoid class_name resolution issues at parse time
+	var generator = _GeneratorFactory.create(generator_type)
 	return generator.generate_floor(dungeon_def, floor_number, world_seed)
 
 

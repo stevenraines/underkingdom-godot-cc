@@ -342,6 +342,27 @@ res://
 5. **Seeded Randomness**: Deterministic procedural generation
 6. **Composition Over Inheritance**: Components for extensibility
 
+### GDScript Class Loading Pattern
+**IMPORTANT**: When referencing other script classes (via `class_name`) in static functions or across files with complex dependencies:
+- **Avoid `preload()`** for scripts that have their own dependencies (e.g., scripts extending other custom classes)
+- **Use runtime `load()`** instead to avoid parse-time circular dependency issues
+- **Avoid type hints** for cross-file class references in these cases (use duck typing)
+
+```gdscript
+# BAD - causes "Could not resolve script" errors
+const Generator = preload("res://generation/my_generator.gd")
+static func create() -> BaseDungeonGenerator:
+    return Generator.new()
+
+# GOOD - loads at runtime, avoids parse-time issues
+const GENERATOR_PATH = "res://generation/my_generator.gd"
+static func create():
+    var script = load(GENERATOR_PATH)
+    return script.new()
+```
+
+This pattern is used in `DungeonGeneratorFactory` and `BurialBarrowGenerator` for loading dungeon generators.
+
 ---
 
 ## Development Workflow

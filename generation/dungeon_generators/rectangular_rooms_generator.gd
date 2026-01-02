@@ -60,7 +60,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 	map.map_id = "%s_floor_%d" % [dungeon_id, floor_number]
 	map.width = width
 	map.height = height
-	map.tiles = []
+	map.tiles = {}
 	map.entities = []
 	map.metadata = {
 		"dungeon_id": dungeon_id,
@@ -69,12 +69,10 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		"enemy_spawns": []
 	}
 
-	# Fill with walls
+	# Fill with walls (dictionary uses Vector2i keys)
 	for y in range(height):
-		var row: Array[GameTile] = []
 		for x in range(width):
-			row.append(GameTile.create(wall_tile))
-		map.tiles.append(row)
+			map.tiles[Vector2i(x, y)] = GameTile.create(wall_tile)
 
 	# Generate rooms
 	var room_count: int = rng.randi_range(room_count_min, room_count_max)
@@ -104,7 +102,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 			# Carve out room floor
 			for y in range(new_room.y, new_room.y + new_room.height):
 				for x in range(new_room.x, new_room.x + new_room.width):
-					map.tiles[y][x] = GameTile.create(floor_tile)
+					map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 
 	# Connect rooms with corridors
 	for i in range(rooms.size() - 1):
@@ -122,7 +120,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 		var last_room: Room = rooms[rooms.size() - 1]
 		var stairs_x: int = last_room.x + last_room.width / 2
 		var stairs_y: int = last_room.y + last_room.height / 2
-		map.tiles[stairs_y][stairs_x] = GameTile.create("stairs_down")
+		map.tiles[Vector2i(stairs_x, stairs_y)] = GameTile.create("stairs_down")
 		map.metadata["stairs_down"] = Vector2i(stairs_x, stairs_y)
 
 		# Place up stairs in first room
@@ -130,7 +128,7 @@ func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int)
 			var first_room: Room = rooms[0]
 			var up_stairs_x: int = first_room.x + first_room.width / 2
 			var up_stairs_y: int = first_room.y + first_room.height / 2
-			map.tiles[up_stairs_y][up_stairs_x] = GameTile.create("stairs_up")
+			map.tiles[Vector2i(up_stairs_x, up_stairs_y)] = GameTile.create("stairs_up")
 			map.metadata["stairs_up"] = Vector2i(up_stairs_x, up_stairs_y)
 
 	# Spawn enemies
@@ -153,14 +151,14 @@ func _create_corridor(map: GameMap, room_a: Room, room_b: Room, floor_tile: Stri
 		for x in range(start_x, end_x + x_step, x_step):
 			var y: int = start_y + w_offset - width / 2
 			if y >= 0 and y < map.height and x >= 0 and x < map.width:
-				map.tiles[y][x] = GameTile.create(floor_tile)
+				map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 
 		# Vertical segment
 		var y_step: int = 1 if end_y > start_y else -1
 		for y in range(start_y, end_y + y_step, y_step):
 			var x: int = end_x + w_offset - width / 2
 			if y >= 0 and y < map.height and x >= 0 and x < map.width:
-				map.tiles[y][x] = GameTile.create(floor_tile)
+				map.tiles[Vector2i(x, y)] = GameTile.create(floor_tile)
 
 
 ## Spawn enemies from dungeon definition enemy pools
@@ -201,9 +199,10 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, ro
 		var spawn_y: int = rng.randi_range(room.y, room.y + room.height - 1)
 
 		# Check if position is walkable and not stairs
-		if not map.tiles[spawn_y][spawn_x].walkable:
+		var spawn_pos := Vector2i(spawn_x, spawn_y)
+		if not map.tiles[spawn_pos].walkable:
 			continue
-		if map.tiles[spawn_y][spawn_x].tile_type in ["stairs_up", "stairs_down"]:
+		if map.tiles[spawn_pos].tile_type in ["stairs_up", "stairs_down"]:
 			continue
 
 		# Pick weighted random enemy

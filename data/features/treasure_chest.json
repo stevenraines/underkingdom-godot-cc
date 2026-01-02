@@ -1,0 +1,11 @@
+{
+	"id": "treasure_chest",
+	"name": "Treasure Chest",
+	"ascii_char": "Z",
+	"color": "#DAA520",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "open",
+	"can_contain_loot": true,
+	"can_be_trapped": true
+}

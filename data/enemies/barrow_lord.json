@@ -1,0 +1,28 @@
+{
+  "id": "barrow_lord",
+  "name": "Barrow Lord",
+  "ascii_char": "L",
+  "ascii_color": "#00FF00",
+  "stats": {
+    "health": 80,
+    "str": 16,
+    "dex": 10,
+    "con": 18,
+    "int": 12,
+    "wis": 14,
+    "cha": 14
+  },
+  "yields": [
+    {"item_id": "ancient_crown", "min_count": 1, "max_count": 1, "chance": 1.0},
+    {"item_id": "ectoplasm", "min_count": 2, "max_count": 4, "chance": 1.0}
+  ],
+  "behavior": "guardian",
+  "base_damage": 12,
+  "armor": 5,
+  "loot_table": "undead_boss",
+  "xp_value": 500,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 0,
+  "min_spawn_level": 20,
+  "max_spawn_level": 50
+}

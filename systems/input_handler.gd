@@ -167,6 +167,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				# Save overworld position before descending
 				if MapManager.current_map.chunk_based:
 					GameManager.last_overworld_position = player.position
+				# Save entity states before leaving this map
+				EntityManager.save_entity_states_to_map(MapManager.current_map)
 				MapManager.descend_dungeon()
 				player._find_and_move_to_stairs("stairs_up")
 				action_taken = true
@@ -175,10 +177,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_up":
-				# Position player BEFORE map transition to load correct chunks
-				var target_pos = GameManager.last_overworld_position if GameManager.last_overworld_position != Vector2i.ZERO else Vector2i(800, 800)
-				player.position = target_pos
-				MapManager.ascend_dungeon()
+				# Save entity states before leaving this map
+				EntityManager.save_entity_states_to_map(MapManager.current_map)
+				# Check if we're going to overworld (floor 1 -> overworld) or to previous floor
+				if MapManager.current_dungeon_floor == 1:
+					# Returning to overworld - set position before transition
+					var target_pos = GameManager.last_overworld_position if GameManager.last_overworld_position != Vector2i.ZERO else Vector2i(800, 800)
+					player.position = target_pos
+					MapManager.ascend_dungeon()
+				else:
+					# Going to previous dungeon floor - find stairs_down after transition
+					MapManager.ascend_dungeon()
+					player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
 		elif is_wait_key:
@@ -211,6 +221,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
 			_start_harvest_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F:  # F key - interact with dungeon feature
+			action_taken = _try_interact_feature()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_P:  # P key - character sheet
 			_open_character_sheet()
@@ -336,6 +349,20 @@ func _open_help_screen() -> void:
 		game.open_help_screen()
 	else:
 		print("[InputHandler] ERROR: game or open_help_screen method not found")
+
+## Try to interact with a dungeon feature at player position
+func _try_interact_feature() -> bool:
+	var result = player.interact_with_feature()
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var message = result.get("message", "")
+		if message:
+			var color = Color(0.6, 0.9, 0.6) if result.get("success", false) else Color(0.7, 0.7, 0.7)
+			game._add_message(message, color)
+
+	return result.get("success", false)
+
 
 ## Try to harvest a resource in the given direction
 func _try_harvest(direction: Vector2i) -> bool:

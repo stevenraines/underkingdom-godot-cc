@@ -303,7 +303,7 @@ res://
 ├── ui/                 # User interface
 │   ├── hud.tscn
 │   └── inventory_screen.tscn
-├── data/               # JSON data files
+├── data/               # JSON data files (all systems are data-driven)
 │   ├── resources/      # Harvestable resource definitions
 │   ├── items/
 │   │   ├── consumables/
@@ -317,7 +317,10 @@ res://
 │   │   ├── tools/
 │   │   └── equipment/
 │   ├── structures/
-│   └── enemies/
+│   ├── enemies/
+│   ├── dungeons/       # Dungeon type definitions
+│   ├── features/       # Dungeon feature definitions (chests, altars, etc.)
+│   └── hazards/        # Dungeon hazard definitions (traps, etc.)
 ├── scenes/             # Scene files
 │   ├── main.tscn
 │   └── game.tscn
@@ -338,9 +341,76 @@ res://
 1. **Singleton Autoloads**: Global managers for cross-cutting concerns
 2. **Signal-Based Events**: Loose coupling via EventBus
 3. **Strategy Pattern**: RenderInterface → ASCIIRenderer (swappable)
-4. **Data-Driven**: All content in JSON, not hardcoded
+4. **Data-Driven Design**: All content defined in JSON, loaded at runtime
 5. **Seeded Randomness**: Deterministic procedural generation
 6. **Composition Over Inheritance**: Components for extensibility
+
+### Data-Driven Design Principle
+**IMPORTANT**: All game content MUST be data-driven. Never hardcode definitions in manager classes.
+
+**Pattern for new systems:**
+1. Create JSON files in `data/<system_name>/` directory (one file per definition)
+2. Manager loads definitions from JSON at `_ready()` using `DirAccess` + `JSON.parse()`
+3. Definitions stored in a dictionary keyed by ID
+4. Runtime instances reference loaded definitions
+
+**Existing data-driven systems:**
+- Items: `data/items/` → ItemManager
+- Enemies: `data/enemies/` → EntityManager
+- Recipes: `data/recipes/` → RecipeManager
+- Resources: `data/resources/` → HarvestSystem
+- Dungeons: `data/dungeons/` → DungeonManager
+- Features: `data/features/` → FeatureManager
+- Hazards: `data/hazards/` → HazardManager
+
+**JSON file template:**
+```json
+{
+    "id": "unique_identifier",
+    "name": "Display Name",
+    "property": "value"
+}
+```
+
+**Manager loading pattern:**
+```gdscript
+const DATA_PATH = "res://data/my_system"
+var definitions: Dictionary = {}
+
+func _ready() -> void:
+    _load_definitions()
+
+func _load_definitions() -> void:
+    var dir = DirAccess.open(DATA_PATH)
+    dir.list_dir_begin()
+    var file_name = dir.get_next()
+    while file_name != "":
+        if file_name.ends_with(".json"):
+            _load_file(DATA_PATH + "/" + file_name)
+        file_name = dir.get_next()
+    dir.list_dir_end()
+```
+
+### GDScript Class Loading Pattern
+**IMPORTANT**: When referencing other script classes (via `class_name`) in static functions or across files with complex dependencies:
+- **Avoid `preload()`** for scripts that have their own dependencies (e.g., scripts extending other custom classes)
+- **Use runtime `load()`** instead to avoid parse-time circular dependency issues
+- **Avoid type hints** for cross-file class references in these cases (use duck typing)
+
+```gdscript
+# BAD - causes "Could not resolve script" errors
+const Generator = preload("res://generation/my_generator.gd")
+static func create() -> BaseDungeonGenerator:
+    return Generator.new()
+
+# GOOD - loads at runtime, avoids parse-time issues
+const GENERATOR_PATH = "res://generation/my_generator.gd"
+static func create():
+    var script = load(GENERATOR_PATH)
+    return script.new()
+```
+
+This pattern is used in `DungeonGeneratorFactory` and `BurialBarrowGenerator` for loading dungeon generators.
 
 ---
 

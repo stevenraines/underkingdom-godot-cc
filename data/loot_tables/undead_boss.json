@@ -1,0 +1,15 @@
+{
+	"id": "undead_boss",
+	"name": "Undead Boss Loot",
+	"description": "Rare drops from powerful undead bosses like the Barrow Lord",
+	"guaranteed_drops": [
+		{"item_id": "gold_coin", "min_count": 50, "max_count": 150}
+	],
+	"drops": [
+		{"item_id": "ancient_crown", "min_count": 1, "max_count": 1, "chance": 0.5},
+		{"item_id": "cursed_blade", "min_count": 1, "max_count": 1, "chance": 0.3},
+		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.2},
+		{"item_id": "bone", "min_count": 3, "max_count": 8, "chance": 1.0},
+		{"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.4}
+	]
+}

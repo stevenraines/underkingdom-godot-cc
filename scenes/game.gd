@@ -164,6 +164,8 @@ func _ready() -> void:
 	EventBus.message_logged.connect(_on_message_logged)
 	EventBus.structure_placed.connect(_on_structure_placed)
 	EventBus.shop_opened.connect(_on_shop_opened)
+	EventBus.combat_message.connect(_on_combat_message)
+	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
 	_update_hud()
@@ -292,24 +294,49 @@ func _render_map() -> void:
 				renderer.render_chunk(chunk)
 		return
 
-	# Traditional full-map rendering for dungeons
-	var visible_walls: Dictionary = {}
-	var is_dungeon = MapManager.current_map.map_id.begins_with("dungeon_")
+	# Check if this is a dungeon map (has floor number in metadata or map_id contains "_floor_")
+	var is_dungeon = MapManager.current_map.metadata.has("floor_number") or "_floor_" in MapManager.current_map.map_id
 
-	if is_dungeon and player:
-		visible_walls = MapManager.current_map.get_visible_walls(player.position)
+	print("[_render_map] is_dungeon=%s, map_id=%s, tiles_count=%d" % [is_dungeon, MapManager.current_map.map_id, MapManager.current_map.tiles.size()])
 
-	for y in range(MapManager.current_map.height):
-		for x in range(MapManager.current_map.width):
-			var pos = Vector2i(x, y)
-			var tile = MapManager.current_map.get_tile(pos)
+	# For dungeons, only render tiles that exist in the dictionary
+	if is_dungeon:
+		var rendered_count = 0
+		for pos in MapManager.current_map.tiles.keys():
+			var tile = MapManager.current_map.tiles[pos]
 
-			# Skip inaccessible walls in dungeons
-			if is_dungeon and tile.tile_type == "wall":
-				if pos not in visible_walls:
+			# Skip walls that aren't adjacent to any walkable tile
+			if not tile.walkable and not tile.transparent:
+				if not _is_wall_adjacent_to_walkable(pos):
 					continue  # Don't render this wall
 
 			renderer.render_tile(pos, tile.ascii_char)
+			rendered_count += 1
+		print("[_render_map] Rendered %d tiles" % rendered_count)
+	else:
+		# Traditional rendering for non-dungeon, non-chunk maps
+		for y in range(MapManager.current_map.height):
+			for x in range(MapManager.current_map.width):
+				var pos = Vector2i(x, y)
+				var tile = MapManager.current_map.get_tile(pos)
+				renderer.render_tile(pos, tile.ascii_char)
+
+
+## Check if a wall position is adjacent to any walkable tile
+func _is_wall_adjacent_to_walkable(pos: Vector2i) -> bool:
+	var neighbors = [
+		Vector2i(pos.x - 1, pos.y - 1), Vector2i(pos.x, pos.y - 1), Vector2i(pos.x + 1, pos.y - 1),
+		Vector2i(pos.x - 1, pos.y),                                 Vector2i(pos.x + 1, pos.y),
+		Vector2i(pos.x - 1, pos.y + 1), Vector2i(pos.x, pos.y + 1), Vector2i(pos.x + 1, pos.y + 1)
+	]
+
+	for neighbor in neighbors:
+		if neighbor in MapManager.current_map.tiles:
+			var neighbor_tile = MapManager.current_map.tiles[neighbor]
+			if neighbor_tile.walkable:
+				return true
+
+	return false
 
 ## Called when player moves
 func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
@@ -328,7 +355,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# In dungeons, wall visibility depends on player position
 	# So we need to re-render the entire map when player moves
-	var is_dungeon = MapManager.current_map and MapManager.current_map.map_id.begins_with("dungeon_")
+	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
 
 	if is_dungeon:
 		# Re-render entire map with updated wall visibility
@@ -340,6 +367,12 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Re-render any ground item at old position that was hidden under player
 	_render_ground_item_at(old_pos)
+
+	# Re-render any feature at old position that was hidden under player
+	_render_feature_at(old_pos)
+
+	# Re-render any hazard at old position that was hidden under player
+	_render_hazard_at(old_pos)
 
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
@@ -384,6 +417,27 @@ func _render_ground_item_at(pos: Vector2i) -> void:
 		var item = ground_items[0]
 		renderer.render_entity(pos, item.ascii_char, item.color)
 
+
+## Render a feature at a specific position if one exists
+func _render_feature_at(pos: Vector2i) -> void:
+	if FeatureManager.active_features.has(pos):
+		var feature: Dictionary = FeatureManager.active_features[pos]
+		var definition: Dictionary = feature.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "?")
+		var color: Color = definition.get("color", Color.WHITE)
+		renderer.render_entity(pos, ascii_char, color)
+
+
+## Render a hazard at a specific position if one exists and is visible
+func _render_hazard_at(pos: Vector2i) -> void:
+	if HazardManager.has_visible_hazard(pos):
+		var hazard: Dictionary = HazardManager.active_hazards[pos]
+		var definition: Dictionary = hazard.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "^")
+		var color: Color = definition.get("color", Color.RED)
+		renderer.render_entity(pos, ascii_char, color)
+
+
 ## Auto-pickup items at the player's position
 func _auto_pickup_items() -> void:
 	if not player or not auto_pickup_enabled:
@@ -414,9 +468,12 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
 
-	# Spawn enemies for the new map
-	print("[Game] 3/8 Spawning enemies")
-	_spawn_map_enemies()
+	# Spawn or restore enemies for the new map
+	print("[Game] 3/8 Spawning/restoring enemies")
+	# Try to restore from saved state first (for visited maps)
+	if not EntityManager.restore_entity_states_from_map(MapManager.current_map):
+		# First visit - spawn from metadata
+		_spawn_map_enemies()
 
 	# Load chunks at current player position before rendering
 	# Player position has been set before map transition in input_handler
@@ -550,6 +607,41 @@ func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionar
 
 	_update_hud()
 
+## Called when a combat message is emitted (hazards, traps, etc.)
+func _on_combat_message(message: String, color: Color) -> void:
+	_add_message(message, color)
+
+
+## Called when a feature spawns an enemy (e.g., sarcophagus releasing a skeleton)
+func _on_feature_spawned_enemy(enemy_id: String, spawn_position: Vector2i) -> void:
+	print("[Game] Feature spawned enemy: %s at %v" % [enemy_id, spawn_position])
+	# Find a valid spawn position near the feature (not on the feature itself)
+	var spawn_pos = _find_nearby_spawn_position(spawn_position)
+	if spawn_pos != Vector2i(-1, -1):
+		var enemy = EntityManager.spawn_enemy(enemy_id, spawn_pos)
+		if enemy:
+			_add_message("A %s emerges!" % enemy.name, Color.ORANGE_RED)
+			_render_all_entities()
+	else:
+		push_warning("[Game] Could not find spawn position for feature enemy near %v" % spawn_position)
+
+
+## Find a valid spawn position near a given position
+func _find_nearby_spawn_position(center: Vector2i) -> Vector2i:
+	# Check adjacent tiles for valid spawn position
+	var directions = [
+		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+		Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)
+	]
+	for dir in directions:
+		var pos = center + dir
+		if MapManager.current_map and MapManager.current_map.is_walkable(pos):
+			# Make sure no blocking entity is already there
+			if not EntityManager.get_blocking_entity_at(pos):
+				return pos
+	return Vector2i(-1, -1)
+
+
 ## Called when player dies
 func _on_player_died() -> void:
 	_add_message("", Color.WHITE)  # Blank line
@@ -582,6 +674,8 @@ func _on_death_screen_load_save(slot: int) -> void:
 
 ## Handle return to menu from death screen
 func _on_death_screen_return_to_menu() -> void:
+	# Ensure game is unpaused before transitioning to main menu
+	get_tree().paused = false
 	# Return to main menu
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
@@ -904,16 +998,28 @@ func _spawn_map_enemies() -> void:
 	if not MapManager.current_map:
 		return
 
-	# Spawn enemies from metadata
-	if MapManager.current_map.has_meta("enemy_spawns"):
+	# Spawn enemies from metadata dictionary (used by dungeon generators)
+	if MapManager.current_map.metadata.has("enemy_spawns"):
+		var enemy_spawns = MapManager.current_map.metadata["enemy_spawns"]
+		for spawn_data in enemy_spawns:
+			var enemy_id = spawn_data["enemy_id"]
+			var spawn_pos = spawn_data["position"]
+			EntityManager.spawn_enemy(enemy_id, spawn_pos)
+	# Fallback: check Node meta (used by older overworld generation)
+	elif MapManager.current_map.has_meta("enemy_spawns"):
 		var enemy_spawns = MapManager.current_map.get_meta("enemy_spawns")
 		for spawn_data in enemy_spawns:
 			var enemy_id = spawn_data["enemy_id"]
 			var spawn_pos = spawn_data["position"]
 			EntityManager.spawn_enemy(enemy_id, spawn_pos)
 
-	# Spawn NPCs from metadata
-	if MapManager.current_map.has_meta("npc_spawns"):
+	# Spawn NPCs from metadata dictionary (used by dungeon/town generators)
+	if MapManager.current_map.metadata.has("npc_spawns"):
+		var npc_spawns = MapManager.current_map.metadata["npc_spawns"]
+		for spawn_data in npc_spawns:
+			EntityManager.spawn_npc(spawn_data)
+	# Fallback: check Node meta (used by older generation)
+	elif MapManager.current_map.has_meta("npc_spawns"):
 		var npc_spawns = MapManager.current_map.get_meta("npc_spawns")
 		for spawn_data in npc_spawns:
 			EntityManager.spawn_npc(spawn_data)
@@ -929,6 +1035,35 @@ func _render_all_entities() -> void:
 	var structures = StructureManager.get_structures_on_map(map_id)
 	for structure in structures:
 		renderer.render_entity(structure.position, structure.ascii_char, structure.color)
+
+	# Render dungeon features
+	_render_features()
+
+	# Render dungeon hazards (visible ones only)
+	_render_hazards()
+
+
+## Render dungeon features (chests, altars, etc.)
+func _render_features() -> void:
+	for pos in FeatureManager.active_features:
+		var feature: Dictionary = FeatureManager.active_features[pos]
+		var definition: Dictionary = feature.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "?")
+		var color: Color = definition.get("color", Color.WHITE)
+		renderer.render_entity(pos, ascii_char, color)
+
+
+## Render dungeon hazards (only visible/detected ones)
+func _render_hazards() -> void:
+	for pos in HazardManager.active_hazards:
+		# Only render if hazard is visible (detected or not hidden)
+		if HazardManager.has_visible_hazard(pos):
+			var hazard: Dictionary = HazardManager.active_hazards[pos]
+			var definition: Dictionary = hazard.get("definition", {})
+			var ascii_char: String = definition.get("ascii_char", "^")
+			var color: Color = definition.get("color", Color.RED)
+			renderer.render_entity(pos, ascii_char, color)
+
 
 ## Find a valid spawn position for the player (walkable, not occupied)
 func _find_valid_spawn_position() -> Vector2i:

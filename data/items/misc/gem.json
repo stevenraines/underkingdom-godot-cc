@@ -1,0 +1,11 @@
+{
+	"id": "gem",
+	"name": "Gem",
+	"description": "A precious gemstone that sparkles in the light",
+	"ascii_char": "*",
+	"color": "#00CED1",
+	"weight": 0.1,
+	"value": 50,
+	"stack_size": 10,
+	"item_type": "misc"
+}

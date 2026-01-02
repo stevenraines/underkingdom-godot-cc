@@ -1,0 +1,14 @@
+{
+	"id": "toxic_water",
+	"name": "Toxic Water",
+	"ascii_char": "~",
+	"color": "#32CD32",
+	"hidden": false,
+	"trigger_type": "step",
+	"damage_type": "poison",
+	"base_damage": 5,
+	"one_time": false,
+	"effect": "poison",
+	"duration": 50,
+	"can_disarm": false
+}

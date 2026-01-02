@@ -1,0 +1,114 @@
+{
+  "id": "ancient_fort",
+  "name": "Ancient Fort",
+  "description": "Ruined defensive fortress with concentric walls and defensive structures",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 2,
+    "max": 4
+  },
+
+  "generator_type": "concentric_rings",
+  "generation_params": {
+    "wall_count": 3,
+    "courtyard_size": 15,
+    "keep_size": 8,
+    "gatehouse_positions": 4
+  },
+
+  "tiles": {
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
+  },
+  "lighting": {
+    "base_visibility": 0.7,
+    "torch_radius": 6
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "bandit",
+      "weight": 0.4,
+      "floor_range": [1, 4]
+    },
+    {
+      "enemy_id": "deserter",
+      "weight": 0.3,
+      "floor_range": [1, 4]
+    },
+    {
+      "enemy_id": "ogre",
+      "weight": 0.2,
+      "floor_range": [2, 4]
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "ancient_armor",
+      "chance": 0.2,
+      "count_range": [1, 1]
+    },
+    {
+      "item_id": "historical_artifact",
+      "chance": 0.15,
+      "count_range": [1, 2]
+    },
+    {
+      "item_id": "siege_equipment_part",
+      "chance": 0.1,
+      "count_range": [1, 1]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "siege_weapon",
+      "spawn_chance": 0.15,
+      "room_types": ["battlement"],
+      "usable": true,
+      "damage": 50
+    },
+    {
+      "feature_id": "treasure_vault",
+      "spawn_chance": 0.1,
+      "room_types": ["keep"],
+      "requires_key": true,
+      "loot_multiplier": 3.0
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "arrow_slit",
+      "density": 0.1,
+      "damage": 10,
+      "ranged_attack": true,
+      "cover_blocks": true
+    },
+    {
+      "hazard_id": "crumbling_wall",
+      "density": 0.05,
+      "damage": 20,
+      "creates_rubble": true
+    },
+    {
+      "hazard_id": "portcullis",
+      "density": 0.03,
+      "blocks_path": true,
+      "requires_lever": true
+    }
+  ],
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 1.1,
+    "enemy_count_base": 6,
+    "enemy_count_per_floor": 2.0,
+    "loot_quality_multiplier": 1.3
+  }
+}

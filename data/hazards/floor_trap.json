@@ -1,0 +1,14 @@
+{
+	"id": "floor_trap",
+	"name": "Floor Trap",
+	"ascii_char": "^",
+	"color": "#8B0000",
+	"hidden": true,
+	"trigger_type": "step",
+	"damage_type": "physical",
+	"base_damage": 10,
+	"one_time": true,
+	"can_disarm": true,
+	"detection_difficulty": 12,
+	"disarm_difficulty": 15
+}

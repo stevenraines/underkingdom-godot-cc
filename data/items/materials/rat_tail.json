@@ -1,0 +1,11 @@
+{
+	"id": "rat_tail",
+	"name": "Rat Tail",
+	"description": "A severed rat tail, used in some crafting",
+	"ascii_char": "~",
+	"color": "#808080",
+	"weight": 0.05,
+	"value": 2,
+	"stack_size": 20,
+	"item_type": "material"
+}

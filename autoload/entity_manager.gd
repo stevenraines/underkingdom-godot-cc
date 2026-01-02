@@ -229,3 +229,64 @@ func clear_entities() -> void:
 ## Get entities on current map
 func get_current_map_entities() -> Array[Entity]:
 	return entities.filter(func(e): return e.is_alive)
+
+## Save current entity states to map metadata (for map transitions)
+func save_entity_states_to_map(map: GameMap) -> void:
+	if not map:
+		return
+
+	var saved_enemies: Array = []
+	var saved_items: Array = []
+
+	for entity in entities:
+		if entity is Enemy and entity.is_alive:
+			saved_enemies.append({
+				"enemy_id": entity.entity_id,
+				"position": entity.position,
+				"current_health": entity.current_health,
+				"max_health": entity.max_health
+			})
+		elif entity is GroundItem:
+			saved_items.append({
+				"item_id": entity.item.id if entity.item else "",
+				"item_count": entity.item.stack_size if entity.item else 1,
+				"position": entity.position
+			})
+
+	map.metadata["saved_enemies"] = saved_enemies
+	map.metadata["saved_items"] = saved_items
+	map.metadata["visited"] = true
+	print("EntityManager: Saved %d enemies and %d items to map %s" % [saved_enemies.size(), saved_items.size(), map.map_id])
+
+## Restore entity states from map metadata (for returning to visited maps)
+func restore_entity_states_from_map(map: GameMap) -> bool:
+	if not map:
+		return false
+
+	if not map.metadata.get("visited", false):
+		return false  # Not visited before, use normal spawning
+
+	# Restore enemies
+	var saved_enemies = map.metadata.get("saved_enemies", [])
+	for enemy_data in saved_enemies:
+		var enemy_id = enemy_data.get("enemy_id", "")
+		if enemy_id == "" or not has_enemy_definition(enemy_id):
+			continue
+
+		var enemy = spawn_enemy(enemy_id, enemy_data.get("position", Vector2i.ZERO))
+		if enemy:
+			enemy.current_health = enemy_data.get("current_health", enemy.max_health)
+
+	# Restore ground items
+	var saved_items = map.metadata.get("saved_items", [])
+	for item_data in saved_items:
+		var item_id = item_data.get("item_id", "")
+		if item_id == "":
+			continue
+
+		var item = ItemManager.create_item(item_id, item_data.get("item_count", 1))
+		if item:
+			spawn_ground_item(item, item_data.get("position", Vector2i.ZERO))
+
+	print("EntityManager: Restored %d enemies and %d items from map %s" % [saved_enemies.size(), saved_items.size(), map.map_id])
+	return true

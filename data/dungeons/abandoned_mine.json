@@ -1,0 +1,131 @@
+{
+  "id": "abandoned_mine",
+  "name": "Abandoned Mine",
+  "description": "Grid-like mining tunnels with dangerous shafts and toxic gas",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 20,
+    "max": 40
+  },
+
+  "generator_type": "grid_tunnels",
+  "generation_params": {
+    "tunnel_spacing": 5,
+    "shaft_frequency": 0.2,
+    "support_beam_density": 0.3,
+    "ore_vein_count": 3
+  },
+
+  "tiles": {
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
+  },
+  "lighting": {
+    "base_visibility": 0.4,
+    "torch_radius": 6
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "corrupted_miner",
+      "weight": 0.3,
+      "floor_range": [1, 40]
+    },
+    {
+      "enemy_id": "earth_elemental",
+      "weight": 0.25,
+      "floor_range": [10, 40]
+    },
+    {
+      "enemy_id": "giant_beetle",
+      "weight": 0.2,
+      "floor_range": [5, 40]
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "iron_ore",
+      "chance": 0.5,
+      "count_range": [3, 8]
+    },
+    {
+      "item_id": "copper_ore",
+      "chance": 0.4,
+      "count_range": [5, 10]
+    },
+    {
+      "item_id": "gold_ore",
+      "chance": 0.1,
+      "count_range": [1, 3]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "ore_vein",
+      "spawn_chance": 0.4,
+      "room_types": ["any"],
+      "harvestable": true,
+      "requires_tool": "pickaxe",
+      "yields": "iron_ore"
+    },
+    {
+      "feature_id": "mine_cart",
+      "spawn_chance": 0.15,
+      "room_types": ["tunnel"],
+      "rideable": true,
+      "contains_loot": true
+    },
+    {
+      "feature_id": "support_beam",
+      "spawn_chance": 0.3,
+      "room_types": ["tunnel"],
+      "destructible": true,
+      "causes_collapse": true
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "cave_in",
+      "density": 0.02,
+      "trigger": "explosion",
+      "blocks_path": true,
+      "damage": 30
+    },
+    {
+      "hazard_id": "toxic_gas",
+      "density": 0.05,
+      "damage_per_turn": 2,
+      "reduces_stamina_regen": true
+    },
+    {
+      "hazard_id": "flooded_section",
+      "density": 0.03,
+      "slows_movement": true,
+      "rusts_equipment": true
+    }
+  ],
+
+  "special_rooms": [
+    {
+      "room_type": "foreman_office",
+      "chance": 0.15,
+      "contains": "lore_documents",
+      "has_safe": true
+    }
+  ],
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 1.1,
+    "enemy_count_base": 3,
+    "enemy_count_per_floor": 0.4,
+    "loot_quality_multiplier": 1.3
+  }
+}

@@ -1,0 +1,14 @@
+{
+	"id": "divine_curse",
+	"name": "Divine Curse",
+	"ascii_char": "X",
+	"color": "#FFD700",
+	"hidden": false,
+	"trigger_type": "theft",
+	"damage_type": "divine",
+	"base_damage": 0,
+	"one_time": true,
+	"effect": "curse",
+	"duration": 500,
+	"can_disarm": false
+}

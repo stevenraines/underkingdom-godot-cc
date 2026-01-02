@@ -54,20 +54,158 @@ func attack(target: Entity) -> Dictionary:
 func move(direction: Vector2i) -> bool:
 	var new_pos = position + direction
 
-	# Check if new position is walkable
-	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
-		# Consume stamina for movement (allow move even if depleted, just add fatigue)
-		if survival:
-			if not survival.consume_stamina(survival.STAMINA_COST_MOVE):
-				# Out of stamina - still allow movement but warn player
-				pass
-		
-		var old_pos = position
-		position = new_pos
-		EventBus.player_moved.emit(old_pos, new_pos)
-		return true
+	# Check for blocking features (chests, altars, etc.) - interact instead of moving
+	# Must check this before is_walkable since blocking features make tiles non-walkable
+	if FeatureManager.has_blocking_feature(new_pos):
+		_interact_with_feature_at(new_pos)
+		return true  # Action taken, but didn't move
 
-	return false
+	# Check if new position is walkable
+	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
+		return false
+
+	# Consume stamina for movement (allow move even if depleted, just add fatigue)
+	if survival:
+		if not survival.consume_stamina(survival.STAMINA_COST_MOVE):
+			# Out of stamina - still allow movement but warn player
+			pass
+
+	var old_pos = position
+	position = new_pos
+	EventBus.player_moved.emit(old_pos, new_pos)
+
+	# Check for hazards at new position
+	_check_hazards_at_position(new_pos)
+
+	# Check for non-blocking interactable features at new position (like inscriptions)
+	if FeatureManager.has_interactable_feature(new_pos):
+		var feature = FeatureManager.get_feature_at(new_pos)
+		if not feature.get("definition", {}).get("blocking", false):
+			_interact_with_feature_at(new_pos)
+
+	return true
+
+
+## Check for hazards at the given position
+func _check_hazards_at_position(pos: Vector2i) -> void:
+	# First try to detect hidden hazards based on perception
+	var perception_check = 5 + int(attributes["WIS"] / 2.0)
+	HazardManager.try_detect_hazard(pos, perception_check)
+
+	# Check if hazard triggers
+	var hazard_result = HazardManager.check_hazard_trigger(pos, self)
+	if hazard_result.get("triggered", false):
+		_apply_hazard_damage(hazard_result)
+
+	# Also check proximity hazards (1 tile radius)
+	var proximity_results = HazardManager.check_proximity_hazards(pos, 1, self)
+	for result in proximity_results:
+		_apply_hazard_damage(result)
+
+
+## Apply hazard damage and effects to player
+func _apply_hazard_damage(hazard_result: Dictionary) -> void:
+	print("[Player] Applying hazard damage: %s" % str(hazard_result))
+	var damage: int = hazard_result.get("damage", 0)
+	var hazard_id: String = hazard_result.get("hazard_id", "trap")
+	var damage_type: String = hazard_result.get("damage_type", "physical")
+
+	# Format hazard name for display (replace underscores with spaces)
+	var hazard_display_name = hazard_id.replace("_", " ")
+
+	# Apply damage if any
+	if damage > 0:
+		# Apply armor reduction for physical damage
+		var actual_damage = damage
+		if damage_type == "physical":
+			actual_damage = max(1, damage - get_total_armor())
+
+		take_damage(actual_damage)
+		EventBus.combat_message.emit("You trigger a %s! (%d damage)" % [hazard_display_name, actual_damage], Color.ORANGE_RED)
+	else:
+		# No damage but still stepped into the hazard - notify player
+		EventBus.combat_message.emit("You step into a %s!" % hazard_display_name, Color.ORANGE)
+
+	# Apply status effects from hazard
+	var effects = hazard_result.get("effects", [])
+	for effect in effects:
+		var effect_type = effect.get("type", "")
+		@warning_ignore("unused_variable")
+		var duration = effect.get("duration", 100)
+		match effect_type:
+			"poison":
+				EventBus.combat_message.emit("You are poisoned!", Color.LIME_GREEN)
+				# TODO: Apply poison status effect
+			"slow":
+				EventBus.combat_message.emit("You are slowed!", Color.DARK_BLUE)
+				# TODO: Apply slow status effect
+			"curse":
+				EventBus.combat_message.emit("You are cursed!", Color.PURPLE)
+				# TODO: Apply curse status effect
+			"stat_drain":
+				EventBus.combat_message.emit("You feel your strength draining away!", Color.PURPLE)
+				# TODO: Apply stat drain status effect
+			_:
+				EventBus.combat_message.emit("You are affected by %s!" % effect_type, Color.ORANGE)
+
+
+## Interact with a feature at the player's current position
+func interact_with_feature() -> Dictionary:
+	return _interact_with_feature_at(position)
+
+
+## Interact with a feature at a specific position
+func _interact_with_feature_at(pos: Vector2i) -> Dictionary:
+	print("[Player] Attempting to interact with feature at %v" % pos)
+	# Check if there's an interactable feature at position
+	if not FeatureManager.has_interactable_feature(pos):
+		print("[Player] No interactable feature at %v" % pos)
+		return {"success": false, "message": "Nothing to interact with here."}
+
+	var result = FeatureManager.interact_with_feature(pos)
+
+	# Show message to player
+	if result.has("message"):
+		EventBus.combat_message.emit(result.message, Color.GOLD)
+
+	# Process effects
+	if result.get("success", false):
+		for effect in result.get("effects", []):
+			match effect.get("type"):
+				"loot":
+					_collect_feature_loot(effect.get("items", []))
+				"summon_enemy":
+					# Enemy spawning handled by EntityManager via signal
+					pass
+				"blessing":
+					var amount = effect.get("amount", 10)
+					heal(amount)
+					EventBus.combat_message.emit("You feel blessed! (+%d HP)" % amount, Color.GOLD)
+				"hint":
+					EventBus.message_logged.emit(effect.get("text", ""))
+
+	return result
+
+
+## Collect loot from a feature
+func _collect_feature_loot(items: Array) -> void:
+	for item_data in items:
+		var item_id = item_data.get("item_id", "")
+		var count = item_data.get("count", 1)
+
+		if item_id == "gold_coins":
+			gold += count
+			EventBus.message_logged.emit("Found %d gold!" % count)
+		else:
+			var item = ItemManager.create_item(item_id, count)
+			if item and inventory:
+				if inventory.add_item(item):
+					EventBus.item_picked_up.emit(item)
+				else:
+					# Inventory full - drop on ground
+					var ground_item = GroundItem.create(item, position)
+					EntityManager.add_entity(ground_item)
+					EventBus.message_logged.emit("Inventory full! Item dropped.")
 
 ## Process survival systems for a turn
 func process_survival_turn(turn_number: int) -> Dictionary:
@@ -156,7 +294,14 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 				return
 		# For stairs_up in dungeons, search tiles normally (handled below)
 
-	# For non-chunk-based maps (dungeons), search the tiles
+	# For non-chunk-based maps (dungeons), check metadata first for stairs position
+	if MapManager.current_map.metadata.has(stairs_type):
+		position = MapManager.current_map.metadata[stairs_type]
+		print("Player positioned at ", stairs_type, " from metadata: ", position)
+		EventBus.player_moved.emit(old_pos, position)
+		return
+
+	# Fallback: search the tiles
 	# Limit search to actual map bounds
 	var search_width = min(MapManager.current_map.width, 100)
 	var search_height = min(MapManager.current_map.height, 100)

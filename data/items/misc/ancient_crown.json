@@ -1,0 +1,11 @@
+{
+	"id": "ancient_crown",
+	"name": "Ancient Crown",
+	"description": "A tarnished crown from a long-dead king, still radiating power",
+	"ascii_char": "^",
+	"color": "#FFD700",
+	"weight": 1.0,
+	"value": 500,
+	"stack_size": 1,
+	"item_type": "misc"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "cave_ooze",
+  "name": "Cave Ooze",
+  "ascii_char": "o",
+  "ascii_color": "#32CD32",
+  "stats": {
+    "health": 25,
+    "str": 8,
+    "dex": 4,
+    "con": 16,
+    "int": 1,
+    "wis": 4,
+    "cha": 1
+  },
+  "yields": [
+    {"item_id": "ooze_residue", "min_count": 1, "max_count": 2, "chance": 0.8}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 3,
+  "armor": 0,
+  "loot_table": "ooze_common",
+  "xp_value": 25,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 80,
+  "min_spawn_level": 10,
+  "max_spawn_level": 40
+}

@@ -1,0 +1,162 @@
+{
+  "id": "burial_barrow",
+  "name": "Burial Barrow",
+  "description": "An ancient tomb filled with restless undead",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 10,
+    "max": 20
+  },
+
+  "generator_type": "rectangular_rooms",
+  "generation_params": {
+    "room_count_range": [5, 8],
+    "room_size_range": [3, 8],
+    "corridor_width": 1,
+    "connectivity": 0.7
+  },
+
+  "tiles": {
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
+  },
+  "lighting": {
+    "base_visibility": 0.3,
+    "torch_radius": 5
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "rat",
+      "weight": 0.6,
+      "floor_range": [1, 5]
+    },
+    {
+      "enemy_id": "skeleton",
+      "weight": 0.4,
+      "floor_range": [1, 10]
+    },
+    {
+      "enemy_id": "wight",
+      "weight": 0.3,
+      "floor_range": [5, 20]
+    },
+    {
+      "enemy_id": "barrow_wight",
+      "weight": 0.2,
+      "floor_range": [10, 20]
+    },
+    {
+      "enemy_id": "barrow_lord",
+      "weight": 1.0,
+      "floor_range": [20, 20],
+      "max_per_floor": 1
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "ancient_gold",
+      "chance": 0.3,
+      "count_range": [10, 50]
+    },
+    {
+      "item_id": "cursed_sword",
+      "chance": 0.05,
+      "count_range": [1, 1]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "sarcophagus",
+      "spawn_chance": 0.3,
+      "room_types": ["large", "end"],
+      "contains_loot": true,
+      "summons_enemy": "skeleton"
+    },
+    {
+      "feature_id": "treasure_chest",
+      "spawn_chance": 0.15,
+      "room_types": ["end"],
+      "loot_table": "ancient_treasure"
+    },
+    {
+      "feature_id": "tomb_inscription",
+      "spawn_chance": 0.2,
+      "room_types": ["any"],
+      "provides_hint": true
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "floor_trap",
+      "density": 0.01,
+      "damage": 10,
+      "detection_difficulty": 15
+    },
+    {
+      "hazard_id": "curse_zone",
+      "density": 0.005,
+      "effect": "stat_drain",
+      "duration": 100
+    },
+    {
+      "hazard_id": "collapsing_ceiling",
+      "density": 0.003,
+      "trigger": "pressure_plate",
+      "damage": 20
+    }
+  ],
+
+  "special_rooms": [
+    {
+      "room_type": "crypt",
+      "chance": 0.2,
+      "contains": "boss_enemy",
+      "loot_multiplier": 2.0
+    },
+    {
+      "room_type": "treasure_chamber",
+      "chance": 0.1,
+      "requires": "key_item",
+      "loot_multiplier": 3.0
+    }
+  ],
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 1.0,
+    "enemy_count_base": 3,
+    "enemy_count_per_floor": 0.5,
+    "loot_quality_multiplier": 1.2
+  },
+
+  "hints": [
+    "Beware the darkness below...",
+    "The treasure lies beyond the guardian.",
+    "Only the worthy may pass.",
+    "Death awaits the unprepared.",
+    "Seek the light in the deepest dark.",
+    "The barrow lord slumbers in the depths.",
+    "Ancient curses protect these halls.",
+    "Those who disturb the dead shall join them.",
+    "The wights remember what they were.",
+    "Gold means nothing to the restless dead.",
+    "Fire is the bane of the undead.",
+    "The deeper you go, the stronger they become.",
+    "Some doors are better left unopened.",
+    "Listen for the scraping of bone on stone.",
+    "The cold grows stronger as you descend.",
+    "Trust not the shadows that move.",
+    "Ancient kings lie buried here.",
+    "Their treasures are cursed, yet men still seek them.",
+    "The stairs lead ever downward.",
+    "Turn back while you still can."
+  ]
+}

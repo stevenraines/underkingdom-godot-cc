@@ -1,0 +1,9 @@
+{
+	"id": "rat_common",
+	"name": "Rat Common Loot",
+	"description": "Common drops from rats",
+	"drops": [
+		{"item_id": "rat_tail", "min_count": 1, "max_count": 1, "chance": 0.5},
+		{"item_id": "raw_meat", "min_count": 1, "max_count": 1, "chance": 0.3}
+	]
+}

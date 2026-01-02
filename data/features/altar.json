@@ -1,0 +1,10 @@
+{
+	"id": "altar",
+	"name": "Altar",
+	"ascii_char": "_",
+	"color": "#FFFFFF",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "pray at",
+	"can_grant_blessing": true
+}

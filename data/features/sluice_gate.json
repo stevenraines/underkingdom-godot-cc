@@ -1,0 +1,10 @@
+{
+	"id": "sluice_gate",
+	"name": "Sluice Gate",
+	"ascii_char": "#",
+	"color": "#A9A9A9",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "operate",
+	"toggleable": true
+}

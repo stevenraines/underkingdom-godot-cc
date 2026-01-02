@@ -1,0 +1,169 @@
+{
+  "id": "sewers",
+  "name": "Sewers",
+  "description": "Underground waste system beneath the town with toxic water and disease",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 5,
+    "max": 10
+  },
+
+  "generator_type": "winding_tunnels",
+  "generation_params": {
+    "tunnel_width": 3,
+    "channel_width": 1,
+    "platform_frequency": 0.3,
+    "branching_factor": 0.4
+  },
+
+  "tiles": {
+    "wall": "wall",
+    "floor": "floor",
+    "door": "door"
+  },
+  "lighting": {
+    "base_visibility": 0.3,
+    "torch_radius": 5
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "rat_swarm",
+      "weight": 0.4,
+      "floor_range": [1, 10]
+    },
+    {
+      "enemy_id": "sewer_ooze",
+      "weight": 0.25,
+      "floor_range": [2, 10]
+    },
+    {
+      "enemy_id": "crocodile",
+      "weight": 0.15,
+      "floor_range": [5, 10]
+    },
+    {
+      "enemy_id": "criminal",
+      "weight": 0.1,
+      "floor_range": [1, 10]
+    },
+    {
+      "enemy_id": "plague_victim",
+      "weight": 0.1,
+      "floor_range": [3, 10]
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "lost_valuables",
+      "chance": 0.3,
+      "count_range": [10, 30]
+    },
+    {
+      "item_id": "smuggled_goods",
+      "chance": 0.2,
+      "count_range": [1, 3]
+    },
+    {
+      "item_id": "alchemical_waste",
+      "chance": 0.15,
+      "count_range": [1, 2]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "sluice_gate",
+      "spawn_chance": 0.2,
+      "room_types": ["junction"],
+      "controllable": true,
+      "redirects_water_flow": true
+    },
+    {
+      "feature_id": "rat_nest",
+      "spawn_chance": 0.25,
+      "room_types": ["alcove"],
+      "spawns_enemies": true,
+      "destroyable": true
+    },
+    {
+      "feature_id": "drainage_grate",
+      "spawn_chance": 0.15,
+      "room_types": ["main_tunnel"],
+      "connects_to_surface": true,
+      "provides_escape": true
+    },
+    {
+      "feature_id": "smuggler_cache",
+      "spawn_chance": 0.1,
+      "room_types": ["side_chamber"],
+      "contains_loot": true,
+      "hidden": true
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "toxic_water",
+      "density": 0.3,
+      "damage_per_turn": 1,
+      "causes_disease": true,
+      "slows_movement": 0.5
+    },
+    {
+      "hazard_id": "disease_zone",
+      "density": 0.08,
+      "effect": "plague",
+      "duration": 500,
+      "contagious": true
+    },
+    {
+      "hazard_id": "explosive_gas",
+      "density": 0.04,
+      "trigger": "fire",
+      "damage": 25,
+      "area_of_effect": 3
+    },
+    {
+      "hazard_id": "sudden_flood",
+      "density": 0.02,
+      "trigger": "sluice_gate",
+      "sweeps_entities": true,
+      "damage": 15
+    }
+  ],
+
+  "special_rooms": [
+    {
+      "room_type": "junction_chamber",
+      "chance": 0.2,
+      "contains": "multiple_sluice_gates",
+      "puzzle_element": true
+    },
+    {
+      "room_type": "abandoned_hideout",
+      "chance": 0.15,
+      "contains": "criminal_npcs",
+      "trade_available": true
+    }
+  ],
+
+  "environmental_effects": {
+    "foul_odor": true,
+    "poor_visibility": 0.6,
+    "dampness": 0.9,
+    "echo_chamber": true
+  },
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 0.9,
+    "enemy_count_base": 5,
+    "enemy_count_per_floor": 0.8,
+    "loot_quality_multiplier": 1.1
+  }
+}

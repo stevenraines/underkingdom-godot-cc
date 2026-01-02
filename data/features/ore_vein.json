@@ -1,0 +1,10 @@
+{
+	"id": "ore_vein",
+	"name": "Ore Vein",
+	"ascii_char": "%",
+	"color": "#FFA500",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "mine",
+	"harvestable": true
+}

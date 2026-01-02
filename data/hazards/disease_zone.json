@@ -1,0 +1,15 @@
+{
+	"id": "disease_zone",
+	"name": "Disease Zone",
+	"ascii_char": ".",
+	"color": "#6B8E23",
+	"hidden": false,
+	"trigger_type": "proximity",
+	"proximity_radius": 1,
+	"damage_type": "disease",
+	"base_damage": 0,
+	"one_time": true,
+	"effect": "disease",
+	"duration": 200,
+	"can_disarm": false
+}

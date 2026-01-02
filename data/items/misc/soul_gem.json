@@ -1,0 +1,11 @@
+{
+	"id": "soul_gem",
+	"name": "Soul Gem",
+	"description": "A dark gem that pulses with trapped souls",
+	"ascii_char": "*",
+	"color": "#8B008B",
+	"weight": 0.2,
+	"value": 200,
+	"stack_size": 5,
+	"item_type": "misc"
+}

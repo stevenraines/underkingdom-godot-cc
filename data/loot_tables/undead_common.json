@@ -1,0 +1,11 @@
+{
+	"id": "undead_common",
+	"name": "Undead Common Loot",
+	"description": "Common drops from undead creatures like skeletons and wights",
+	"drops": [
+		{"item_id": "bone", "min_count": 1, "max_count": 3, "chance": 0.8},
+		{"item_id": "gold_coin", "min_count": 1, "max_count": 10, "chance": 0.3},
+		{"item_id": "rusty_sword", "min_count": 1, "max_count": 1, "chance": 0.1},
+		{"item_id": "tattered_cloth", "min_count": 1, "max_count": 2, "chance": 0.4}
+	]
+}

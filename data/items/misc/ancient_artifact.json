@@ -1,0 +1,11 @@
+{
+	"id": "ancient_artifact",
+	"name": "Ancient Artifact",
+	"description": "A mysterious relic from a forgotten age, valuable to collectors",
+	"ascii_char": "*",
+	"color": "#FFD700",
+	"weight": 0.5,
+	"value": 100,
+	"stack_size": 1,
+	"item_type": "misc"
+}

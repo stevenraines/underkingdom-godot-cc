@@ -1,0 +1,28 @@
+{
+  "id": "magical_construct",
+  "name": "Magical Construct",
+  "ascii_char": "A",
+  "ascii_color": "#9370DB",
+  "stats": {
+    "health": 30,
+    "str": 14,
+    "dex": 10,
+    "con": 16,
+    "int": 10,
+    "wis": 10,
+    "cha": 4
+  },
+  "yields": [
+    {"item_id": "magic_core", "min_count": 1, "max_count": 1, "chance": 0.5},
+    {"item_id": "arcane_dust", "min_count": 1, "max_count": 3, "chance": 0.8}
+  ],
+  "behavior": "guardian",
+  "base_damage": 7,
+  "armor": 4,
+  "loot_table": "construct_common",
+  "xp_value": 45,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 120,
+  "min_spawn_level": 1,
+  "max_spawn_level": 25
+}

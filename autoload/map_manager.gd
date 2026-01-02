@@ -13,14 +13,16 @@ func _ready() -> void:
 	print("MapManager initialized")
 
 ## Get or generate a map by ID
-func get_or_generate_map(map_id: String, seed: int) -> GameMap:
+func get_or_generate_map(map_id: String, world_seed: int) -> GameMap:
 	# Check cache first
 	if map_id in loaded_maps:
-		print("Loading cached map: ", map_id)
-		return loaded_maps[map_id]
+		var cached_map = loaded_maps[map_id]
+		print("Loading cached map: %s (internal map_id=%s, tiles=%d)" % [map_id, cached_map.map_id, cached_map.tiles.size()])
+		return cached_map
 
 	# Generate new map
-	var map = _generate_map(map_id, seed)
+	var map = _generate_map(map_id, world_seed)
+	print("Generated new map: %s (internal map_id=%s, tiles=%d)" % [map_id, map.map_id, map.tiles.size()])
 	loaded_maps[map_id] = map
 	return map
 
@@ -37,28 +39,70 @@ func transition_to_map(map_id: String) -> void:
 		current_map.chunk_based = false
 		ChunkManager.enable_chunk_mode(map_id, GameManager.world_seed)
 
+	# Load features and hazards into their managers for dungeon maps
+	# Map IDs follow format: dungeon_id_floor_N (e.g., burial_barrow_floor_1)
+	var is_dungeon = "_floor_" in map_id or current_map.metadata.has("floor_number")
+	if is_dungeon:
+		_load_features_and_hazards(current_map)
+
 	EventBus.map_changed.emit(map_id)
 	print("Transitioned to map: ", map_id)
 
+
+## Load features and hazards from map metadata into managers
+func _load_features_and_hazards(map: GameMap) -> void:
+	print("[MapManager] Loading features/hazards for: %s" % map.map_id)
+	print("[MapManager] Map metadata keys: %s" % str(map.metadata.keys()))
+	print("[MapManager] pending_features: %d" % map.metadata.get("pending_features", []).size())
+	print("[MapManager] pending_hazards: %d" % map.metadata.get("pending_hazards", []).size())
+
+	# Load dungeon hints from dungeon definition
+	var dungeon_id: String = map.metadata.get("dungeon_id", "")
+	if not dungeon_id.is_empty():
+		var hints: Array = _load_dungeon_hints(dungeon_id)
+		FeatureManager.set_dungeon_hints(hints)
+
+	FeatureManager.load_features_from_map(map)
+	HazardManager.load_hazards_from_map(map)
+	print("[MapManager] After loading - active_features: %d, active_hazards: %d" % [FeatureManager.active_features.size(), HazardManager.active_hazards.size()])
+
+
+## Load hints from a dungeon definition file
+func _load_dungeon_hints(dungeon_id: String) -> Array:
+	var file_path = "res://data/dungeons/%s.json" % dungeon_id
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_warning("[MapManager] Failed to load dungeon definition: %s" % file_path)
+		return []
+
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	if error != OK:
+		push_warning("[MapManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
+		return []
+
+	var data: Dictionary = json.data
+	return data.get("hints", [])
+
 ## Generate a map based on its ID
-func _generate_map(map_id: String, seed: int) -> GameMap:
+func _generate_map(map_id: String, world_seed: int) -> GameMap:
 	if map_id == "overworld":
 		# For overworld, create empty map shell - chunks generated on demand
 		print("[MapManager] Creating chunk-based overworld map")
-		var map = GameMap.new("overworld", 10000, 10000, seed)  # Virtually infinite bounds
+		var map = GameMap.new("overworld", 10000, 10000, world_seed)  # Virtually infinite bounds
 		map.chunk_based = true
 
 		# Note: Terrain generation happens in ChunkManager on demand
 		# Use SpecialFeaturePlacer to find suitable biome-based locations for special features
 
 		# Place town first in suitable biome (grassland, woodland)
-		var town_pos = SpecialFeaturePlacer.place_town(seed)
+		var town_pos = SpecialFeaturePlacer.place_town(world_seed)
 
 		# Place dungeon entrance 10-20 tiles from town in suitable biome
-		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(seed, town_pos)
+		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(world_seed, town_pos)
 
 		# Place player spawn just outside town (10 tiles away, opposite from dungeon)
-		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos, seed)
+		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos, world_seed)
 
 		# Store special positions in map metadata
 		# ChunkManager will check these and place actual tiles when chunks load
@@ -85,11 +129,11 @@ func _generate_map(map_id: String, seed: int) -> GameMap:
 		# Extract floor number from map_id
 		var floor_str = map_id.replace("dungeon_barrow_floor_", "")
 		var floor_number = int(floor_str)
-		return BurialBarrowGenerator.generate_floor(seed, floor_number)
+		return BurialBarrowGenerator.generate_floor(world_seed, floor_number)
 	else:
 		push_error("Unknown map ID: " + map_id)
 		# Return empty map as fallback
-		return GameMap.new(map_id, 50, 50, seed)
+		return GameMap.new(map_id, 50, 50, world_seed)
 
 ## Descend to next dungeon floor
 func descend_dungeon() -> void:

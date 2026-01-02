@@ -1,0 +1,13 @@
+{
+	"id": "collapsing_ceiling",
+	"name": "Collapsing Ceiling",
+	"ascii_char": "!",
+	"color": "#808080",
+	"hidden": true,
+	"trigger_type": "pressure_plate",
+	"damage_type": "physical",
+	"base_damage": 20,
+	"can_disarm": false,
+	"one_time": true,
+	"detection_difficulty": 18
+}

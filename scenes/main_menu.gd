@@ -16,6 +16,9 @@ const UNSELECT_COLOR: Color = Color(0.7, 0.7, 0.7, 1)
 
 func _ready() -> void:
 	print("Main menu loaded")
+	# Ensure game is not paused (in case we came from death screen or other paused state)
+	get_tree().paused = false
+
 	# Load ASCII art from file into Title RichTextLabel
 	var logo_path := "res://ui/underkingdom_logo.txt"
 	if FileAccess.file_exists(logo_path):

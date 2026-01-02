@@ -1,0 +1,11 @@
+{
+	"id": "ancient_scroll",
+	"name": "Ancient Scroll",
+	"description": "A brittle scroll covered in faded writing",
+	"ascii_char": "?",
+	"color": "#DEB887",
+	"weight": 0.1,
+	"value": 75,
+	"stack_size": 5,
+	"item_type": "misc"
+}

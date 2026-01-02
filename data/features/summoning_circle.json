@@ -1,0 +1,10 @@
+{
+	"id": "summoning_circle",
+	"name": "Summoning Circle",
+	"ascii_char": "*",
+	"color": "#800080",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "examine",
+	"can_summon_enemy": true
+}

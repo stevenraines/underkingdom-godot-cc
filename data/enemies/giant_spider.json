@@ -1,0 +1,28 @@
+{
+  "id": "giant_spider",
+  "name": "Giant Spider",
+  "ascii_char": "S",
+  "ascii_color": "#800080",
+  "stats": {
+    "health": 16,
+    "str": 10,
+    "dex": 14,
+    "con": 10,
+    "int": 3,
+    "wis": 10,
+    "cha": 2
+  },
+  "yields": [
+    {"item_id": "spider_silk", "min_count": 1, "max_count": 3, "chance": 0.7},
+    {"item_id": "venom_sac", "min_count": 1, "max_count": 1, "chance": 0.3}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 4,
+  "armor": 1,
+  "loot_table": "spider_common",
+  "xp_value": 20,
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 100,
+  "min_spawn_level": 5,
+  "max_spawn_level": 35
+}

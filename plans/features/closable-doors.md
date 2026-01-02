@@ -14,4 +14,6 @@ The player, NPCs, and some enemies should be able to open or close doors.
 * A door can't be closed if something is occupying that space.
 * Closed doors block the player from seeing what is on the other side.
 
+Enhance any dungeon that is generated with rooms to include doors for rooms (some of the time.) 
+
 

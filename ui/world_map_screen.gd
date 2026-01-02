@@ -8,14 +8,15 @@ extends Control
 signal closed
 
 const CELL_SIZE: int = 2  # Each pixel represents 2x2 tiles (more detail)
-const MAP_DISPLAY_SIZE: int = 400  # Size of the map display in pixels
 
 var map_image: Image
 var map_texture: ImageTexture
 var is_open: bool = false
+var map_display_size: int = 400  # Will be calculated dynamically
 
-@onready var map_rect: TextureRect = $Panel/VBoxContainer/MapContainer/MapRect
-@onready var legend_container: VBoxContainer = $Panel/VBoxContainer/LegendContainer
+@onready var map_rect: TextureRect = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer/MapRect
+@onready var map_container: CenterContainer = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer
+@onready var legend_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel/SidebarMargin/SidebarVBox/LegendContainer
 
 func _ready() -> void:
 	visible = false
@@ -24,8 +25,20 @@ func _ready() -> void:
 func open() -> void:
 	visible = true
 	is_open = true
+	# Wait a frame for layout to calculate container sizes
+	await get_tree().process_frame
+	_calculate_map_size()
 	_generate_map_image()
 	_populate_legend()
+
+
+func _calculate_map_size() -> void:
+	# Get available space from container
+	var container_size = map_container.size
+	# Use minimum of width/height for square map, leave some padding
+	map_display_size = int(min(container_size.x, container_size.y)) - 20
+	# Clamp to reasonable bounds
+	map_display_size = clampi(map_display_size, 200, 800)
 
 
 func close() -> void:
@@ -49,7 +62,7 @@ func _generate_map_image() -> void:
 		return
 
 	# Create a new image for the map
-	map_image = Image.create(MAP_DISPLAY_SIZE, MAP_DISPLAY_SIZE, false, Image.FORMAT_RGBA8)
+	map_image = Image.create(map_display_size, map_display_size, false, Image.FORMAT_RGBA8)
 	map_image.fill(Color(0.1, 0.1, 0.15, 1.0))  # Dark background
 
 	# Get special feature positions
@@ -60,15 +73,15 @@ func _generate_map_image() -> void:
 	# Calculate the center of our view (centered on player or town)
 	var center_pos = player_pos if player_pos != Vector2i(-1, -1) else town_pos
 	if center_pos == Vector2i(-1, -1):
-		center_pos = Vector2i(MAP_DISPLAY_SIZE * CELL_SIZE / 2, MAP_DISPLAY_SIZE * CELL_SIZE / 2)
+		center_pos = Vector2i(map_display_size * CELL_SIZE / 2, map_display_size * CELL_SIZE / 2)
 
 	# Calculate world bounds we're displaying
-	var half_world_size = (MAP_DISPLAY_SIZE * CELL_SIZE) / 2
+	var half_world_size = (map_display_size * CELL_SIZE) / 2
 	var world_min = center_pos - Vector2i(half_world_size, half_world_size)
 
 	# Draw biome colors
-	for py in range(MAP_DISPLAY_SIZE):
-		for px in range(MAP_DISPLAY_SIZE):
+	for py in range(map_display_size):
+		for px in range(map_display_size):
 			var world_x = world_min.x + px * CELL_SIZE
 			var world_y = world_min.y + py * CELL_SIZE
 
@@ -111,7 +124,7 @@ func _draw_marker(center: Vector2i, color: Color, radius: int) -> void:
 		for dx in range(-radius, radius + 1):
 			var px = center.x + dx
 			var py = center.y + dy
-			if px >= 0 and px < MAP_DISPLAY_SIZE and py >= 0 and py < MAP_DISPLAY_SIZE:
+			if px >= 0 and px < map_display_size and py >= 0 and py < map_display_size:
 				if dx * dx + dy * dy <= radius * radius:
 					map_image.set_pixel(px, py, color)
 
@@ -124,7 +137,7 @@ func _draw_marker_outline(center: Vector2i, color: Color, radius: int) -> void:
 			if dist_sq > radius * radius and dist_sq <= outer_radius * outer_radius:
 				var px = center.x + dx
 				var py = center.y + dy
-				if px >= 0 and px < MAP_DISPLAY_SIZE and py >= 0 and py < MAP_DISPLAY_SIZE:
+				if px >= 0 and px < map_display_size and py >= 0 and py < map_display_size:
 					map_image.set_pixel(px, py, color)
 
 

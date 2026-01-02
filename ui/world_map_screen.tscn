@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://bmap_screen"]
+[gd_scene load_steps=5 format=3 uid="uid://bmap_screen"]
 
 [ext_resource type="Script" uid="uid://dmworldmap1" path="res://ui/world_map_screen.gd" id="1_map"]
 [ext_resource type="Theme" uid="uid://c7q6510one1wh" path="res://ui/themes/Underkingdom.tres" id="2_theme"]
@@ -14,6 +14,11 @@ corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sidebar"]
+bg_color = Color(0.06, 0.06, 0.1, 0.9)
+border_width_left = 1
+border_color = Color(0.4, 0.5, 0.6, 0.5)
 
 [node name="WorldMapScreen" type="Control"]
 layout_mode = 3
@@ -39,68 +44,101 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = 40.0
-offset_right = -40.0
-offset_bottom = -40.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_theme")
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 10
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
-[node name="Header" type="Label" parent="Panel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 theme_override_font_sizes/font_size = 20
 text = "WORLD MAP"
 horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="Panel/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="MapContainer" type="CenterContainer" parent="Panel/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="MapRect" type="TextureRect" parent="Panel/VBoxContainer/MapContainer"]
-custom_minimum_size = Vector2(400, 400)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 2
-
-[node name="HSeparator2" type="HSeparator" parent="Panel/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="LegendLabel" type="Label" parent="Panel/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 14
-text = "Legend:"
-
-[node name="LegendContainer" type="VBoxContainer" parent="Panel/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="HSeparator3" type="HSeparator" parent="Panel/VBoxContainer"]
+[node name="ContentHBox" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 5
+size_flags_vertical = 3
+theme_override_constants/separation = 15
 
-[node name="Footer" type="Label" parent="Panel/VBoxContainer"]
+[node name="MapContainer" type="CenterContainer" parent="Panel/MarginContainer/VBoxContainer/ContentHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MapRect" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SidebarPanel" type="Panel" parent="Panel/MarginContainer/VBoxContainer/ContentHBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_sidebar")
+
+[node name="SidebarMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="SidebarVBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel/SidebarMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LegendLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel/SidebarMargin/SidebarVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Legend"
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel/SidebarMargin/SidebarVBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LegendContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel/SidebarMargin/SidebarVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Footer" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 12

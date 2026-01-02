@@ -16,11 +16,13 @@ func _ready() -> void:
 func get_or_generate_map(map_id: String, seed: int) -> GameMap:
 	# Check cache first
 	if map_id in loaded_maps:
-		print("Loading cached map: ", map_id)
-		return loaded_maps[map_id]
+		var cached_map = loaded_maps[map_id]
+		print("Loading cached map: %s (internal map_id=%s, tiles=%d)" % [map_id, cached_map.map_id, cached_map.tiles.size()])
+		return cached_map
 
 	# Generate new map
 	var map = _generate_map(map_id, seed)
+	print("Generated new map: %s (internal map_id=%s, tiles=%d)" % [map_id, map.map_id, map.tiles.size()])
 	loaded_maps[map_id] = map
 	return map
 

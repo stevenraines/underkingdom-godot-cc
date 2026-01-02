@@ -1,0 +1,127 @@
+{
+  "id": "natural_cave",
+  "name": "Natural Cave",
+  "description": "Organic underground caverns formed by natural erosion",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 15,
+    "max": 30
+  },
+
+  "generator_type": "cellular_automata",
+  "generation_params": {
+    "fill_probability": 0.45,
+    "birth_limit": 4,
+    "death_limit": 3,
+    "iteration_count": 5,
+    "smoothing_passes": 2
+  },
+
+  "tiles": {
+    "wall": "cave_wall",
+    "floor": "cave_floor",
+    "door": "none"
+  },
+  "lighting": {
+    "base_visibility": 0.2,
+    "torch_radius": 4
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "cave_bat",
+      "weight": 0.3,
+      "floor_range": [1, 30]
+    },
+    {
+      "enemy_id": "giant_spider",
+      "weight": 0.25,
+      "floor_range": [5, 30]
+    },
+    {
+      "enemy_id": "cave_ooze",
+      "weight": 0.2,
+      "floor_range": [10, 30]
+    },
+    {
+      "enemy_id": "cave_bear",
+      "weight": 0.15,
+      "floor_range": [15, 30]
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "crystal_shard",
+      "chance": 0.25,
+      "count_range": [1, 3]
+    },
+    {
+      "item_id": "cave_mushroom",
+      "chance": 0.4,
+      "count_range": [2, 5]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "crystal_formation",
+      "spawn_chance": 0.25,
+      "room_types": ["large"],
+      "provides_light": true,
+      "harvestable": true
+    },
+    {
+      "feature_id": "underground_lake",
+      "spawn_chance": 0.15,
+      "room_types": ["large"],
+      "contains": "water_enemies",
+      "source_of_water": true
+    },
+    {
+      "feature_id": "mushroom_patch",
+      "spawn_chance": 0.2,
+      "room_types": ["any"],
+      "harvestable": true,
+      "poisons_on_damage": true
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "pitfall",
+      "density": 0.03,
+      "damage": 15,
+      "falls_to_lower_floor": true
+    },
+    {
+      "hazard_id": "unstable_ground",
+      "density": 0.04,
+      "trigger": "weight",
+      "creates_pitfall": true
+    },
+    {
+      "hazard_id": "darkness_zone",
+      "density": 0.1,
+      "reduces_vision": 0.5,
+      "permanent": true
+    }
+  ],
+
+  "environmental_effects": {
+    "ambient_darkness": true,
+    "echo_sound": true,
+    "dampness": 0.8
+  },
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 0.9,
+    "enemy_count_base": 4,
+    "enemy_count_per_floor": 0.3,
+    "loot_quality_multiplier": 1.0
+  }
+}

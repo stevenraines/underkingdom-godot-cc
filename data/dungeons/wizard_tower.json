@@ -1,0 +1,132 @@
+{
+  "id": "wizard_tower",
+  "name": "Wizard Tower",
+  "description": "Vertical tower filled with magical research and arcane dangers",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 10,
+    "max": 15
+  },
+
+  "generator_type": "circular_floors",
+  "generation_params": {
+    "floor_radius": 12,
+    "room_segments": 6,
+    "spiral_staircase": true,
+    "lab_room_chance": 0.4
+  },
+
+  "tiles": {
+    "wall": "stone_wall",
+    "floor": "marble_floor",
+    "door": "arcane_door"
+  },
+  "lighting": {
+    "base_visibility": 0.5,
+    "torch_radius": 8
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "magical_construct",
+      "weight": 0.3,
+      "floor_range": [1, 15]
+    },
+    {
+      "enemy_id": "summoned_demon",
+      "weight": 0.25,
+      "floor_range": [5, 15]
+    },
+    {
+      "enemy_id": "rogue_spell",
+      "weight": 0.2,
+      "floor_range": [1, 15]
+    },
+    {
+      "enemy_id": "wizard",
+      "weight": 0.15,
+      "floor_range": [10, 15]
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "spell_scroll",
+      "chance": 0.3,
+      "count_range": [1, 3]
+    },
+    {
+      "item_id": "magic_component",
+      "chance": 0.4,
+      "count_range": [2, 5]
+    },
+    {
+      "item_id": "enchanted_staff",
+      "chance": 0.1,
+      "count_range": [1, 1]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "summoning_circle",
+      "spawn_chance": 0.2,
+      "room_types": ["lab"],
+      "spawns_demons": true,
+      "destroyable": true
+    },
+    {
+      "feature_id": "enchantment_table",
+      "spawn_chance": 0.25,
+      "room_types": ["lab"],
+      "allows_enchanting": true,
+      "requires_components": true
+    },
+    {
+      "feature_id": "spell_scroll_shelf",
+      "spawn_chance": 0.3,
+      "room_types": ["library"],
+      "contains_loot": true,
+      "loot_type": "scrolls"
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "magical_ward",
+      "density": 0.08,
+      "damage": 15,
+      "element": "arcane",
+      "dispellable": true
+    },
+    {
+      "hazard_id": "dimensional_rift",
+      "density": 0.03,
+      "teleports_randomly": true,
+      "summons_enemies": true
+    },
+    {
+      "hazard_id": "wild_magic_zone",
+      "density": 0.05,
+      "random_spell_effects": true,
+      "unpredictable": true
+    }
+  ],
+
+  "environmental_effects": {
+    "ambient_magic": 0.8,
+    "levitation": 0.2,
+    "time_distortion": 0.1
+  },
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 1.3,
+    "enemy_count_base": 3,
+    "enemy_count_per_floor": 0.6,
+    "loot_quality_multiplier": 1.5
+  }
+}

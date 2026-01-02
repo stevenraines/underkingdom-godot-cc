@@ -1,0 +1,130 @@
+{
+  "id": "temple_ruins",
+  "name": "Temple Ruins",
+  "description": "Forgotten sacred site with symmetrical architecture and divine guardians",
+
+  "map_size": {
+    "width": 50,
+    "height": 50
+  },
+  "floor_count": {
+    "min": 8,
+    "max": 12
+  },
+
+  "generator_type": "symmetric_layout",
+  "generation_params": {
+    "symmetry_axis": "both",
+    "chamber_count": 4,
+    "hallway_width": 3,
+    "sanctum_size": 10
+  },
+
+  "tiles": {
+    "wall": "temple_wall",
+    "floor": "marble_floor",
+    "door": "temple_door"
+  },
+  "lighting": {
+    "base_visibility": 0.5,
+    "torch_radius": 7
+  },
+
+  "enemy_pools": [
+    {
+      "enemy_id": "cultist",
+      "weight": 0.3,
+      "floor_range": [1, 12]
+    },
+    {
+      "enemy_id": "possessed_statue",
+      "weight": 0.25,
+      "floor_range": [3, 12]
+    },
+    {
+      "enemy_id": "divine_guardian",
+      "weight": 0.2,
+      "floor_range": [6, 12]
+    },
+    {
+      "enemy_id": "fallen_priest",
+      "weight": 0.15,
+      "floor_range": [8, 12]
+    }
+  ],
+
+  "loot_tables": [
+    {
+      "item_id": "religious_artifact",
+      "chance": 0.3,
+      "count_range": [1, 2]
+    },
+    {
+      "item_id": "blessed_item",
+      "chance": 0.2,
+      "count_range": [1, 1]
+    },
+    {
+      "item_id": "holy_scripture",
+      "chance": 0.25,
+      "count_range": [1, 3]
+    }
+  ],
+
+  "room_features": [
+    {
+      "feature_id": "altar",
+      "spawn_chance": 0.3,
+      "room_types": ["sanctum"],
+      "allows_prayer": true,
+      "grants_blessing": true
+    },
+    {
+      "feature_id": "reliquary",
+      "spawn_chance": 0.2,
+      "room_types": ["chamber"],
+      "contains_loot": true,
+      "guarded_by_spirit": true
+    },
+    {
+      "feature_id": "holy_statue",
+      "spawn_chance": 0.25,
+      "room_types": ["any"],
+      "animated": true,
+      "attacks_undead": true
+    }
+  ],
+
+  "hazards": [
+    {
+      "hazard_id": "divine_curse",
+      "density": 0.06,
+      "effect": "stat_drain",
+      "affects_blasphemers": true
+    },
+    {
+      "hazard_id": "sanctified_ground",
+      "density": 0.08,
+      "damages_undead": true,
+      "heals_faithful": true
+    },
+    {
+      "hazard_id": "possessed_statue",
+      "density": 0.03,
+      "animates_when_approached": true,
+      "becomes_enemy": true
+    }
+  ],
+
+  "environmental_effects": {
+    "holy_aura": 0.5,
+    "echoing_prayers": true
+  },
+
+  "difficulty_curve": {
+    "enemy_level_multiplier": 1.2,
+    "enemy_count_base": 4,
+    "enemy_count_per_floor": 0.5,
+    "loot_quality_multiplier": 1.4
+  }
+}

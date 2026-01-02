@@ -90,8 +90,8 @@ func _char_to_index(character: String) -> int:
 # Default terrain colors (tiles should define their own colors)
 var default_terrain_colors: Dictionary = {
 	".": Color(0.31, 0.31, 0.31),      # Dark Gray - Floor (basic/tundra/beach)
-	"#": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (legacy)
-	"░": Color(0.78, 0.78, 0.78),      # Light Gray - Wall (CP437 light shade)
+	"#": Color(0.31, 0.31, 0.31),      # Dark Gray - Wall (muted to match floor)
+	"░": Color(0.31, 0.31, 0.31),      # Dark Gray - Wall (CP437 light shade, muted)
 	"+": Color(0.6, 0.4, 0.2),         # Brown - Door
 	">": Color(0.0, 1.0, 1.0),         # Cyan - Stairs down
 	"<": Color(0.0, 1.0, 1.0),         # Cyan - Stairs up

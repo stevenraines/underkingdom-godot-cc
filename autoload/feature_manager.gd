@@ -258,8 +258,37 @@ func interact_with_feature(pos: Vector2i) -> Dictionary:
 		result.effects.append({"type": "blessing", "stat": "health", "amount": 10})
 		result.message = "You feel blessed!"
 
+	# Handle features that should be removed after interaction
+	if feature_def.get("removes_on_interact", false):
+		_remove_feature(pos)
+		result.effects.append({"type": "removed"})
+
 	feature_interacted.emit(feature.feature_id, pos, result)
 	return result
+
+
+## Remove a feature from active features and map metadata
+func _remove_feature(pos: Vector2i) -> void:
+	if not active_features.has(pos):
+		return
+
+	var feature: Dictionary = active_features[pos]
+	var feature_id: String = feature.get("feature_id", "")
+
+	# Remove from active features
+	active_features.erase(pos)
+
+	# Remove from map metadata
+	var map = MapManager.current_map
+	if map and map.metadata.has("features"):
+		var features: Array = map.metadata.features
+		for i in range(features.size() - 1, -1, -1):
+			var f: Dictionary = features[i]
+			if f.get("position", Vector2i.ZERO) == pos:
+				features.remove_at(i)
+				break
+
+	print("[FeatureManager] Removed feature '%s' at %v" % [feature_id, pos])
 
 
 ## Generate a random hint from the current dungeon's hints

@@ -7,8 +7,8 @@ extends Control
 
 signal closed
 
-const CELL_SIZE: int = 4  # Each pixel represents 4x4 tiles
-const MAP_DISPLAY_SIZE: int = 200  # Size of the map display in pixels
+const CELL_SIZE: int = 2  # Each pixel represents 2x2 tiles (more detail)
+const MAP_DISPLAY_SIZE: int = 400  # Size of the map display in pixels
 
 var map_image: Image
 var map_texture: ImageTexture

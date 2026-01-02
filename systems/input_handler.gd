@@ -284,6 +284,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_G:  # G key - toggle auto-pickup
 			_toggle_auto_pickup()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_O:  # O key - toggle auto-open doors
+			_toggle_auto_open_doors()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_COMMA:  # , - manual pickup
 			_try_pickup_item()
 			action_taken = true
@@ -318,10 +321,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_U:  # U key - clear/untarget current target
 			_untarget()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_X:  # X key - toggle door (open/close)
+			action_taken = _try_toggle_door()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
 			TurnManager.advance_turn()
+
+## Try to toggle an adjacent door (open if closed, close if open)
+func _try_toggle_door() -> bool:
+	if not player:
+		return false
+	return player.try_toggle_adjacent_door()
 
 ## Wait action - rest in place for bonus stamina regeneration
 func _do_wait_action() -> void:
@@ -383,6 +395,12 @@ func _toggle_auto_pickup() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_auto_pickup"):
 		game.toggle_auto_pickup()
+
+## Toggle auto-open doors setting
+func _toggle_auto_open_doors() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_auto_open_doors"):
+		game.toggle_auto_open_doors()
 
 ## Try to pick up an item at the player's position
 func _try_pickup_item() -> void:

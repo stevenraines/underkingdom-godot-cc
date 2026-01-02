@@ -12,6 +12,7 @@ var ascii_char: String  # Visual representation
 var is_fire_source: bool = false  # Used for proximity crafting
 var harvestable_resource_id: String = ""  # ID of harvestable resource (if any)
 var color: Color = Color.WHITE  # Tile color (set by biome for floor/grass tiles)
+var is_open: bool = false  # For doors: true = open (walkable/transparent), false = closed
 
 func _init(type: String = "floor", is_walkable: bool = true, is_transparent: bool = true, character: String = ".", fire: bool = false) -> void:
 	tile_type = type
@@ -62,9 +63,18 @@ static func create(type: String) -> GameTile:
 			tile.walkable = true
 			tile.transparent = true
 			tile.ascii_char = ">"  # Default, will be overridden
-		"door", "wooden_door":
-			tile.tile_type = type
+		"door", "wooden_door", "door_open":
+			# Open door: walkable and transparent
+			tile.tile_type = "door"
+			tile.is_open = true
 			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "/"
+		"door_closed":
+			# Closed door: blocks movement and vision
+			tile.tile_type = "door"
+			tile.is_open = false
+			tile.walkable = false
 			tile.transparent = false
 			tile.ascii_char = "+"
 		"rock":
@@ -93,3 +103,36 @@ static func create(type: String) -> GameTile:
 			tile.ascii_char = "."
 
 	return tile
+
+## Toggle door open/closed state
+## Returns true if successful, false if not a door
+func toggle_door() -> bool:
+	if tile_type != "door":
+		return false
+	is_open = !is_open
+	walkable = is_open
+	transparent = is_open
+	ascii_char = "/" if is_open else "+"
+	return true
+
+## Open a door (if closed)
+## Returns true if door was opened, false if already open or not a door
+func open_door() -> bool:
+	if tile_type != "door" or is_open:
+		return false
+	is_open = true
+	walkable = true
+	transparent = true
+	ascii_char = "/"
+	return true
+
+## Close a door (if open)
+## Returns true if door was closed, false if already closed or not a door
+func close_door() -> bool:
+	if tile_type != "door" or not is_open:
+		return false
+	is_open = false
+	walkable = false
+	transparent = false
+	ascii_char = "+"
+	return true

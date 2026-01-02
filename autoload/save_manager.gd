@@ -292,7 +292,8 @@ func _serialize_maps() -> Dictionary:
 						"walkable": tile.walkable,
 						"transparent": tile.transparent,
 						"ascii_char": tile.ascii_char,
-						"harvestable_resource_id": tile.harvestable_resource_id
+						"harvestable_resource_id": tile.harvestable_resource_id,
+						"is_open": tile.is_open
 					})
 
 			maps_data[map.map_id] = {
@@ -514,6 +515,7 @@ func _deserialize_maps(maps_data: Dictionary, current_map_id: String) -> void:
 			tile.transparent = tile_data.transparent
 			tile.ascii_char = tile_data.ascii_char
 			tile.harvestable_resource_id = tile_data.harvestable_resource_id
+			tile.is_open = tile_data.get("is_open", false)  # Default to false for backwards compatibility
 
 			idx += 1
 

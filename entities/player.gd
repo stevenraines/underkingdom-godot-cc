@@ -93,10 +93,12 @@ func _check_hazards_at_position(pos: Vector2i) -> void:
 
 ## Apply hazard damage and effects to player
 func _apply_hazard_damage(hazard_result: Dictionary) -> void:
+	print("[Player] Applying hazard damage: %s" % str(hazard_result))
 	var damage: int = hazard_result.get("damage", 0)
 	var hazard_id: String = hazard_result.get("hazard_id", "trap")
 	var damage_type: String = hazard_result.get("damage_type", "physical")
 
+	# Apply damage if any
 	if damage > 0:
 		# Apply armor reduction for physical damage
 		var actual_damage = damage
@@ -107,7 +109,12 @@ func _apply_hazard_damage(hazard_result: Dictionary) -> void:
 		EventBus.combat_message.emit("You trigger a %s! (%d damage)" % [hazard_id, actual_damage], Color.ORANGE_RED)
 
 	# Apply status effects from hazard
-	for effect in hazard_result.get("effects", []):
+	var effects = hazard_result.get("effects", [])
+	if effects.is_empty() and damage == 0:
+		# Hazard triggered but no damage or effects - still notify
+		EventBus.combat_message.emit("You step into a %s!" % hazard_id, Color.ORANGE)
+
+	for effect in effects:
 		var effect_type = effect.get("type", "")
 		@warning_ignore("unused_variable")
 		var duration = effect.get("duration", 100)
@@ -121,6 +128,11 @@ func _apply_hazard_damage(hazard_result: Dictionary) -> void:
 			"curse":
 				EventBus.combat_message.emit("You are cursed!", Color.PURPLE)
 				# TODO: Apply curse status effect
+			"stat_drain":
+				EventBus.combat_message.emit("You feel your strength draining away!", Color.PURPLE)
+				# TODO: Apply stat drain status effect
+			_:
+				EventBus.combat_message.emit("You are affected by %s!" % effect_type, Color.ORANGE)
 
 
 ## Interact with a feature at the player's current position

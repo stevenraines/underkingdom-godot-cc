@@ -175,9 +175,15 @@ func _get_floor_positions(map: GameMap) -> Array[Vector2i]:
 ## Check if entity should trigger hazard at position
 ## Called when entity moves to new position
 func check_hazard_trigger(pos: Vector2i, entity) -> Dictionary:
+	print("[HazardManager] Checking trigger at %v, active_hazards has %d entries" % [pos, active_hazards.size()])
 	if not active_hazards.has(pos):
+		# Debug: print keys to see type mismatch
+		if active_hazards.size() > 0:
+			var sample_key = active_hazards.keys()[0]
+			print("[HazardManager] Sample key type: %s, checking type: %s" % [typeof(sample_key), typeof(pos)])
 		return {"triggered": false}
 
+	print("[HazardManager] Found hazard at %v, triggering!" % pos)
 	var hazard: Dictionary = active_hazards[pos]
 	var hazard_def: Dictionary = hazard.definition
 

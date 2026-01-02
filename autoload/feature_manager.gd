@@ -2,9 +2,11 @@ extends Node
 class_name FeatureManagerClass
 ## Manages dungeon features - interactive objects placed during generation
 ##
-## Features include: sarcophagus, treasure_chest, tomb_inscription, altar,
-## summoning_circle, ore_vein, etc. Each feature can contain loot, summon
-## enemies, provide hints, or have other interactive effects.
+## Features are loaded from JSON files in data/features/
+## Each feature can contain loot, summon enemies, provide hints, or have
+## other interactive effects.
+
+const FEATURE_DATA_PATH = "res://data/features"
 
 ## Signal emitted when a feature is interacted with
 signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)
@@ -16,141 +18,58 @@ signal feature_spawned_enemy(enemy_id: String, position: Vector2i)
 ## Key: Vector2i position, Value: feature data dictionary
 var active_features: Dictionary = {}
 
-## Feature type definitions (base behaviors)
-var feature_definitions: Dictionary = {
-	"sarcophagus": {
-		"name": "Sarcophagus",
-		"ascii_char": "&",
-		"color": Color.GRAY,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "open",
-		"can_contain_loot": true,
-		"can_summon_enemy": true
-	},
-	"treasure_chest": {
-		"name": "Treasure Chest",
-		"ascii_char": "=",
-		"color": Color.GOLDENROD,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "open",
-		"can_contain_loot": true,
-		"can_be_trapped": true
-	},
-	"tomb_inscription": {
-		"name": "Tomb Inscription",
-		"ascii_char": "?",
-		"color": Color.LIGHT_GRAY,
-		"blocking": false,
-		"interactable": true,
-		"interaction_verb": "read",
-		"provides_hint": true
-	},
-	"altar": {
-		"name": "Altar",
-		"ascii_char": "_",
-		"color": Color.WHITE,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "pray at",
-		"can_grant_blessing": true
-	},
-	"summoning_circle": {
-		"name": "Summoning Circle",
-		"ascii_char": "*",
-		"color": Color.PURPLE,
-		"blocking": false,
-		"interactable": true,
-		"interaction_verb": "examine",
-		"can_summon_enemy": true
-	},
-	"ore_vein": {
-		"name": "Ore Vein",
-		"ascii_char": "%",
-		"color": Color.ORANGE,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "mine",
-		"harvestable": true
-	},
-	"crystal_formation": {
-		"name": "Crystal Formation",
-		"ascii_char": "^",
-		"color": Color.CYAN,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "harvest",
-		"harvestable": true
-	},
-	"mushroom_patch": {
-		"name": "Mushroom Patch",
-		"ascii_char": ",",
-		"color": Color.BROWN,
-		"blocking": false,
-		"interactable": true,
-		"interaction_verb": "gather",
-		"harvestable": true
-	},
-	"support_beam": {
-		"name": "Support Beam",
-		"ascii_char": "I",
-		"color": Color.SADDLE_BROWN,
-		"blocking": false,
-		"interactable": false
-	},
-	"weapon_rack": {
-		"name": "Weapon Rack",
-		"ascii_char": "T",
-		"color": Color.SILVER,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "search",
-		"can_contain_loot": true
-	},
-	"reliquary": {
-		"name": "Reliquary",
-		"ascii_char": "+",
-		"color": Color.GOLD,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "open",
-		"can_contain_loot": true,
-		"can_grant_blessing": true
-	},
-	"sluice_gate": {
-		"name": "Sluice Gate",
-		"ascii_char": "#",
-		"color": Color.DARK_GRAY,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "operate",
-		"toggleable": true
-	},
-	"rat_nest": {
-		"name": "Rat Nest",
-		"ascii_char": "~",
-		"color": Color.DARK_OLIVE_GREEN,
-		"blocking": false,
-		"interactable": true,
-		"interaction_verb": "destroy",
-		"can_summon_enemy": true
-	},
-	"smuggler_cache": {
-		"name": "Smuggler's Cache",
-		"ascii_char": "$",
-		"color": Color.DARK_GREEN,
-		"blocking": true,
-		"interactable": true,
-		"interaction_verb": "search",
-		"can_contain_loot": true,
-		"hidden": true
-	}
-}
+## Feature type definitions loaded from JSON
+var feature_definitions: Dictionary = {}
 
 
 func _ready() -> void:
+	_load_feature_definitions()
 	print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
+
+
+## Load all feature definitions from JSON files
+func _load_feature_definitions() -> void:
+	var dir = DirAccess.open(FEATURE_DATA_PATH)
+	if not dir:
+		push_error("[FeatureManager] Failed to open feature data directory: " + FEATURE_DATA_PATH)
+		return
+
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+
+	while file_name != "":
+		if file_name.ends_with(".json"):
+			var file_path = FEATURE_DATA_PATH + "/" + file_name
+			_load_feature_file(file_path)
+		file_name = dir.get_next()
+
+	dir.list_dir_end()
+
+
+## Load a single feature definition from JSON
+func _load_feature_file(file_path: String) -> void:
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_error("[FeatureManager] Failed to open feature file: " + file_path)
+		return
+
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+
+	if error != OK:
+		push_error("[FeatureManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
+		return
+
+	var data: Dictionary = json.data
+	if not data.has("id"):
+		push_error("[FeatureManager] Feature definition missing 'id' field: " + file_path)
+		return
+
+	# Convert color from hex string to Color
+	if data.has("color") and data.color is String:
+		data.color = Color.from_string(data.color, Color.WHITE)
+
+	feature_definitions[data.id] = data
 
 
 ## Clear all active features (called on map transition)

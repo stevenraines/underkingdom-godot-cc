@@ -1,0 +1,8 @@
+{
+	"id": "support_beam",
+	"name": "Support Beam",
+	"ascii_char": "I",
+	"color": "#8B4513",
+	"blocking": false,
+	"interactable": false
+}

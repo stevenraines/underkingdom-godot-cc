@@ -1,0 +1,11 @@
+{
+	"id": "reliquary",
+	"name": "Reliquary",
+	"ascii_char": "+",
+	"color": "#FFD700",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "open",
+	"can_contain_loot": true,
+	"can_grant_blessing": true
+}

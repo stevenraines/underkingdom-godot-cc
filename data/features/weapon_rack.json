@@ -1,0 +1,10 @@
+{
+	"id": "weapon_rack",
+	"name": "Weapon Rack",
+	"ascii_char": "T",
+	"color": "#C0C0C0",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "search",
+	"can_contain_loot": true
+}

@@ -1,0 +1,12 @@
+{
+	"id": "pitfall",
+	"name": "Pitfall",
+	"ascii_char": "O",
+	"color": "#000000",
+	"hidden": true,
+	"trigger_type": "step",
+	"damage_type": "fall",
+	"base_damage": 15,
+	"can_disarm": false,
+	"detection_difficulty": 14
+}

@@ -1,0 +1,10 @@
+{
+	"id": "tomb_inscription",
+	"name": "Tomb Inscription",
+	"ascii_char": "?",
+	"color": "#D3D3D3",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "read",
+	"provides_hint": true
+}

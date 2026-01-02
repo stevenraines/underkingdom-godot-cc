@@ -2,9 +2,10 @@ extends Node
 class_name HazardManagerClass
 ## Manages dungeon hazards - traps and environmental dangers
 ##
-## Hazards include: floor_trap, curse_zone, collapsing_ceiling, toxic_water,
-## disease_zone, explosive_gas, etc. Hazards trigger when entities enter
-## their area or interact with triggers.
+## Hazards are loaded from JSON files in data/hazards/
+## Hazards trigger when entities enter their area or interact with triggers.
+
+const HAZARD_DATA_PATH = "res://data/hazards"
 
 ## Signal emitted when hazard is triggered
 signal hazard_triggered(hazard_id: String, position: Vector2i, target, damage: int)
@@ -19,146 +20,58 @@ signal hazard_disarmed(hazard_id: String, position: Vector2i)
 ## Key: Vector2i position, Value: hazard data dictionary
 var active_hazards: Dictionary = {}
 
-## Hazard type definitions
-var hazard_definitions: Dictionary = {
-	"floor_trap": {
-		"name": "Floor Trap",
-		"ascii_char": "^",
-		"color": Color.DARK_RED,
-		"hidden": true,
-		"trigger_type": "step",
-		"damage_type": "physical",
-		"base_damage": 10,
-		"can_disarm": true,
-		"detection_skill": "perception",
-		"disarm_skill": "dexterity"
-	},
-	"curse_zone": {
-		"name": "Curse Zone",
-		"ascii_char": "~",
-		"color": Color.PURPLE,
-		"hidden": false,
-		"trigger_type": "proximity",
-		"damage_type": "magical",
-		"effect": "stat_drain",
-		"duration": 100,
-		"can_disarm": false
-	},
-	"collapsing_ceiling": {
-		"name": "Collapsing Ceiling",
-		"ascii_char": "!",
-		"color": Color.GRAY,
-		"hidden": true,
-		"trigger_type": "pressure_plate",
-		"damage_type": "physical",
-		"base_damage": 20,
-		"can_disarm": false,
-		"one_time": true
-	},
-	"pitfall": {
-		"name": "Pitfall",
-		"ascii_char": "O",
-		"color": Color.BLACK,
-		"hidden": true,
-		"trigger_type": "step",
-		"damage_type": "fall",
-		"base_damage": 15,
-		"can_disarm": false
-	},
-	"toxic_water": {
-		"name": "Toxic Water",
-		"ascii_char": "~",
-		"color": Color.LIME_GREEN,
-		"hidden": false,
-		"trigger_type": "step",
-		"damage_type": "poison",
-		"base_damage": 5,
-		"effect": "poison",
-		"duration": 50,
-		"can_disarm": false
-	},
-	"disease_zone": {
-		"name": "Disease Zone",
-		"ascii_char": ".",
-		"color": Color.OLIVE_DRAB,
-		"hidden": false,
-		"trigger_type": "proximity",
-		"damage_type": "disease",
-		"effect": "disease",
-		"duration": 200,
-		"can_disarm": false
-	},
-	"explosive_gas": {
-		"name": "Explosive Gas",
-		"ascii_char": "*",
-		"color": Color.ORANGE,
-		"hidden": false,
-		"trigger_type": "fire",
-		"damage_type": "fire",
-		"base_damage": 30,
-		"radius": 3,
-		"can_disarm": false
-	},
-	"arrow_slit": {
-		"name": "Arrow Slit",
-		"ascii_char": "-",
-		"color": Color.DARK_GRAY,
-		"hidden": false,
-		"trigger_type": "line_of_sight",
-		"damage_type": "physical",
-		"base_damage": 8,
-		"range": 10,
-		"can_disarm": false
-	},
-	"magical_ward": {
-		"name": "Magical Ward",
-		"ascii_char": "*",
-		"color": Color.CYAN,
-		"hidden": true,
-		"trigger_type": "proximity",
-		"damage_type": "magical",
-		"base_damage": 15,
-		"can_disarm": true,
-		"disarm_skill": "intelligence"
-	},
-	"sudden_flood": {
-		"name": "Sudden Flood",
-		"ascii_char": "=",
-		"color": Color.DARK_BLUE,
-		"hidden": true,
-		"trigger_type": "timer",
-		"damage_type": "drowning",
-		"base_damage": 10,
-		"effect": "slow",
-		"duration": 30,
-		"can_disarm": false
-	},
-	"divine_curse": {
-		"name": "Divine Curse",
-		"ascii_char": "X",
-		"color": Color.GOLD,
-		"hidden": false,
-		"trigger_type": "theft",
-		"damage_type": "divine",
-		"effect": "curse",
-		"duration": 500,
-		"can_disarm": false
-	},
-	"unstable_ground": {
-		"name": "Unstable Ground",
-		"ascii_char": ".",
-		"color": Color.TAN,
-		"hidden": true,
-		"trigger_type": "step",
-		"damage_type": "fall",
-		"base_damage": 10,
-		"can_disarm": false
-	}
-}
+## Hazard type definitions loaded from JSON
+var hazard_definitions: Dictionary = {}
 
 
 func _ready() -> void:
+	_load_hazard_definitions()
 	print("[HazardManager] Initialized with %d hazard definitions" % hazard_definitions.size())
+
+
+## Load all hazard definitions from JSON files
+func _load_hazard_definitions() -> void:
+	var dir = DirAccess.open(HAZARD_DATA_PATH)
+	if not dir:
+		push_error("[HazardManager] Failed to open hazard data directory: " + HAZARD_DATA_PATH)
+		return
+
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+
+	while file_name != "":
+		if file_name.ends_with(".json"):
+			var file_path = HAZARD_DATA_PATH + "/" + file_name
+			_load_hazard_file(file_path)
+		file_name = dir.get_next()
+
+	dir.list_dir_end()
+
+
+## Load a single hazard definition from JSON
+func _load_hazard_file(file_path: String) -> void:
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_error("[HazardManager] Failed to open hazard file: " + file_path)
+		return
+
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+
+	if error != OK:
+		push_error("[HazardManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
+		return
+
+	var data: Dictionary = json.data
+	if not data.has("id"):
+		push_error("[HazardManager] Hazard definition missing 'id' field: " + file_path)
+		return
+
+	# Convert color from hex string to Color
+	if data.has("color") and data.color is String:
+		data.color = Color.from_string(data.color, Color.RED)
+
+	hazard_definitions[data.id] = data
 
 
 ## Clear all active hazards (called on map transition)

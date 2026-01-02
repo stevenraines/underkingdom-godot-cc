@@ -1,0 +1,10 @@
+{
+	"id": "crystal_formation",
+	"name": "Crystal Formation",
+	"ascii_char": "^",
+	"color": "#00FFFF",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "harvest",
+	"harvestable": true
+}

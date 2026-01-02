@@ -1,0 +1,10 @@
+{
+	"id": "mushroom_patch",
+	"name": "Mushroom Patch",
+	"ascii_char": ",",
+	"color": "#A52A2A",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "gather",
+	"harvestable": true
+}

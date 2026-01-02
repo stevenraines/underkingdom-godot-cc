@@ -1,0 +1,13 @@
+{
+	"id": "magical_ward",
+	"name": "Magical Ward",
+	"ascii_char": "*",
+	"color": "#00FFFF",
+	"hidden": true,
+	"trigger_type": "proximity",
+	"damage_type": "magical",
+	"base_damage": 15,
+	"can_disarm": true,
+	"detection_difficulty": 16,
+	"disarm_difficulty": 18
+}

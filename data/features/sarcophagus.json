@@ -1,0 +1,11 @@
+{
+	"id": "sarcophagus",
+	"name": "Sarcophagus",
+	"ascii_char": "&",
+	"color": "#808080",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "open",
+	"can_contain_loot": true,
+	"can_summon_enemy": true
+}

@@ -1,0 +1,10 @@
+{
+	"id": "rat_nest",
+	"name": "Rat Nest",
+	"ascii_char": "~",
+	"color": "#556B2F",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "destroy",
+	"can_summon_enemy": true
+}

@@ -1,0 +1,12 @@
+{
+	"id": "unstable_ground",
+	"name": "Unstable Ground",
+	"ascii_char": ".",
+	"color": "#D2B48C",
+	"hidden": true,
+	"trigger_type": "step",
+	"damage_type": "fall",
+	"base_damage": 10,
+	"can_disarm": false,
+	"detection_difficulty": 14
+}

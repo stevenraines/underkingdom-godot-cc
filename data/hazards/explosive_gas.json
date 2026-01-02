@@ -1,0 +1,12 @@
+{
+	"id": "explosive_gas",
+	"name": "Explosive Gas",
+	"ascii_char": "*",
+	"color": "#FFA500",
+	"hidden": false,
+	"trigger_type": "fire",
+	"damage_type": "fire",
+	"base_damage": 30,
+	"radius": 3,
+	"can_disarm": false
+}

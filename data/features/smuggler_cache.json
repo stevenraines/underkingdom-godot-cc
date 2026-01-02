@@ -1,0 +1,11 @@
+{
+	"id": "smuggler_cache",
+	"name": "Smuggler's Cache",
+	"ascii_char": "$",
+	"color": "#006400",
+	"blocking": true,
+	"interactable": true,
+	"interaction_verb": "search",
+	"can_contain_loot": true,
+	"hidden": true
+}

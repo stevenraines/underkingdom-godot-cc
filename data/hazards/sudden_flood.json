@@ -1,0 +1,14 @@
+{
+	"id": "sudden_flood",
+	"name": "Sudden Flood",
+	"ascii_char": "=",
+	"color": "#00008B",
+	"hidden": true,
+	"trigger_type": "timer",
+	"damage_type": "drowning",
+	"base_damage": 10,
+	"effect": "slow",
+	"duration": 30,
+	"can_disarm": false,
+	"detection_difficulty": 20
+}

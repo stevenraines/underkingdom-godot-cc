@@ -6,6 +6,9 @@ extends RefCounted
 ## Provides target cycling and validation for ranged/thrown weapon attacks.
 ## Integrates with the UI to show targeting feedback.
 
+# Preload system dependencies - required for cross-script class references
+const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+
 signal target_changed(target: Entity)
 signal targeting_started()
 signal targeting_cancelled()
@@ -30,7 +33,7 @@ func start_targeting(p_attacker: Entity, p_weapon: Item, p_ammo: Item = null) ->
 	ammo = p_ammo
 
 	# Get all valid targets
-	valid_targets = RangedCombatSystem.get_valid_targets(attacker, weapon)
+	valid_targets = RangedCombatSystemClass.get_valid_targets(attacker, weapon)
 
 	if valid_targets.is_empty():
 		return false
@@ -71,7 +74,7 @@ func confirm_target() -> Dictionary:
 	if not is_targeting or not current_target:
 		return {"error": "No target selected"}
 
-	var result = RangedCombatSystem.attempt_ranged_attack(attacker, current_target, weapon, ammo)
+	var result = RangedCombatSystemClass.attempt_ranged_attack(attacker, current_target, weapon, ammo)
 
 	# End targeting
 	var confirmed_target = current_target
@@ -117,7 +120,7 @@ func get_target_index_display() -> int:
 func get_target_distance() -> int:
 	if not attacker or not current_target:
 		return 0
-	return RangedCombatSystem.get_tile_distance(attacker.position, current_target.position)
+	return RangedCombatSystemClass.get_tile_distance(attacker.position, current_target.position)
 
 
 ## Get calculated hit chance for current target
@@ -127,9 +130,9 @@ func get_hit_chance() -> int:
 
 	var str_stat = attacker.attributes.get("STR", 10)
 	var effective_range = weapon.get_effective_range(str_stat)
-	var distance = RangedCombatSystem.get_tile_distance(attacker.position, current_target.position)
+	var distance = RangedCombatSystemClass.get_tile_distance(attacker.position, current_target.position)
 
-	return RangedCombatSystem.calculate_ranged_accuracy(attacker, current_target, weapon, distance, effective_range)
+	return RangedCombatSystemClass.calculate_ranged_accuracy(attacker, current_target, weapon, distance, effective_range)
 
 
 ## Check if targeting is active

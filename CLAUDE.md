@@ -408,19 +408,44 @@ func _load_definitions() -> void:
     dir.list_dir_end()
 ```
 
-### GDScript Class Loading Pattern
-**IMPORTANT**: When referencing other script classes (via `class_name`) in static functions or across files with complex dependencies:
-- **Avoid `preload()`** for scripts that have their own dependencies (e.g., scripts extending other custom classes)
-- **Use runtime `load()`** instead to avoid parse-time circular dependency issues
-- **Avoid type hints** for cross-file class references in these cases (use duck typing)
+### Cross-Script Class References (CRITICAL)
+**MANDATORY**: When one script needs to call methods on another script class, you MUST use `preload()` at the top of the file. **Never rely on `class_name` being globally available** - GDScript's class_name resolution is unreliable and causes "Identifier not declared in current scope" errors.
+
+**Required Pattern - Always use preload for system dependencies:**
+```gdscript
+# At the TOP of your script, after extends:
+const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+const TargetingSystemClass = preload("res://systems/targeting_system.gd")
+const CombatSystemClass = preload("res://systems/combat_system.gd")
+
+# Then use the preloaded const throughout the file:
+func some_function():
+    var result = RangedCombatSystemClass.attempt_ranged_attack(...)
+    var targets = RangedCombatSystemClass.get_valid_targets(...)
+```
+
+**Common Mistake - NEVER do this:**
+```gdscript
+# BAD - causes "Identifier 'RangedCombatSystem' not declared in current scope"
+func some_function():
+    var result = RangedCombatSystem.attempt_ranged_attack(...)  # FAILS!
+```
+
+**Naming Convention**: Use `*Class` suffix for preloaded script constants:
+- `RangedCombatSystemClass` for `ranged_combat_system.gd`
+- `TargetingSystemClass` for `targeting_system.gd`
+- `CombatSystemClass` for `combat_system.gd`
+
+**Checklist when creating a new system:**
+1. ✅ Add `class_name` declaration at top of new script
+2. ✅ In EVERY file that uses the new system, add `const NewSystemClass = preload("res://path/to/new_system.gd")`
+3. ✅ Use `NewSystemClass.method()` for all calls, never bare `NewSystem.method()`
+
+### GDScript Runtime Loading Pattern
+For scripts with complex dependency chains (e.g., scripts extending other custom classes), use runtime `load()` instead of `preload()` to avoid parse-time circular dependency issues:
 
 ```gdscript
-# BAD - causes "Could not resolve script" errors
-const Generator = preload("res://generation/my_generator.gd")
-static func create() -> BaseDungeonGenerator:
-    return Generator.new()
-
-# GOOD - loads at runtime, avoids parse-time issues
+# For complex inheritance chains - use runtime load()
 const GENERATOR_PATH = "res://generation/my_generator.gd"
 static func create():
     var script = load(GENERATOR_PATH)

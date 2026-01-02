@@ -122,33 +122,34 @@ func _draw_marker(center: Vector2i, color: Color, radius: int) -> void:
 
 
 func _get_biome_map_color(biome_name: String) -> Color:
+	# Muted colors so markers stand out better
 	match biome_name:
 		"ocean", "deep_ocean":
-			return Color(0.1, 0.2, 0.5)
+			return Color(0.12, 0.18, 0.32)
 		"beach":
-			return Color(0.9, 0.85, 0.6)
+			return Color(0.55, 0.52, 0.42)
 		"grassland":
-			return Color(0.4, 0.7, 0.3)
+			return Color(0.32, 0.45, 0.28)
 		"woodland":
-			return Color(0.2, 0.5, 0.2)
+			return Color(0.22, 0.35, 0.22)
 		"forest":
-			return Color(0.1, 0.4, 0.15)
+			return Color(0.15, 0.28, 0.15)
 		"rainforest":
-			return Color(0.05, 0.35, 0.1)
+			return Color(0.12, 0.25, 0.12)
 		"swamp", "marsh":
-			return Color(0.3, 0.4, 0.25)
+			return Color(0.25, 0.30, 0.22)
 		"mountains":
-			return Color(0.5, 0.5, 0.5)
+			return Color(0.38, 0.38, 0.40)
 		"snow_mountains":
-			return Color(0.85, 0.85, 0.9)
+			return Color(0.55, 0.55, 0.60)
 		"snow", "tundra":
-			return Color(0.9, 0.95, 1.0)
+			return Color(0.60, 0.62, 0.65)
 		"rocky_hills":
-			return Color(0.45, 0.4, 0.35)
+			return Color(0.35, 0.32, 0.28)
 		"barren_rock":
-			return Color(0.35, 0.3, 0.25)
+			return Color(0.28, 0.25, 0.22)
 		_:
-			return Color(0.3, 0.5, 0.3)
+			return Color(0.28, 0.38, 0.28)
 
 
 func _populate_legend() -> void:

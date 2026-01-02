@@ -232,6 +232,24 @@ func interact_with_feature(pos: Vector2i) -> Dictionary:
 	# Default message - can be overwritten by specific effects
 	result.message = "You %s the %s." % [verb, feature_name]
 
+	# Handle harvestable yields (like mushrooms, crystals, ore)
+	if feature_def.get("harvestable", false) and feature_def.has("yields"):
+		var yields: Array = feature_def.get("yields", [])
+		var harvested_items: Array = []
+		for yield_data in yields:
+			var item_id: String = yield_data.get("item_id", "")
+			var count_min: int = yield_data.get("count_min", 1)
+			var count_max: int = yield_data.get("count_max", 1)
+			var count: int = randi_range(count_min, count_max)
+			if not item_id.is_empty() and count > 0:
+				harvested_items.append({"item_id": item_id, "count": count})
+		if not harvested_items.is_empty():
+			result.effects.append({"type": "harvest", "items": harvested_items})
+			var total_items: int = 0
+			for hi in harvested_items:
+				total_items += hi.count
+			result.message = "You %s the %s and gather %d item(s)." % [verb, feature_name, total_items]
+
 	# Handle loot
 	if feature.state.has("loot") and not feature.state.loot.is_empty():
 		result.effects.append({"type": "loot", "items": feature.state.loot})

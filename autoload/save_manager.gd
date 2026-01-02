@@ -12,6 +12,9 @@ const SAVE_VERSION = "1.0.0"
 # Pending save data for deferred loading
 var pending_save_data: Dictionary = {}
 
+# Flag to prevent map change handlers from respawning enemies during load
+var is_deserializing: bool = false
+
 func _ready():
 	_ensure_save_directory()
 	print("SaveManager initialized")
@@ -361,20 +364,28 @@ func _serialize_enemy(enemy: Enemy) -> Dictionary:
 func _deserialize_game_state(save_data: Dictionary):
 	print("SaveManager: Deserializing game state...")
 
+	# Set flag to prevent map_changed handler from respawning enemies
+	is_deserializing = true
+
 	# Clear map cache to ensure maps regenerate with correct seed
 	MapManager.loaded_maps.clear()
 
 	_deserialize_world(save_data.world)
 	_deserialize_player(save_data.player)
-	_deserialize_entities(save_data.entities)
 
-	# Reload current map
+	# Reload current map (this triggers map_changed signal, but we skip enemy spawn)
 	var map_id = save_data.world.get("current_map_id", "overworld")
 	MapManager.current_dungeon_floor = save_data.world.get("current_dungeon_floor", 0)
 	MapManager.transition_to_map(map_id)
 
 	# Restore map tiles (to preserve harvested resources)
 	_deserialize_maps(save_data.maps, map_id)
+
+	# Now restore entities AFTER the map is ready (so they're added to the correct map)
+	_deserialize_entities(save_data.entities)
+
+	# Clear flag
+	is_deserializing = false
 
 	print("SaveManager: Deserialization complete")
 

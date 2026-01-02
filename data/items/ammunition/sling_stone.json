@@ -1,0 +1,17 @@
+{
+  "id": "sling_stone",
+  "name": "Sling Stone",
+  "description": "A smooth, round stone perfect for slinging.",
+  "category": "ammunition",
+  "ammunition_type": "sling_stone",
+  "flags": {
+    "ammunition": true
+  },
+  "weight": 0.1,
+  "value": 0,
+  "max_stack": 30,
+  "ascii_char": "o",
+  "ascii_color": "#888888",
+  "damage_bonus": 0,
+  "recovery_chance": 0.7
+}

@@ -14,6 +14,14 @@ const TILE_HEIGHT = 64
 @onready var entity_layer: TileMapLayer = $EntityLayer
 @onready var camera: Camera2D = $Camera
 
+# Dynamically created highlight layer for borders/cursors
+var highlight_layer: TileMapLayer = null
+var highlight_modulated_cells: Dictionary = {}
+
+# Current highlight position and color
+var current_highlight_position: Vector2i = Vector2i(-1, -1)
+var current_highlight_color: Color = Color.CYAN
+
 # Tile ID mappings (char -> index in tileset)
 # Unicode tileset: 32 columns, 1295 characters (41 rows)
 # Characters indexed sequentially: col = index % 32, row = index / 32
@@ -134,10 +142,29 @@ func _setup_tilemap_layers() -> void:
 		if not entity_layer.tile_set:
 			entity_layer.tile_set = _create_ascii_tileset()
 
+	# Create highlight layer dynamically (rendered on top of entities)
+	_create_highlight_layer()
+
 	# Set camera zoom for better visibility
 	# With 64px tiles, use smaller zoom to fit more tiles on screen
 	if camera:
 		camera.zoom = Vector2(0.5, 0.45)
+
+
+## Create highlight layer for borders/cursors
+func _create_highlight_layer() -> void:
+	# Load the highlight layer script
+	var highlight_script = load("res://rendering/highlight_layer.gd")
+	highlight_layer = TileMapLayer.new()
+	highlight_layer.set_script(highlight_script)
+	highlight_layer.name = "HighlightLayer"
+	highlight_layer.set("renderer", self)
+	highlight_layer.tile_set = _create_ascii_tileset()
+	# Add as sibling after entity layer so it renders on top
+	add_child(highlight_layer)
+	# Move it to be after entity layer in the tree
+	if entity_layer:
+		highlight_layer.move_to_front()
 
 ## Create ASCII tileset from sprite sheet
 func _create_ascii_tileset() -> TileSet:
@@ -379,7 +406,68 @@ func clear_all() -> void:
 		terrain_layer.clear()
 	if entity_layer:
 		entity_layer.clear()
+	if highlight_layer:
+		highlight_layer.clear()
 	# Clear color modulation dictionaries to prevent stale color data
 	terrain_modulated_cells.clear()
 	entity_modulated_cells.clear()
+	highlight_modulated_cells.clear()
 	hidden_floor_positions.clear()
+	current_highlight_position = Vector2i(-1, -1)
+
+
+## Render a highlight border around a position
+## Uses box-drawing corner characters at the 4 diagonal positions to frame the target
+func render_highlight_border(pos: Vector2i, color: Color = Color.CYAN) -> void:
+	if not highlight_layer:
+		return
+
+	# Clear previous highlight
+	clear_highlight()
+
+	# Store current highlight center
+	current_highlight_position = pos
+	current_highlight_color = color
+
+	# Render 4 corner characters at diagonal positions around the target
+	# Box drawing corners: ┌ (0x250C), ┐ (0x2510), └ (0x2514), ┘ (0x2518)
+	var corners = [
+		{"offset": Vector2i(-1, -1), "char": "┘"},  # Top-left of target -> bottom-right corner
+		{"offset": Vector2i(1, -1), "char": "└"},   # Top-right of target -> bottom-left corner
+		{"offset": Vector2i(-1, 1), "char": "┐"},   # Bottom-left of target -> top-right corner
+		{"offset": Vector2i(1, 1), "char": "┌"},    # Bottom-right of target -> top-left corner
+	]
+
+	for corner in corners:
+		var corner_pos = pos + corner.offset
+		var tile_index = _char_to_index(corner.char)
+		var col = tile_index % TILES_PER_ROW
+		var row = tile_index / TILES_PER_ROW
+
+		highlight_layer.set_cell(corner_pos, 0, Vector2i(col, row))
+		highlight_modulated_cells[corner_pos] = color
+
+	highlight_layer.notify_runtime_tile_data_update()
+
+
+## Clear the current highlight
+func clear_highlight() -> void:
+	if not highlight_layer:
+		return
+
+	if current_highlight_position.x >= 0:
+		# Clear all 4 corner positions (diagonal)
+		var offsets = [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]
+		for offset in offsets:
+			var corner_pos = current_highlight_position + offset
+			highlight_layer.erase_cell(corner_pos)
+			highlight_modulated_cells.erase(corner_pos)
+
+		highlight_layer.notify_runtime_tile_data_update()
+
+	current_highlight_position = Vector2i(-1, -1)
+
+
+## Get current highlight position
+func get_highlight_position() -> Vector2i:
+	return current_highlight_position

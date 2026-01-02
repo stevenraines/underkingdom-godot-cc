@@ -473,6 +473,18 @@ func toggle_auto_pickup() -> void:
 func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change START: %s ===" % map_id)
 
+	# Skip entity handling during save load (SaveManager handles entities separately)
+	if SaveManager.is_deserializing:
+		print("[Game] Skipping entity handling during deserialization")
+		# Still need to render the map
+		if MapManager.current_map and MapManager.current_map.chunk_based and player:
+			ChunkManager.update_active_chunks(player.position)
+		_render_map()
+		if player:
+			renderer.center_camera(player.position)
+		print("[Game] === Map change COMPLETE (deserializing) ===")
+		return
+
 	# Invalidate FOV cache since map changed
 	# TEMP: Commented out to debug gray overlay
 	#print("[Game] 1/8 Invalidating FOV cache")
@@ -545,6 +557,12 @@ func _on_stamina_depleted() -> void:
 func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> void:
 	renderer.clear_entity(old_pos)
 	renderer.render_entity(new_pos, entity.ascii_char, entity.color)
+
+	# Update target highlight if this entity is the current target
+	if input_handler:
+		var current_target = input_handler.get_current_target()
+		if current_target and entity == current_target:
+			update_target_highlight(current_target)
 
 ## Called when an entity dies
 func _on_entity_died(entity: Entity) -> void:
@@ -899,9 +917,12 @@ func _update_survival_display() -> void:
 	if s.fatigue >= 25:
 		effects_list.append(s.get_fatigue_state().capitalize())
 	
-	# Check for nearby enemies
+	# Check for nearby enemies and show target info
 	var nearby_enemies = _count_nearby_enemies()
-	if nearby_enemies > 0:
+	var target_info = _get_target_info()
+	if target_info != "":
+		effects_list.append(target_info)
+	elif nearby_enemies > 0:
 		effects_list.append("⚠ %d enem%s nearby" % [nearby_enemies, "y" if nearby_enemies == 1 else "ies"])
 	
 	# Update display
@@ -932,15 +953,58 @@ func _update_toggles_display() -> void:
 func _count_nearby_enemies() -> int:
 	if not player:
 		return 0
-	
+
 	var count = 0
 	for entity in EntityManager.entities:
 		if entity.is_alive and entity is Enemy:
 			var distance = abs(entity.position.x - player.position.x) + abs(entity.position.y - player.position.y)
 			if distance <= player.perception_range:
 				count += 1
-	
+
 	return count
+
+
+## Get info string for the currently targeted enemy
+func _get_target_info() -> String:
+	if not input_handler:
+		return ""
+
+	var target = input_handler.get_current_target()
+	if not target or not is_instance_valid(target) or not target.is_alive:
+		return ""
+
+	var distance = abs(target.position.x - player.position.x) + abs(target.position.y - player.position.y)
+	var hp_percent = int((float(target.current_health) / float(target.max_health)) * 100)
+
+	return "🎯 %s (HP:%d%% Dist:%d)" % [target.name, hp_percent, distance]
+
+
+## Update target highlight on the map
+func update_target_highlight(target: Entity) -> void:
+	# Use border highlight for targeting
+	if renderer:
+		if target and is_instance_valid(target) and target.is_alive:
+			# Render a red border around the target
+			renderer.render_highlight_border(target.position, Color(1.0, 0.3, 0.3))  # Red for target
+		else:
+			# Clear highlight if no valid target
+			renderer.clear_highlight()
+
+	# Update HUD to show target info
+	_update_hud()
+
+
+## Update look mode highlight on the map
+func update_look_highlight(look_pos: Vector2i) -> void:
+	# Use border highlight for look mode
+	if renderer:
+		if look_pos.x >= 0 and look_pos.y >= 0:
+			# Render a cyan border at the look position
+			renderer.render_highlight_border(look_pos, Color(0.4, 1.0, 1.0))  # Cyan for look
+		else:
+			# Clear highlight when exiting look mode
+			renderer.clear_highlight()
+
 
 ## Get ordinal suffix for a day number (1st, 2nd, 3rd, etc.)
 func _get_day_suffix(day: int) -> String:
@@ -1047,9 +1111,17 @@ func _spawn_map_enemies() -> void:
 
 ## Render all entities on the current map
 func _render_all_entities() -> void:
+	# Get current target for highlighting
+	var current_target = input_handler.get_current_target() if input_handler else null
+
 	for entity in EntityManager.entities:
 		if entity.is_alive:
-			renderer.render_entity(entity.position, entity.ascii_char, entity.color)
+			var render_color = entity.color
+			# Highlight targeted enemy with a distinct color
+			if entity == current_target:
+				# Use a bright cyan/white pulsing effect by brightening the color
+				render_color = Color(1.0, 0.4, 0.4)  # Red tint for targeted enemy
+			renderer.render_entity(entity.position, entity.ascii_char, render_color)
 
 	# Render structures
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""

@@ -172,6 +172,17 @@ func _move_toward_target(target: Vector2i) -> void:
 	if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
 		_move_to(new_pos)
 	else:
+		# Debug: log why movement failed
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(new_pos)
+			if tile and not tile.walkable:
+				print("[Enemy] %s can't move to %v - tile not walkable" % [name, new_pos])
+			else:
+				# Check what entity is blocking
+				for entity in MapManager.current_map.entities:
+					if entity.position == new_pos and entity.blocks_movement:
+						print("[Enemy] %s can't move to %v - blocked by %s (type: %s)" % [name, new_pos, entity.name, entity.entity_type])
+
 		# Try alternate direction
 		var alt_dir = Vector2i.ZERO
 		if move_dir.x != 0:
@@ -205,6 +216,17 @@ func _wander() -> void:
 ## Calculate Manhattan distance to a position
 func _distance_to(target: Vector2i) -> int:
 	return abs(target.x - position.x) + abs(target.y - position.y)
+
+
+## Override take_damage to alert enemy when hit
+func take_damage(amount: int) -> void:
+	super.take_damage(amount)
+
+	# Being attacked alerts the enemy and makes them aware of the player's location
+	if is_alive and EntityManager.player:
+		is_alerted = true
+		last_known_player_pos = EntityManager.player.position
+		print("[Enemy] %s was hit and is now alerted! Knows player is at %v" % [name, last_known_player_pos])
 
 ## Check if there's a feared component nearby that we should avoid
 func _is_near_feared_component() -> bool:

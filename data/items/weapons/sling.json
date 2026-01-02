@@ -1,0 +1,23 @@
+{
+  "id": "sling",
+  "name": "Sling",
+  "description": "A simple but effective ranged weapon using stones.",
+  "category": "weapon",
+  "subtype": "sling",
+  "attack_type": "ranged",
+  "attack_range": 5,
+  "ammunition_type": "sling_stone",
+  "accuracy_modifier": -5,
+  "flags": {
+    "equippable": true,
+    "craftable": true
+  },
+  "weight": 0.2,
+  "value": 5,
+  "max_stack": 1,
+  "ascii_char": "(",
+  "ascii_color": "#8B7355",
+  "durability": 40,
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 2
+}

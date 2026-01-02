@@ -152,6 +152,19 @@ func _update_footer() -> void:
 	footer_label.text = "[M/Tab] Cycle View  |  [1] Area  [2] Region  [3] World  |  [ESC] Close  |  Current: %s" % level_name
 
 
+func _get_overworld_player_position() -> Vector2i:
+	## Returns the player's overworld position, using last_overworld_position if in dungeon
+	if MapManager.current_dungeon_floor > 0:
+		# Player is in a dungeon, use their last overworld position
+		if GameManager.last_overworld_position != Vector2i.ZERO:
+			return GameManager.last_overworld_position
+		# Fallback to center of island if no saved position
+		@warning_ignore("integer_division")
+		return Vector2i(island_width_tiles / 2, island_height_tiles / 2)
+	# Player is on overworld, use current position
+	return EntityManager.player.position if EntityManager.player else Vector2i(0, 0)
+
+
 func _generate_area_map() -> void:
 	## Renders the currently loaded chunks around the player - fills the available space
 	if not MapManager.current_map:
@@ -160,7 +173,7 @@ func _generate_area_map() -> void:
 	map_image = Image.create(MAP_IMAGE_SIZE, MAP_IMAGE_SIZE, false, Image.FORMAT_RGBA8)
 	map_image.fill(Color(0.05, 0.05, 0.08, 1.0))  # Dark background for unexplored
 
-	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i(0, 0)
+	var player_pos = _get_overworld_player_position()
 	var active_chunks = ChunkManager.get_active_chunk_coords()
 
 	if active_chunks.is_empty():
@@ -278,8 +291,7 @@ func _generate_region_map() -> void:
 	if not cached_world_base_image:
 		return
 
-	@warning_ignore("integer_division")
-	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i(island_width_tiles / 2, island_height_tiles / 2)
+	var player_pos = _get_overworld_player_position()
 
 	# Region size is 1/4 of the world linear dimension
 	@warning_ignore("integer_division")
@@ -376,7 +388,7 @@ func _generate_world_map() -> void:
 
 	# Get special feature positions
 	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
-	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i(-1, -1)
+	var player_pos = _get_overworld_player_position()
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", [])
 
 	# Draw town (as a larger marker with outline)
@@ -523,7 +535,7 @@ func _populate_legend() -> void:
 	for child in legend_container.get_children():
 		child.queue_free()
 
-	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i(-1, -1)
+	var player_pos = _get_overworld_player_position()
 
 	# Add view-specific legend items
 	match current_level:

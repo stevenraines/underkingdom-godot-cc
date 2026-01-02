@@ -102,6 +102,21 @@ ASCIIRenderer (TileMapLayer-based)
 - Attack resolution: `Hit Chance = Attacker Accuracy - Defender Evasion`
 - Damage: `Weapon Base + STR Modifier - Armor`
 
+**Ranged Combat**:
+- Press `R` to enter targeting mode with ranged weapon
+- `Tab`/Arrow keys cycle through valid targets
+- `Enter`/`F` to fire, `Escape` to cancel
+- Ranged weapons (bows, crossbows, slings) require ammunition
+- Thrown weapons (throwing_knife, throwing_axe) are consumed on throw
+- Ammunition can be recovered (based on `recovery_chance` property)
+- Range penalty: -5% accuracy per tile beyond half range
+- Line-of-sight required (uses Bresenham's algorithm)
+
+**Weapon Types**:
+- `attack_type: "melee"` - Standard bump-to-attack weapons
+- `attack_type: "ranged"` - Bows, crossbows, slings (require `ammunition_type`)
+- `attack_type: "thrown"` - Throwing knives, axes (consumed on use)
+
 **Enemy AI** (based on INT):
 - INT 1-3: Direct approach, no tactics
 - INT 4-6: Flanking, retreats when low health
@@ -278,6 +293,8 @@ res://
 │   └── item.gd
 ├── systems/            # Game systems
 │   ├── combat_system.gd
+│   ├── ranged_combat_system.gd
+│   ├── targeting_system.gd
 │   ├── survival_system.gd
 │   ├── inventory_system.gd
 │   ├── harvest_system.gd
@@ -391,19 +408,44 @@ func _load_definitions() -> void:
     dir.list_dir_end()
 ```
 
-### GDScript Class Loading Pattern
-**IMPORTANT**: When referencing other script classes (via `class_name`) in static functions or across files with complex dependencies:
-- **Avoid `preload()`** for scripts that have their own dependencies (e.g., scripts extending other custom classes)
-- **Use runtime `load()`** instead to avoid parse-time circular dependency issues
-- **Avoid type hints** for cross-file class references in these cases (use duck typing)
+### Cross-Script Class References (CRITICAL)
+**MANDATORY**: When one script needs to call methods on another script class, you MUST use `preload()` at the top of the file. **Never rely on `class_name` being globally available** - GDScript's class_name resolution is unreliable and causes "Identifier not declared in current scope" errors.
+
+**Required Pattern - Always use preload for system dependencies:**
+```gdscript
+# At the TOP of your script, after extends:
+const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+const TargetingSystemClass = preload("res://systems/targeting_system.gd")
+const CombatSystemClass = preload("res://systems/combat_system.gd")
+
+# Then use the preloaded const throughout the file:
+func some_function():
+    var result = RangedCombatSystemClass.attempt_ranged_attack(...)
+    var targets = RangedCombatSystemClass.get_valid_targets(...)
+```
+
+**Common Mistake - NEVER do this:**
+```gdscript
+# BAD - causes "Identifier 'RangedCombatSystem' not declared in current scope"
+func some_function():
+    var result = RangedCombatSystem.attempt_ranged_attack(...)  # FAILS!
+```
+
+**Naming Convention**: Use `*Class` suffix for preloaded script constants:
+- `RangedCombatSystemClass` for `ranged_combat_system.gd`
+- `TargetingSystemClass` for `targeting_system.gd`
+- `CombatSystemClass` for `combat_system.gd`
+
+**Checklist when creating a new system:**
+1. ✅ Add `class_name` declaration at top of new script
+2. ✅ In EVERY file that uses the new system, add `const NewSystemClass = preload("res://path/to/new_system.gd")`
+3. ✅ Use `NewSystemClass.method()` for all calls, never bare `NewSystem.method()`
+
+### GDScript Runtime Loading Pattern
+For scripts with complex dependency chains (e.g., scripts extending other custom classes), use runtime `load()` instead of `preload()` to avoid parse-time circular dependency issues:
 
 ```gdscript
-# BAD - causes "Could not resolve script" errors
-const Generator = preload("res://generation/my_generator.gd")
-static func create() -> BaseDungeonGenerator:
-    return Generator.new()
-
-# GOOD - loads at runtime, avoids parse-time issues
+# For complex inheritance chains - use runtime load()
 const GENERATOR_PATH = "res://generation/my_generator.gd"
 static func create():
     var script = load(GENERATOR_PATH)
@@ -411,6 +453,20 @@ static func create():
 ```
 
 This pattern is used in `DungeonGeneratorFactory` and `BurialBarrowGenerator` for loading dungeon generators.
+
+### Data Value Conventions
+**IMPORTANT**: Use consistent value formats across all JSON data files:
+
+- **Probability/Chance values**: Always use decimal (0.0-1.0), never percentages (0-100)
+  - `"recovery_chance": 0.5` (correct - 50% chance)
+  - `"recovery_chance": 50` (incorrect - don't use percentages)
+  - `"spawn_chance": 0.25` (correct - 25% chance)
+
+- **Weight values**: Use kilograms as the unit
+  - `"weight": 1.5` (1.5 kg)
+
+- **Distance/Range values**: Use tiles as the unit (integers)
+  - `"attack_range": 6` (6 tiles)
 
 ---
 

@@ -54,7 +54,7 @@ static func _get_coastline_noise(seed_value: int) -> FastNoiseLite:
 
 ## Apply island falloff to create bounded landmass
 ## Uses noise-perturbed distance for irregular coastlines
-## Based on Red Blob Games island generation techniques
+## Based on Red Blob Games: e = lerp(e, 1-d, mix)
 static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: int = 0) -> float:
 	var island_settings = BiomeManager.get_island_settings()
 
@@ -71,36 +71,35 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	var nx = (float(x) - center_x) / (island_width / 2.0)
 	var ny = (float(y) - center_y) / (island_height / 2.0)
 
-	# Get coastline noise to perturb the island boundary
-	# This creates irregular coastlines instead of smooth shapes
+	# Get coastline noise to perturb the island shape
 	var coastline_noise = _get_coastline_noise(seed_value)
-	var coast_perturbation = coastline_noise.get_noise_2d(float(x), float(y))
-	# Normalize from [-1,1] to [0,1] and scale for coastline variation
-	coast_perturbation = (coast_perturbation + 1.0) / 2.0 * 0.4 - 0.2  # Range: -0.2 to +0.2
+	var coast_noise = coastline_noise.get_noise_2d(float(x), float(y))
+	# Normalize from [-1,1] to [0,1]
+	coast_noise = (coast_noise + 1.0) / 2.0
 
-	# Calculate base distance using Euclidean for smoother base shape
-	var base_distance = sqrt(nx * nx + ny * ny)
+	# Square Bump distance function: d = 1 - (1-x²)(1-y²)
+	# Creates more interesting shapes than Euclidean
+	var d = 1.0 - (1.0 - nx * nx) * (1.0 - ny * ny)
 
-	# Add noise perturbation to distance - this creates irregular coastlines
-	# More perturbation further from center (where coastline is)
-	var perturbed_distance = base_distance + coast_perturbation * base_distance
+	# Add noise to the distance to create irregular coastlines
+	# The noise pushes the coastline in and out
+	d = d + (coast_noise - 0.5) * 0.35
 
-	# Apply radial falloff with the perturbed distance
-	var land_threshold = 0.65 + coast_perturbation * 0.3  # Varies between ~0.5 and ~0.8
+	# Clamp distance
+	d = clamp(d, 0.0, 1.0)
 
-	if perturbed_distance < land_threshold * 0.6:
-		# Inner land - full elevation preserved
-		return elevation
-	elif perturbed_distance > land_threshold:
-		# Ocean - zero elevation
-		var ocean_falloff = (perturbed_distance - land_threshold) / 0.3
-		ocean_falloff = clamp(ocean_falloff, 0.0, 1.0)
-		return elevation * (1.0 - ocean_falloff * ocean_falloff)
-	else:
-		# Coastline transition zone - smooth falloff
-		var coast_blend = (perturbed_distance - land_threshold * 0.6) / (land_threshold * 0.4)
-		coast_blend = _smoothstep(coast_blend)
-		return elevation * (1.0 - coast_blend * 0.7)
+	# Red Blob Games formula: e = lerp(e, 1-d, mix)
+	# mix controls how much the distance constrains the shape
+	# Higher mix = more influence from distance, cleaner coastline
+	var mix = 0.7
+	var shaped_elevation = lerp(elevation, 1.0 - d, mix)
+
+	# Additional falloff at edges to ensure ocean
+	if d > 0.75:
+		var edge_factor = (d - 0.75) / 0.25
+		shaped_elevation *= 1.0 - edge_factor * edge_factor
+
+	return max(shaped_elevation, 0.0)
 
 
 ## Smoothstep helper for smooth interpolation

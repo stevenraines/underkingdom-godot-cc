@@ -167,6 +167,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				# Save overworld position before descending
 				if MapManager.current_map.chunk_based:
 					GameManager.last_overworld_position = player.position
+				# Save entity states before leaving this map
+				EntityManager.save_entity_states_to_map(MapManager.current_map)
 				MapManager.descend_dungeon()
 				player._find_and_move_to_stairs("stairs_up")
 				action_taken = true
@@ -175,6 +177,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 			if tile and tile.tile_type == "stairs_up":
+				# Save entity states before leaving this map
+				EntityManager.save_entity_states_to_map(MapManager.current_map)
 				# Check if we're going to overworld (floor 1 -> overworld) or to previous floor
 				if MapManager.current_dungeon_floor == 1:
 					# Returning to overworld - set position before transition

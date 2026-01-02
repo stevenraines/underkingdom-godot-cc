@@ -439,9 +439,12 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
 
-	# Spawn enemies for the new map
-	print("[Game] 3/8 Spawning enemies")
-	_spawn_map_enemies()
+	# Spawn or restore enemies for the new map
+	print("[Game] 3/8 Spawning/restoring enemies")
+	# Try to restore from saved state first (for visited maps)
+	if not EntityManager.restore_entity_states_from_map(MapManager.current_map):
+		# First visit - spawn from metadata
+		_spawn_map_enemies()
 
 	# Load chunks at current player position before rendering
 	# Player position has been set before map transition in input_handler

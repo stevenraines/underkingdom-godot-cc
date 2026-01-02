@@ -36,10 +36,26 @@ static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
 		moisture_noise_cache[moisture_seed] = noise
 	return moisture_noise_cache[moisture_seed]
 
+## Cached coastline noise generator for irregular island shapes
+static var coastline_noise_cache: Dictionary = {}  # seed -> FastNoiseLite
+
+## Get or create cached coastline noise generator
+static func _get_coastline_noise(seed_value: int) -> FastNoiseLite:
+	if not coastline_noise_cache.has(seed_value):
+		var noise = FastNoiseLite.new()
+		noise.seed = seed_value + 5000  # Different seed offset
+		noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+		noise.frequency = 0.008  # Large scale features for coastline variation
+		noise.fractal_octaves = 4
+		noise.fractal_lacunarity = 2.0
+		noise.fractal_gain = 0.5
+		coastline_noise_cache[seed_value] = noise
+	return coastline_noise_cache[seed_value]
+
 ## Apply island falloff to create bounded landmass
-## Uses "Square Bump" distance + smooth reshaping for natural island shapes
+## Uses noise-perturbed distance for irregular coastlines
 ## Based on Red Blob Games island generation techniques
-static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
+static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: int = 0) -> float:
 	var island_settings = BiomeManager.get_island_settings()
 
 	# Get island dimensions in tiles (chunks × chunk_size)
@@ -55,31 +71,36 @@ static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
 	var nx = (float(x) - center_x) / (island_width / 2.0)
 	var ny = (float(y) - center_y) / (island_height / 2.0)
 
-	# Square Bump distance function (from Red Blob Games)
-	# Creates more interesting shapes than simple Euclidean distance
-	# d = 1 - (1-x²)(1-y²) - produces natural-looking coastlines
-	var d = 1.0 - (1.0 - nx * nx) * (1.0 - ny * ny)
+	# Get coastline noise to perturb the island boundary
+	# This creates irregular coastlines instead of smooth shapes
+	var coastline_noise = _get_coastline_noise(seed_value)
+	var coast_perturbation = coastline_noise.get_noise_2d(float(x), float(y))
+	# Normalize from [-1,1] to [0,1] and scale for coastline variation
+	coast_perturbation = (coast_perturbation + 1.0) / 2.0 * 0.4 - 0.2  # Range: -0.2 to +0.2
 
-	# Clamp distance to valid range
-	d = clamp(d, 0.0, 1.0)
+	# Calculate base distance using Euclidean for smoother base shape
+	var base_distance = sqrt(nx * nx + ny * ny)
 
-	# Smooth reshaping function (quadratic Bezier-like)
-	# Blends between original elevation and distance-based falloff
-	# This preserves terrain variation in the middle while forcing ocean at edges
-	# Formula: lerp(elevation, 1-d, smoothstep(d))
-	var blend = _smoothstep(d)
-	var target_elevation = 1.0 - d  # Higher in center, lower at edges
+	# Add noise perturbation to distance - this creates irregular coastlines
+	# More perturbation further from center (where coastline is)
+	var perturbed_distance = base_distance + coast_perturbation * base_distance
 
-	# Mix original noise with distance-based elevation
-	# More weight to noise in center, more weight to distance at edges
-	var result = lerp(elevation, elevation * target_elevation, blend)
+	# Apply radial falloff with the perturbed distance
+	var land_threshold = 0.65 + coast_perturbation * 0.3  # Varies between ~0.5 and ~0.8
 
-	# Apply additional falloff at very edges to ensure ocean
-	if d > 0.7:
-		var edge_falloff = (d - 0.7) / 0.3  # 0 to 1 in outer 30%
-		result *= 1.0 - edge_falloff * edge_falloff
-
-	return result
+	if perturbed_distance < land_threshold * 0.6:
+		# Inner land - full elevation preserved
+		return elevation
+	elif perturbed_distance > land_threshold:
+		# Ocean - zero elevation
+		var ocean_falloff = (perturbed_distance - land_threshold) / 0.3
+		ocean_falloff = clamp(ocean_falloff, 0.0, 1.0)
+		return elevation * (1.0 - ocean_falloff * ocean_falloff)
+	else:
+		# Coastline transition zone - smooth falloff
+		var coast_blend = (perturbed_distance - land_threshold * 0.6) / (land_threshold * 0.4)
+		coast_blend = _smoothstep(coast_blend)
+		return elevation * (1.0 - coast_blend * 0.7)
 
 
 ## Smoothstep helper for smooth interpolation
@@ -106,7 +127,7 @@ static func get_biome_at(x: int, y: int, seed_value: int) -> Dictionary:
 	elevation = pow(elevation, 1.5)
 
 	# Apply island falloff to create bounded landmass
-	elevation = _apply_island_falloff(x, y, elevation)
+	elevation = _apply_island_falloff(x, y, elevation, seed_value)
 
 	# Lookup biome from elevation × moisture matrix (data-driven via BiomeManager)
 	var biome_id = BiomeManager.get_biome_id_from_values(elevation, moisture)
@@ -133,7 +154,7 @@ static func get_elevation_at(x: int, y: int, seed_value: int) -> float:
 	var raw = noise.get_noise_2d(float(x), float(y))
 	var normalized = (raw + 1.0) / 2.0
 	var elevation = pow(normalized, 1.5)
-	return _apply_island_falloff(x, y, elevation)
+	return _apply_island_falloff(x, y, elevation, seed_value)
 
 ## Get moisture value at position (for use in other systems)
 static func get_moisture_at(x: int, y: int, seed_value: int) -> float:

@@ -14,10 +14,10 @@
 		"seed_offset": 1000
 	},
 	"coastline_noise": {
-		"frequency": 0.004,
-		"octaves": 5,
+		"frequency": 0.002,
+		"octaves": 3,
 		"lacunarity": 2.0,
-		"gain": 0.6,
+		"gain": 0.4,
 		"seed_offset": 5000
 	},
 	"chunk_settings": {
@@ -29,16 +29,17 @@
 	"island_settings": {
 		"width_chunks": 25,
 		"height_chunks": 25,
-		"coastline_noise_amplitude": 0.6,
-		"shape_exponent": 2.5,
-		"shape_mix": 0.85
+		"land_threshold": -0.1,
+		"distance_weight": 1.5,
+		"distance_exponent": 4.0,
+		"coastline_amplitude": 0.3
 	},
 	"biome_matrix": {
-		"elevation_thresholds": [0.25, 0.4, 0.55, 0.7, 0.85],
+		"elevation_thresholds": [0.05, 0.25, 0.45, 0.62, 0.80],
 		"moisture_thresholds": [0.2, 0.4, 0.6, 0.8],
 		"matrix": [
-			["deep_ocean", "ocean", "ocean", "marsh", "swamp"],
-			["ocean", "beach", "grassland", "woodland", "forest"],
+			["deep_ocean", "deep_ocean", "ocean", "ocean", "ocean"],
+			["ocean", "beach", "marsh", "swamp", "swamp"],
 			["beach", "grassland", "grassland", "forest", "rainforest"],
 			["barren_rock", "tundra", "grassland", "woodland", "forest"],
 			["barren_rock", "rocky_hills", "rocky_hills", "mountains", "mountains"],

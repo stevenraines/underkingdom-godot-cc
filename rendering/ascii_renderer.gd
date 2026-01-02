@@ -15,7 +15,7 @@ const TILE_HEIGHT = 64
 @onready var camera: Camera2D = $Camera
 
 # Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, 895 characters
+# Unicode tileset: 32 columns, 1286 characters
 # Characters indexed sequentially: col = index % 32, row = index / 32
 const TILES_PER_ROW = 32
 
@@ -29,6 +29,7 @@ func _ready() -> void:
 	print("ASCIIRenderer initialized")
 
 # Build Unicode character index mapping
+# IMPORTANT: This must match the exact order from generate_tilesets.py
 func _build_unicode_map() -> void:
 	var chars: Array = []
 
@@ -38,6 +39,14 @@ func _build_unicode_map() -> void:
 
 	# Latin-1 Supplement (160-255) - 96 chars
 	for i in range(0x00A0, 0x0100):
+		chars.append(char(i))
+
+	# Greek and Coptic (0x0370-0x03FF) - includes Δ, Ω, α, β, γ, etc.
+	for i in range(0x0370, 0x0400):
+		chars.append(char(i))
+
+	# Miscellaneous Technical (0x2300-0x23FF) - includes ⌂, ⌐, ⌠, etc.
+	for i in range(0x2300, 0x2400):
 		chars.append(char(i))
 
 	# Box Drawing (0x2500-0x257F) - 128 chars
@@ -63,6 +72,8 @@ func _build_unicode_map() -> void:
 	# Build lookup dictionary
 	for i in range(chars.size()):
 		unicode_char_map[chars[i]] = i
+
+	print("[ASCIIRenderer] Built unicode map with %d characters" % chars.size())
 
 # Helper function to get tile index from character
 func _char_to_index(character: String) -> int:

@@ -86,4 +86,4 @@ Each dungeon entrance has a unique symbol and color. Stand on an entrance and pr
 ### Destroyable Features
 Some dungeon features (like rat nests) can be permanently destroyed when interacted with.
 
-If you'd like, I can also add this controls section into an in-game help overlay or generate a printable cheat-sheet file.
+

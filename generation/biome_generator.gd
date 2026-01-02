@@ -58,8 +58,10 @@ static func _get_coastline_noise(seed_value: int) -> FastNoiseLite:
 	return coastline_noise_cache[seed_value]
 
 ## Apply island falloff to create bounded landmass
-## Uses noise-perturbed Square Bump function for organic island shapes
-## Based on wadefletch/terrain and Red Blob Games techniques
+## Based on Amit Patel's mapgen2: noise must exceed threshold that increases with distance
+## This naturally creates a single connected landmass without outlying islands
+## Formula: land where noise > (base_threshold + distance_weight * distance^exponent)
+## Coastline noise is added to create irregular, organic coastlines
 static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: int = 0) -> float:
 	var island_settings = BiomeManager.get_island_settings()
 
@@ -69,9 +71,10 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	var island_height = island_settings.get("height_chunks", 50) * chunk_size
 
 	# Get configurable shape parameters
-	var noise_amplitude = island_settings.get("coastline_noise_amplitude", 0.5)
-	var shape_exponent = island_settings.get("shape_exponent", 3.0)
-	var shape_mix = island_settings.get("shape_mix", 0.8)
+	var land_threshold = island_settings.get("land_threshold", 0.3)
+	var distance_weight = island_settings.get("distance_weight", 0.3)
+	var distance_exponent = island_settings.get("distance_exponent", 2.0)  # Higher = more extreme at edges
+	var coastline_amplitude = island_settings.get("coastline_amplitude", 0.3)  # How much noise affects coastline
 
 	# Calculate center of island
 	var center_x = island_width / 2.0
@@ -81,30 +84,43 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	var nx = (float(x) - center_x) / (island_width / 2.0)
 	var ny = (float(y) - center_y) / (island_height / 2.0)
 
-	# Get coastline noise to perturb the island shape
+	# Calculate base distance from center (0 at center, 1 at edges, >1 at corners)
+	var distance = sqrt(nx * nx + ny * ny)
+
+	# Add coastline noise to create irregular shape
+	# This warps the distance value, creating bays and peninsulas
 	var coastline_noise = _get_coastline_noise(seed_value)
-	var coast_noise = coastline_noise.get_noise_2d(float(x), float(y))
-	# Normalize from [-1,1] to [0,1]
-	coast_noise = (coast_noise + 1.0) / 2.0
+	var noise_value = coastline_noise.get_noise_2d(float(x), float(y))
+	# Noise affects distance more at the edges than at center
+	var warped_distance = distance + noise_value * coastline_amplitude * distance
 
-	# Perturb normalized coordinates with noise for irregular coastlines
-	# This warps the distance field itself, creating bays and peninsulas
-	nx = nx + (coast_noise - 0.5) * noise_amplitude
-	ny = ny + (coast_noise - 0.5) * noise_amplitude
+	# Apply exponent to make falloff more extreme at edges
+	# Higher exponent = flatter in middle, steeper drop at edges
+	var distance_factor = pow(warped_distance, distance_exponent)
 
-	# Square Bump shape function: ((1-x²)(1-y²))^exponent
-	# Higher exponent creates steeper falloff at edges, more organic shape
-	# Clamp inputs to prevent negative values under the exponent
-	var bump_x = max(0.0, 1.0 - nx * nx)
-	var bump_y = max(0.0, 1.0 - ny * ny)
-	var shape = pow(bump_x * bump_y, shape_exponent)
+	# Amit Patel's mapgen2 approach:
+	# Point is land if: noise > (threshold + weight * distance^exponent)
+	# This creates irregular coastlines but ensures connectivity because
+	# the threshold increases with distance - points near center easily pass,
+	# points at edges need very high noise values
+	var required_threshold = land_threshold + distance_weight * distance_factor
 
-	# Multiply elevation by shape (standard technique)
-	# Then blend with original elevation for more terrain detail at center
-	var shaped_elevation = elevation * shape
-	var final_elevation = lerp(shaped_elevation, elevation * shape * shape, 1.0 - shape_mix)
-
-	return max(final_elevation, 0.0)
+	# If elevation (noise) exceeds the threshold, it's land
+	# Scale the elevation based on how much it exceeds the threshold
+	if elevation > required_threshold:
+		# Normalize to 0-1 range above the threshold
+		# Higher elevations = more inland = higher terrain
+		var excess = elevation - required_threshold
+		var max_excess = 1.0 - required_threshold
+		if max_excess > 0:
+			return excess / max_excess
+		return 1.0
+	else:
+		# Below threshold = ocean
+		# Create smooth transition near coastline
+		var deficit = required_threshold - elevation
+		var ocean_depth = deficit * 2.0  # Scale for visible ocean gradient
+		return -ocean_depth  # Negative = ocean (will be clamped to ocean biome)
 
 
 ## Smoothstep helper for smooth interpolation

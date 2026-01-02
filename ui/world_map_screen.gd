@@ -157,15 +157,26 @@ func _populate_legend() -> void:
 	for child in legend_container.get_children():
 		child.queue_free()
 
-	# Add legend items
-	_add_legend_item(Color.YELLOW, "You (Player)")
-	_add_legend_item(Color(1.0, 0.9, 0.5), "Town")
+	# Add legend items with coordinates
+	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i(-1, -1)
+	if player_pos != Vector2i(-1, -1):
+		_add_legend_item(Color.YELLOW, "You (%d,%d)" % [player_pos.x, player_pos.y])
+	else:
+		_add_legend_item(Color.YELLOW, "You (Player)")
 
-	# Add dungeon entrances to legend
+	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1)) if MapManager.current_map else Vector2i(-1, -1)
+	if town_pos != Vector2i(-1, -1):
+		_add_legend_item(Color(1.0, 0.9, 0.5), "Town (%d,%d)" % [town_pos.x, town_pos.y])
+	else:
+		_add_legend_item(Color(1.0, 0.9, 0.5), "Town")
+
+	# Add dungeon entrances to legend with coordinates
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", []) if MapManager.current_map else []
 	for entrance in dungeon_entrances:
 		var color = Color.html(entrance.entrance_color)
-		_add_legend_item(color, entrance.name)
+		var pos: Vector2i = entrance.position
+		var label_text = "%s (%d,%d)" % [entrance.name, pos.x, pos.y]
+		_add_legend_item(color, label_text)
 
 
 func _add_legend_item(color: Color, text: String) -> void:

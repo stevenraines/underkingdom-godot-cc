@@ -1890,3 +1890,569 @@ func _pick_sacred_feature(rng: SeededRandom) -> String:
 
 ---
 
+## Phase 3: Type-Specific Features & Hazards
+
+### Task 3.1: Feature Generator System
+
+**Assignee**: [Systems Programmer]
+**Priority**: High
+**Estimated Time**: 2 hours
+**Dependencies**: Phase 2 (dungeon generators exist)
+
+**Objective**: Create generic feature/hazard placement system that all generators can use.
+
+**Feature Types**:
+1. **Interactive Objects**: Chests, levers, pressure plates
+2. **Environmental Hazards**: Spike traps, lava, poison gas
+3. **Decorative Elements**: Furniture, statues, debris
+4. **Special Tiles**: Teleporters, one-way doors, breakable walls
+
+**System Design**:
+
+```gdscript
+// systems/feature_generator.gd
+class_name FeatureGenerator
+extends RefCounted
+
+## Generic system for placing features/hazards in dungeons
+## Used by all dungeon generators
+
+## Place features from dungeon definition into map
+static func place_features(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom) -> void:
+    var room_features = dungeon_def.get("room_features", [])
+    var hazards = dungeon_def.get("hazards", [])
+
+    _place_room_features(map, room_features, rng)
+    _place_hazards(map, hazards, rng)
+
+static func _place_room_features(map: GameMap, features: Array, rng: SeededRandom) -> void:
+    for feature_def in features:
+        var feature_id = feature_def.get("feature_id", "")
+        var spawn_chance = feature_def.get("spawn_chance", 0.1)
+        var room_types = feature_def.get("room_types", ["any"])
+
+        # Find suitable rooms based on type
+        var eligible_rooms = _find_rooms_by_type(map, room_types)
+
+        for room in eligible_rooms:
+            if rng.randf() < spawn_chance:
+                var pos = _find_valid_position_in_room(map, room, rng)
+                if pos:
+                    _place_feature_at(map, pos, feature_id)
+
+static func _place_hazards(map: GameMap, hazards: Array, rng: SeededRandom) -> void:
+    for hazard_def in hazards:
+        var hazard_id = hazard_def.get("hazard_id", "")
+        var density = hazard_def.get("density", 0.05)
+
+        # Scatter hazards across walkable tiles
+        for x in range(map.width):
+            for y in range(map.height):
+                if map.tiles[x][y].walkable and rng.randf() < density:
+                    _place_hazard_at(map, Vector2i(x, y), hazard_id)
+
+static func _place_feature_at(map: GameMap, pos: Vector2i, feature_id: String) -> void:
+    # Create feature entity (chest, lever, etc.)
+    var feature = _create_feature_entity(feature_id, pos)
+    map.add_entity(feature)
+
+static func _place_hazard_at(map: GameMap, pos: Vector2i, hazard_id: String) -> void:
+    # Modify tile or add hazard entity
+    match hazard_id:
+        "floor_trap":
+            map.tiles[pos.x][pos.y].metadata["trap"] = true
+        "lava":
+            map.set_tile(pos.x, pos.y, TileManager.get_tile("lava"))
+        "poison_gas":
+            var gas_zone = PoisonGasHazard.new(pos)
+            map.add_entity(gas_zone)
+
+static func _find_rooms_by_type(map: GameMap, room_types: Array) -> Array:
+    # Parse map metadata for room information
+    var rooms = map.metadata.get("rooms", [])
+    var filtered = []
+
+    for room in rooms:
+        var room_type = room.get("type", "any")
+        if "any" in room_types or room_type in room_types:
+            filtered.append(room)
+
+    return filtered
+
+static func _find_valid_position_in_room(map: GameMap, room: Dictionary, rng: SeededRandom) -> Variant:
+    var rect = room.get("rect", Rect2i())
+    var attempts = 20
+
+    for i in range(attempts):
+        var x = rng.randi_range(rect.position.x + 1, rect.position.x + rect.size.x - 2)
+        var y = rng.randi_range(rect.position.y + 1, rect.position.y + rect.size.y - 2)
+
+        if map.tiles[x][y].walkable and not map.has_entity_at(x, y):
+            return Vector2i(x, y)
+
+    return null  # No valid position found
+
+# ... additional helper methods ...
+```
+
+**Integration with Generators**:
+
+All dungeon generators should call the feature system after basic generation:
+
+```gdscript
+// Example from rectangular_rooms_generator.gd
+func generate_floor(dungeon_def: Dictionary, floor_number: int, world_seed: int) -> GameMap:
+    # ... existing generation code ...
+
+    # NEW: Place features and hazards
+    FeatureGenerator.place_features(map, dungeon_def, rng)
+
+    # Populate with content
+    _spawn_enemies(map, dungeon_def, floor_number, rng)
+    _spawn_loot(map, dungeon_def, floor_number, rng)
+
+    return map
+```
+
+**Files Created**:
+- NEW: `systems/feature_generator.gd`
+- MODIFIED: All 6 generator files to call FeatureGenerator
+
+**Testing Checklist**:
+- [ ] Features spawn in appropriate rooms
+- [ ] Hazard density matches configuration
+- [ ] Features don't block critical paths
+- [ ] Hazards affect player as expected
+- [ ] Room type filtering works correctly
+
+**Benefits**:
+- ✅ DRY: One feature system for all dungeon types
+- ✅ Data-driven: Features defined in JSON
+- ✅ Extensible: Easy to add new feature types
+- ✅ Consistent: Same placement logic everywhere
+
+---
+
+### Task 3.2: Dungeon-Specific Content Definitions
+
+**Assignee**: [Content Designer]
+**Priority**: High
+**Estimated Time**: 2 hours
+**Dependencies**: Task 3.1 (FeatureGenerator exists)
+
+**Objective**: Define type-specific features, hazards, and special mechanics for each dungeon type in JSON.
+
+**Burial Barrows - Content**:
+
+```json
+{
+  "id": "burial_barrow",
+  "room_features": [
+    {
+      "feature_id": "sarcophagus",
+      "spawn_chance": 0.3,
+      "room_types": ["large", "end"],
+      "contains_loot": true,
+      "summons_enemy": "skeleton"
+    },
+    {
+      "feature_id": "treasure_chest",
+      "spawn_chance": 0.15,
+      "room_types": ["end"],
+      "loot_table": "ancient_treasure"
+    },
+    {
+      "feature_id": "tomb_inscription",
+      "spawn_chance": 0.2,
+      "room_types": ["any"],
+      "provides_hint": true
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "floor_trap",
+      "density": 0.05,
+      "damage": 10,
+      "detection_difficulty": 15
+    },
+    {
+      "hazard_id": "curse_zone",
+      "density": 0.02,
+      "effect": "stat_drain",
+      "duration": 100
+    },
+    {
+      "hazard_id": "collapsing_ceiling",
+      "density": 0.01,
+      "trigger": "pressure_plate",
+      "damage": 20
+    }
+  ],
+  "special_rooms": [
+    {
+      "room_type": "crypt",
+      "chance": 0.2,
+      "contains": "boss_enemy",
+      "loot_multiplier": 2.0
+    },
+    {
+      "room_type": "treasure_chamber",
+      "chance": 0.1,
+      "requires": "key_item",
+      "loot_multiplier": 3.0
+    }
+  ]
+}
+```
+
+**Natural Caves - Content**:
+
+```json
+{
+  "id": "natural_cave",
+  "room_features": [
+    {
+      "feature_id": "crystal_formation",
+      "spawn_chance": 0.25,
+      "room_types": ["large"],
+      "provides_light": true,
+      "harvestable": true
+    },
+    {
+      "feature_id": "underground_lake",
+      "spawn_chance": 0.15,
+      "room_types": ["large"],
+      "contains": "water_enemies",
+      "source_of_water": true
+    },
+    {
+      "feature_id": "mushroom_patch",
+      "spawn_chance": 0.2,
+      "room_types": ["any"],
+      "harvestable": true,
+      "poisons_on_damage": true
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "pitfall",
+      "density": 0.03,
+      "damage": 15,
+      "falls_to_lower_floor": true
+    },
+    {
+      "hazard_id": "unstable_ground",
+      "density": 0.04,
+      "trigger": "weight",
+      "creates_pitfall": true
+    },
+    {
+      "hazard_id": "darkness_zone",
+      "density": 0.1,
+      "reduces_vision": 0.5,
+      "permanent": true
+    }
+  ],
+  "environmental_effects": {
+    "ambient_darkness": true,
+    "echo_sound": true,
+    "dampness": 0.8
+  }
+}
+```
+
+**Abandoned Mines - Content**:
+
+```json
+{
+  "id": "abandoned_mine",
+  "room_features": [
+    {
+      "feature_id": "ore_vein",
+      "spawn_chance": 0.4,
+      "room_types": ["any"],
+      "harvestable": true,
+      "requires_tool": "pickaxe",
+      "yields": "iron_ore"
+    },
+    {
+      "feature_id": "mine_cart",
+      "spawn_chance": 0.15,
+      "room_types": ["tunnel"],
+      "rideable": true,
+      "contains_loot": true
+    },
+    {
+      "feature_id": "support_beam",
+      "spawn_chance": 0.3,
+      "room_types": ["tunnel"],
+      "destructible": true,
+      "causes_collapse": true
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "cave_in",
+      "density": 0.02,
+      "trigger": "explosion",
+      "blocks_path": true,
+      "damage": 30
+    },
+    {
+      "hazard_id": "toxic_gas",
+      "density": 0.05,
+      "damage_per_turn": 2,
+      "reduces_stamina_regen": true
+    },
+    {
+      "hazard_id": "flooded_section",
+      "density": 0.03,
+      "slows_movement": true,
+      "rusts_equipment": true
+    }
+  ],
+  "special_rooms": [
+    {
+      "room_type": "foreman_office",
+      "chance": 0.15,
+      "contains": "lore_documents",
+      "has_safe": true
+    }
+  ]
+}
+```
+
+**Military Compounds - Content**:
+
+```json
+{
+  "id": "military_compound",
+  "room_features": [
+    {
+      "feature_id": "weapon_rack",
+      "spawn_chance": 0.3,
+      "room_types": ["armory"],
+      "contains_loot": true,
+      "loot_type": "weapons"
+    },
+    {
+      "feature_id": "training_dummy",
+      "spawn_chance": 0.2,
+      "room_types": ["training_yard"],
+      "interactive": true,
+      "improves_combat_skill": true
+    },
+    {
+      "feature_id": "guard_tower",
+      "spawn_chance": 0.1,
+      "room_types": ["courtyard"],
+      "spawns_archers": true,
+      "provides_overwatch": true
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "patrol_route",
+      "density": 0.1,
+      "moving_enemies": true,
+      "alert_on_sight": true
+    },
+    {
+      "hazard_id": "alarm_bell",
+      "density": 0.05,
+      "summons_reinforcements": true,
+      "detection_radius": 10
+    },
+    {
+      "hazard_id": "ballista_trap",
+      "density": 0.02,
+      "damage": 40,
+      "piercing": true
+    }
+  ],
+  "special_rooms": [
+    {
+      "room_type": "command_center",
+      "chance": 0.1,
+      "contains": "boss_enemy",
+      "has_strategic_map": true
+    }
+  ]
+}
+```
+
+**Wizard Towers - Content**:
+
+```json
+{
+  "id": "wizard_tower",
+  "room_features": [
+    {
+      "feature_id": "summoning_circle",
+      "spawn_chance": 0.2,
+      "room_types": ["lab"],
+      "spawns_demons": true,
+      "destroyable": true
+    },
+    {
+      "feature_id": "enchantment_table",
+      "spawn_chance": 0.25,
+      "room_types": ["lab"],
+      "allows_enchanting": true,
+      "requires_components": true
+    },
+    {
+      "feature_id": "spell_scroll_shelf",
+      "spawn_chance": 0.3,
+      "room_types": ["library"],
+      "contains_loot": true,
+      "loot_type": "scrolls"
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "magical_ward",
+      "density": 0.08,
+      "damage": 15,
+      "element": "arcane",
+      "dispellable": true
+    },
+    {
+      "hazard_id": "dimensional_rift",
+      "density": 0.03,
+      "teleports_randomly": true,
+      "summons_enemies": true
+    },
+    {
+      "hazard_id": "wild_magic_zone",
+      "density": 0.05,
+      "random_spell_effects": true,
+      "unpredictable": true
+    }
+  ],
+  "environmental_effects": {
+    "ambient_magic": 0.8,
+    "levitation": 0.2,
+    "time_distortion": 0.1
+  }
+}
+```
+
+**Ancient Forts - Content**:
+
+```json
+{
+  "id": "ancient_fort",
+  "room_features": [
+    {
+      "feature_id": "siege_weapon",
+      "spawn_chance": 0.15,
+      "room_types": ["battlement"],
+      "usable": true,
+      "damage": 50
+    },
+    {
+      "feature_id": "treasure_vault",
+      "spawn_chance": 0.1,
+      "room_types": ["keep"],
+      "requires_key": true,
+      "loot_multiplier": 3.0
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "arrow_slit",
+      "density": 0.1,
+      "damage": 10,
+      "ranged_attack": true,
+      "cover_blocks": true
+    },
+    {
+      "hazard_id": "crumbling_wall",
+      "density": 0.05,
+      "damage": 20,
+      "creates_rubble": true
+    },
+    {
+      "hazard_id": "portcullis",
+      "density": 0.03,
+      "blocks_path": true,
+      "requires_lever": true
+    }
+  ]
+}
+```
+
+**Temple Ruins - Content**:
+
+```json
+{
+  "id": "temple_ruins",
+  "room_features": [
+    {
+      "feature_id": "altar",
+      "spawn_chance": 0.3,
+      "room_types": ["sanctum"],
+      "allows_prayer": true,
+      "grants_blessing": true
+    },
+    {
+      "feature_id": "reliquary",
+      "spawn_chance": 0.2,
+      "room_types": ["chamber"],
+      "contains_loot": true,
+      "guarded_by_spirit": true
+    },
+    {
+      "feature_id": "holy_statue",
+      "spawn_chance": 0.25,
+      "room_types": ["any"],
+      "animated": true,
+      "attacks_undead": true
+    }
+  ],
+  "hazards": [
+    {
+      "hazard_id": "divine_curse",
+      "density": 0.06,
+      "effect": "stat_drain",
+      "affects_blasphemers": true
+    },
+    {
+      "hazard_id": "sanctified_ground",
+      "density": 0.08,
+      "damages_undead": true,
+      "heals_faithful": true
+    },
+    {
+      "hazard_id": "possessed_statue",
+      "density": 0.03,
+      "animates_when_approached": true,
+      "becomes_enemy": true
+    }
+  ],
+  "environmental_effects": {
+    "holy_aura": 0.5,
+    "echoing_prayers": true
+  }
+}
+```
+
+**Files Modified**:
+- MODIFIED: All 7 dungeon JSON files with features, hazards, special rooms
+
+**Testing Checklist**:
+- [ ] Each dungeon type has unique features
+- [ ] Hazards match thematic expectations
+- [ ] Special rooms spawn at correct rates
+- [ ] Environmental effects apply correctly
+- [ ] Content balances well with enemy difficulty
+
+**Benefits**:
+- ✅ Rich, varied dungeon content
+- ✅ Each type feels unique
+- ✅ Thematic consistency
+- ✅ Gameplay depth via hazards/features
+
+---
+

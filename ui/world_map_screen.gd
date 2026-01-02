@@ -554,6 +554,8 @@ func _add_legend_header(text: String) -> void:
 	label.text = text
 	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	legend_container.add_child(label)
 
 	var sep = HSeparator.new()
@@ -590,6 +592,9 @@ func _add_legend_item(color: Color, text: String) -> void:
 	label.text = text
 	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	hbox.add_child(label)
 
 	legend_container.add_child(hbox)

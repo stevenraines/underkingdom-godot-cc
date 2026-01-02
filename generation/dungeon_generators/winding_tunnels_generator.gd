@@ -170,12 +170,12 @@ func _add_alcoves(map: GameMap, rng: SeededRandom, floor_tile: String) -> void:
 
 
 ## Place stairs along main path
-func _add_stairs(map: GameMap, main_path: Array, floor_number: int) -> void:
+func _add_stairs(map: GameMap, main_path: Array, _floor_number: int) -> void:
 	if main_path.is_empty():
 		return
 
-	# Place stairs up near start of path
-	if floor_number > 1 and main_path.size() > 0:
+	# Always place stairs up near start of path (floor 1 leads to overworld, deeper floors to previous floor)
+	if main_path.size() > 0:
 		var up_idx: int = mini(10, main_path.size() - 1)
 		var up_pos: Vector2i = main_path[up_idx]
 		map.tiles[up_pos] = GameTile.create("stairs_up")

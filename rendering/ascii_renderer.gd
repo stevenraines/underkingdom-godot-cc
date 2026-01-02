@@ -15,7 +15,7 @@ const TILE_HEIGHT = 64
 @onready var camera: Camera2D = $Camera
 
 # Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, 1286 characters
+# Unicode tileset: 32 columns, 1295 characters (41 rows)
 # Characters indexed sequentially: col = index % 32, row = index / 32
 const TILES_PER_ROW = 32
 
@@ -160,9 +160,9 @@ func _create_ascii_tileset() -> TileSet:
 	source.separation = Vector2i(0, 0)  # No spacing between tiles
 	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
-	# Add tiles for all 895 Unicode characters in 32-column grid
-	# Characters laid out left-to-right, top-to-bottom (28 rows)
-	var num_tiles = 895
+	# Add tiles for all 1295 Unicode characters in 32-column grid
+	# Characters laid out left-to-right, top-to-bottom (41 rows)
+	var num_tiles = 1295
 	for i in range(num_tiles):
 		var col = i % TILES_PER_ROW
 		var row = i / TILES_PER_ROW

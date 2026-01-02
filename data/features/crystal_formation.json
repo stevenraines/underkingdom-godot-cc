@@ -6,5 +6,6 @@
 	"blocking": true,
 	"interactable": true,
 	"interaction_verb": "harvest",
-	"harvestable": true
+	"harvestable": true,
+	"removes_on_interact": true
 }

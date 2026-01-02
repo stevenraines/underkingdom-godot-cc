@@ -315,11 +315,8 @@ func _render_map() -> void:
 	# Check if this is a dungeon map (has floor number in metadata or map_id contains "_floor_")
 	var is_dungeon = MapManager.current_map.metadata.has("floor_number") or "_floor_" in MapManager.current_map.map_id
 
-	print("[_render_map] is_dungeon=%s, map_id=%s, tiles_count=%d" % [is_dungeon, MapManager.current_map.map_id, MapManager.current_map.tiles.size()])
-
 	# For dungeons, only render tiles that exist in the dictionary
 	if is_dungeon:
-		var rendered_count = 0
 		for pos in MapManager.current_map.tiles.keys():
 			var tile = MapManager.current_map.tiles[pos]
 
@@ -329,8 +326,6 @@ func _render_map() -> void:
 					continue  # Don't render this wall
 
 			renderer.render_tile(pos, tile.ascii_char)
-			rendered_count += 1
-		print("[_render_map] Rendered %d tiles" % rendered_count)
 	else:
 		# Traditional rendering for non-dungeon, non-chunk maps
 		for y in range(MapManager.current_map.height):

@@ -137,33 +137,72 @@ static func _place_wilderness_dungeon(world_seed: int, town_pos: Vector2i, exist
 
 
 ## Find suitable location for town
-## Prefers grassland or woodland near spawn area
+## Prefers grassland or woodland near the coast (beach biome nearby)
 static func place_town(world_seed: int) -> Vector2i:
-	var search_radius = 8
 	var suitable_biomes = ["grassland", "woodland", "forest"]
+	var coastal_biomes = ["beach", "marsh"]  # Biomes that indicate nearby coast
 	var excluded_biomes = ["ocean", "deep_ocean", "water"]  # Never spawn in water
 
-	# Try to find a suitable biome within search radius of spawn area
-	for radius in range(1, search_radius):
-		var positions = _get_spiral_positions(Vector2i(5, 5), radius)
+	# Get island center from config (in chunks)
+	var island_settings = BiomeManager.get_island_settings()
+	var island_width_chunks = island_settings.get("width_chunks", 25)
+	var island_height_chunks = island_settings.get("height_chunks", 25)
+	var center_chunk = Vector2i(island_width_chunks / 2, island_height_chunks / 2)
+
+	# First pass: find suitable biomes near coast (within 2 chunks of beach)
+	var coastal_candidates: Array = []
+	for radius in range(1, 12):  # Search wider area
+		var positions = _get_spiral_positions(center_chunk, radius)
 
 		for chunk_coords in positions:
-			# Check center of chunk for biome
 			var world_pos = chunk_coords * 32 + Vector2i(16, 16)
 			var biome = BiomeGenerator.get_biome_at(world_pos.x, world_pos.y, world_seed)
 
-			# Skip water biomes
 			if biome.biome_name in excluded_biomes:
 				continue
 
 			if biome.biome_name in suitable_biomes:
-				# Found suitable location
-				print("[SpecialFeaturePlacer] Town placed in %s biome at chunk %v" % [biome.biome_name, chunk_coords])
+				# Check if near coast (any nearby tile is beach/marsh)
+				var is_coastal = false
+				for dx in range(-2, 3):
+					for dy in range(-2, 3):
+						if dx == 0 and dy == 0:
+							continue
+						var neighbor_pos = world_pos + Vector2i(dx * 32, dy * 32)
+						var neighbor_biome = BiomeGenerator.get_biome_at(neighbor_pos.x, neighbor_pos.y, world_seed)
+						if neighbor_biome.biome_name in coastal_biomes:
+							is_coastal = true
+							break
+					if is_coastal:
+						break
+
+				if is_coastal:
+					coastal_candidates.append({"pos": world_pos, "chunk": chunk_coords, "biome": biome.biome_name})
+
+	# Pick the first coastal candidate (deterministic based on spiral search order)
+	if coastal_candidates.size() > 0:
+		var selected = coastal_candidates[0]
+		print("[SpecialFeaturePlacer] Town placed in coastal %s biome at chunk %v" % [selected.biome, selected.chunk])
+		return selected.pos
+
+	# Second pass: fall back to any suitable biome if no coastal location found
+	for radius in range(1, 12):
+		var positions = _get_spiral_positions(center_chunk, radius)
+
+		for chunk_coords in positions:
+			var world_pos = chunk_coords * 32 + Vector2i(16, 16)
+			var biome = BiomeGenerator.get_biome_at(world_pos.x, world_pos.y, world_seed)
+
+			if biome.biome_name in excluded_biomes:
+				continue
+
+			if biome.biome_name in suitable_biomes:
+				print("[SpecialFeaturePlacer] Town placed in %s biome at chunk %v (no coastal location found)" % [biome.biome_name, chunk_coords])
 				return world_pos
 
-	# Fallback to a fixed position if no suitable biome found
-	push_warning("SpecialFeaturePlacer: Could not find suitable biome for town, using fallback")
-	return Vector2i(4 * 32 + 16, 5 * 32 + 16)
+	# Fallback to island center if no suitable biome found
+	push_warning("SpecialFeaturePlacer: Could not find suitable biome for town, using island center")
+	return center_chunk * 32 + Vector2i(16, 16)
 
 ## Find suitable location for dungeon entrance (legacy single entrance)
 ## Places 10-20 tiles from town, not in town area, prefers rocky biomes

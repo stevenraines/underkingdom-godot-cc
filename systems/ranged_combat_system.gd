@@ -195,8 +195,13 @@ static func is_tile_transparent(pos: Vector2i) -> bool:
 	if not MapManager.current_map:
 		return false
 
-	# Use chunk system to get tile
-	var tile = ChunkManager.get_tile_at(pos)
+	# Use chunk system for chunk-based maps, otherwise use map directly
+	var tile = null
+	if MapManager.current_map.chunk_based:
+		tile = ChunkManager.get_tile(pos)
+	else:
+		tile = MapManager.current_map.get_tile(pos)
+
 	if not tile:
 		return false
 
@@ -297,32 +302,31 @@ static func get_ranged_attack_message(result: Dictionary, is_player_attacker: bo
 	var ammo = result.get("ammo_name", "")
 	var is_thrown = result.get("is_thrown", false)
 
-	# Build weapon phrase
-	var weapon_phrase = ""
-	if is_player_attacker:
-		if is_thrown:
-			weapon_phrase = " with a %s" % weapon
-		elif ammo != "":
-			weapon_phrase = " with your %s" % weapon
-		else:
-			weapon_phrase = " with your %s" % weapon
+	# Determine the projectile name (ammo for ranged weapons, weapon for thrown)
+	var projectile = ammo if ammo != "" else weapon
 
 	if result.hit:
 		if result.defender_died:
 			if is_player_attacker:
-				return "You kill the %s%s!" % [defender, weapon_phrase]
+				if is_thrown:
+					return "Your %s kills the %s!" % [projectile, defender]
+				else:
+					return "Your %s kills the %s!" % [projectile, defender]
 			else:
 				return "The %s kills you with a ranged attack!" % attacker
 		else:
 			if is_player_attacker:
-				return "You hit the %s%s for %d damage." % [defender, weapon_phrase, result.damage]
+				if is_thrown:
+					return "Your %s hits the %s for %d damage." % [projectile, defender, result.damage]
+				else:
+					return "Your %s hits the %s for %d damage." % [projectile, defender, result.damage]
 			else:
 				return "The %s hits you for %d damage from range." % [attacker, result.damage]
 	else:
 		if is_player_attacker:
 			if is_thrown:
-				return "You throw a %s at the %s but miss." % [weapon, defender]
+				return "You throw a %s at the %s but miss." % [projectile, defender]
 			else:
-				return "Your shot misses the %s." % defender
+				return "Your %s misses the %s." % [projectile, defender]
 		else:
 			return "The %s's shot misses you." % attacker

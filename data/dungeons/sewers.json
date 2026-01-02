@@ -89,6 +89,13 @@
       "redirects_water_flow": true
     },
     {
+      "feature_id": "mushroom_patch",
+      "spawn_chance": 0.75,
+      "room_types": ["alcove","side_chamber","main_tunnel"],
+      "spawns_enemies": true,
+      "destroyable": true
+    },
+    {
       "feature_id": "rat_nest",
       "spawn_chance": 0.25,
       "room_types": ["alcove"],

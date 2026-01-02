@@ -87,15 +87,22 @@ func _build_help_content() -> void:
 	# Combat
 	_add_section_header("== COMBAT ==")
 	_add_keybind("Arrow/WASD", "Bump attack (melee)")
-	_add_keybind("R", "Ranged attack (with bow/crossbow)")
-	_add_keybind("Tab (targeting)", "Cycle targets")
-	_add_keybind("Enter/F (targeting)", "Fire at target")
-	_add_keybind("ESC (targeting)", "Cancel targeting")
+	_add_keybind("Tab", "Cycle through targets")
+	_add_keybind("R", "Fire ranged weapon at target")
+	_add_spacer()
+
+	# Look Mode
+	_add_section_header("== LOOK MODE ==")
+	_add_keybind("L", "Enter look mode")
+	_add_keybind("Tab (look mode)", "Cycle visible objects")
+	_add_keybind("T (look mode)", "Target looked-at enemy")
+	_add_keybind("ESC (look mode)", "Exit look mode")
 	_add_spacer()
 
 	# Combat Tips
 	_add_section_header("== COMBAT TIPS ==")
 	_add_help_text("Bump into enemies to attack them (melee)")
+	_add_help_text("Use Tab to select targets, R to fire")
 	_add_help_text("Ranged weapons require ammunition")
 	_add_help_text("Thrown weapons are consumed but may be recovered")
 	_add_help_text("Hit chance = Your Accuracy - Enemy Evasion")

@@ -27,6 +27,19 @@ var _awaiting_harvest_direction: bool = false  # Waiting for player to specify d
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
 
+# Persistent target tracking (separate from active targeting mode)
+var current_target: Entity = null  # Currently selected target for ranged attacks
+
+signal target_changed(target: Entity)  # Emitted when target selection changes
+
+# Look mode - examine visible objects
+var look_mode_active: bool = false
+var look_objects: Array = []  # Array of visible objects (entities, items, features)
+var look_index: int = 0
+var current_look_object = null  # Currently looked-at object
+
+signal look_object_changed(obj)  # Emitted when look selection changes
+
 func _ready() -> void:
 	set_process_unhandled_input(true)
 	set_process(true)
@@ -45,6 +58,30 @@ func _process(delta: float) -> void:
 	
 	# Don't process movement input if UI is blocking
 	if ui_blocking_input:
+		return
+
+	# If in look mode and player presses movement, exit look mode first
+	if look_mode_active:
+		var move_dir = Vector2i.ZERO
+		if Input.is_action_pressed("ui_up"):
+			move_dir = Vector2i.UP
+		elif Input.is_action_pressed("ui_down"):
+			move_dir = Vector2i.DOWN
+		elif Input.is_action_pressed("ui_left"):
+			move_dir = Vector2i.LEFT
+		elif Input.is_action_pressed("ui_right"):
+			move_dir = Vector2i.RIGHT
+
+		if move_dir != Vector2i.ZERO:
+			# Exit look mode when player tries to move
+			_exit_look_mode()
+			var game = get_parent()
+			if game and game.has_method("_add_message"):
+				game._add_message("Exited look mode.", Color(0.7, 0.7, 0.7))
+		return  # Don't process movement this frame after exiting look mode
+
+	# If in targeting mode, don't process movement
+	if targeting_system and targeting_system.is_active():
 		return
 
 	# Continuous wait key handling (period key '.')
@@ -124,6 +161,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_targeting_input(event)
 		return
 
+	# If in look mode, handle look input
+	if look_mode_active and event is InputEventKey and event.pressed and not event.echo:
+		_handle_look_input(event)
+		return
+
 	# If awaiting harvest direction, handle directional input
 	if _awaiting_harvest_direction and event is InputEventKey and event.pressed and not event.echo:
 		var direction = Vector2i.ZERO
@@ -201,13 +243,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif is_ascend_key:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
+			print("[InputHandler] Ascend key pressed. Player pos: %s, Tile type: %s" % [player.position, tile.tile_type if tile else "null"])
 			if tile and tile.tile_type == "stairs_up":
+				print("[InputHandler] On stairs_up tile, current floor: %d" % MapManager.current_dungeon_floor)
 				# Save entity states before leaving this map
 				EntityManager.save_entity_states_to_map(MapManager.current_map)
 				# Check if we're going to overworld (floor 1 -> overworld) or to previous floor
 				if MapManager.current_dungeon_floor == 1:
 					# Returning to overworld - set position before transition
 					var target_pos = GameManager.last_overworld_position if GameManager.last_overworld_position != Vector2i.ZERO else Vector2i(800, 800)
+					print("[InputHandler] Returning to overworld at position: %s" % target_pos)
 					player.position = target_pos
 					MapManager.ascend_dungeon()
 				else:
@@ -216,6 +261,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					player._find_and_move_to_stairs("stairs_down")
 				action_taken = true
 				get_viewport().set_input_as_handled()
+			else:
+				print("[InputHandler] Not on stairs_up tile - cannot ascend")
 		elif is_wait_key:
 			# Wait action - skip turn and get bonus stamina regen
 			_do_wait_action()
@@ -259,8 +306,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed) or event.unicode == 63:  # F1 or ? (Shift+/ or unicode 63) - help screen
 			_open_help_screen()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_R:  # R key - ranged attack / fire
-			_start_ranged_targeting()
+		elif event.keycode == KEY_TAB:  # Tab key - cycle targets
+			_cycle_target()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_R:  # R key - ranged attack / fire at current target
+			_fire_at_target()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_L:  # L key - enter look mode
+			_start_look_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_U:  # U key - clear/untarget current target
+			_untarget()
 			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
@@ -612,9 +668,470 @@ func _spawn_recovered_ammo(result: Dictionary) -> void:
 	# Create ground item
 	var item = ItemManager.create_item(item_id, 1)
 	if item:
-		var ground_item = GroundItem.create(item, recovery_pos)
-		EntityManager.add_entity(ground_item)
+		EntityManager.spawn_ground_item(item, recovery_pos)
 
 		var game = get_parent()
 		if game and game.has_method("_add_message"):
 			game._add_message("Your %s lands on the ground." % item.name, Color(0.7, 0.8, 0.7))
+
+
+## Cycle through valid targets (Tab key)
+func _cycle_target() -> void:
+	var game = get_parent()
+
+	# Check if player has a ranged weapon equipped
+	var weapon = _get_equipped_ranged_weapon()
+	if not weapon:
+		if game and game.has_method("_add_message"):
+			game._add_message("No ranged weapon equipped.", Color(0.9, 0.6, 0.4))
+		return
+
+	# Get all valid targets in perception range
+	var valid_targets = _get_valid_targets_in_range()
+
+	if valid_targets.is_empty():
+		if game and game.has_method("_add_message"):
+			game._add_message("No targets in range.", Color(0.7, 0.7, 0.7))
+		_set_current_target(null)
+		return
+
+	# Find current target index
+	var current_index = -1
+	if current_target and is_instance_valid(current_target):
+		for i in range(valid_targets.size()):
+			if valid_targets[i] == current_target:
+				current_index = i
+				break
+
+	# Cycle to next target
+	var next_index = (current_index + 1) % valid_targets.size()
+	_set_current_target(valid_targets[next_index])
+
+	# Show target info
+	if current_target and game and game.has_method("_add_message"):
+		var distance = RangedCombatSystemClass.get_tile_distance(player.position, current_target.position)
+		game._add_message("Target: %s (Distance: %d)" % [current_target.name, distance], Color(0.8, 0.9, 1.0))
+
+
+## Fire at the current target (R key)
+func _fire_at_target() -> void:
+	var game = get_parent()
+
+	# Check if we have a valid target
+	if not current_target or not is_instance_valid(current_target) or not current_target.is_alive:
+		# No target selected, show message
+		if game and game.has_method("_add_message"):
+			game._add_message("No target selected. Press Tab to select a target.", Color(0.9, 0.6, 0.4))
+		_set_current_target(null)
+		return
+
+	# Check if player has a ranged weapon equipped
+	var weapon = _get_equipped_ranged_weapon()
+	if not weapon:
+		if game and game.has_method("_add_message"):
+			game._add_message("No ranged weapon equipped.", Color(0.9, 0.6, 0.4))
+		return
+
+	# For ranged weapons (not thrown), check for ammo
+	var ammo: Item = null
+	if weapon.is_ranged_weapon() and weapon.ammunition_type != "":
+		ammo = _get_ammunition_for_weapon(weapon)
+		if not ammo:
+			if game and game.has_method("_add_message"):
+				game._add_message("No %s ammunition." % weapon.ammunition_type, Color(0.9, 0.6, 0.4))
+			return
+
+	# Check if target is in range and has line of sight
+	var str_stat = player.attributes.get("STR", 10)
+	var effective_range = weapon.get_effective_range(str_stat)
+	var distance = RangedCombatSystemClass.get_tile_distance(player.position, current_target.position)
+
+	if distance > effective_range:
+		if game and game.has_method("_add_message"):
+			game._add_message("Target is out of range.", Color(0.9, 0.6, 0.4))
+		return
+
+	if distance < 1:
+		if game and game.has_method("_add_message"):
+			game._add_message("Target is too close. Use melee attack.", Color(0.9, 0.6, 0.4))
+		return
+
+	if not RangedCombatSystemClass.has_line_of_sight(player.position, current_target.position):
+		if game and game.has_method("_add_message"):
+			game._add_message("No line of sight to target.", Color(0.9, 0.6, 0.4))
+		return
+
+	# Execute the ranged attack
+	var result = RangedCombatSystemClass.attempt_ranged_attack(player, current_target, weapon, ammo)
+
+	# Consume ammunition
+	if result.get("is_ranged", false) and not result.get("is_thrown", false):
+		_consume_ammunition(ammo)
+	elif result.get("is_thrown", false):
+		_consume_thrown_weapon(weapon)
+
+	# Display combat message
+	var message = RangedCombatSystemClass.get_ranged_attack_message(result, true)
+	var color = Color(0.6, 0.9, 0.6) if result.hit else Color(0.7, 0.7, 0.7)
+	if game and game.has_method("_add_message"):
+		game._add_message(message, color)
+
+	# Handle ammo recovery on miss
+	if not result.hit and result.get("ammo_recovered", false):
+		var recovery_pos = result.get("recovery_position", Vector2i.ZERO)
+		if recovery_pos != Vector2i.ZERO:
+			var item_id = ammo.id if ammo else weapon.id
+			var item = ItemManager.create_item(item_id, 1)
+			if item:
+				EntityManager.spawn_ground_item(item, recovery_pos)
+				if game and game.has_method("_add_message"):
+					game._add_message("Your %s lands on the ground." % item.name, Color(0.7, 0.8, 0.7))
+
+	# Clear target if it died
+	if result.defender_died:
+		_set_current_target(null)
+
+	# Advance turn
+	TurnManager.advance_turn()
+
+	# Refresh rendering
+	if game and game.has_method("_render_all_entities"):
+		game._render_all_entities()
+		game._render_ground_items()
+
+
+## Get all valid targets within perception range
+func _get_valid_targets_in_range() -> Array[Entity]:
+	var targets: Array[Entity] = []
+
+	if not player:
+		return targets
+
+	for entity in EntityManager.entities:
+		if entity == player:
+			continue
+		if not entity is Enemy:
+			continue
+		if not entity.is_alive:
+			continue
+
+		# Check if within perception range
+		var distance = RangedCombatSystemClass.get_tile_distance(player.position, entity.position)
+		if distance > player.perception_range:
+			continue
+		if distance < 1:
+			continue  # Can't target adjacent (melee range)
+
+		targets.append(entity)
+
+	# Sort by distance (closest first)
+	targets.sort_custom(func(a, b):
+		return RangedCombatSystemClass.get_distance(player.position, a.position) < RangedCombatSystemClass.get_distance(player.position, b.position)
+	)
+
+	return targets
+
+
+## Set the current target and emit signal
+func _set_current_target(target: Entity) -> void:
+	var old_target = current_target
+	current_target = target
+
+	# Only emit if target actually changed
+	if old_target != current_target:
+		target_changed.emit(current_target)
+
+		# Update rendering to show/hide target highlight
+		var game = get_parent()
+		if game and game.has_method("update_target_highlight"):
+			game.update_target_highlight(current_target)
+
+
+## Get the current target (for external access)
+func get_current_target() -> Entity:
+	# Validate target is still valid
+	if current_target and (not is_instance_valid(current_target) or not current_target.is_alive):
+		_set_current_target(null)
+	return current_target
+
+
+## Clear the current target
+func clear_target() -> void:
+	_set_current_target(null)
+
+
+## Untarget the current target (with user feedback)
+func _untarget() -> void:
+	var game = get_parent()
+	if current_target:
+		var target_name = current_target.name
+		_set_current_target(null)
+		if game and game.has_method("_add_message"):
+			game._add_message("Untargeted: %s" % target_name, Color(0.7, 0.7, 0.7))
+	else:
+		if game and game.has_method("_add_message"):
+			game._add_message("No target to clear.", Color(0.7, 0.7, 0.7))
+
+
+## Start look mode to examine visible objects
+func _start_look_mode() -> void:
+	var game = get_parent()
+
+	# Gather all visible objects
+	look_objects = _get_visible_objects()
+
+	if look_objects.is_empty():
+		if game and game.has_method("_add_message"):
+			game._add_message("Nothing visible to examine.", Color(0.7, 0.7, 0.7))
+		return
+
+	look_mode_active = true
+	look_index = 0
+	_set_look_object(look_objects[0])
+
+	if game and game.has_method("_add_message"):
+		game._add_message("Look mode: [Tab] cycle, [Enter] target enemy, [Esc] exit", Color(0.7, 0.9, 1.0))
+
+
+## Handle input while in look mode
+func _handle_look_input(event: InputEventKey) -> void:
+	var game = get_parent()
+
+	match event.keycode:
+		KEY_TAB, KEY_RIGHT, KEY_D:
+			# Cycle to next object
+			if look_objects.size() > 0:
+				look_index = (look_index + 1) % look_objects.size()
+				_set_look_object(look_objects[look_index])
+			get_viewport().set_input_as_handled()
+
+		KEY_LEFT, KEY_A:
+			# Cycle to previous object
+			if look_objects.size() > 0:
+				look_index = (look_index - 1 + look_objects.size()) % look_objects.size()
+				_set_look_object(look_objects[look_index])
+			get_viewport().set_input_as_handled()
+
+		KEY_ENTER, KEY_KP_ENTER:
+			# Target the looked-at object if it's an enemy
+			# current_look_object could be an Entity or a Dictionary (for features/hazards)
+			var can_target = false
+			if current_look_object and current_look_object is Entity:
+				if current_look_object is Enemy and current_look_object.is_alive:
+					can_target = true
+
+			if can_target:
+				var target_name = current_look_object.name
+				_set_current_target(current_look_object)
+				_exit_look_mode()
+				if game and game.has_method("_add_message"):
+					game._add_message("Targeted: %s" % target_name, Color(0.8, 0.9, 1.0))
+			else:
+				if game and game.has_method("_add_message"):
+					game._add_message("Can only target enemies.", Color(0.9, 0.6, 0.4))
+			get_viewport().set_input_as_handled()
+
+		KEY_ESCAPE:
+			# Exit look mode
+			_exit_look_mode()
+			if game and game.has_method("_add_message"):
+				game._add_message("Exited look mode.", Color(0.7, 0.7, 0.7))
+			get_viewport().set_input_as_handled()
+
+
+## Get all visible objects (enemies, items, features, etc.)
+func _get_visible_objects() -> Array:
+	var objects: Array = []
+
+	if not player:
+		return objects
+
+	# Add visible entities (enemies, NPCs, ground items)
+	for entity in EntityManager.entities:
+		if entity == player:
+			continue
+		if not entity.is_alive:
+			continue
+
+		var distance = RangedCombatSystemClass.get_tile_distance(player.position, entity.position)
+		if distance > player.perception_range:
+			continue
+
+		# Handle different entity types
+		if entity is GroundItem:
+			objects.append({
+				"object": entity,
+				"position": entity.position,
+				"type": "item",
+				"name": entity.item.name if entity.item else "Unknown Item",
+				"description": _get_item_description(entity)
+			})
+		elif entity is Enemy:
+			objects.append({
+				"object": entity,
+				"position": entity.position,
+				"type": "enemy",
+				"name": entity.name,
+				"description": _get_entity_description(entity)
+			})
+		elif entity is NPC:
+			objects.append({
+				"object": entity,
+				"position": entity.position,
+				"type": "npc",
+				"name": entity.name,
+				"description": "An NPC you can talk to."
+			})
+		else:
+			# Other entity types
+			objects.append({
+				"object": entity,
+				"position": entity.position,
+				"type": "entity",
+				"name": entity.name,
+				"description": ""
+			})
+
+	# Add visible features
+	for pos in FeatureManager.active_features:
+		var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
+		if distance <= player.perception_range:
+			var feature = FeatureManager.active_features[pos]
+			var definition = feature.get("definition", {})
+			objects.append({
+				"object": feature,
+				"position": pos,
+				"type": "feature",
+				"name": definition.get("name", "Unknown Feature"),
+				"description": _get_feature_description(feature)
+			})
+
+	# Add visible hazards (only detected ones)
+	for pos in HazardManager.active_hazards:
+		if HazardManager.has_visible_hazard(pos):
+			var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
+			if distance <= player.perception_range:
+				var hazard = HazardManager.active_hazards[pos]
+				var definition = hazard.get("definition", {})
+				objects.append({
+					"object": hazard,
+					"position": pos,
+					"type": "hazard",
+					"name": definition.get("name", "Unknown Hazard"),
+					"description": _get_hazard_description(hazard)
+				})
+
+	# Sort by distance (closest first)
+	objects.sort_custom(func(a, b):
+		var dist_a = RangedCombatSystemClass.get_tile_distance(player.position, a.position)
+		var dist_b = RangedCombatSystemClass.get_tile_distance(player.position, b.position)
+		return dist_a < dist_b
+	)
+
+	return objects
+
+
+## Set the current look object and update display
+func _set_look_object(obj_data: Dictionary) -> void:
+	var game = get_parent()
+
+	current_look_object = obj_data.get("object")
+	var position = obj_data.get("position", Vector2i.ZERO)
+	var obj_name = obj_data.get("name", "Unknown")
+	var obj_type = obj_data.get("type", "unknown")
+	var description = obj_data.get("description", "")
+	var distance = RangedCombatSystemClass.get_tile_distance(player.position, position)
+
+	# Show description message
+	if game and game.has_method("_add_message"):
+		var type_label = obj_type.capitalize()
+		var index_text = "(%d/%d)" % [look_index + 1, look_objects.size()]
+		game._add_message("%s %s: %s (Dist: %d)" % [index_text, type_label, obj_name, distance], Color(0.9, 0.9, 0.7))
+		if description != "":
+			game._add_message("  %s" % description, Color(0.7, 0.8, 0.7))
+
+	# Emit signal and update highlight
+	look_object_changed.emit(current_look_object)
+
+	if game and game.has_method("update_look_highlight"):
+		game.update_look_highlight(position)
+
+
+## Exit look mode
+func _exit_look_mode() -> void:
+	look_mode_active = false
+	look_objects.clear()
+	look_index = 0
+	current_look_object = null
+
+	var game = get_parent()
+
+	# If there's a current target, restore the target highlight
+	# Otherwise, clear the highlight
+	if current_target and is_instance_valid(current_target) and current_target.is_alive:
+		if game and game.has_method("update_target_highlight"):
+			game.update_target_highlight(current_target)
+	else:
+		if game and game.has_method("update_look_highlight"):
+			game.update_look_highlight(Vector2i(-1, -1))  # Invalid position clears highlight
+
+
+## Get description for an entity
+func _get_entity_description(entity: Entity) -> String:
+	if entity is Enemy:
+		var hp_percent = int((float(entity.current_health) / float(entity.max_health)) * 100)
+		var health_state = "healthy"
+		if hp_percent <= 25:
+			health_state = "near death"
+		elif hp_percent <= 50:
+			health_state = "wounded"
+		elif hp_percent <= 75:
+			health_state = "injured"
+		return "HP: %d%% (%s)" % [hp_percent, health_state]
+	return ""
+
+
+## Get description for a ground item
+func _get_item_description(ground_item: GroundItem) -> String:
+	if ground_item.item:
+		var item = ground_item.item
+		var desc_parts = []
+		if item.stack_count > 1:
+			desc_parts.append("x%d" % item.stack_count)
+		if item.weight > 0:
+			desc_parts.append("%.1f kg" % item.weight)
+		return ", ".join(desc_parts) if desc_parts.size() > 0 else ""
+	return ""
+
+
+## Get description for a feature
+func _get_feature_description(feature: Dictionary) -> String:
+	var definition = feature.get("definition", {})
+	var state_val = feature.get("state", "")
+	var state = str(state_val) if state_val != null else ""
+	var desc_val = definition.get("description", "")
+	var desc = str(desc_val) if desc_val != null else ""
+	if state == "opened" or state == "looted":
+		desc += " (already opened)"
+	elif state == "used":
+		desc += " (already used)"
+	return desc
+
+
+## Get description for a hazard
+func _get_hazard_description(hazard: Dictionary) -> String:
+	var definition = hazard.get("definition", {})
+	var desc = definition.get("description", "A dangerous hazard.")
+	return str(desc) if desc != null else "A dangerous hazard."
+
+
+## Check if look mode is active
+func is_look_mode_active() -> bool:
+	return look_mode_active
+
+
+## Get current look position (for highlighting)
+func get_look_position() -> Vector2i:
+	if look_mode_active and look_objects.size() > look_index:
+		return look_objects[look_index].get("position", Vector2i(-1, -1))
+	return Vector2i(-1, -1)

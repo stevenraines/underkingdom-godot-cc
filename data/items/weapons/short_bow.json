@@ -5,7 +5,7 @@
   "category": "weapon",
   "subtype": "bow",
   "attack_type": "ranged",
-  "attack_range": 6,
+  "attack_range": 10,
   "ammunition_type": "arrow",
   "accuracy_modifier": 5,
   "flags": {

@@ -7,5 +7,6 @@
 	"interactable": true,
 	"interaction_verb": "search",
 	"can_contain_loot": true,
-	"hidden": true
+	"hidden": true,
+	"removes_on_interact": true
 }

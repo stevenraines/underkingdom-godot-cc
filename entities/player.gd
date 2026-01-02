@@ -203,8 +203,7 @@ func _collect_feature_loot(items: Array) -> void:
 					EventBus.item_picked_up.emit(item)
 				else:
 					# Inventory full - drop on ground
-					var ground_item = GroundItem.create(item, position)
-					EntityManager.add_entity(ground_item)
+					EntityManager.spawn_ground_item(item, position)
 					EventBus.message_logged.emit("Inventory full! Item dropped.")
 
 ## Process survival systems for a turn

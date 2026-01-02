@@ -504,37 +504,44 @@ func _open_door(pos: Vector2i) -> void:
 		_FOVSystem.invalidate_cache()
 		EventBus.tile_changed.emit(pos)  # Trigger tile re-render
 
-## Close a door in the given direction from player
-## Returns true if successfully closed, false otherwise
-func close_door(direction: Vector2i) -> bool:
+## Toggle a door in the given direction from player (open if closed, close if open)
+## Returns true if door was toggled, false otherwise
+func toggle_door(direction: Vector2i) -> bool:
 	if not MapManager.current_map:
 		return false
 
 	var door_pos = position + direction
 	var tile = MapManager.current_map.get_tile(door_pos)
 
-	# Check if there's an open door at the position
-	if not tile or tile.tile_type != "door" or not tile.is_open:
+	# Check if there's a door at the position
+	if not tile or tile.tile_type != "door":
 		return false
 
-	# Check if position is occupied by an entity
-	if EntityManager.get_blocking_entity_at(door_pos):
-		EventBus.combat_message.emit("Something is in the way.", Color.YELLOW)
-		return false
+	if tile.is_open:
+		# Try to close the door
+		# Check if position is occupied by an entity
+		if EntityManager.get_blocking_entity_at(door_pos):
+			EventBus.combat_message.emit("Something is in the way.", Color.YELLOW)
+			return false
 
-	# Check for ground items (optional - doors can close over items)
-	# Close the door
-	if tile.close_door():
-		EventBus.combat_message.emit("You close the door.", Color.WHITE)
-		_FOVSystem.invalidate_cache()
-		EventBus.tile_changed.emit(door_pos)  # Trigger tile re-render
-		return true
+		if tile.close_door():
+			EventBus.combat_message.emit("You close the door.", Color.WHITE)
+			_FOVSystem.invalidate_cache()
+			EventBus.tile_changed.emit(door_pos)
+			return true
+	else:
+		# Open the door
+		if tile.open_door():
+			EventBus.combat_message.emit("You open the door.", Color.WHITE)
+			_FOVSystem.invalidate_cache()
+			EventBus.tile_changed.emit(door_pos)
+			return true
 
 	return false
 
-## Try to close any adjacent open door
-## Returns true if a door was closed
-func try_close_adjacent_door() -> bool:
+## Try to toggle any adjacent door (open or close)
+## Returns true if a door was toggled
+func try_toggle_adjacent_door() -> bool:
 	var directions = [
 		Vector2i(0, -1),  # Up
 		Vector2i(0, 1),   # Down
@@ -543,8 +550,8 @@ func try_close_adjacent_door() -> bool:
 	]
 
 	for dir in directions:
-		if close_door(dir):
+		if toggle_door(dir):
 			return true
 
-	EventBus.combat_message.emit("No open door nearby.", Color.GRAY)
+	EventBus.combat_message.emit("No door nearby.", Color.GRAY)
 	return false

@@ -69,7 +69,7 @@ var current_target: Entity = null
 | , (comma) | Manual pickup |
 | H | Harvest (then direction) |
 | T | Talk to adjacent NPC |
-| X | Close adjacent door |
+| X | Open/close adjacent door |
 
 ### UI
 

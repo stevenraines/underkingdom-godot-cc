@@ -1,10 +1,140 @@
 class_name SpecialFeaturePlacer
 
-## SpecialFeaturePlacer - Places special features (town, dungeon entrance, player spawn) in suitable biomes
+## SpecialFeaturePlacer - Places special features (town, dungeon entrances, player spawn) in suitable biomes
 ##
 ## Uses biome data to find appropriate locations for special features.
 ## Features are placed deterministically based on world seed.
-## Order: Town first, then dungeon 10-20 tiles away, then player spawn opposite dungeon.
+## Order: Town first, then dungeons (one of each type), then player spawn opposite first dungeon.
+
+## Place all dungeon entrances based on dungeon definitions
+## Returns array of dictionaries with dungeon_type, position, entrance_char, entrance_color
+static func place_all_dungeon_entrances(world_seed: int, town_pos: Vector2i) -> Array:
+	var entrances: Array = []
+	var placed_positions: Array = []
+	var rng = SeededRandom.new(world_seed + 2000)  # Offset for dungeon placement
+
+	# Get all dungeon types from DungeonManager
+	var dungeon_types = DungeonManager.get_all_dungeon_types()
+
+	for dungeon_type in dungeon_types:
+		var dungeon_def = DungeonManager.get_dungeon(dungeon_type)
+		var placement = dungeon_def.get("placement", "wilderness")
+		var biome_prefs = dungeon_def.get("biome_preferences", ["any"])
+
+		var entrance_pos: Vector2i
+
+		if placement == "town":
+			# Place in/near town (sewers, etc.)
+			entrance_pos = _place_town_dungeon(world_seed, town_pos, placed_positions, rng)
+		else:
+			# Place in wilderness with appropriate biome
+			entrance_pos = _place_wilderness_dungeon(world_seed, town_pos, placed_positions, biome_prefs, rng)
+
+		if entrance_pos != Vector2i(-1, -1):
+			placed_positions.append(entrance_pos)
+			entrances.append({
+				"dungeon_type": dungeon_type,
+				"position": entrance_pos,
+				"entrance_char": dungeon_def.get("entrance_char", ">"),
+				"entrance_color": dungeon_def.get("entrance_color", "#FFFFFF"),
+				"name": dungeon_def.get("name", dungeon_type)
+			})
+			print("[SpecialFeaturePlacer] Placed %s at %v" % [dungeon_type, entrance_pos])
+		else:
+			push_warning("[SpecialFeaturePlacer] Could not place %s" % dungeon_type)
+
+	return entrances
+
+
+## Place a dungeon entrance in/near town
+static func _place_town_dungeon(_world_seed: int, town_pos: Vector2i, existing: Array, rng: SeededRandom) -> Vector2i:
+	# Place within the town area but not in a building
+	# Town is 15x15, shop is 5x5 centered on town_pos
+	var town_radius = 7
+
+	for _attempt in range(50):
+		var offset = Vector2i(rng.randi_range(-town_radius, town_radius), rng.randi_range(-town_radius, town_radius))
+		var candidate_pos = town_pos + offset
+
+		# Skip if too close to shop center (5x5 building)
+		var dist_to_center = (candidate_pos - town_pos).length()
+		if dist_to_center < 4:  # Shop is centered, avoid it
+			continue
+
+		# Skip if too close to existing entrances
+		var too_close = false
+		for pos in existing:
+			if (candidate_pos - pos).length() < 5:
+				too_close = true
+				break
+		if too_close:
+			continue
+
+		# Valid position
+		return candidate_pos
+
+	# Fallback: place at fixed offset from town
+	return town_pos + Vector2i(6, 6)
+
+
+## Place a dungeon entrance in wilderness with biome preference
+static func _place_wilderness_dungeon(world_seed: int, town_pos: Vector2i, existing: Array, biome_prefs: Array, rng: SeededRandom) -> Vector2i:
+	var min_distance_from_town = 20
+	var max_distance_from_town = 60
+	var min_distance_from_others = 15
+	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+
+	# Try to find a suitable position
+	for _attempt in range(100):
+		var angle = rng.randf() * 2 * PI
+		var distance = rng.randf_range(min_distance_from_town, max_distance_from_town)
+		var offset = Vector2(cos(angle), sin(angle)) * distance
+		var candidate_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+
+		# Check biome
+		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
+		if biome.biome_name in excluded_biomes:
+			continue
+
+		# Check biome preference (skip if not "any" and not matching)
+		if not ("any" in biome_prefs) and not (biome.biome_name in biome_prefs):
+			continue
+
+		# Check distance from other entrances
+		var too_close = false
+		for pos in existing:
+			if (candidate_pos - pos).length() < min_distance_from_others:
+				too_close = true
+				break
+		if too_close:
+			continue
+
+		return candidate_pos
+
+	# Second pass: accept any non-water biome
+	for _attempt in range(100):
+		var angle = rng.randf() * 2 * PI
+		var distance = rng.randf_range(min_distance_from_town, max_distance_from_town)
+		var offset = Vector2(cos(angle), sin(angle)) * distance
+		var candidate_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+
+		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
+		if biome.biome_name in excluded_biomes:
+			continue
+
+		var too_close = false
+		for pos in existing:
+			if (candidate_pos - pos).length() < min_distance_from_others:
+				too_close = true
+				break
+		if too_close:
+			continue
+
+		return candidate_pos
+
+	# Fallback position
+	return Vector2i(-1, -1)
+
 
 ## Find suitable location for town
 ## Prefers grassland or woodland near spawn area
@@ -35,7 +165,7 @@ static func place_town(world_seed: int) -> Vector2i:
 	push_warning("SpecialFeaturePlacer: Could not find suitable biome for town, using fallback")
 	return Vector2i(4 * 32 + 16, 5 * 32 + 16)
 
-## Find suitable location for dungeon entrance
+## Find suitable location for dungeon entrance (legacy single entrance)
 ## Places 10-20 tiles from town, not in town area, prefers rocky biomes
 static func place_dungeon_entrance(world_seed: int, town_pos: Vector2i) -> Vector2i:
 	var rng = SeededRandom.new(world_seed + 1000)  # Offset for dungeon placement

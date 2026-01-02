@@ -2,6 +2,10 @@
   "id": "abandoned_mine",
   "name": "Abandoned Mine",
   "description": "Grid-like mining tunnels with dangerous shafts and toxic gas",
+  "entrance_char": "⌂",
+  "entrance_color": "#8B4513",
+  "biome_preferences": ["mountains", "rocky_hills"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

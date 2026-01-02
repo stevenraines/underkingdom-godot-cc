@@ -2,6 +2,10 @@
   "id": "natural_cave",
   "name": "Natural Cave",
   "description": "Organic underground caverns formed by natural erosion",
+  "entrance_char": "◊",
+  "entrance_color": "#886644",
+  "biome_preferences": ["mountains", "rocky_hills", "barren_rock"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

@@ -23,6 +23,7 @@ var pause_menu: Control = null
 var death_screen: Control = null
 var character_sheet: Control = null
 var help_screen: Control = null
+var world_map_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -81,6 +82,9 @@ func _ready() -> void:
 
 	# Create help screen
 	_setup_help_screen()
+
+	# Create world map screen
+	_setup_world_map_screen()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -248,6 +252,20 @@ func _setup_help_screen() -> void:
 		print("[Game] Help screen scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load help_screen.tscn scene")
+
+## Setup world map screen
+func _setup_world_map_screen() -> void:
+	print("[Game] Setting up world map screen from scene...")
+	var WorldMapScreenScene = load("res://ui/world_map_screen.tscn")
+	if WorldMapScreenScene:
+		world_map_screen = WorldMapScreenScene.instantiate()
+		world_map_screen.name = "WorldMapScreen"
+		hud.add_child(world_map_screen)
+		if world_map_screen.has_signal("closed"):
+			world_map_screen.closed.connect(_on_world_map_closed)
+		print("[Game] World map screen scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load world_map_screen.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -983,6 +1001,9 @@ func _update_message() -> void:
 		_add_message("Standing on stairs (>) - Press > to descend", Color.CYAN)
 	elif tile.tile_type == "stairs_up":
 		_add_message("Standing on stairs (<) - Press < to ascend", Color.CYAN)
+	elif tile.tile_type == "dungeon_entrance":
+		var dungeon_name = tile.get_meta("dungeon_name", "Dungeon")
+		_add_message("Standing on %s entrance - Press > to enter" % dungeon_name, Color.CYAN)
 
 ## Add a message to the message log
 func _add_message(text: String, color: Color = Color.WHITE) -> void:
@@ -1216,6 +1237,16 @@ func toggle_build_mode() -> void:
 			build_mode_screen.open(player)
 			input_handler.ui_blocking_input = true
 
+## Toggle world map (called from input handler)
+func toggle_world_map() -> void:
+	if world_map_screen:
+		if world_map_screen.visible:
+			world_map_screen.close()
+			input_handler.ui_blocking_input = false
+		else:
+			world_map_screen.open()
+			input_handler.ui_blocking_input = true
+
 ## Open container screen (called from input handler)
 func open_container_screen(structure: Structure) -> void:
 	if container_screen and player:
@@ -1295,6 +1326,10 @@ func _on_character_sheet_closed() -> void:
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when world map is closed
+func _on_world_map_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when an item is picked up

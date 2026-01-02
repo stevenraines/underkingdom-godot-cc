@@ -2,6 +2,10 @@
   "id": "temple_ruins",
   "name": "Temple Ruins",
   "description": "Forgotten sacred site with symmetrical architecture and divine guardians",
+  "entrance_char": "Δ",
+  "entrance_color": "#FFD700",
+  "biome_preferences": ["forest", "rainforest", "swamp"],
+  "placement": "wilderness",
 
   "map_size": {
     "width": 50,

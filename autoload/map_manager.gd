@@ -8,6 +8,7 @@ extends Node
 var loaded_maps: Dictionary = {}  # map_id -> GameMap
 var current_map: GameMap = null
 var current_dungeon_floor: int = 0  # Track which dungeon floor player is on (0 = overworld)
+var current_dungeon_type: String = ""  # Track current dungeon type (e.g., "burial_barrow")
 
 func _ready() -> void:
 	print("MapManager initialized")
@@ -98,47 +99,70 @@ func _generate_map(map_id: String, world_seed: int) -> GameMap:
 		# Place town first in suitable biome (grassland, woodland)
 		var town_pos = SpecialFeaturePlacer.place_town(world_seed)
 
-		# Place dungeon entrance 10-20 tiles from town in suitable biome
-		var entrance_pos = SpecialFeaturePlacer.place_dungeon_entrance(world_seed, town_pos)
+		# Place all dungeon entrances based on dungeon definitions
+		var dungeon_entrances = SpecialFeaturePlacer.place_all_dungeon_entrances(world_seed, town_pos)
 
-		# Place player spawn just outside town (10 tiles away, opposite from dungeon)
-		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, entrance_pos, world_seed)
+		# Get first wilderness dungeon for player spawn calculation
+		var first_wilderness_entrance = Vector2i(town_pos.x + 15, town_pos.y)
+		for entrance in dungeon_entrances:
+			var dungeon_def = DungeonManager.get_dungeon(entrance.dungeon_type)
+			if dungeon_def.get("placement", "wilderness") == "wilderness":
+				first_wilderness_entrance = entrance.position
+				break
+
+		# Place player spawn just outside town (10 tiles away, opposite from first dungeon)
+		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, first_wilderness_entrance, world_seed)
 
 		# Store special positions in map metadata
 		# ChunkManager will check these and place actual tiles when chunks load
-		map.set_meta("dungeon_entrance", entrance_pos)
 		map.set_meta("town_center", town_pos)
 		map.set_meta("player_spawn", player_spawn)
+		map.set_meta("dungeon_entrances", dungeon_entrances)
 
 		# Store shop NPC spawn data in metadata
 		var shop_npc_pos = town_pos  # Center of shop (5x5 building centered on town_pos)
-		map.set_meta("npc_spawns", [{
+		map.metadata["npc_spawns"] = [{
 			"npc_type": "shop",
 			"npc_id": "shop_keeper",
 			"position": shop_npc_pos,
 			"name": "Olaf the Trader",
 			"gold": 500,
 			"restock_interval": 500
-		}])
+		}]
 
-		print("[MapManager] Special features placed: town=%v, dungeon=%v, spawn=%v" % [town_pos, entrance_pos, player_spawn])
+		print("[MapManager] Special features placed: town=%v, %d dungeons, spawn=%v" % [town_pos, dungeon_entrances.size(), player_spawn])
 
 		return map
 
-	elif map_id.begins_with("dungeon_barrow_floor_"):
-		# Extract floor number from map_id
-		var floor_str = map_id.replace("dungeon_barrow_floor_", "")
+	elif "_floor_" in map_id:
+		# Generic dungeon floor handling: dungeon_type_floor_N
+		# Extract dungeon type and floor number
+		var floor_idx = map_id.find("_floor_")
+		var dungeon_type = map_id.substr(0, floor_idx)
+		var floor_str = map_id.substr(floor_idx + 7)  # Skip "_floor_"
 		var floor_number = int(floor_str)
-		return BurialBarrowGenerator.generate_floor(world_seed, floor_number)
+
+		print("[MapManager] Generating %s floor %d" % [dungeon_type, floor_number])
+
+		# Use DungeonManager to generate the floor with the correct generator
+		return DungeonManager.generate_floor(dungeon_type, floor_number, world_seed)
 	else:
 		push_error("Unknown map ID: " + map_id)
 		# Return empty map as fallback
 		return GameMap.new(map_id, 50, 50, world_seed)
 
+## Enter a dungeon from its entrance
+## dungeon_type: e.g., "burial_barrow", "sewers", "natural_cave"
+func enter_dungeon(dungeon_type: String) -> void:
+	current_dungeon_type = dungeon_type
+	current_dungeon_floor = 1
+	var map_id = "%s_floor_%d" % [dungeon_type, current_dungeon_floor]
+	transition_to_map(map_id)
+
 ## Descend to next dungeon floor
 func descend_dungeon() -> void:
 	current_dungeon_floor += 1
-	var map_id = "dungeon_barrow_floor_%d" % current_dungeon_floor
+	var map_id = "%s_floor_%d" % [current_dungeon_type, current_dungeon_floor]
 	transition_to_map(map_id)
 
 ## Ascend to previous dungeon floor or overworld
@@ -146,12 +170,23 @@ func ascend_dungeon() -> void:
 	current_dungeon_floor -= 1
 
 	if current_dungeon_floor >= 1:
-		var map_id = "dungeon_barrow_floor_%d" % current_dungeon_floor
+		var map_id = "%s_floor_%d" % [current_dungeon_type, current_dungeon_floor]
 		transition_to_map(map_id)
 	else:
 		# Return to overworld (floor 0 or below means overworld)
 		current_dungeon_floor = 0  # Reset to 0 when on overworld
+		current_dungeon_type = ""  # Clear dungeon type
 		transition_to_map("overworld")
+
+## Get dungeon entrance info at a position, or null if no entrance there
+func get_dungeon_entrance_at(pos: Vector2i) -> Variant:
+	if not current_map:
+		return null
+	var entrances = current_map.get_meta("dungeon_entrances", [])
+	for entrance in entrances:
+		if entrance.position == pos:
+			return entrance
+	return null
 
 ## Clear map cache (useful for testing regeneration)
 func clear_cache() -> void:

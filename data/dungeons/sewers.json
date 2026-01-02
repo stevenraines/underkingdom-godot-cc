@@ -2,6 +2,10 @@
   "id": "sewers",
   "name": "Sewers",
   "description": "Underground waste system beneath the town with toxic water and disease",
+  "entrance_char": "O",
+  "entrance_color": "#666666",
+  "biome_preferences": ["town"],
+  "placement": "town",
 
   "map_size": {
     "width": 50,

@@ -57,6 +57,11 @@ static func create(type: String) -> GameTile:
 			tile.walkable = true
 			tile.transparent = true
 			tile.ascii_char = "<"
+		"dungeon_entrance":
+			tile.tile_type = "dungeon_entrance"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = ">"  # Default, will be overridden
 		"door", "wooden_door":
 			tile.tile_type = type
 			tile.walkable = true

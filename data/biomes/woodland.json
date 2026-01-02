@@ -5,6 +5,6 @@
   "grass_char": "\"",
   "tree_density": 0.15,
   "rock_density": 0.02,
-  "color_floor": [0.35, 0.5, 0.3],
-  "color_grass": [0.4, 0.55, 0.35]
+  "color_floor": [0.2, 0.3, 0.18],
+  "color_grass": [0.25, 0.35, 0.22]
 }

@@ -36,8 +36,13 @@ func generate(world_seed: int) -> void:
 
 	# Check if this chunk contains special features
 	var map = MapManager.current_map
-	var dungeon_entrance_pos = map.get_meta("dungeon_entrance", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
+	var dungeon_entrances: Array = map.get_meta("dungeon_entrances", []) if map else []
 	var town_center_pos = map.get_meta("town_center", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
+
+	# Build a dictionary of entrance positions for quick lookup
+	var entrance_lookup: Dictionary = {}
+	for entrance in dungeon_entrances:
+		entrance_lookup[entrance.position] = entrance
 
 	if town_center_pos != Vector2i(-1, -1):
 		print("[WorldChunk] Chunk %v: Town center found at %v" % [chunk_coords, town_center_pos])
@@ -62,11 +67,16 @@ func generate(world_seed: int) -> void:
 				else:
 					tile.color = biome.color_grass
 
-			# Check for special features at this position
-			if world_pos == dungeon_entrance_pos:
-				# Place dungeon entrance
-				tile = GameTile.create("stairs_down")
-				print("[WorldChunk] Placed dungeon entrance at %v" % world_pos)
+			# Check for dungeon entrances at this position
+			if world_pos in entrance_lookup:
+				var entrance = entrance_lookup[world_pos]
+				# Create a dungeon entrance tile with custom appearance
+				tile = GameTile.create("dungeon_entrance")
+				tile.ascii_char = entrance.entrance_char
+				tile.color = Color.html(entrance.entrance_color)
+				tile.set_meta("dungeon_type", entrance.dungeon_type)
+				tile.set_meta("dungeon_name", entrance.name)
+				print("[WorldChunk] Placed %s entrance at %v" % [entrance.dungeon_type, world_pos])
 			elif town_center_pos != Vector2i(-1, -1):
 				# Check if within town area (20x20 around center)
 				var dist_to_town = (world_pos - town_center_pos).length()

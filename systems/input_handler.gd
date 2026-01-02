@@ -161,18 +161,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		var is_wait_key = (event.keycode == KEY_PERIOD and not event.shift_pressed) or (event.unicode == 46 and not event.shift_pressed)  # 46 = '.'
 
 		if is_descend_key:
-			# Descend stairs - only works on stairs_down tiles
+			# Descend stairs - works on stairs_down tiles AND dungeon_entrance tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
-			if tile and tile.tile_type == "stairs_down":
-				# Save overworld position before descending
-				if MapManager.current_map.chunk_based:
-					GameManager.last_overworld_position = player.position
-				# Save entity states before leaving this map
-				EntityManager.save_entity_states_to_map(MapManager.current_map)
-				MapManager.descend_dungeon()
-				player._find_and_move_to_stairs("stairs_up")
-				action_taken = true
-				get_viewport().set_input_as_handled()
+			if tile:
+				if tile.tile_type == "dungeon_entrance":
+					# Enter a dungeon from overworld entrance
+					var dungeon_type = tile.get_meta("dungeon_type", "burial_barrow")
+					var dungeon_name = tile.get_meta("dungeon_name", "Unknown Dungeon")
+					# Save overworld position before entering
+					if MapManager.current_map.chunk_based:
+						GameManager.last_overworld_position = player.position
+					# Save entity states before leaving this map
+					EntityManager.save_entity_states_to_map(MapManager.current_map)
+					print("[InputHandler] Entering %s (%s)" % [dungeon_name, dungeon_type])
+					MapManager.enter_dungeon(dungeon_type)
+					player._find_and_move_to_stairs("stairs_up")
+					action_taken = true
+					get_viewport().set_input_as_handled()
+				elif tile.tile_type == "stairs_down":
+					# Descend to next floor within a dungeon
+					# Save entity states before leaving this map
+					EntityManager.save_entity_states_to_map(MapManager.current_map)
+					MapManager.descend_dungeon()
+					player._find_and_move_to_stairs("stairs_up")
+					action_taken = true
+					get_viewport().set_input_as_handled()
 		elif is_ascend_key:
 			# Ascend stairs - only works on stairs_up tiles
 			var tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
@@ -219,6 +232,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_T:  # T - talk/interact with NPC
 			_try_interact_npc()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_M:  # M - toggle world map
+			_toggle_world_map()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
 			_start_harvest_mode()
 			get_viewport().set_input_as_handled()
@@ -260,6 +276,12 @@ func _toggle_build_mode() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_build_mode"):
 		game.toggle_build_mode()
+
+## Toggle world map screen
+func _toggle_world_map() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_world_map"):
+		game.toggle_world_map()
 
 ## Interact with structure at player position
 func _interact_with_structure() -> void:

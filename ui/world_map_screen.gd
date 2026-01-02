@@ -8,7 +8,7 @@ extends Control
 signal closed
 
 # Fixed image size for performance - texture will be scaled to fit container
-const MAP_IMAGE_SIZE: int = 200  # 200x200 pixels for the generated image
+const MAP_IMAGE_SIZE: int = 400  # 400x400 pixels for the generated image
 
 var map_image: Image
 var map_texture: ImageTexture
@@ -19,7 +19,7 @@ var island_width_tiles: int = 1600
 var island_height_tiles: int = 1600
 
 @onready var map_rect: TextureRect = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer/MapRect
-@onready var map_container: CenterContainer = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer
+@onready var map_container: AspectRatioContainer = $Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer
 @onready var legend_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentHBox/SidebarPanel/SidebarMargin/SidebarVBox/LegendContainer
 
 func _ready() -> void:

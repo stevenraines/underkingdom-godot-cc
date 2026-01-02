@@ -85,15 +85,18 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 15
 
-[node name="MapContainer" type="CenterContainer" parent="Panel/MarginContainer/VBoxContainer/ContentHBox"]
+[node name="MapContainer" type="AspectRatioContainer" parent="Panel/MarginContainer/VBoxContainer/ContentHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+ratio = 1.0
+stretch_mode = 2
 
 [node name="MapRect" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/ContentHBox/MapContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+texture_filter = 1
 expand_mode = 1
 stretch_mode = 5
 

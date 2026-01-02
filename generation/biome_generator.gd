@@ -37,7 +37,8 @@ static func _get_moisture_noise(seed_value: int) -> FastNoiseLite:
 	return moisture_noise_cache[moisture_seed]
 
 ## Apply island falloff to create bounded landmass
-## Reduces elevation near edges to force ocean around island
+## Uses "Square Bump" distance + smooth reshaping for natural island shapes
+## Based on Red Blob Games island generation techniques
 static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
 	var island_settings = BiomeManager.get_island_settings()
 
@@ -45,32 +46,46 @@ static func _apply_island_falloff(x: int, y: int, elevation: float) -> float:
 	var chunk_size = 32  # WorldChunk.CHUNK_SIZE
 	var island_width = island_settings.get("width_chunks", 50) * chunk_size
 	var island_height = island_settings.get("height_chunks", 50) * chunk_size
-	var falloff_start = island_settings.get("falloff_start", 0.5)  # Start falloff at 50% of island radius
-	var falloff_strength = island_settings.get("falloff_strength", 2.0)  # Exponential falloff power
 
 	# Calculate center of island
 	var center_x = island_width / 2.0
 	var center_y = island_height / 2.0
 
-	# Calculate normalized distance from center using Euclidean distance for round island
-	var dx = (float(x) - center_x) / (island_width / 2.0)
-	var dy = (float(y) - center_y) / (island_height / 2.0)
-	var distance = sqrt(dx * dx + dy * dy)  # Euclidean distance for circular island
+	# Normalize coordinates to -1 to 1 range
+	var nx = (float(x) - center_x) / (island_width / 2.0)
+	var ny = (float(y) - center_y) / (island_height / 2.0)
 
-	# No falloff in center area
-	if distance < falloff_start:
-		return elevation
+	# Square Bump distance function (from Red Blob Games)
+	# Creates more interesting shapes than simple Euclidean distance
+	# d = 1 - (1-x²)(1-y²) - produces natural-looking coastlines
+	var d = 1.0 - (1.0 - nx * nx) * (1.0 - ny * ny)
 
-	# Calculate falloff multiplier (smooth transition to ocean)
-	var falloff_range = 1.0 - falloff_start
-	var normalized_falloff = (distance - falloff_start) / falloff_range
-	normalized_falloff = clamp(normalized_falloff, 0.0, 1.0)
+	# Clamp distance to valid range
+	d = clamp(d, 0.0, 1.0)
 
-	# Apply exponential falloff (smoother curve)
-	var falloff_multiplier = 1.0 - pow(normalized_falloff, falloff_strength)
+	# Smooth reshaping function (quadratic Bezier-like)
+	# Blends between original elevation and distance-based falloff
+	# This preserves terrain variation in the middle while forcing ocean at edges
+	# Formula: lerp(elevation, 1-d, smoothstep(d))
+	var blend = _smoothstep(d)
+	var target_elevation = 1.0 - d  # Higher in center, lower at edges
 
-	# Reduce elevation (forces ocean at edges)
-	return elevation * falloff_multiplier
+	# Mix original noise with distance-based elevation
+	# More weight to noise in center, more weight to distance at edges
+	var result = lerp(elevation, elevation * target_elevation, blend)
+
+	# Apply additional falloff at very edges to ensure ocean
+	if d > 0.7:
+		var edge_falloff = (d - 0.7) / 0.3  # 0 to 1 in outer 30%
+		result *= 1.0 - edge_falloff * edge_falloff
+
+	return result
+
+
+## Smoothstep helper for smooth interpolation
+static func _smoothstep(x: float) -> float:
+	x = clamp(x, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
 
 ## Generate biome at world position
 ## Returns Dictionary with biome data loaded from JSON

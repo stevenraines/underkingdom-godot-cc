@@ -585,6 +585,119 @@ EventBus.turn_advanced.connect(func(turn): print("Turn advanced: ", turn))
 
 ---
 
-**Last Updated**: December 31, 2025
-**Current Branch**: `feature/town-and-save-system`
+## Documentation Maintenance
+
+### Documentation Structure
+
+The `docs/` directory contains human-readable documentation for all game systems and data formats:
+
+```
+docs/
+├── systems/           # 31 system documentation files
+│   ├── combat-system.md
+│   ├── ranged-combat-system.md
+│   ├── survival-system.md
+│   └── ... (see full list below)
+└── data/              # 12 data type documentation files
+    ├── items.md
+    ├── enemies.md
+    └── ... (see full list below)
+```
+
+### System Documentation Files
+
+| File | Source | Description |
+|------|--------|-------------|
+| `combat-system.md` | `systems/combat_system.gd` | Melee combat, hit chance, damage |
+| `ranged-combat-system.md` | `systems/ranged_combat_system.gd` | Ranged attacks, LOS, ammo |
+| `survival-system.md` | `systems/survival_system.gd` | Hunger, thirst, temperature |
+| `inventory-system.md` | `systems/inventory_system.gd` | Weight, encumbrance |
+| `crafting-system.md` | `systems/crafting_system.gd` | Recipe crafting |
+| `harvest-system.md` | `systems/harvest_system.gd` | Resource harvesting |
+| `shop-system.md` | `systems/shop_system.gd` | Trading, pricing |
+| `dungeon-manager.md` | `autoload/dungeon_manager.gd` | Dungeon generation |
+| `feature-manager.md` | `autoload/feature_manager.gd` | Dungeon features |
+| `hazard-manager.md` | `autoload/hazard_manager.gd` | Traps, hazards |
+| `loot-table-manager.md` | `autoload/loot_table_manager.gd` | Loot generation |
+| `map-manager.md` | `autoload/map_manager.gd` | Map caching, transitions |
+| `chunk-manager.md` | `autoload/chunk_manager.gd` | Chunk streaming |
+| `biome-manager.md` | `autoload/biome_manager.gd` | Biome lookup |
+| `turn-manager.md` | `autoload/turn_manager.gd` | Turn flow, day/night |
+| `entity-manager.md` | `autoload/entity_manager.gd` | Entity spawning |
+| `item-manager.md` | `autoload/item_manager.gd` | Item loading |
+| `event-bus.md` | `autoload/event_bus.gd` | Signal reference |
+| `game-manager.md` | `autoload/game_manager.gd` | Game state |
+| `save-manager.md` | `autoload/save_manager.gd` | Save/load |
+| `structure-manager.md` | `autoload/structure_manager.gd` | Structure tracking |
+| `structure-placement.md` | `systems/structure_placement.gd` | Build validation |
+| `fov-system.md` | `systems/fov_system.gd` | Shadowcasting FOV |
+| `targeting-system.md` | `systems/targeting_system.gd` | Target selection |
+| `input-handler.md` | `systems/input_handler.gd` | Keybindings |
+| `fire-component.md` | `systems/components/fire_component.gd` | Fire/heat |
+| `shelter-component.md` | `systems/components/shelter_component.gd` | Weather protection |
+| `container-component.md` | `systems/components/container_component.gd` | Storage |
+| `resource-spawner.md` | `systems/resource_spawner.gd` | Resource placement |
+| `recipe-manager.md` | `autoload/recipe_manager.gd` | Recipe loading |
+
+### Data Documentation Files
+
+| File | Data Path | Description |
+|------|-----------|-------------|
+| `items.md` | `data/items/` | Item JSON format |
+| `enemies.md` | `data/enemies/` | Enemy definitions |
+| `recipes.md` | `data/recipes/` | Recipe format |
+| `resources.md` | `data/resources/` | Resource definitions |
+| `dungeons.md` | `data/dungeons/` | Dungeon types |
+| `features.md` | `data/features/` | Feature definitions |
+| `hazards.md` | `data/hazards/` | Hazard definitions |
+| `loot-tables.md` | `data/loot_tables/` | Loot table format |
+| `biomes.md` | `data/biomes/` | Biome definitions |
+| `structures.md` | `data/structures/` | Structure definitions |
+| `world-generation.md` | `data/world_generation_config.json` | World gen config |
+| `configuration.md` | Various | Game constants |
+
+### Update Rules
+
+When modifying the codebase, update documentation accordingly:
+
+1. **System Changes**: Update `docs/systems/{system}.md` when:
+   - Formulas or constants change
+   - New functions are added
+   - Signal signatures change
+   - Integration points change
+
+2. **Data Format Changes**: Update `docs/data/{type}.md` when:
+   - JSON properties are added/removed
+   - Property types or defaults change
+   - Validation rules change
+   - New examples needed
+
+3. **New User Features**: Update these files:
+   - `README.md` - User-facing feature list
+   - `ui/help_screen.gd` - In-game help text
+   - `docs/systems/input-handler.md` - New keybindings
+
+### Documentation Checklist
+
+Before committing changes, verify:
+
+- [ ] System docs updated if mechanics changed
+- [ ] Data docs updated if JSON format changed
+- [ ] README.md updated if new user feature
+- [ ] help_screen.gd updated if new keybindings
+- [ ] Examples in docs reflect current implementation
+- [ ] Related Documentation links are valid
+
+### Documentation Style
+
+- Use present tense ("Returns" not "Will return")
+- Include code examples with actual values
+- Document formulas with concrete calculations
+- Keep property tables up-to-date
+- Link to related documentation at end of each file
+
+---
+
+**Last Updated**: January 2, 2026
+**Current Branch**: `claude/dungeon-system-plan-ntBBt`
 **Next Phase**: 1.16 - UI Polish (Shop & Save/Load interfaces)

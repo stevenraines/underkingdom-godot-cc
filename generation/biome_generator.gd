@@ -58,8 +58,8 @@ static func _get_coastline_noise(seed_value: int) -> FastNoiseLite:
 	return coastline_noise_cache[seed_value]
 
 ## Apply island falloff to create bounded landmass
-## Uses noise-perturbed distance for irregular coastlines
-## Based on Red Blob Games: e = lerp(e, 1-d, mix)
+## Uses noise-perturbed Square Bump function for organic island shapes
+## Based on wadefletch/terrain and Red Blob Games techniques
 static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: int = 0) -> float:
 	var island_settings = BiomeManager.get_island_settings()
 
@@ -69,9 +69,9 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	var island_height = island_settings.get("height_chunks", 50) * chunk_size
 
 	# Get configurable shape parameters
-	var noise_amplitude = island_settings.get("coastline_noise_amplitude", 0.35)
-	var mix = island_settings.get("shape_mix", 0.7)
-	var edge_falloff_start = island_settings.get("edge_falloff_start", 0.75)
+	var noise_amplitude = island_settings.get("coastline_noise_amplitude", 0.5)
+	var shape_exponent = island_settings.get("shape_exponent", 3.0)
+	var shape_mix = island_settings.get("shape_mix", 0.8)
 
 	# Calculate center of island
 	var center_x = island_width / 2.0
@@ -87,28 +87,24 @@ static func _apply_island_falloff(x: int, y: int, elevation: float, seed_value: 
 	# Normalize from [-1,1] to [0,1]
 	coast_noise = (coast_noise + 1.0) / 2.0
 
-	# Square Bump distance function: d = 1 - (1-x²)(1-y²)
-	# Creates more interesting shapes than Euclidean
-	var d = 1.0 - (1.0 - nx * nx) * (1.0 - ny * ny)
+	# Perturb normalized coordinates with noise for irregular coastlines
+	# This warps the distance field itself, creating bays and peninsulas
+	nx = nx + (coast_noise - 0.5) * noise_amplitude
+	ny = ny + (coast_noise - 0.5) * noise_amplitude
 
-	# Add noise to the distance to create irregular coastlines
-	# The noise pushes the coastline in and out
-	d = d + (coast_noise - 0.5) * noise_amplitude
+	# Square Bump shape function: ((1-x²)(1-y²))^exponent
+	# Higher exponent creates steeper falloff at edges, more organic shape
+	# Clamp inputs to prevent negative values under the exponent
+	var bump_x = max(0.0, 1.0 - nx * nx)
+	var bump_y = max(0.0, 1.0 - ny * ny)
+	var shape = pow(bump_x * bump_y, shape_exponent)
 
-	# Clamp distance
-	d = clamp(d, 0.0, 1.0)
+	# Multiply elevation by shape (standard technique)
+	# Then blend with original elevation for more terrain detail at center
+	var shaped_elevation = elevation * shape
+	var final_elevation = lerp(shaped_elevation, elevation * shape * shape, 1.0 - shape_mix)
 
-	# Red Blob Games formula: e = lerp(e, 1-d, mix)
-	# mix controls how much the distance constrains the shape
-	# Higher mix = more influence from distance, cleaner coastline
-	var shaped_elevation = lerp(elevation, 1.0 - d, mix)
-
-	# Additional falloff at edges to ensure ocean
-	if d > edge_falloff_start:
-		var edge_factor = (d - edge_falloff_start) / (1.0 - edge_falloff_start)
-		shaped_elevation *= 1.0 - edge_factor * edge_factor
-
-	return max(shaped_elevation, 0.0)
+	return max(final_elevation, 0.0)
 
 
 ## Smoothstep helper for smooth interpolation

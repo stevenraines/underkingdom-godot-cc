@@ -29,9 +29,9 @@
 	"island_settings": {
 		"width_chunks": 50,
 		"height_chunks": 50,
-		"coastline_noise_amplitude": 0.5,
-		"shape_mix": 0.6,
-		"edge_falloff_start": 0.8
+		"coastline_noise_amplitude": 0.6,
+		"shape_exponent": 2.5,
+		"shape_mix": 0.85
 	},
 	"biome_matrix": {
 		"elevation_thresholds": [0.25, 0.4, 0.55, 0.7, 0.85],

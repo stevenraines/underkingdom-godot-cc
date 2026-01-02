@@ -27,8 +27,8 @@
 		"cache_max_size": 100
 	},
 	"island_settings": {
-		"width_chunks": 50,
-		"height_chunks": 50,
+		"width_chunks": 25,
+		"height_chunks": 25,
 		"coastline_noise_amplitude": 0.6,
 		"shape_exponent": 2.5,
 		"shape_mix": 0.85

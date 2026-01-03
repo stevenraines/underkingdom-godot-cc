@@ -214,7 +214,25 @@ func _use_consumable(user: Entity) -> Dictionary:
 		"consumed": true,
 		"message": "You use the %s." % name
 	}
-	
+
+	# Check if stat is already at max before consuming
+	if user.get("survival"):
+		var survival = user.survival
+		# Check hunger-restoring items
+		if "hunger" in effects and survival.hunger >= 100.0:
+			return {
+				"success": false,
+				"consumed": false,
+				"message": "You are not hungry."
+			}
+		# Check thirst-restoring items
+		if "thirst" in effects and survival.thirst >= 100.0:
+			return {
+				"success": false,
+				"consumed": false,
+				"message": "You are not thirsty."
+			}
+
 	# Apply effects
 	if user.has_method("apply_item_effects"):
 		user.apply_item_effects(effects)

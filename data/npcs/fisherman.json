@@ -1,0 +1,20 @@
+{
+  "id": "fisherman",
+  "name": "Korrin",
+  "npc_type": "shop",
+  "ascii_char": "@",
+  "ascii_color": "#6699CC",
+  "faction": "neutral",
+  "gold": 150,
+  "restock_interval": 750,
+  "dialogue": {
+    "greeting": "Ahoy! Fresh catch today, if you're interested.",
+    "farewell": "May the tides favor you.",
+    "no_gold": "No coin, no fish. Simple as that."
+  },
+  "trade_inventory": [
+    {"item_id": "raw_meat", "count": 15, "base_price": 3},
+    {"item_id": "waterskin_empty", "count": 3, "base_price": 12},
+    {"item_id": "cord", "count": 10, "base_price": 2}
+  ]
+}

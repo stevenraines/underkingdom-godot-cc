@@ -6,6 +6,9 @@ extends Node
 ## Items are loaded from individual JSON files in the data/items folder
 ## and all subfolders recursively.
 
+# Preload ItemFactory for template-based item creation
+const ItemFactoryClass = preload("res://items/item_factory.gd")
+
 # Item data cache (id -> data dictionary)
 var _item_data: Dictionary = {}
 
@@ -119,19 +122,26 @@ func has_item(item_id: String) -> bool:
 	return item_id in _item_data
 
 ## Create a new item instance by ID
+## Supports both legacy item IDs and template-based items
 func create_item(item_id: String, count: int = 1) -> Item:
-	if not has_item(item_id):
-		push_error("ItemManager: Unknown item ID: %s" % item_id)
-		return null
-	
-	var data = _item_data[item_id]
-	var item = Item.create_from_data(data)
-	
-	# Set stack size if stackable
-	if item.max_stack > 1 and count > 1:
-		item.stack_size = min(count, item.max_stack)
-	
-	return item
+	# First, check if it's a legacy item
+	if has_item(item_id):
+		var data = _item_data[item_id]
+		var item = Item.create_from_data(data)
+
+		# Set stack size if stackable
+		if item.max_stack > 1 and count > 1:
+			item.stack_size = min(count, item.max_stack)
+
+		return item
+
+	# Try parsing as template-based item (e.g., "iron_knife", "steel_dwarven_sword")
+	var parsed = ItemFactoryClass.parse_item_id(item_id)
+	if parsed.template_id != "":
+		return ItemFactoryClass.create_item(parsed.template_id, parsed.variants, count)
+
+	push_error("ItemManager: Unknown item ID: %s" % item_id)
+	return null
 
 ## Create multiple item stacks if needed
 ## Returns array of items to handle counts larger than max_stack

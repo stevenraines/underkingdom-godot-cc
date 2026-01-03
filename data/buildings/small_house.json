@@ -1,0 +1,10 @@
+{
+  "id": "small_house",
+  "name": "Small House",
+  "description": "A humble dwelling.",
+  "size": [4, 4],
+  "template_type": "building",
+  "door_position": "south",
+  "npc_offset": [1, 1],
+  "layout": null
+}

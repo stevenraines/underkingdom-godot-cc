@@ -5,6 +5,9 @@ class_name WorldChunk
 ## Chunks are the fundamental unit of map streaming - only active chunks are kept in memory.
 ## Each chunk generates deterministically from a seed based on its coordinates.
 
+# Preload required scripts for town generation
+const TownGeneratorScript = preload("res://generation/town_generator.gd")
+
 const CHUNK_SIZE: int = 32  # 32x32 tiles per chunk
 
 var chunk_coords: Vector2i  # Chunk grid position (e.g., 0,0 or 2,1)
@@ -37,15 +40,23 @@ func generate(world_seed: int) -> void:
 	# Check if this chunk contains special features
 	var map = MapManager.current_map
 	var dungeon_entrances: Array = map.get_meta("dungeon_entrances", []) if map else []
+
+	# Support both new multi-town system and legacy single town
+	var towns_data: Array = map.metadata.get("towns", []) if map else []
 	var town_center_pos = map.get_meta("town_center", Vector2i(-1, -1)) if map else Vector2i(-1, -1)
+
+	# If no towns array but legacy town_center exists, create a placeholder
+	if towns_data.is_empty() and town_center_pos != Vector2i(-1, -1):
+		towns_data = [{
+			"town_id": "starter_town",
+			"position": town_center_pos,
+			"size": Vector2i(15, 15)
+		}]
 
 	# Build a dictionary of entrance positions for quick lookup
 	var entrance_lookup: Dictionary = {}
 	for entrance in dungeon_entrances:
 		entrance_lookup[entrance.position] = entrance
-
-	if town_center_pos != Vector2i(-1, -1):
-		print("[WorldChunk] Chunk %v: Town center found at %v" % [chunk_coords, town_center_pos])
 
 	# Generate all tiles in chunk using biome system
 	for local_y in range(CHUNK_SIZE):
@@ -77,17 +88,16 @@ func generate(world_seed: int) -> void:
 				tile.set_meta("dungeon_type", entrance.dungeon_type)
 				tile.set_meta("dungeon_name", entrance.name)
 				print("[WorldChunk] Placed %s entrance at %v" % [entrance.dungeon_type, world_pos])
-			elif town_center_pos != Vector2i(-1, -1):
-				# Check if within town area (20x20 around center)
-				var dist_to_town = (world_pos - town_center_pos).length()
-				if dist_to_town <= 10:
+			else:
+				# Check if within any town area
+				var in_town = _is_in_any_town(world_pos, towns_data)
+				if in_town:
 					# This tile is within town boundary
-					# Town generation will be handled by TownGenerator when chunk loads
+					# Town structures will be generated after base terrain
 					# For now, just ensure it's walkable floor
 					if tile.tile_type != "floor":
 						tile = GameTile.create("floor")
 						tile.ascii_char = biome.grass_char
-						# Set color for town floor tiles
 						if biome.grass_char == ".":
 							tile.color = biome.color_floor
 						else:
@@ -95,13 +105,10 @@ func generate(world_seed: int) -> void:
 
 			tiles[Vector2i(local_x, local_y)] = tile
 
-			# Try to spawn resources on floor tiles (skip in town area)
-			var dist_to_town = (world_pos - town_center_pos).length() if town_center_pos != Vector2i(-1, -1) else 999
-			if tile.walkable and tile.tile_type == "floor" and dist_to_town > 10:
+			# Try to spawn resources on floor tiles (skip in town areas)
+			var min_dist_to_town = _get_min_distance_to_towns(world_pos, towns_data)
+			if tile.walkable and tile.tile_type == "floor" and min_dist_to_town > 10:
 				# Try to spawn tree
-				# Use biome data we already fetched (avoids expensive blending call)
-				# This eliminates 3500 extra noise samples per chunk
-
 				if rng.randf() < biome.tree_density:
 					var resource_instance = ResourceSpawner.ResourceInstance.new("tree", world_pos, chunk_coords)
 					resources.append(resource_instance)
@@ -111,7 +118,7 @@ func generate(world_seed: int) -> void:
 					tile.transparent = false
 					tile.ascii_char = "T"
 					tile.harvestable_resource_id = "tree"
-					tile.color = Color.WHITE  # Reset color - tree uses default renderer color
+					tile.color = Color.WHITE
 					continue  # Don't spawn rock in same spot
 
 				# Try to spawn rock
@@ -124,22 +131,163 @@ func generate(world_seed: int) -> void:
 					tile.transparent = false
 					tile.ascii_char = "◆"
 					tile.harvestable_resource_id = "rock"
-					tile.color = Color.WHITE  # Reset color - rock uses default renderer color
+					tile.color = Color.WHITE
 
-	# Generate town structures if this chunk contains the town center
-	if town_center_pos != Vector2i(-1, -1):
-		var town_chunk = Vector2i(
-			floori(float(town_center_pos.x) / CHUNK_SIZE),
-			floori(float(town_center_pos.y) / CHUNK_SIZE)
-		)
-		print("[WorldChunk] Chunk %v checking town: town_chunk=%v, match=%s" % [chunk_coords, town_chunk, chunk_coords == town_chunk])
-		if chunk_coords == town_chunk:
-			print("[WorldChunk] *** GENERATING TOWN STRUCTURES in chunk %v ***" % [chunk_coords])
-			_generate_town_structures(town_center_pos, world_seed)
+	# Generate town structures for any towns whose center is in this chunk
+	_generate_towns_in_chunk(towns_data, world_seed)
 
 	is_loaded = true
 	is_dirty = true
-	#print("[WorldChunk] Generated chunk %v with %d resources" % [chunk_coords, resources.size()])
+
+
+## Check if a position is within any town's bounds
+func _is_in_any_town(world_pos: Vector2i, towns_data: Array) -> bool:
+	for town in towns_data:
+		var town_pos = _get_town_position(town)
+		var town_size = _get_town_size(town)
+		var half_size = town_size / 2
+		var town_rect = Rect2i(town_pos - half_size, town_size)
+		if town_rect.has_point(world_pos):
+			return true
+	return false
+
+
+## Get minimum distance to any town center
+func _get_min_distance_to_towns(world_pos: Vector2i, towns_data: Array) -> float:
+	var min_dist = 999.0
+	for town in towns_data:
+		var town_pos = _get_town_position(town)
+		var dist = (world_pos - town_pos).length()
+		if dist < min_dist:
+			min_dist = dist
+	return min_dist
+
+
+## Extract town position from town data (handles both Vector2i and array formats)
+func _get_town_position(town: Dictionary) -> Vector2i:
+	var pos = town.get("position", Vector2i(-1, -1))
+	if pos is Array:
+		return Vector2i(pos[0], pos[1])
+	return pos
+
+
+## Extract town size from town data (handles both Vector2i and array formats)
+func _get_town_size(town: Dictionary) -> Vector2i:
+	var size = town.get("size", Vector2i(15, 15))
+	if size is Array:
+		return Vector2i(size[0], size[1])
+	return size
+
+
+## Generate town structures for towns whose center is in this chunk
+func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
+	# Get TownManager singleton through Engine
+	var town_manager = Engine.get_singleton("TownManager") if Engine.has_singleton("TownManager") else null
+	if not town_manager:
+		# Fallback: try to get from tree (autoload)
+		town_manager = _get_autoload("TownManager")
+
+	for town in towns_data:
+		var town_pos = _get_town_position(town)
+		var town_chunk = Vector2i(
+			floori(float(town_pos.x) / CHUNK_SIZE),
+			floori(float(town_pos.y) / CHUNK_SIZE)
+		)
+
+		if chunk_coords == town_chunk:
+			var town_id = town.get("town_id", "starter_town")
+			print("[WorldChunk] *** GENERATING %s STRUCTURES in chunk %v ***" % [town_id, chunk_coords])
+
+			# Get definitions from TownManager (or use defaults)
+			var town_def: Dictionary = {}
+			var building_defs: Dictionary = {}
+			if town_manager:
+				town_def = town_manager.get_town(town_id)
+				building_defs = town_manager.building_definitions
+			else:
+				# Fallback to default definitions
+				town_def = _get_default_town_def()
+				building_defs = _get_default_building_defs()
+
+			# Convert tiles dict from local to world coords for TownGenerator
+			var world_tiles: Dictionary = {}
+			for local_pos in tiles:
+				var world_pos_tile = chunk_to_world_position(local_pos)
+				world_tiles[world_pos_tile] = tiles[local_pos]
+
+			# Generate using data-driven TownGenerator
+			var result = TownGeneratorScript.generate_town(town_id, town_pos, world_seed, world_tiles, town_def, building_defs)
+
+			# Copy generated tiles back to chunk local coordinates
+			for world_pos_tile in world_tiles:
+				var local_pos = world_to_chunk_position(world_pos_tile)
+				if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
+					tiles[local_pos] = world_tiles[world_pos_tile]
+
+			# Store NPC spawn data in map metadata for later spawning
+			if result.has("npc_spawns") and result.npc_spawns.size() > 0:
+				_store_npc_spawns(result.npc_spawns, town_id)
+
+			# Register town with TownManager
+			if town_manager:
+				town_manager.add_placed_town(result)
+
+
+## Helper to get autoload node
+func _get_autoload(autoload_name: String) -> Node:
+	# Access autoload through the scene tree root
+	var root = Engine.get_main_loop()
+	if root and root is SceneTree:
+		return root.root.get_node_or_null("/root/" + autoload_name)
+	return null
+
+
+## Default town definition for fallback
+func _get_default_town_def() -> Dictionary:
+	return {
+		"id": "starter_town",
+		"name": "Settlement",
+		"size": [15, 15],
+		"is_safe_zone": true,
+		"buildings": [
+			{"building_id": "shop", "position_offset": [0, 0], "npc_id": "shop_keeper"},
+			{"building_id": "well", "position_offset": [4, 4]}
+		],
+		"decorations": {"perimeter_trees": true, "max_trees": 12}
+	}
+
+
+## Default building definitions for fallback
+func _get_default_building_defs() -> Dictionary:
+	return {
+		"shop": {
+			"id": "shop",
+			"size": [5, 5],
+			"template_type": "building",
+			"door_position": "south",
+			"npc_offset": [2, 2]
+		},
+		"well": {
+			"id": "well",
+			"size": [1, 1],
+			"template_type": "feature",
+			"tile_type": "water"
+		}
+	}
+
+
+## Store NPC spawn data in map metadata
+func _store_npc_spawns(npc_spawns: Array, town_id: String) -> void:
+	var map = MapManager.current_map
+	if not map:
+		return
+
+	var existing_spawns = map.metadata.get("npc_spawns", [])
+	for spawn in npc_spawns:
+		spawn["town_id"] = town_id
+		existing_spawns.append(spawn)
+	map.metadata["npc_spawns"] = existing_spawns
+	print("[WorldChunk] Stored %d NPC spawns for %s" % [npc_spawns.size(), town_id])
 
 ## Get tile at local coordinates (0-31)
 func get_tile(local_pos: Vector2i) -> GameTile:

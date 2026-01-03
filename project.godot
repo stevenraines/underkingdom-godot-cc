@@ -24,6 +24,8 @@ TurnManager="*res://autoload/turn_manager.gd"
 GameManager="*res://autoload/game_manager.gd"
 FeatureManager="*res://autoload/feature_manager.gd"
 HazardManager="*res://autoload/hazard_manager.gd"
+TownManager="*res://autoload/town_manager.gd"
+NPCManager="*res://autoload/npc_manager.gd"
 MapManager="*res://autoload/map_manager.gd"
 ChunkManager="*res://autoload/chunk_manager.gd"
 BiomeManager="*res://autoload/biome_manager.gd"
@@ -33,6 +35,7 @@ ItemManager="*res://autoload/item_manager.gd"
 RecipeManager="*res://autoload/recipe_manager.gd"
 StructureManager="*res://autoload/structure_manager.gd"
 SaveManager="*res://autoload/save_manager.gd"
+VariantManager="*res://autoload/variant_manager.gd"
 
 [debug]
 

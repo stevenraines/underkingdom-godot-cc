@@ -5,9 +5,11 @@
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
   "stamina_cost": 20,
+  "harvest_actions": 3,
   "yields": [
     {"item_id": "wood", "min_count": 2, "max_count": 4}
   ],
   "replacement_tile": "floor",
-  "harvest_message": "Harvested tree with %tool%, got %yield%"
+  "harvest_message": "Felled tree with %tool%, got %yield%",
+  "progress_message": "Chopping tree... (%current%/%total%)"
 }

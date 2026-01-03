@@ -163,7 +163,8 @@ func _serialize_game_state() -> Dictionary:
 		"world": _serialize_world(),
 		"player": _serialize_player(),
 		"maps": _serialize_maps(),
-		"entities": _serialize_entities()
+		"entities": _serialize_entities(),
+		"harvest": _serialize_harvest()
 	}
 
 ## Serialize save metadata
@@ -308,6 +309,13 @@ func _serialize_maps() -> Dictionary:
 
 	return maps_data
 
+## Serialize harvest system state (renewable resources and harvest progress)
+func _serialize_harvest() -> Dictionary:
+	return {
+		"renewable_resources": HarvestSystem.serialize_renewable_resources(),
+		"harvest_progress": HarvestSystem.serialize_harvest_progress()
+	}
+
 ## Serialize entities (NPCs, enemies, persistent state)
 func _serialize_entities() -> Dictionary:
 	var npcs = []
@@ -387,6 +395,10 @@ func _deserialize_game_state(save_data: Dictionary):
 
 	# Now restore entities AFTER the map is ready (so they're added to the correct map)
 	_deserialize_entities(save_data.entities)
+
+	# Restore harvest system state
+	if save_data.has("harvest"):
+		_deserialize_harvest(save_data.harvest)
 
 	# Clear flag
 	is_deserializing = false
@@ -576,6 +588,18 @@ func _deserialize_entities(entities_data: Dictionary):
 				enemy.last_known_player_pos = Vector2i(enemy_data.last_known_player_pos.x, enemy_data.last_known_player_pos.y)
 
 	print("SaveManager: Entities deserialized")
+
+## Deserialize harvest system state
+func _deserialize_harvest(harvest_data: Dictionary):
+	# Restore renewable resources
+	if harvest_data.has("renewable_resources"):
+		HarvestSystem.deserialize_renewable_resources(harvest_data.renewable_resources)
+
+	# Restore harvest progress
+	if harvest_data.has("harvest_progress"):
+		HarvestSystem.deserialize_harvest_progress(harvest_data.harvest_progress)
+
+	print("SaveManager: Harvest state deserialized")
 
 # ===== HELPER CLASSES =====
 

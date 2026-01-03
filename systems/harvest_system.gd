@@ -17,9 +17,11 @@ class HarvestableResource:
 	var harvest_behavior: HarvestBehavior
 	var stamina_cost: int = 10
 	var respawn_turns: int = 0  # Only for renewable resources
+	var harvest_actions: int = 1  # Number of harvest actions required (default: 1)
 	var yields: Array[Dictionary] = []
 	var replacement_tile: String = ""
 	var harvest_message: String = ""
+	var progress_message: String = ""  # Message shown during multi-turn harvesting
 
 	func _init(data: Dictionary):
 		id = data.get("id", "")
@@ -28,9 +30,11 @@ class HarvestableResource:
 		tool_must_be_equipped = data.get("tool_must_be_equipped", true)
 		stamina_cost = data.get("stamina_cost", 10)
 		respawn_turns = data.get("respawn_turns", 0)
+		harvest_actions = data.get("harvest_actions", 1)
 		yields.assign(data.get("yields", []))
 		replacement_tile = data.get("replacement_tile", "")
 		harvest_message = data.get("harvest_message", "Harvested %resource%")
+		progress_message = data.get("progress_message", "Harvesting %resource%... (%current%/%total%)")
 
 		# Parse harvest behavior
 		var behavior_str = data.get("harvest_behavior", "destroy_permanent")
@@ -57,9 +61,24 @@ class RenewableResourceInstance:
 		resource_id = r
 		respawn_turn = rt
 
+# Harvest progress tracking for multi-turn harvesting
+class HarvestProgressInstance:
+	var map_id: String
+	var position: Vector2i
+	var resource_id: String
+	var current_actions: int  # Number of harvest actions performed so far
+
+	func _init(m: String, p: Vector2i, r: String, ca: int = 0):
+		map_id = m
+		position = p
+		resource_id = r
+		current_actions = ca
+
 # Static data
 static var _resource_definitions: Dictionary = {}
 static var _renewable_resources: Array[RenewableResourceInstance] = []
+# Tracks harvest progress per position - key is "map_id:x,y"
+static var _harvest_progress: Dictionary = {}
 
 # Base path for resource data
 const RESOURCE_DATA_BASE_PATH: String = "res://data/resources"
@@ -153,6 +172,23 @@ static func has_required_tool(player: Player, resource: HarvestableResource) -> 
 
 	return {"has_tool": false, "tool_name": "", "tool_item": null}
 
+# Generate a unique key for tracking harvest progress at a position
+static func _get_progress_key(map_id: String, pos: Vector2i) -> String:
+	return "%s:%d,%d" % [map_id, pos.x, pos.y]
+
+# Get current harvest progress at a position (returns 0 if none)
+static func get_harvest_progress(map_id: String, pos: Vector2i) -> int:
+	var key = _get_progress_key(map_id, pos)
+	if key in _harvest_progress:
+		return _harvest_progress[key].current_actions
+	return 0
+
+# Clear harvest progress at a position
+static func _clear_harvest_progress(map_id: String, pos: Vector2i) -> void:
+	var key = _get_progress_key(map_id, pos)
+	if key in _harvest_progress:
+		_harvest_progress.erase(key)
+
 # Attempt to harvest a resource
 static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -> Dictionary:
 	var resource = get_resource(resource_id)
@@ -176,6 +212,41 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 	# Check stamina
 	if player.survival and not player.survival.consume_stamina(resource.stamina_cost):
 		return {"success": false, "message": "Too tired to harvest"}
+
+	# Handle multi-turn harvesting
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var progress_key = _get_progress_key(map_id, target_pos)
+	var current_actions = 1  # This harvest attempt counts as action 1
+
+	# Check if there's existing progress
+	if progress_key in _harvest_progress:
+		var progress = _harvest_progress[progress_key]
+		# Verify the resource hasn't changed
+		if progress.resource_id == resource_id:
+			current_actions = progress.current_actions + 1
+		# If resource changed, start fresh (current_actions stays at 1)
+
+	# Check if we've completed all required actions
+	if current_actions < resource.harvest_actions:
+		# Not yet complete - update progress and return progress message
+		if progress_key in _harvest_progress:
+			_harvest_progress[progress_key].current_actions = current_actions
+		else:
+			_harvest_progress[progress_key] = HarvestProgressInstance.new(
+				map_id, target_pos, resource_id, current_actions
+			)
+
+		# Format progress message
+		var progress_msg = resource.progress_message
+		progress_msg = progress_msg.replace("%resource%", resource.name)
+		progress_msg = progress_msg.replace("%current%", str(current_actions))
+		progress_msg = progress_msg.replace("%total%", str(resource.harvest_actions))
+		progress_msg = progress_msg.replace("%tool%", tool_check.tool_name)
+
+		return {"success": true, "message": progress_msg, "in_progress": true}
+
+	# Harvest complete - clear progress tracking
+	_clear_harvest_progress(map_id, target_pos)
 
 	# Store the tool used for potential consumption (e.g., waterskin_empty -> waterskin_full)
 	var tool_used_item: Item = null
@@ -328,3 +399,37 @@ static func deserialize_renewable_resources(data: Array) -> void:
 
 		var renewable = RenewableResourceInstance.new(map_id, position, resource_id, respawn_turn)
 		_renewable_resources.append(renewable)
+
+# Serialize harvest progress for saving
+static func serialize_harvest_progress() -> Array[Dictionary]:
+	var data: Array[Dictionary] = []
+	for key in _harvest_progress:
+		var progress: HarvestProgressInstance = _harvest_progress[key]
+		data.append({
+			"map_id": progress.map_id,
+			"position": {"x": progress.position.x, "y": progress.position.y},
+			"resource_id": progress.resource_id,
+			"current_actions": progress.current_actions
+		})
+	return data
+
+# Deserialize harvest progress from save data
+static func deserialize_harvest_progress(data: Array) -> void:
+	_harvest_progress.clear()
+	for item_data in data:
+		if typeof(item_data) != TYPE_DICTIONARY:
+			continue
+
+		var map_id = item_data.get("map_id", "")
+		var pos_data = item_data.get("position", {})
+		var position = Vector2i(pos_data.get("x", 0), pos_data.get("y", 0))
+		var resource_id = item_data.get("resource_id", "")
+		var current_actions = item_data.get("current_actions", 0)
+
+		var progress = HarvestProgressInstance.new(map_id, position, resource_id, current_actions)
+		var key = _get_progress_key(map_id, position)
+		_harvest_progress[key] = progress
+
+# Clear all harvest progress (called on new game)
+static func clear_harvest_progress() -> void:
+	_harvest_progress.clear()

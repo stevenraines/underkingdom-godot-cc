@@ -232,7 +232,18 @@ func _check_for_dungeon_discoveries(chunk_coords: Vector2i) -> void:
 
 	var entrances = MapManager.current_map.get_meta("dungeon_entrances", [])
 	for entrance in entrances:
-		var entrance_pos: Vector2i = entrance.position
+		# Handle position that might be Vector2i, Dictionary, or Array
+		var entrance_pos: Vector2i
+		var pos_data = entrance.get("position", Vector2i.ZERO)
+		if pos_data is Vector2i:
+			entrance_pos = pos_data
+		elif pos_data is Dictionary:
+			entrance_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
+		elif pos_data is Array and pos_data.size() >= 2:
+			entrance_pos = Vector2i(int(pos_data[0]), int(pos_data[1]))
+		else:
+			entrance_pos = Vector2i.ZERO
+
 		var entrance_chunk = world_to_chunk(entrance_pos)
 
 		if entrance_chunk == chunk_coords:

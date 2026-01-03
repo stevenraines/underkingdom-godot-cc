@@ -111,10 +111,21 @@ func clear_visited_locations() -> void:
 	visited_locations.clear()
 
 ## Mark all placed towns as visited (called after map generation)
+## Uses map metadata which is available immediately, rather than TownManager.placed_towns
+## which is populated lazily during chunk loading
 func mark_all_towns_visited() -> void:
-	for town in TownManager.placed_towns:
+	if not MapManager.current_map:
+		print("GameManager: No current map, cannot mark towns as visited")
+		return
+
+	# Get towns from map metadata (available immediately after map creation)
+	var towns = MapManager.current_map.metadata.get("towns", [])
+	for town in towns:
 		var town_id = town.get("town_id", town.get("id", "unknown_town"))
 		var town_name = town.get("name", "Unknown Town")
 		var town_pos = town.get("position", Vector2i.ZERO)
+		# Handle position that might be Vector2i or Dictionary
+		if town_pos is Dictionary:
+			town_pos = Vector2i(int(town_pos.get("x", 0)), int(town_pos.get("y", 0)))
 		mark_location_visited(town_id, "town", town_name, town_pos)
-	print("GameManager: Marked %d towns as visited" % TownManager.placed_towns.size())
+	print("GameManager: Marked %d towns as visited" % towns.size())

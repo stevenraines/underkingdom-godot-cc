@@ -8,11 +8,26 @@ enum HarvestBehavior {
 	NON_CONSUMABLE      # Resource never consumed (water sources)
 }
 
+# Tool requirement with optional bonuses
+class ToolRequirement:
+	var tool_id: String
+	var action_reduction: int = 0  # Reduces number of harvest actions required
+	var yield_bonus: int = 0  # Adds to the randomly generated yield count
+
+	func _init(data):
+		# Support both string format (backwards compatible) and object format
+		if data is String:
+			tool_id = data
+		elif data is Dictionary:
+			tool_id = data.get("tool_id", "")
+			action_reduction = int(data.get("action_reduction", 0))
+			yield_bonus = int(data.get("yield_bonus", 0))
+
 # Resource definition structure
 class HarvestableResource:
 	var id: String
 	var name: String
-	var required_tools: Array[String] = []
+	var required_tools: Array[ToolRequirement] = []
 	var tool_must_be_equipped: bool = true  # Whether tool must be equipped (vs in inventory)
 	var harvest_behavior: HarvestBehavior
 	var stamina_cost: int = 10
@@ -26,7 +41,10 @@ class HarvestableResource:
 	func _init(data: Dictionary):
 		id = data.get("id", "")
 		name = data.get("name", "")
-		required_tools.assign(data.get("required_tools", []))
+		# Parse required_tools - supports both string array and object array
+		var tools_data = data.get("required_tools", [])
+		for tool_data in tools_data:
+			required_tools.append(ToolRequirement.new(tool_data))
 		tool_must_be_equipped = data.get("tool_must_be_equipped", true)
 		stamina_cost = data.get("stamina_cost", 10)
 		respawn_turns = data.get("respawn_turns", 0)
@@ -153,24 +171,44 @@ static func get_resource(resource_id: String) -> HarvestableResource:
 	return _resource_definitions.get(resource_id, null)
 
 # Check if player has required tool for harvesting
+# Returns: {has_tool, tool_name, tool_item, action_reduction, yield_bonus}
 static func has_required_tool(player: Player, resource: HarvestableResource) -> Dictionary:
 	if resource.required_tools.is_empty():
-		return {"has_tool": true, "tool_name": "hands", "tool_item": null}
+		return {"has_tool": true, "tool_name": "hands", "tool_item": null, "action_reduction": 0, "yield_bonus": 0}
 
-	for tool_id in resource.required_tools:
+	for tool_req in resource.required_tools:
+		var tool_id = tool_req.tool_id
 		# Check equipped items first (always valid)
 		if player.inventory.equipment.main_hand and player.inventory.equipment.main_hand.id == tool_id:
-			return {"has_tool": true, "tool_name": player.inventory.equipment.main_hand.name, "tool_item": player.inventory.equipment.main_hand}
+			return {
+				"has_tool": true,
+				"tool_name": player.inventory.equipment.main_hand.name,
+				"tool_item": player.inventory.equipment.main_hand,
+				"action_reduction": tool_req.action_reduction,
+				"yield_bonus": tool_req.yield_bonus
+			}
 		if player.inventory.equipment.off_hand and player.inventory.equipment.off_hand.id == tool_id:
-			return {"has_tool": true, "tool_name": player.inventory.equipment.off_hand.name, "tool_item": player.inventory.equipment.off_hand}
+			return {
+				"has_tool": true,
+				"tool_name": player.inventory.equipment.off_hand.name,
+				"tool_item": player.inventory.equipment.off_hand,
+				"action_reduction": tool_req.action_reduction,
+				"yield_bonus": tool_req.yield_bonus
+			}
 
 		# Only check inventory if tool doesn't need to be equipped
 		if not resource.tool_must_be_equipped:
 			for item in player.inventory.items:
 				if item.id == tool_id:
-					return {"has_tool": true, "tool_name": item.name, "tool_item": item}
+					return {
+						"has_tool": true,
+						"tool_name": item.name,
+						"tool_item": item,
+						"action_reduction": tool_req.action_reduction,
+						"yield_bonus": tool_req.yield_bonus
+					}
 
-	return {"has_tool": false, "tool_name": "", "tool_item": null}
+	return {"has_tool": false, "tool_name": "", "tool_item": null, "action_reduction": 0, "yield_bonus": 0}
 
 # Generate a unique key for tracking harvest progress at a position
 static func _get_progress_key(map_id: String, pos: Vector2i) -> String:
@@ -200,12 +238,12 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 	if not tool_check.has_tool:
 		# Convert tool IDs to names for better message
 		var tool_names: Array[String] = []
-		for tool_id in resource.required_tools:
-			var item_data = ItemManager.get_item_data(tool_id)
+		for tool_req in resource.required_tools:
+			var item_data = ItemManager.get_item_data(tool_req.tool_id)
 			if not item_data.is_empty():
-				tool_names.append(item_data.get("name", tool_id))
+				tool_names.append(item_data.get("name", tool_req.tool_id))
 			else:
-				tool_names.append(tool_id)
+				tool_names.append(tool_req.tool_id)
 		var tool_list = ", ".join(tool_names)
 		return {"success": false, "message": "Need a %s" % tool_list}
 
@@ -226,8 +264,18 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 			current_actions = progress.current_actions + 1
 		# If resource changed, start fresh (current_actions stays at 1)
 
+	# Calculate effective harvest actions (base - tool's action_reduction, minimum 1)
+	var effective_actions = max(1, resource.harvest_actions - tool_check.action_reduction)
+
+	# Format progress message (used for both in-progress and completion)
+	var progress_msg = resource.progress_message
+	progress_msg = progress_msg.replace("%resource%", resource.name)
+	progress_msg = progress_msg.replace("%current%", str(current_actions))
+	progress_msg = progress_msg.replace("%total%", str(effective_actions))
+	progress_msg = progress_msg.replace("%tool%", tool_check.tool_name)
+
 	# Check if we've completed all required actions
-	if current_actions < resource.harvest_actions:
+	if current_actions < effective_actions:
 		# Not yet complete - update progress and return progress message
 		if progress_key in _harvest_progress:
 			_harvest_progress[progress_key].current_actions = current_actions
@@ -236,17 +284,13 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 				map_id, target_pos, resource_id, current_actions
 			)
 
-		# Format progress message
-		var progress_msg = resource.progress_message
-		progress_msg = progress_msg.replace("%resource%", resource.name)
-		progress_msg = progress_msg.replace("%current%", str(current_actions))
-		progress_msg = progress_msg.replace("%total%", str(resource.harvest_actions))
-		progress_msg = progress_msg.replace("%tool%", tool_check.tool_name)
-
 		return {"success": true, "message": progress_msg, "in_progress": true}
 
 	# Harvest complete - clear progress tracking
 	_clear_harvest_progress(map_id, target_pos)
+
+	# Store the final progress message to display before the harvest message
+	var final_progress_msg = progress_msg if effective_actions > 1 else ""
 
 	# Store the tool used for potential consumption (e.g., waterskin_empty -> waterskin_full)
 	var tool_used_item: Item = null
@@ -256,6 +300,7 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 	# Generate yields
 	var total_yields: Dictionary = {}  # item_id -> count
 	var yield_messages: Array[String] = []
+	var yield_bonus = tool_check.yield_bonus  # Bonus from preferred tool
 
 	for yield_data in resource.yields:
 		var item_id = yield_data.get("item_id", "")
@@ -267,9 +312,9 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 		if randf() > chance:
 			continue
 
-		# Generate random count
+		# Generate random count + tool's yield bonus
 		var range_size = max_count - min_count + 1
-		var count = min_count + (randi() % range_size)
+		var count = min_count + (randi() % range_size) + yield_bonus
 		if count > 0:
 			if item_id in total_yields:
 				total_yields[item_id] += count
@@ -280,11 +325,16 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 	# For these resources, the yield IS the transformed tool, so consume the original tool
 	var tool_consumed = false
 	if tool_used_item and not resource.required_tools.is_empty():
+		# Check if the tool used is one of the required tools (for transformation check)
+		var tool_is_required = false
+		for tool_req in resource.required_tools:
+			if tool_used_item.id == tool_req.tool_id:
+				tool_is_required = true
+				break
 		# Check if the yield matches a transformation (e.g., yielding waterskin_full when using waterskin_empty)
-		for item_id in total_yields:
-			# If we're producing the tool back (transformation), consume the original tool
-			if tool_used_item.id in resource.required_tools:
-				# Remove the consumed tool from inventory
+		if tool_is_required:
+			for item_id in total_yields:
+				# If we're producing the tool back (transformation), consume the original tool
 				player.inventory.remove_item(tool_used_item)
 				tool_consumed = true
 				break
@@ -349,9 +399,10 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 
 	# Format message
 	var yield_str = ", ".join(yield_messages) if not yield_messages.is_empty() else "nothing"
-	var message = resource.harvest_message.replace("%tool%", tool_check.tool_name).replace("%yield%", yield_str)
+	var message = resource.harvest_message.replace("%tool%", tool_check.tool_name).replace("%yield%", yield_str).replace("%resource%", resource.name)
 
-	return {"success": true, "message": message}
+	# Include both the final progress message (e.g., "3/3") and the harvest message
+	return {"success": true, "message": message, "progress_message": final_progress_msg}
 
 # Check and respawn renewable resources (called each turn)
 static func process_renewable_resources() -> void:

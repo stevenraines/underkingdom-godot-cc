@@ -1,13 +1,17 @@
 {
   "id": "iron_ore",
   "name": "Iron Ore Deposit",
-  "required_tools": ["pickaxe"],
+  "required_tools": [
+    {"tool_id": "pickaxe", "action_reduction": 1, "yield_bonus": 1}
+  ],
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
-  "stamina_cost": 30,
+  "stamina_cost": 20,
+  "harvest_actions": 4,
   "yields": [
     {"item_id": "iron_ore", "min_count": 2, "max_count": 5}
   ],
   "replacement_tile": "floor",
-  "harvest_message": "Mined iron ore with %tool%, got %yield%"
+  "harvest_message": "Mined iron ore with %tool%, got %yield%",
+  "progress_message": "Mining iron ore... (%current%/%total%)"
 }

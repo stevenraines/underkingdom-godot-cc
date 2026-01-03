@@ -1,11 +1,15 @@
 {
   "id": "tree",
   "name": "Tree",
-  "required_tools": ["axe", "flint_knife", "iron_knife"],
+  "required_tools": [
+    {"tool_id": "axe", "action_reduction": 2, "yield_bonus": 2},
+    {"tool_id": "flint_knife", "action_reduction": 0, "yield_bonus": 0},
+    {"tool_id": "iron_knife", "action_reduction": 0, "yield_bonus": 0}
+  ],
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
-  "stamina_cost": 20,
-  "harvest_actions": 3,
+  "stamina_cost": 10,
+  "harvest_actions": 5,
   "yields": [
     {"item_id": "wood", "min_count": 2, "max_count": 4}
   ],

@@ -1,14 +1,18 @@
 {
   "id": "rock",
   "name": "Rock",
-  "required_tools": ["pickaxe"],
+  "required_tools": [
+    {"tool_id": "pickaxe", "action_reduction": 1, "yield_bonus": 1}
+  ],
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
-  "stamina_cost": 25,
+  "stamina_cost": 15,
+  "harvest_actions": 3,
   "yields": [
     {"item_id": "stone", "min_count": 3, "max_count": 6},
     {"item_id": "flint", "min_count": 0, "max_count": 2, "chance": 0.3}
   ],
   "replacement_tile": "floor",
-  "harvest_message": "Broke rock with %tool%, got %yield%"
+  "harvest_message": "Broke rock with %tool%, got %yield%",
+  "progress_message": "Mining rock... (%current%/%total%)"
 }

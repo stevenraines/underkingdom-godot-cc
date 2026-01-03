@@ -172,6 +172,7 @@ func _ready() -> void:
 	EventBus.shop_opened.connect(_on_shop_opened)
 	EventBus.combat_message.connect(_on_combat_message)
 	EventBus.time_of_day_changed.connect(_on_time_of_day_changed)
+	EventBus.harvesting_mode_changed.connect(_on_harvesting_mode_changed)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -975,6 +976,17 @@ func _update_toggles_display() -> void:
 		ability2.text = autodoor_status
 		ability2.add_theme_color_override("font_color", autodoor_color)
 
+	# Harvesting mode indicator
+	var ability3 = $HUD/BottomBar/Abilities/Ability3
+	if ability3:
+		var is_harvesting = input_handler and input_handler.is_harvesting()
+		if is_harvesting:
+			ability3.text = "HARVESTING"
+			ability3.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold/yellow
+			ability3.visible = true
+		else:
+			ability3.visible = false
+
 ## Count enemies within aggro range of player
 func _count_nearby_enemies() -> int:
 	if not player:
@@ -1413,6 +1425,13 @@ func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
 	input_handler.ui_blocking_input = false
+
+## Called when harvesting mode changes
+func _on_harvesting_mode_changed(is_active: bool) -> void:
+	_update_toggles_display()
+	if is_active:
+		_add_message("Entered harvesting mode - keep pressing direction to continue", Color(0.6, 0.9, 0.6))
+
 
 ## Called when time of day changes - handle shop door locking
 func _on_time_of_day_changed(new_time: String) -> void:

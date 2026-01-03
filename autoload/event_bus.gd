@@ -135,5 +135,9 @@ signal lock_opened(position: Vector2i, method: String)  # method: "key", "skelet
 @warning_ignore("unused_signal")
 signal lockpick_broken(position: Vector2i)
 
+# Harvesting mode signals
+@warning_ignore("unused_signal")
+signal harvesting_mode_changed(is_active: bool)
+
 func _ready() -> void:
 	print("EventBus initialized")

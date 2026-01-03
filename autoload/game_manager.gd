@@ -110,22 +110,54 @@ func get_visited_locations_by_type(location_type: String) -> Array:
 func clear_visited_locations() -> void:
 	visited_locations.clear()
 
-## Mark all placed towns as visited (called after map generation)
-## Uses map metadata which is available immediately, rather than TownManager.placed_towns
-## which is populated lazily during chunk loading
-func mark_all_towns_visited() -> void:
+## Mark towns and dungeons as visited based on their known_at_start config
+## Called after map generation to populate fast travel locations
+func mark_known_locations_visited() -> void:
 	if not MapManager.current_map:
-		print("GameManager: No current map, cannot mark towns as visited")
+		print("GameManager: No current map, cannot mark locations as visited")
 		return
 
-	# Get towns from map metadata (available immediately after map creation)
+	var towns_marked = 0
+	var dungeons_marked = 0
+
+	# Get towns from map metadata and check known_at_start flag
 	var towns = MapManager.current_map.metadata.get("towns", [])
 	for town in towns:
 		var town_id = town.get("town_id", town.get("id", "unknown_town"))
+
+		# Check if town definition has known_at_start = true
+		var town_def = TownManager.get_town(town_id)
+		if not town_def.get("known_at_start", false):
+			continue
+
 		var town_name = town.get("name", "Unknown Town")
 		var town_pos = town.get("position", Vector2i.ZERO)
 		# Handle position that might be Vector2i or Dictionary
 		if town_pos is Dictionary:
 			town_pos = Vector2i(int(town_pos.get("x", 0)), int(town_pos.get("y", 0)))
 		mark_location_visited(town_id, "town", town_name, town_pos)
-	print("GameManager: Marked %d towns as visited" % towns.size())
+		towns_marked += 1
+
+	# Get dungeons from map metadata and check known_at_start flag
+	var entrances = MapManager.current_map.get_meta("dungeon_entrances", [])
+	for entrance in entrances:
+		var dungeon_type = entrance.get("dungeon_type", "")
+
+		# Check if dungeon definition has known_at_start = true
+		var dungeon_def = DungeonManager.get_dungeon(dungeon_type)
+		if not dungeon_def.get("known_at_start", false):
+			continue
+
+		var dungeon_name = entrance.get("name", dungeon_type.capitalize())
+		var entrance_pos = entrance.get("position", Vector2i.ZERO)
+		# Handle position that might be Vector2i or Dictionary
+		if entrance_pos is Dictionary:
+			entrance_pos = Vector2i(int(entrance_pos.get("x", 0)), int(entrance_pos.get("y", 0)))
+		mark_location_visited(dungeon_type, "dungeon", dungeon_name, entrance_pos)
+		dungeons_marked += 1
+
+	print("GameManager: Marked %d towns and %d dungeons as known at start" % [towns_marked, dungeons_marked])
+
+## Legacy function - now calls mark_known_locations_visited
+func mark_all_towns_visited() -> void:
+	mark_known_locations_visited()

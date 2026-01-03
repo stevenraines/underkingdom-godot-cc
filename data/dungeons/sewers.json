@@ -6,6 +6,7 @@
   "entrance_color": "#666666",
   "biome_preferences": ["town"],
   "placement": "town",
+  "known_at_start": true,
 
   "map_size": {
     "width": 50,

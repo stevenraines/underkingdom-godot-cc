@@ -67,6 +67,7 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 	return town_data
 
 ## Clear the town area to walkable floor
+## Preserves special tiles like dungeon entrances
 static func _clear_town_area(tiles_dict: Dictionary, center: Vector2i, size: Vector2i, world_seed: int) -> void:
 	var half_size = size / 2
 	var start = center - half_size
@@ -75,6 +76,12 @@ static func _clear_town_area(tiles_dict: Dictionary, center: Vector2i, size: Vec
 		for y in range(size.y):
 			var local_pos = Vector2i(x, y)
 			var world_pos = start + local_pos
+
+			# Preserve dungeon entrance tiles - don't overwrite them
+			if world_pos in tiles_dict:
+				var existing = tiles_dict[world_pos]
+				if existing.tile_type == "dungeon_entrance":
+					continue
 
 			# Get biome for appropriate floor coloring
 			var biome = BiomeGenerator.get_biome_at(world_pos.x, world_pos.y, world_seed)
@@ -116,6 +123,7 @@ static func _place_feature(tiles_dict: Dictionary, building_def: Dictionary, pos
 	return Vector2i(-1, -1)  # Features don't have NPC positions
 
 ## Place a standard building with walls and door
+## Preserves dungeon entrance tiles
 static func _place_standard_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, _rng: SeededRandom) -> Vector2i:
 	var size_array = building_def.get("size", [5, 5])
 	var size = Vector2i(size_array[0], size_array[1])
@@ -130,6 +138,13 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 	for x in range(size.x):
 		for y in range(size.y):
 			var world_pos = start + Vector2i(x, y)
+
+			# Preserve dungeon entrance tiles - don't overwrite them
+			if world_pos in tiles_dict:
+				var existing = tiles_dict[world_pos]
+				if existing.tile_type == "dungeon_entrance":
+					continue
+
 			var is_wall = (x == 0 or x == size.x - 1 or y == 0 or y == size.y - 1)
 
 			# Check for door position

@@ -45,18 +45,5 @@
 			["barren_rock", "rocky_hills", "rocky_hills", "mountains", "mountains"],
 			["barren_rock", "snow", "snow", "snow_mountains", "snow_mountains"]
 		]
-	},
-	"special_features": {
-		"dungeon_entrance": {
-			"preferred_biomes": ["rocky_hills", "mountains", "barren_rock"],
-			"min_distance_from_spawn": 2,
-			"max_distance_from_spawn": 10,
-			"tile_type": "stairs_down"
-		},
-		"town": {
-			"preferred_biomes": ["grassland", "woodland", "forest"],
-			"min_distance_from_dungeon": 3,
-			"size": 20
-		}
 	}
 }

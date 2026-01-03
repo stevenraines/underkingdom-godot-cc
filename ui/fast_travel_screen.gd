@@ -5,6 +5,8 @@ extends Control
 ## Displays all visited towns and dungeons. Player can select a location
 ## and fast travel to it instantly.
 
+const GameTile = preload("res://maps/game_tile.gd")
+
 signal closed
 
 @onready var scroll_container: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer
@@ -213,28 +215,64 @@ func _execute_fast_travel(target_pos: Vector2i, location_name: String) -> void:
 	EventBus.message_logged.emit("You fast travel to %s." % location_name)
 
 ## Find a walkable tile near the target position
+## Finds an outdoor, unoccupied, walkable tile
 func _find_walkable_near(target_pos: Vector2i) -> Vector2i:
 	# First ensure the chunk is loaded
 	if MapManager.current_map and MapManager.current_map.chunk_based:
 		ChunkManager.update_active_chunks(target_pos)
 
 	# Check the target position first
-	if _is_walkable(target_pos):
+	if _is_valid_spawn_position(target_pos):
 		return target_pos
 
-	# Search in expanding rings
-	for radius in range(1, 10):
+	# Search in expanding rings - prioritize outdoor tiles
+	for radius in range(1, 20):
 		for dy in range(-radius, radius + 1):
 			for dx in range(-radius, radius + 1):
 				if abs(dx) == radius or abs(dy) == radius:  # Only check perimeter
 					var check_pos = target_pos + Vector2i(dx, dy)
-					if _is_walkable(check_pos):
+					if _is_valid_spawn_position(check_pos):
 						return check_pos
 
 	# Fallback to target position
 	return target_pos
 
-## Check if a position is walkable
+## Check if a position is valid for spawning (walkable, outdoor, unoccupied)
+func _is_valid_spawn_position(pos: Vector2i) -> bool:
+	# Get the tile
+	var tile: GameTile = null
+	if MapManager.current_map.chunk_based:
+		tile = ChunkManager.get_tile(pos)
+	else:
+		tile = MapManager.current_map.get_tile(pos)
+
+	if not tile or not tile.walkable:
+		return false
+
+	# Don't spawn inside buildings (white indoor floors have Color.WHITE)
+	# Outdoor tiles have grass colors which are not pure white
+	if tile.tile_type == "floor" and tile.color == Color.WHITE:
+		return false
+
+	# Don't spawn on doors
+	if tile.tile_type == "door":
+		return false
+
+	# Don't spawn on occupied tiles (entities)
+	if EntityManager.get_blocking_entity_at(pos):
+		return false
+
+	# Don't spawn on ground items
+	if EntityManager.get_ground_items_at(pos).size() > 0:
+		return false
+
+	# Don't spawn on features
+	if FeatureManager.has_interactable_feature(pos):
+		return false
+
+	return true
+
+## Check if a position is walkable (basic check)
 func _is_walkable(pos: Vector2i) -> bool:
 	if MapManager.current_map.chunk_based:
 		var tile = ChunkManager.get_tile(pos)

@@ -224,9 +224,9 @@ func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 				if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
 					tiles[local_pos] = world_tiles[world_pos_tile]
 
-			# Store NPC spawn data in map metadata for later spawning
+			# Spawn NPCs directly via EntityManager
 			if result.has("npc_spawns") and result.npc_spawns.size() > 0:
-				_store_npc_spawns(result.npc_spawns, town_id)
+				_spawn_town_npcs(result.npc_spawns, town_id)
 
 			# Register town with TownManager
 			if town_manager:
@@ -276,18 +276,18 @@ func _get_default_building_defs() -> Dictionary:
 	}
 
 
-## Store NPC spawn data in map metadata
-func _store_npc_spawns(npc_spawns: Array, town_id: String) -> void:
-	var map = MapManager.current_map
-	if not map:
+## Spawn NPCs directly via EntityManager
+func _spawn_town_npcs(npc_spawns: Array, town_id: String) -> void:
+	var entity_manager = _get_autoload("EntityManager")
+	if not entity_manager:
+		push_warning("[WorldChunk] EntityManager not available for NPC spawning")
 		return
 
-	var existing_spawns = map.metadata.get("npc_spawns", [])
 	for spawn in npc_spawns:
 		spawn["town_id"] = town_id
-		existing_spawns.append(spawn)
-	map.metadata["npc_spawns"] = existing_spawns
-	print("[WorldChunk] Stored %d NPC spawns for %s" % [npc_spawns.size(), town_id])
+		entity_manager.spawn_npc(spawn)
+
+	print("[WorldChunk] Spawned %d NPCs for %s" % [npc_spawns.size(), town_id])
 
 ## Get tile at local coordinates (0-31)
 func get_tile(local_pos: Vector2i) -> GameTile:

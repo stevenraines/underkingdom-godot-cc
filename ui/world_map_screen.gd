@@ -242,18 +242,28 @@ func _generate_area_map() -> void:
 							map_image.set_pixel(fx, fy, color)
 
 	# Get special feature positions
-	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", [])
 
-	# Draw town if in loaded area
-	if town_pos != Vector2i(-1, -1):
-		if town_pos.x >= min_tile.x and town_pos.x < max_tile.x and town_pos.y >= min_tile.y and town_pos.y < max_tile.y:
-			var town_px = Vector2i(
-				offset_x + int((town_pos.x - min_tile.x) * map_scale),
-				offset_y + int((town_pos.y - min_tile.y) * map_scale)
-			)
-			_draw_marker(town_px, Color.BLACK, 7)  # Outline
-			_draw_marker(town_px, Color(1.0, 0.9, 0.5), 5)  # Town marker
+	# Get all towns from metadata (multi-town support)
+	var towns: Array = MapManager.current_map.metadata.get("towns", [])
+	if towns.is_empty():
+		var legacy_town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
+		if legacy_town_pos != Vector2i(-1, -1):
+			towns = [{"position": legacy_town_pos, "name": "Town"}]
+
+	# Draw all towns if in loaded area
+	for town in towns:
+		var town_pos = town.get("position", Vector2i(-1, -1))
+		if town_pos is Array:
+			town_pos = Vector2i(town_pos[0], town_pos[1])
+		if town_pos != Vector2i(-1, -1):
+			if town_pos.x >= min_tile.x and town_pos.x < max_tile.x and town_pos.y >= min_tile.y and town_pos.y < max_tile.y:
+				var town_px = Vector2i(
+					offset_x + int((town_pos.x - min_tile.x) * map_scale),
+					offset_y + int((town_pos.y - min_tile.y) * map_scale)
+				)
+				_draw_marker(town_px, Color.BLACK, 7)  # Outline
+				_draw_marker(town_px, Color(1.0, 0.9, 0.5), 5)  # Town marker
 
 	# Draw dungeon entrances if in loaded area
 	for entrance in dungeon_entrances:
@@ -327,23 +337,33 @@ func _generate_region_map() -> void:
 	map_image = region_image
 
 	# Get special features
-	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", [])
+
+	# Get all towns from metadata (multi-town support)
+	var towns: Array = MapManager.current_map.metadata.get("towns", [])
+	if towns.is_empty():
+		var legacy_town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
+		if legacy_town_pos != Vector2i(-1, -1):
+			towns = [{"position": legacy_town_pos, "name": "Town"}]
 
 	# Calculate scale for markers (world to pixel)
 	var tiles_per_pixel = float(region_width) / float(MAP_IMAGE_SIZE)
 
-	# Draw town if in view
+	# Draw all towns if in view
 	var view_max_x = view_min_x + region_width
 	var view_max_y = view_min_y + region_height
-	if town_pos != Vector2i(-1, -1):
-		if town_pos.x >= view_min_x and town_pos.x < view_max_x and town_pos.y >= view_min_y and town_pos.y < view_max_y:
-			var town_px = Vector2i(
-				int((town_pos.x - view_min_x) / tiles_per_pixel),
-				int((town_pos.y - view_min_y) / tiles_per_pixel)
-			)
-			_draw_marker(town_px, Color.BLACK, 7)  # Outline
-			_draw_marker(town_px, Color(1.0, 0.9, 0.5), 5)  # Town marker
+	for town in towns:
+		var town_pos = town.get("position", Vector2i(-1, -1))
+		if town_pos is Array:
+			town_pos = Vector2i(town_pos[0], town_pos[1])
+		if town_pos != Vector2i(-1, -1):
+			if town_pos.x >= view_min_x and town_pos.x < view_max_x and town_pos.y >= view_min_y and town_pos.y < view_max_y:
+				var town_px = Vector2i(
+					int((town_pos.x - view_min_x) / tiles_per_pixel),
+					int((town_pos.y - view_min_y) / tiles_per_pixel)
+				)
+				_draw_marker(town_px, Color.BLACK, 7)  # Outline
+				_draw_marker(town_px, Color(1.0, 0.9, 0.5), 5)  # Town marker
 
 	# Draw dungeon entrances if in view
 	for entrance in dungeon_entrances:
@@ -387,15 +407,26 @@ func _generate_world_map() -> void:
 	var tiles_per_pixel: float = float(island_width_tiles) / float(MAP_IMAGE_SIZE)
 
 	# Get special feature positions
-	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
 	var player_pos = _get_overworld_player_position()
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", [])
 
-	# Draw town (as a larger marker with outline)
-	if town_pos != Vector2i(-1, -1):
-		var town_px = _world_to_map_pixel(town_pos, tiles_per_pixel)
-		_draw_marker(town_px, Color.BLACK, 7)  # Outline
-		_draw_marker(town_px, Color(1.0, 0.9, 0.5), 5)  # Town marker
+	# Get all towns from metadata (multi-town support)
+	var towns: Array = MapManager.current_map.metadata.get("towns", [])
+	# Fallback to legacy single town if no towns array
+	if towns.is_empty():
+		var legacy_town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
+		if legacy_town_pos != Vector2i(-1, -1):
+			towns = [{"position": legacy_town_pos, "name": "Town"}]
+
+	# Draw all towns (as larger markers with outlines)
+	for town in towns:
+		var town_pos = town.get("position", Vector2i(-1, -1))
+		if town_pos is Array:
+			town_pos = Vector2i(town_pos[0], town_pos[1])
+		if town_pos != Vector2i(-1, -1):
+			var town_px = _world_to_map_pixel(town_pos, tiles_per_pixel)
+			_draw_marker(town_px, Color.BLACK, 7)  # Outline
+			_draw_marker(town_px, Color(1.0, 0.9, 0.5), 5)  # Town marker
 
 	# Draw dungeon entrances with outlines
 	for entrance in dungeon_entrances:
@@ -576,11 +607,26 @@ func _add_legend_header(text: String) -> void:
 
 
 func _add_town_and_dungeons_to_legend() -> void:
-	var town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1)) if MapManager.current_map else Vector2i(-1, -1)
-	if town_pos != Vector2i(-1, -1):
-		_add_legend_item(Color(1.0, 0.9, 0.5), "Town (%d,%d)" % [town_pos.x, town_pos.y])
-	else:
-		_add_legend_item(Color(1.0, 0.9, 0.5), "Town")
+	# Get all towns from metadata (multi-town support)
+	var towns: Array = []
+	if MapManager.current_map:
+		towns = MapManager.current_map.metadata.get("towns", [])
+		# Fallback to legacy single town if no towns array
+		if towns.is_empty():
+			var legacy_town_pos = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
+			if legacy_town_pos != Vector2i(-1, -1):
+				towns = [{"position": legacy_town_pos, "name": "Town"}]
+
+	# Add all towns to legend
+	for town in towns:
+		var town_pos = town.get("position", Vector2i(-1, -1))
+		if town_pos is Array:
+			town_pos = Vector2i(town_pos[0], town_pos[1])
+		var town_name = town.get("name", "Town")
+		if town_pos != Vector2i(-1, -1):
+			_add_legend_item(Color(1.0, 0.9, 0.5), "%s (%d,%d)" % [town_name, town_pos.x, town_pos.y])
+		else:
+			_add_legend_item(Color(1.0, 0.9, 0.5), town_name)
 
 	# Add dungeon entrances to legend with coordinates
 	var dungeon_entrances: Array = MapManager.current_map.get_meta("dungeon_entrances", []) if MapManager.current_map else []

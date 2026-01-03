@@ -1,0 +1,29 @@
+{
+  "template_id": "chest_armor",
+  "display_name": "Armor",
+  "description_base": "Body armor that provides protection.",
+  "category": "armor",
+  "subtype": "body",
+  "base_properties": {
+    "ascii_char": "[",
+    "equip_slots": ["torso"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false
+    },
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 5.0,
+    "value": 50,
+    "durability": 100,
+    "armor_value": 4
+  },
+  "applicable_variants": ["material_armor", "quality", "origin"],
+  "default_variants": {
+    "material_armor": "leather"
+  },
+  "required_variants": ["material_armor"]
+}

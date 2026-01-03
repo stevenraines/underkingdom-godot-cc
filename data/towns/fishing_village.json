@@ -3,7 +3,7 @@
   "name": "Saltmere",
   "description": "A quiet fishing village nestled along the shore.",
   "size": [12, 10],
-  "biome_preferences": ["beach", "marsh"],
+  "biome_preferences": ["beach", "marsh", "grassland", "woodland"],
   "placement": "coastal",
   "is_safe_zone": true,
   "buildings": [

@@ -1,0 +1,17 @@
+{
+	"id": "lockpick",
+	"name": "Lockpick",
+	"description": "A thin metal pick for opening locks. Breaks on failed attempts.",
+	"category": "tool",
+	"subtype": "lockpick",
+	"flags": {
+		"tool": true,
+		"consumable_on_fail": true
+	},
+	"weight": 0.05,
+	"value": 15,
+	"max_stack": 10,
+	"ascii_char": "-",
+	"ascii_color": "#A0A0A0",
+	"tool_type": "lockpick"
+}

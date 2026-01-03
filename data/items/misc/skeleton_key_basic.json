@@ -1,0 +1,17 @@
+{
+	"id": "skeleton_key_basic",
+	"name": "Skeleton Key",
+	"description": "A masterwork key that can open simple locks (level 2 or lower).",
+	"category": "misc",
+	"subtype": "skeleton_key",
+	"flags": {
+		"key": true,
+		"skeleton_key": true
+	},
+	"weight": 0.1,
+	"value": 100,
+	"max_stack": 1,
+	"ascii_char": "K",
+	"ascii_color": "#FFD700",
+	"skeleton_key_level": 2
+}

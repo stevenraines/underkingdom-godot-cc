@@ -10,5 +10,7 @@
     {"id": "short_bow", "count": 1},
     {"id": "arrow", "count": 10},
     {"id": "throwing_knife", "count": 3},
-    {"id": "sling_stone", "count": 5}
+    {"id": "sling_stone", "count": 5},
+    {"id": "lockpick", "count": 5},
+    {"id": "skeleton_key_basic", "count": 1}
 ]

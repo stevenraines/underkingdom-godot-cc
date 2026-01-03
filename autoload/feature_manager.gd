@@ -7,6 +7,7 @@ class_name FeatureManagerClass
 ## other interactive effects.
 
 const FEATURE_DATA_PATH = "res://data/features"
+const _LockSystem = preload("res://systems/lock_system.gd")
 
 ## Signal emitted when a feature is interacted with
 signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)
@@ -211,13 +212,26 @@ func _get_floor_positions(map: GameMap) -> Array[Vector2i]:
 
 ## Interact with a feature at position
 ## Returns result dictionary with effects
-func interact_with_feature(pos: Vector2i) -> Dictionary:
+## If player is provided, can attempt auto-unlock with keys
+func interact_with_feature(pos: Vector2i, player = null) -> Dictionary:
 	if not active_features.has(pos):
 		return {"success": false, "message": "Nothing to interact with here."}
 
 	var feature: Dictionary = active_features[pos]
 	var feature_def: Dictionary = feature.definition
 	var result: Dictionary = {"success": true, "effects": []}
+
+	# Check if locked
+	if feature.state.get("is_locked", false):
+		if player:
+			# Try to auto-unlock with key
+			var unlock_result = _try_unlock_feature(feature, player)
+			if not unlock_result.success:
+				return {"success": false, "message": "It's locked. Press Y to pick the lock.", "is_locked": true}
+			# If unlocked with key, continue to interaction
+			result.message = unlock_result.message
+		else:
+			return {"success": false, "message": "It's locked.", "is_locked": true}
 
 	if feature.interacted and not feature_def.get("repeatable", false):
 		return {"success": false, "message": "Already interacted with this %s." % feature_def.name}
@@ -322,6 +336,95 @@ func _generate_hint() -> String:
 		"Something was written here long ago."
 	]
 	return fallback_hints[randi() % fallback_hints.size()]
+
+
+## Try to unlock a feature using player's keys (auto-unlock on interaction)
+## Returns Dictionary: {success, message}
+func _try_unlock_feature(feature: Dictionary, player) -> Dictionary:
+	var lock_id: String = feature.state.get("lock_id", "")
+	var lock_level: int = feature.state.get("lock_level", 1)
+
+	# Try to unlock with key
+	var unlock_result = _LockSystem.try_unlock_with_key(lock_id, lock_level, player.inventory)
+
+	if unlock_result.success:
+		# Unlock the feature
+		feature.state["is_locked"] = false
+		var pos: Vector2i = feature.get("position", Vector2i.ZERO)
+		EventBus.lock_opened.emit(pos, "key")
+		return {"success": true, "message": unlock_result.message}
+
+	return {"success": false, "message": unlock_result.message}
+
+
+## Check if a feature at position is locked
+func is_feature_locked(pos: Vector2i) -> bool:
+	if not active_features.has(pos):
+		return false
+	var feature: Dictionary = active_features[pos]
+	return feature.state.get("is_locked", false)
+
+
+## Try to pick a feature's lock
+## Returns Dictionary: {success, message, lockpick_broken}
+func try_pick_feature_lock(pos: Vector2i, player) -> Dictionary:
+	if not active_features.has(pos):
+		return {"success": false, "message": "Nothing to pick here."}
+
+	var feature: Dictionary = active_features[pos]
+
+	if not feature.state.get("is_locked", false):
+		return {"success": false, "message": "It's not locked."}
+
+	var lock_level: int = feature.state.get("lock_level", 1)
+	var feature_def: Dictionary = feature.definition
+	var feature_name: String = feature_def.get("name", "feature").to_lower()
+
+	# Try to pick the lock
+	var pick_result = _LockSystem.try_pick_lock(lock_level, player)
+
+	if pick_result.success:
+		# Unlock the feature
+		feature.state["is_locked"] = false
+		EventBus.lock_picked.emit(pos, true)
+		EventBus.lock_opened.emit(pos, "picked")
+		return {"success": true, "message": "You pick the %s's lock." % feature_name}
+	else:
+		EventBus.lock_picked.emit(pos, false)
+		if pick_result.lockpick_broken:
+			EventBus.lockpick_broken.emit(pos)
+		return {"success": false, "message": pick_result.message, "lockpick_broken": pick_result.lockpick_broken}
+
+
+## Try to re-lock a feature (requires lockpick, half difficulty)
+## Returns Dictionary: {success, message, lockpick_broken}
+func try_lock_feature(pos: Vector2i, player) -> Dictionary:
+	if not active_features.has(pos):
+		return {"success": false, "message": "Nothing to lock here."}
+
+	var feature: Dictionary = active_features[pos]
+
+	if feature.state.get("is_locked", false):
+		return {"success": false, "message": "It's already locked."}
+
+	# Feature must have had a lock originally (lock_level > 0)
+	var lock_level: int = feature.state.get("lock_level", 0)
+	if lock_level <= 0:
+		return {"success": false, "message": "This can't be locked."}
+
+	var feature_def: Dictionary = feature.definition
+	var feature_name: String = feature_def.get("name", "feature").to_lower()
+
+	# Try to lock it (half difficulty)
+	var lock_result = _LockSystem.try_lock_with_pick(lock_level, player)
+
+	if lock_result.success:
+		feature.state["is_locked"] = true
+		return {"success": true, "message": "You re-lock the %s." % feature_name}
+	else:
+		if lock_result.lockpick_broken:
+			EventBus.lockpick_broken.emit(pos)
+		return {"success": false, "message": lock_result.message, "lockpick_broken": lock_result.lockpick_broken}
 
 
 ## Get feature at position (or null)

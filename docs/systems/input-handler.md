@@ -70,6 +70,7 @@ var current_target: Entity = null
 | H | Harvest (then direction) |
 | T | Talk to adjacent NPC |
 | X | Open/close adjacent door |
+| Y | Pick lock / re-lock door or chest |
 
 ### UI
 

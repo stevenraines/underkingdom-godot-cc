@@ -127,5 +127,13 @@ signal hazard_detected(hazard_id: String, position: Vector2i)
 @warning_ignore("unused_signal")
 signal hazard_disarmed(hazard_id: String, position: Vector2i)
 
+# Lock signals
+@warning_ignore("unused_signal")
+signal lock_picked(position: Vector2i, success: bool)
+@warning_ignore("unused_signal")
+signal lock_opened(position: Vector2i, method: String)  # method: "key", "skeleton_key", "picked"
+@warning_ignore("unused_signal")
+signal lockpick_broken(position: Vector2i)
+
 func _ready() -> void:
 	print("EventBus initialized")

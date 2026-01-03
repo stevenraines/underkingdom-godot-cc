@@ -182,16 +182,25 @@ func to_dict() -> Dictionary:
 	var tiles_data = []
 	for local_pos in tiles:
 		var tile = tiles[local_pos]
-		# Only save modified tiles (non-default)
-		if tile.tile_type != "floor" or tile.harvestable_resource_id != "":
-			tiles_data.append({
+		# Only save modified tiles (non-default) or tiles with lock state
+		if tile.tile_type != "floor" or tile.harvestable_resource_id != "" or tile.is_locked:
+			var tile_dict = {
 				"pos": [local_pos.x, local_pos.y],
 				"type": tile.tile_type,
 				"walkable": tile.walkable,
 				"transparent": tile.transparent,
 				"char": tile.ascii_char,
 				"resource_id": tile.harvestable_resource_id
-			})
+			}
+			# Only save lock properties if they're non-default
+			if tile.is_locked or tile.lock_id != "" or tile.lock_level != 1:
+				tile_dict["is_locked"] = tile.is_locked
+				tile_dict["lock_id"] = tile.lock_id
+				tile_dict["lock_level"] = tile.lock_level
+			# Save door state
+			if tile.tile_type == "door":
+				tile_dict["is_open"] = tile.is_open
+			tiles_data.append(tile_dict)
 
 	var resources_data = []
 	for resource in resources:
@@ -223,6 +232,13 @@ static func from_dict(data: Dictionary, world_seed: int) -> WorldChunk:
 		tile.transparent = tile_data.get("transparent", true)
 		tile.ascii_char = tile_data.get("char", ".")
 		tile.harvestable_resource_id = tile_data.get("resource_id", "")
+		# Restore lock properties
+		tile.is_locked = tile_data.get("is_locked", false)
+		tile.lock_id = tile_data.get("lock_id", "")
+		tile.lock_level = tile_data.get("lock_level", 1)
+		# Restore door state
+		if tile.tile_type == "door":
+			tile.is_open = tile_data.get("is_open", false)
 		chunk.tiles[local_pos] = tile
 
 	# Restore resources

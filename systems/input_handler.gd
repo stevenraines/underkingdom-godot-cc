@@ -324,6 +324,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_X:  # X key - toggle door (open/close)
 			action_taken = _try_toggle_door()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_Y:  # Y key - pick/lock a lock
+			action_taken = _try_lockpick()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -334,6 +337,82 @@ func _try_toggle_door() -> bool:
 	if not player:
 		return false
 	return player.try_toggle_adjacent_door()
+
+## Try to pick/lock an adjacent door or container
+func _try_lockpick() -> bool:
+	const LockSystemClass = preload("res://systems/lock_system.gd")
+	var game = get_parent()
+
+	if not player:
+		return false
+
+	# Check adjacent doors first
+	var directions = [
+		Vector2i(0, -1), Vector2i(0, 1),
+		Vector2i(-1, 0), Vector2i(1, 0)
+	]
+
+	for dir in directions:
+		var pos = player.position + dir
+		var tile = MapManager.current_map.get_tile(pos) if MapManager.current_map else null
+
+		if tile and tile.tile_type == "door":
+			if tile.is_locked:
+				# Try to pick the lock
+				var result = LockSystemClass.try_pick_lock(tile.lock_level, player)
+				if result.success:
+					tile.unlock()
+					EventBus.lock_picked.emit(pos, true)
+					# Also open the door
+					tile.open_door()
+					_emit_fov_invalidate()
+					EventBus.tile_changed.emit(pos)
+				else:
+					EventBus.lock_picked.emit(pos, false)
+					if result.lockpick_broken:
+						EventBus.lockpick_broken.emit(pos)
+				if game and game.has_method("_add_message"):
+					var color = Color.GREEN if result.success else Color.ORANGE_RED
+					game._add_message(result.message, color)
+				return true
+			elif not tile.is_open:
+				# Try to lock an unlocked closed door
+				var result = LockSystemClass.try_lock_with_pick(tile.lock_level, player)
+				if result.success:
+					tile.lock()
+				if game and game.has_method("_add_message"):
+					var color = Color.GREEN if result.success else Color.ORANGE_RED
+					game._add_message(result.message, color)
+				return true
+
+	# Check for features at player position or adjacent
+	for dir in [Vector2i.ZERO] + directions:
+		var pos = player.position + dir
+		if FeatureManager.has_interactable_feature(pos):
+			if FeatureManager.is_feature_locked(pos):
+				# Try to pick a locked feature
+				var result = FeatureManager.try_pick_feature_lock(pos, player)
+				if game and game.has_method("_add_message"):
+					var color = Color.GREEN if result.success else Color.ORANGE_RED
+					game._add_message(result.message, color)
+				return true
+			else:
+				# Try to re-lock an unlocked feature
+				var result = FeatureManager.try_lock_feature(pos, player)
+				if result.success or result.get("lockpick_broken", false):
+					if game and game.has_method("_add_message"):
+						var color = Color.GREEN if result.success else Color.ORANGE_RED
+						game._add_message(result.message, color)
+					return true
+
+	if game and game.has_method("_add_message"):
+		game._add_message("Nothing to pick here.", Color.GRAY)
+	return false
+
+## Emit FOV invalidation
+func _emit_fov_invalidate() -> void:
+	const FOVSystemClass = preload("res://systems/fov_system.gd")
+	FOVSystemClass.invalidate_cache()
 
 ## Wait action - rest in place for bonus stamina regeneration
 func _do_wait_action() -> void:

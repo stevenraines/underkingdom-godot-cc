@@ -52,6 +52,10 @@ var recovery_chance: float = 0.5    # Chance ammo/thrown weapon can be recovered
 # Tool properties
 var tool_type: String = ""          # "knife", "hammer", etc. for crafting requirements
 
+# Key properties
+var key_id: String = ""             # For specific keys - matches a lock's lock_id
+var skeleton_key_level: int = 0     # For skeleton keys - can open locks at or below this level
+
 # Consumable effects
 var effects: Dictionary = {}        # {"hunger": 30, "thirst": 20, "health": 10}
 
@@ -118,7 +122,11 @@ static func create_from_data(data: Dictionary) -> Item:
 
 	# Tool
 	item.tool_type = data.get("tool_type", "")
-	
+
+	# Key properties
+	item.key_id = data.get("key_id", "")
+	item.skeleton_key_level = data.get("skeleton_key_level", 0)
+
 	# Consumable effects
 	item.effects = data.get("effects", {})
 	
@@ -155,6 +163,8 @@ func duplicate_item() -> Item:
 	copy.accuracy_modifier = accuracy_modifier
 	copy.recovery_chance = recovery_chance
 	copy.tool_type = tool_type
+	copy.key_id = key_id
+	copy.skeleton_key_level = skeleton_key_level
 	copy.effects = effects.duplicate()
 	copy.transforms_into = transforms_into
 	return copy
@@ -371,6 +381,18 @@ func is_thrown_weapon() -> bool:
 ## Check if this item is ammunition
 func is_ammunition() -> bool:
 	return flags.get("ammunition", false) or category == "ammunition"
+
+## Check if this item is a key (specific or skeleton)
+func is_key() -> bool:
+	return flags.get("key", false)
+
+## Check if this item is a skeleton key
+func is_skeleton_key() -> bool:
+	return flags.get("skeleton_key", false)
+
+## Check if this item is a lockpick
+func is_lockpick() -> bool:
+	return tool_type == "lockpick"
 
 ## Check if this item can be used for ranged attack (ranged or thrown)
 func can_attack_at_range() -> bool:

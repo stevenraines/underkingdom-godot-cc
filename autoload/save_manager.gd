@@ -293,7 +293,10 @@ func _serialize_maps() -> Dictionary:
 						"transparent": tile.transparent,
 						"ascii_char": tile.ascii_char,
 						"harvestable_resource_id": tile.harvestable_resource_id,
-						"is_open": tile.is_open
+						"is_open": tile.is_open,
+						"is_locked": tile.is_locked,
+						"lock_id": tile.lock_id,
+						"lock_level": tile.lock_level
 					})
 
 			maps_data[map.map_id] = {
@@ -516,6 +519,10 @@ func _deserialize_maps(maps_data: Dictionary, current_map_id: String) -> void:
 			tile.ascii_char = tile_data.ascii_char
 			tile.harvestable_resource_id = tile_data.harvestable_resource_id
 			tile.is_open = tile_data.get("is_open", false)  # Default to false for backwards compatibility
+			# Lock properties (default to unlocked for backwards compatibility)
+			tile.is_locked = tile_data.get("is_locked", false)
+			tile.lock_id = tile_data.get("lock_id", "")
+			tile.lock_level = tile_data.get("lock_level", 1)
 
 			idx += 1
 

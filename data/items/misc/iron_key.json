@@ -1,0 +1,16 @@
+{
+	"id": "iron_key",
+	"name": "Iron Key",
+	"description": "A sturdy iron key. Opens a specific lock.",
+	"category": "misc",
+	"subtype": "key",
+	"flags": {
+		"key": true
+	},
+	"weight": 0.1,
+	"value": 5,
+	"max_stack": 1,
+	"ascii_char": "k",
+	"ascii_color": "#808080",
+	"key_id": ""
+}

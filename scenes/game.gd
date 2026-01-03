@@ -171,6 +171,7 @@ func _ready() -> void:
 	EventBus.structure_placed.connect(_on_structure_placed)
 	EventBus.shop_opened.connect(_on_shop_opened)
 	EventBus.combat_message.connect(_on_combat_message)
+	EventBus.time_of_day_changed.connect(_on_time_of_day_changed)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -658,6 +659,7 @@ func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionar
 
 ## Called when a combat message is emitted (hazards, traps, etc.)
 func _on_combat_message(message: String, color: Color) -> void:
+	print("[DEBUG] _on_combat_message received: '%s'" % message)
 	_add_message(message, color)
 
 
@@ -1411,6 +1413,65 @@ func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
 	input_handler.ui_blocking_input = false
+
+## Called when time of day changes - handle shop door locking
+func _on_time_of_day_changed(new_time: String) -> void:
+	# Only handle shop door locking on overworld
+	if not MapManager.current_map or MapManager.current_map.map_id != "overworld":
+		return
+
+	var town_center = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
+	if town_center == Vector2i(-1, -1):
+		return
+
+	# Shop door position: shop is 5x5 centered on town_center, door at x=2, y=4 of shop
+	# shop_start = town_center - Vector2i(2, 2)
+	# door at shop_start + Vector2i(2, 4) = town_center + Vector2i(0, 2)
+	var shop_door_pos = town_center + Vector2i(0, 2)
+
+	if new_time == "night":
+		_lock_shop_door_if_player_outside(shop_door_pos, town_center)
+	elif new_time == "dawn":
+		_unlock_shop_door(shop_door_pos)
+
+## Lock shop door at night if player is outside
+func _lock_shop_door_if_player_outside(door_pos: Vector2i, town_center: Vector2i) -> void:
+	var tile = ChunkManager.get_tile(door_pos)
+	if not tile or tile.tile_type != "door":
+		return
+
+	# Check if player is inside the shop (5x5 area centered on town_center)
+	if player:
+		var shop_start = town_center - Vector2i(2, 2)
+		var shop_end = shop_start + Vector2i(4, 4)  # Inclusive bounds
+		var player_inside = (player.position.x >= shop_start.x and player.position.x <= shop_end.x and
+							 player.position.y >= shop_start.y and player.position.y <= shop_end.y)
+
+		if player_inside:
+			# Player is inside shop, don't lock them in
+			return
+
+	# Lock the door
+	if not tile.is_locked:
+		tile.is_locked = true
+		tile.lock_id = "shop_door"
+		tile.lock_level = 3  # Moderate difficulty
+		# Close the door if open
+		if tile.is_open:
+			tile.close_door()
+		EventBus.tile_changed.emit(door_pos)
+		_add_message("The shop door locks for the night.", Color.GRAY)
+
+## Unlock shop door at dawn
+func _unlock_shop_door(door_pos: Vector2i) -> void:
+	var tile = ChunkManager.get_tile(door_pos)
+	if not tile or tile.tile_type != "door":
+		return
+
+	if tile.is_locked and tile.lock_id == "shop_door":
+		tile.is_locked = false
+		EventBus.tile_changed.emit(door_pos)
+		_add_message("The shop door unlocks at dawn.", Color.GRAY)
 
 ## Called when pause menu is closed
 func _on_pause_menu_closed() -> void:

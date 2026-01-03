@@ -12,6 +12,7 @@ const _Inventory = preload("res://systems/inventory_system.gd")
 const _CraftingSystem = preload("res://systems/crafting_system.gd")
 const _HarvestSystem = preload("res://systems/harvest_system.gd")
 const _FOVSystem = preload("res://systems/fov_system.gd")
+const _LockSystem = preload("res://systems/lock_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -66,8 +67,8 @@ func move(direction: Vector2i) -> bool:
 	if tile and tile.tile_type == "door" and not tile.is_open:
 		# Check if auto-open doors is enabled
 		if GameManager.auto_open_doors:
-			_open_door(new_pos)
-			return true  # Action taken (opened door)
+			var opened = _open_door(new_pos)
+			return opened  # Only consume turn if door was actually opened
 		else:
 			return false  # Can't move through closed door when auto-open is off
 
@@ -494,18 +495,53 @@ func get_craftable_recipes() -> Array:
 	return result
 
 ## Open a door at the given position
-func _open_door(pos: Vector2i) -> void:
+## If locked, attempts to unlock with key first (auto-unlock feature)
+## Returns true if the door was opened, false if still locked or couldn't open
+func _open_door(pos: Vector2i) -> bool:
+	print("[DEBUG] _open_door called for pos: %v" % pos)
 	if not MapManager.current_map:
-		return
+		print("[DEBUG] _open_door: MapManager.current_map is null")
+		return false
 
 	var tile = MapManager.current_map.get_tile(pos)
-	if tile and tile.open_door():
+	print("[DEBUG] _open_door: tile = %s, tile_type = %s" % [tile, tile.tile_type if tile else "null"])
+	if not tile or tile.tile_type != "door":
+		print("[DEBUG] _open_door: Not a door tile")
+		return false
+
+	# Check if the door is locked
+	print("[DEBUG] _open_door: tile.is_locked = %s" % tile.is_locked)
+	if tile.is_locked:
+		# Try to unlock with a key (auto-unlock)
+		var key_result = _LockSystem.try_unlock_with_key(tile.lock_id, tile.lock_level, inventory)
+		if key_result.success:
+			tile.unlock()
+			EventBus.combat_message.emit(key_result.message, Color.GREEN)
+			EventBus.lock_opened.emit(pos, "key")
+			# Now open the door
+			if tile.open_door():
+				EventBus.combat_message.emit("You open the door.", Color.WHITE)
+				_FOVSystem.invalidate_cache()
+				EventBus.tile_changed.emit(pos)
+				return true
+		else:
+			print("[DEBUG] _open_door: Door is locked, emitting combat_message signal")
+			EventBus.combat_message.emit("The door is locked. Press Y to pick the lock.", Color.YELLOW)
+			print("[DEBUG] _open_door: combat_message signal emitted")
+		return false
+
+	# Door is not locked, just open it
+	if tile.open_door():
 		EventBus.combat_message.emit("You open the door.", Color.WHITE)
 		_FOVSystem.invalidate_cache()
-		EventBus.tile_changed.emit(pos)  # Trigger tile re-render
+		EventBus.tile_changed.emit(pos)
+		return true
+
+	return false
 
 ## Toggle a door in the given direction from player (open if closed, close if open)
 ## Returns true if door was toggled, false otherwise
+## Note: For locked doors, use try_pick_lock() instead
 func toggle_door(direction: Vector2i) -> bool:
 	if not MapManager.current_map:
 		return false
@@ -530,6 +566,24 @@ func toggle_door(direction: Vector2i) -> bool:
 			EventBus.tile_changed.emit(door_pos)
 			return true
 	else:
+		# Check if locked
+		if tile.is_locked:
+			# Try to unlock with key first (auto-unlock)
+			var key_result = _LockSystem.try_unlock_with_key(tile.lock_id, tile.lock_level, inventory)
+			if key_result.success:
+				tile.unlock()
+				EventBus.combat_message.emit(key_result.message, Color.GREEN)
+				EventBus.lock_opened.emit(door_pos, "key")
+				# Now open the door
+				if tile.open_door():
+					EventBus.combat_message.emit("You open the door.", Color.WHITE)
+					_FOVSystem.invalidate_cache()
+					EventBus.tile_changed.emit(door_pos)
+					return true
+			else:
+				EventBus.combat_message.emit("The door is locked. Press Y to pick the lock.", Color.YELLOW)
+				return false
+
 		# Open the door
 		if tile.open_door():
 			EventBus.combat_message.emit("You open the door.", Color.WHITE)

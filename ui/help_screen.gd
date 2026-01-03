@@ -41,8 +41,10 @@ func _build_help_content() -> void:
 	_add_keybind("< (Shift + ,)", "Ascend stairs")
 	_add_keybind(", (comma)", "Manually pick up item")
 	_add_keybind("X", "Open/close adjacent door")
+	_add_keybind("Y", "Pick lock / re-lock door or chest")
 	_add_keybind("O", "Toggle auto-open doors")
 	_add_help_text("Walk into closed doors to open them (if auto-open is ON)")
+	_add_help_text("Locked doors auto-try keys if you bump them")
 	_add_spacer()
 
 	# Inventory & Equipment

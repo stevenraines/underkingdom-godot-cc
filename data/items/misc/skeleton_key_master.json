@@ -1,0 +1,17 @@
+{
+	"id": "skeleton_key_master",
+	"name": "Master Skeleton Key",
+	"description": "An exquisite masterwork key that can open most locks (level 5 or lower).",
+	"category": "misc",
+	"subtype": "skeleton_key",
+	"flags": {
+		"key": true,
+		"skeleton_key": true
+	},
+	"weight": 0.1,
+	"value": 500,
+	"max_stack": 1,
+	"ascii_char": "K",
+	"ascii_color": "#FFD700",
+	"skeleton_key_level": 5
+}

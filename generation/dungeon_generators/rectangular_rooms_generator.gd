@@ -247,8 +247,16 @@ func _try_place_door_at(map: GameMap, pos: Vector2i, _room: Room, rng: SeededRan
 	if rng.randf() > door_chance:
 		return
 
-	# Place a closed door
-	map.tiles[pos] = GameTile.create("door_closed")
+	# Place a closed door (some are locked)
+	var door_tile = GameTile.create("door_closed")
+
+	# 25% chance for the door to be locked
+	if rng.randf() < 0.25:
+		door_tile.is_locked = true
+		door_tile.lock_id = "dungeon_door_%d_%d" % [pos.x, pos.y]  # Unique lock ID
+		door_tile.lock_level = rng.randi_range(1, 4)  # Lock level 1-4
+
+	map.tiles[pos] = door_tile
 
 
 ## Check if there's a wall at a position

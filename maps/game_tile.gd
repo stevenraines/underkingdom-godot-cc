@@ -14,6 +14,11 @@ var harvestable_resource_id: String = ""  # ID of harvestable resource (if any)
 var color: Color = Color.WHITE  # Tile color (set by biome for floor/grass tiles)
 var is_open: bool = false  # For doors: true = open (walkable/transparent), false = closed
 
+# Lock properties (for doors)
+var is_locked: bool = false      # Whether the door is locked
+var lock_id: String = ""         # Unique ID matching a specific key
+var lock_level: int = 1          # Lock difficulty (1-10, higher = harder)
+
 func _init(type: String = "floor", is_walkable: bool = true, is_transparent: bool = true, character: String = ".", fire: bool = false) -> void:
 	tile_type = type
 	walkable = is_walkable
@@ -77,6 +82,14 @@ static func create(type: String) -> GameTile:
 			tile.walkable = false
 			tile.transparent = false
 			tile.ascii_char = "+"
+		"door_locked":
+			# Locked closed door: blocks movement and vision, requires key/lockpick
+			tile.tile_type = "door"
+			tile.is_open = false
+			tile.is_locked = true
+			tile.walkable = false
+			tile.transparent = false
+			tile.ascii_char = "+"
 		"rock":
 			tile.tile_type = "rock"
 			tile.walkable = false
@@ -136,3 +149,25 @@ func close_door() -> bool:
 	transparent = false
 	ascii_char = "+"
 	return true
+
+## Unlock a locked door
+## Returns true if door was unlocked, false if not locked or not a door
+func unlock() -> bool:
+	if tile_type != "door" or not is_locked:
+		return false
+	is_locked = false
+	return true
+
+## Lock an unlocked closed door
+## Returns true if door was locked, false if open, already locked, or not a door
+func lock() -> bool:
+	if tile_type != "door" or is_open or is_locked:
+		return false
+	is_locked = true
+	return true
+
+## Set lock properties for this door
+func set_lock(new_lock_id: String, new_lock_level: int) -> void:
+	lock_id = new_lock_id
+	lock_level = new_lock_level
+	is_locked = true

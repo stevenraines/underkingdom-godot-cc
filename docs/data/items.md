@@ -58,6 +58,8 @@ The `flags` object contains boolean properties:
 | `tool` | bool | false | Used for harvesting/crafting |
 | `two_handed` | bool | false | Requires both hands (blocks off_hand) |
 | `ammunition` | bool | false | Is ammunition for ranged weapons |
+| `key` | bool | false | Is a key (specific or skeleton) |
+| `skeleton_key` | bool | false | Is a skeleton key (works on multiple locks) |
 
 ## Category-Specific Properties
 
@@ -120,6 +122,19 @@ The `flags` object contains boolean properties:
 |----------|------|---------|-------------|
 | `tool_types` | array | [] | Tool categories (axe, pickaxe, knife) |
 | `equip_slots` | array | [] | Usually ["main_hand"] |
+
+### Keys & Lockpicks
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `key_id` | string | "" | Lock ID this key opens (specific keys) |
+| `skeleton_key_level` | int | 0 | Max lock level this key can open (skeleton keys) |
+| `tool_type` | string | "" | Set to "lockpick" for lockpicks |
+
+**Key Types**:
+- **Specific Key**: Has `key_id` matching a lock's `lock_id`, always opens that lock
+- **Skeleton Key**: Has `skeleton_key_level`, opens any lock with `lock_level <= skeleton_key_level`
+- **Lockpick**: Has `tool_type: "lockpick"`, uses DEX skill check to open locks
 
 ## Property Details
 
@@ -376,6 +391,46 @@ Item ID to create when this item is consumed. Used for reusable containers.
   "durability": 80,
   "equip_slots": ["main_hand"],
   "damage_bonus": 3
+}
+```
+
+### Lockpick
+```json
+{
+  "id": "lockpick",
+  "name": "Lockpick",
+  "description": "A set of metal picks for opening locks.",
+  "category": "tool",
+  "tool_type": "lockpick",
+  "flags": {
+    "tool": true
+  },
+  "weight": 0.1,
+  "value": 15,
+  "max_stack": 10,
+  "ascii_char": "-",
+  "ascii_color": "#AAAAAA"
+}
+```
+
+### Skeleton Key
+```json
+{
+  "id": "skeleton_key_basic",
+  "name": "Basic Skeleton Key",
+  "description": "A crude skeleton key that can open simple locks.",
+  "category": "misc",
+  "subtype": "skeleton_key",
+  "flags": {
+    "key": true,
+    "skeleton_key": true
+  },
+  "weight": 0.1,
+  "value": 75,
+  "max_stack": 1,
+  "ascii_char": "k",
+  "ascii_color": "#AAAAAA",
+  "skeleton_key_level": 2
 }
 ```
 

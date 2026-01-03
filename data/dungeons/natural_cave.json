@@ -6,7 +6,7 @@
   "entrance_color": "#886644",
   "biome_preferences": ["mountains", "rocky_hills", "barren_rock"],
   "placement": "wilderness",
-
+  "known_at_start": true,
   "map_size": {
     "width": 50,
     "height": 50

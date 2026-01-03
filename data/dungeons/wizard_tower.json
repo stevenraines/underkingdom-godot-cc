@@ -6,7 +6,7 @@
   "entrance_color": "#9966FF",
   "biome_preferences": ["any"],
   "placement": "wilderness",
-
+  "known_at_start": true,
   "map_size": {
     "width": 50,
     "height": 50

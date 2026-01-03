@@ -6,7 +6,7 @@
   "entrance_color": "#777777",
   "biome_preferences": ["grassland", "rocky_hills", "woodland"],
   "placement": "wilderness",
-
+  "known_at_start": true,
   "map_size": {
     "width": 50,
     "height": 50

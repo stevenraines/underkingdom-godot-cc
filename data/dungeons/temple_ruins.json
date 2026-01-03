@@ -6,7 +6,7 @@
   "entrance_color": "#FFD700",
   "biome_preferences": ["forest", "rainforest", "swamp"],
   "placement": "wilderness",
-
+  "known_at_start": true,
   "map_size": {
     "width": 50,
     "height": 50

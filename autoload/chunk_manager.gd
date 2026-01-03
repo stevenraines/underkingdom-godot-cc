@@ -89,6 +89,9 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	# Evict old chunks if cache is full (LRU policy)
 	_evict_old_chunks_if_needed()
 
+	# Check for dungeon entrance discoveries in this chunk
+	_check_for_dungeon_discoveries(chunk_coords)
+
 	# Emit chunk loaded event
 	EventBus.chunk_loaded.emit(chunk_coords)
 
@@ -221,6 +224,40 @@ func _on_map_changed(map_id: String) -> void:
 		# Disable chunk mode for dungeons
 		is_chunk_mode = false
 		clear_chunks()
+
+## Check if any dungeon entrances are in this chunk and mark them as discovered
+func _check_for_dungeon_discoveries(chunk_coords: Vector2i) -> void:
+	if not MapManager.current_map:
+		return
+
+	var entrances = MapManager.current_map.get_meta("dungeon_entrances", [])
+	for entrance in entrances:
+		# Handle position that might be Vector2i, Dictionary, or Array
+		var entrance_pos: Vector2i
+		var pos_data = entrance.get("position", Vector2i.ZERO)
+		if pos_data is Vector2i:
+			entrance_pos = pos_data
+		elif pos_data is Dictionary:
+			entrance_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
+		elif pos_data is Array and pos_data.size() >= 2:
+			entrance_pos = Vector2i(int(pos_data[0]), int(pos_data[1]))
+		else:
+			entrance_pos = Vector2i.ZERO
+
+		var entrance_chunk = world_to_chunk(entrance_pos)
+
+		if entrance_chunk == chunk_coords:
+			var dungeon_type = entrance.get("dungeon_type", "")
+			var dungeon_name = entrance.get("name", dungeon_type.capitalize())
+
+			if not GameManager.is_location_visited(dungeon_type):
+				GameManager.mark_location_visited(
+					dungeon_type,
+					"dungeon",
+					dungeon_name,
+					entrance_pos
+				)
+				EventBus.message_logged.emit("Discovered: %s" % dungeon_name)
 
 ## Get all visited chunk coordinates (for minimap)
 func get_visited_chunks() -> Array[Vector2i]:

@@ -188,7 +188,8 @@ func _serialize_world() -> Dictionary:
 		"current_turn": TurnManager.current_turn,
 		"time_of_day": TurnManager.get_time_of_day(),
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
-		"current_dungeon_floor": MapManager.current_dungeon_floor
+		"current_dungeon_floor": MapManager.current_dungeon_floor,
+		"visited_locations": GameManager.visited_locations.duplicate(true)
 	}
 
 ## Serialize player state
@@ -415,6 +416,12 @@ func _deserialize_world(world_data: Dictionary):
 	GameManager.world_seed = world_data.seed
 	GameManager.world_name = world_data.get("world_name", "Unknown World")
 	TurnManager.current_turn = world_data.current_turn
+
+	# Restore visited locations for fast travel
+	if world_data.has("visited_locations"):
+		GameManager.visited_locations = world_data.visited_locations.duplicate(true)
+	else:
+		GameManager.visited_locations.clear()
 
 ## Deserialize player state
 func _deserialize_player(player_data: Dictionary):

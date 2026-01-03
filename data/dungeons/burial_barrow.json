@@ -6,7 +6,7 @@
   "entrance_color": "#AA88FF",
   "biome_preferences": ["grassland", "woodland", "forest"],
   "placement": "near_town",
-
+  "known_at_start": true,
   "map_size": {
     "width": 50,
     "height": 50

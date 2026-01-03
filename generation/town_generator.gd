@@ -128,6 +128,12 @@ static func _place_feature(tiles_dict: Dictionary, building_def: Dictionary, pos
 	if building_def.has("ascii_color"):
 		tile.color = Color.html(building_def.get("ascii_color"))
 
+	# Apply walkable/transparent properties if specified (e.g., shrine is blocking)
+	if building_def.has("walkable"):
+		tile.walkable = building_def.get("walkable")
+	if building_def.has("transparent"):
+		tile.transparent = building_def.get("transparent")
+
 	tiles_dict[pos] = tile
 	return Vector2i(-1, -1)  # Features don't have NPC positions
 

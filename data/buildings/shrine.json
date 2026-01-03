@@ -7,5 +7,7 @@
   "tile_type": "floor",
   "ascii_char": "☥",
   "ascii_color": "#AAAAAA",
+  "walkable": false,
+  "transparent": true,
   "layout": null
 }

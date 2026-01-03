@@ -532,12 +532,21 @@ static func place_dungeon_entrance(world_seed: int, town_pos: Vector2i) -> Vecto
 
 
 ## Place player spawn just outside primary town, opposite side from first dungeon
-static func place_player_spawn(town_pos: Vector2i, entrance_pos: Vector2i, world_seed: int) -> Vector2i:
+## town_size is optional - if not provided, uses default of 20x20
+static func place_player_spawn(town_pos: Vector2i, entrance_pos: Vector2i, world_seed: int, town_size: Vector2i = Vector2i(20, 20)) -> Vector2i:
 	var excluded_biomes = ["ocean", "deep_ocean", "water"]
-	var spawn_distance = 10
+
+	# Spawn distance should be OUTSIDE the town boundary
+	# Town is centered on town_pos, so half-size + buffer puts us outside
+	var half_town_size = max(town_size.x, town_size.y) / 2
+	var spawn_distance = half_town_size + 3  # 3 tiles outside town edge
 
 	# Calculate direction from town to dungeon
 	var to_dungeon = Vector2(entrance_pos - town_pos).normalized()
+
+	# Handle case where dungeon is at same position as town
+	if to_dungeon.length() < 0.1:
+		to_dungeon = Vector2(1, 0)  # Default to east
 
 	# Place spawn opposite direction from dungeon
 	var spawn_offset = -to_dungeon * spawn_distance
@@ -558,8 +567,32 @@ static func place_player_spawn(town_pos: Vector2i, entrance_pos: Vector2i, world
 				break
 
 	var actual_dist = (spawn_pos - town_pos).length()
-	print("[SpecialFeaturePlacer] Player spawn at %v (%.1f tiles from town %v, opposite dungeon %v)" % [spawn_pos, actual_dist, town_pos, entrance_pos])
+	print("[SpecialFeaturePlacer] Player spawn at %v (%.1f tiles from town %v, outside %dx%d town)" % [spawn_pos, actual_dist, town_pos, town_size.x, town_size.y])
 	return spawn_pos
+
+
+## Get a valid spawn position outside a town (for fast travel)
+## Returns a position just outside the town boundary on walkable ground
+static func get_town_spawn_position(town_pos: Vector2i, town_size: Vector2i, world_seed: int) -> Vector2i:
+	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var half_size = max(town_size.x, town_size.y) / 2
+	var spawn_distance = half_size + 3  # 3 tiles outside town edge
+
+	# Try 8 directions around the town
+	for angle in range(0, 8):
+		var rad = angle * PI / 4.0
+		var offset = Vector2(cos(rad), sin(rad)) * spawn_distance
+		var test_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+
+		var biome = BiomeGenerator.get_biome_at(test_pos.x, test_pos.y, world_seed)
+		if not biome.biome_name in excluded_biomes:
+			print("[SpecialFeaturePlacer] Town spawn position: %v (outside %s)" % [test_pos, town_pos])
+			return test_pos
+
+	# Fallback: return position south of town
+	var fallback = town_pos + Vector2i(0, int(spawn_distance))
+	print("[SpecialFeaturePlacer] Town spawn fallback: %v" % fallback)
+	return fallback
 
 
 ## Get positions in a spiral pattern at given radius from center

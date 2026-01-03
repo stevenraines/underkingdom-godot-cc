@@ -221,12 +221,40 @@ func _execute_fast_travel(target_pos: Vector2i, location_name: String) -> void:
 	EventBus.message_logged.emit("You fast travel to %s." % location_name)
 
 ## Find a walkable tile near the target position
-## Finds an outdoor, unoccupied, walkable tile
+## For towns, spawns OUTSIDE the town boundary to avoid buildings
 func _find_walkable_near(target_pos: Vector2i) -> Vector2i:
 	# First ensure the chunk is loaded
 	if MapManager.current_map and MapManager.current_map.chunk_based:
 		ChunkManager.update_active_chunks(target_pos)
 
+	# Check if this is a town location - if so, spawn outside the town
+	var location = locations[selected_index] if selected_index >= 0 and selected_index < locations.size() else null
+	if location and location.data.type == "town":
+		# Get town size from TownManager
+		var town_def = TownManager.get_town(location.id)
+		var town_size = Vector2i(20, 20)  # Default
+		if town_def and town_def.has("size"):
+			var size_arr = town_def.get("size")
+			town_size = Vector2i(size_arr[0], size_arr[1])
+
+		# Use the feature placer to get a spawn position outside the town
+		var spawn_pos = SpecialFeaturePlacer.get_town_spawn_position(target_pos, town_size, GameManager.world_seed)
+
+		# Load chunk at spawn position and verify it's valid
+		ChunkManager.update_active_chunks(spawn_pos)
+		if _is_valid_spawn_position(spawn_pos):
+			return spawn_pos
+
+		# If the calculated position isn't valid, search nearby
+		for radius in range(1, 10):
+			for angle in range(0, 8):
+				var rad = angle * PI / 4.0
+				var offset = Vector2i(int(cos(rad) * radius), int(sin(rad) * radius))
+				var check_pos = spawn_pos + offset
+				if _is_valid_spawn_position(check_pos):
+					return check_pos
+
+	# For dungeons or fallback: search in expanding rings from target
 	# Check the target position first
 	if _is_valid_spawn_position(target_pos):
 		return target_pos

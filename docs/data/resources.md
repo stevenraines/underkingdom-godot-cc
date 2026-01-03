@@ -25,10 +25,12 @@ Resources define harvestable objects in the world like trees, rocks, and water s
 |----------|------|---------|-------------|---------|
 | `required_tools` | array | [] | Tool IDs that can harvest | HarvestSystem |
 | `tool_must_be_equipped` | bool | true | Tool must be in hand slot | HarvestSystem |
-| `stamina_cost` | int | 10 | Stamina consumed | HarvestSystem |
+| `stamina_cost` | int | 10 | Stamina consumed per action | HarvestSystem |
+| `harvest_actions` | int | 1 | Number of harvest actions required | HarvestSystem |
 | `respawn_turns` | int | 0 | Turns until respawn (renewable only) | HarvestSystem |
 | `replacement_tile` | string | "" | Tile type to place after harvest | HarvestSystem |
-| `harvest_message` | string | "Harvested %resource%" | Message shown on harvest | HarvestSystem |
+| `harvest_message` | string | "Harvested %resource%" | Message shown on completion | HarvestSystem |
+| `progress_message` | string | "Harvesting..." | Message shown during multi-turn | HarvestSystem |
 
 ## Property Details
 
@@ -87,12 +89,49 @@ If false, tool can be anywhere in inventory.
 **Required**: No
 **Default**: 10
 
-Stamina consumed when harvesting. Harvest fails if player doesn't have enough stamina.
+Stamina consumed per harvest action. Harvest fails if player doesn't have enough stamina.
 
 **Typical Values**:
 - Light work (water): 5
 - Medium work (wheat): 5-10
-- Heavy work (trees, rocks): 15-20
+- Heavy work (trees, rocks): 15-25
+
+**Note**: For multi-turn harvesting, stamina is consumed on each action.
+
+### `harvest_actions`
+**Type**: int
+**Required**: No
+**Default**: 1
+
+Number of harvest actions required to complete the harvest. Each action consumes stamina and advances one turn. Resources with `harvest_actions > 1` require the player to repeatedly perform the harvest action before yields are produced.
+
+**Use cases**:
+- `1`: Instant harvest (picking wheat, filling waterskin)
+- `3`: Medium effort (chopping a tree)
+- `5+`: Extended effort (mining large ore deposits)
+
+**Behavior**:
+- Progress is tracked per map position
+- Progress persists across save/load
+- Switching to a different resource resets progress
+
+### `progress_message`
+**Type**: string
+**Required**: No
+**Default**: "Harvesting %resource%... (%current%/%total%)"
+
+Message template shown during multi-turn harvesting (when progress is made but harvest is not yet complete).
+
+**Placeholders**:
+| Placeholder | Replaced With |
+|-------------|---------------|
+| `%tool%` | Name of tool used |
+| `%resource%` | Resource name |
+| `%current%` | Current action count |
+| `%total%` | Total actions required |
+
+**Example**: "Chopping tree... (%current%/%total%)"
+→ "Chopping tree... (2/3)"
 
 ### `respawn_turns`
 **Type**: int
@@ -160,7 +199,7 @@ This produces:
 
 ## Complete Examples
 
-### Permanent Destruction
+### Permanent Destruction (Multi-Turn)
 ```json
 {
   "id": "tree",
@@ -169,13 +208,16 @@ This produces:
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
   "stamina_cost": 20,
+  "harvest_actions": 3,
   "yields": [
     {"item_id": "wood", "min_count": 2, "max_count": 4}
   ],
   "replacement_tile": "floor",
-  "harvest_message": "Harvested tree with %tool%, got %yield%"
+  "harvest_message": "Felled tree with %tool%, got %yield%",
+  "progress_message": "Chopping tree... (%current%/%total%)"
 }
 ```
+This tree requires 3 harvest actions to fell, consuming 20 stamina each time (60 total).
 
 ### Renewable Resource
 ```json
@@ -231,13 +273,13 @@ This produces:
 
 ## Current Resources
 
-| ID | Tools | Behavior | Stamina | Yields | Respawn |
-|----|-------|----------|---------|--------|---------|
-| tree | axe, knives | Permanent | 20 | Wood ×2-4 | Never |
-| rock | pickaxe | Permanent | 15 | Stone ×3-6, Flint ×1-2 (30%) | Never |
-| iron_ore | pickaxe | Permanent | 15 | Iron Ore ×2-5 | Never |
-| wheat | knives, sickle | Renewable | 5 | Wheat ×1-3 | 5000 turns |
-| water | waterskin, bottle | Non-consumable | 5 | Waterskin Full ×1 | N/A |
+| ID | Tools | Behavior | Stamina | Actions | Yields | Respawn |
+|----|-------|----------|---------|---------|--------|---------|
+| tree | axe, knives | Permanent | 20 | 3 | Wood ×2-4 | Never |
+| rock | pickaxe | Permanent | 25 | 1 | Stone ×3-6, Flint ×0-2 (30%) | Never |
+| iron_ore | pickaxe | Permanent | 30 | 1 | Iron Ore ×2-5 | Never |
+| wheat | knives, sickle | Renewable | 5 | 1 | Wheat ×1-3 | 5000 turns |
+| water | waterskin, bottle | Non-consumable | 5 | 1 | Waterskin Full ×1 | N/A |
 
 ## Validation Rules
 

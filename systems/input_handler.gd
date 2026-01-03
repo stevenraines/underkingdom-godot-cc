@@ -406,6 +406,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_L:  # L key - enter look mode
 			_start_look_mode()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_Z:  # Z key - fast travel
+			_toggle_fast_travel()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_U:  # U key - clear/untarget current target
 			_untarget()
 			get_viewport().set_input_as_handled()
@@ -640,6 +643,12 @@ func _open_help_screen() -> void:
 		game.open_help_screen()
 	else:
 		print("[InputHandler] ERROR: game or open_help_screen method not found")
+
+## Toggle fast travel screen
+func _toggle_fast_travel() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_fast_travel"):
+		game.toggle_fast_travel()
 
 ## Try to interact with a dungeon feature at player position
 func _try_interact_feature() -> bool:

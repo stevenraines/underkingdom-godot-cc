@@ -25,6 +25,7 @@ var death_screen: Control = null
 var character_sheet: Control = null
 var help_screen: Control = null
 var world_map_screen: Control = null
+var fast_travel_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
@@ -88,6 +89,9 @@ func _ready() -> void:
 	# Create world map screen
 	_setup_world_map_screen()
 
+	# Create fast travel screen
+	_setup_fast_travel_screen()
+
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
 		print("[Game] New game initialization - world_seed: %d, world_name: '%s'" % [GameManager.world_seed, GameManager.world_name])
@@ -102,6 +106,9 @@ func _ready() -> void:
 		# Generate overworld
 		print("[Game] Calling transition_to_map with seed: %d" % GameManager.world_seed)
 		MapManager.transition_to_map("overworld")
+
+		# Mark all towns as visited (available for fast travel from game start)
+		GameManager.mark_all_towns_visited()
 
 		# Create player
 		player = Player.new()
@@ -271,6 +278,20 @@ func _setup_world_map_screen() -> void:
 		print("[Game] World map screen scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load world_map_screen.tscn scene")
+
+## Setup fast travel screen
+func _setup_fast_travel_screen() -> void:
+	print("[Game] Setting up fast travel screen from scene...")
+	var FastTravelScreenScene = load("res://ui/fast_travel_screen.tscn")
+	if FastTravelScreenScene:
+		fast_travel_screen = FastTravelScreenScene.instantiate()
+		fast_travel_screen.name = "FastTravelScreen"
+		hud.add_child(fast_travel_screen)
+		if fast_travel_screen.has_signal("closed"):
+			fast_travel_screen.closed.connect(_on_fast_travel_closed)
+		print("[Game] Fast travel screen scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load fast_travel_screen.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -1521,6 +1542,20 @@ func _on_help_screen_closed() -> void:
 
 ## Called when world map is closed
 func _on_world_map_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Toggle fast travel screen (called from input handler)
+func toggle_fast_travel() -> void:
+	if fast_travel_screen:
+		if fast_travel_screen.visible:
+			fast_travel_screen.close()
+			input_handler.ui_blocking_input = false
+		else:
+			fast_travel_screen.open()
+			input_handler.ui_blocking_input = true
+
+## Called when fast travel screen is closed
+func _on_fast_travel_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when an item is picked up

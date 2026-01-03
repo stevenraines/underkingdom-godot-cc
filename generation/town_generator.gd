@@ -35,10 +35,11 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		var offset_array = building_entry.get("position_offset", [0, 0])
 		var offset = Vector2i(offset_array[0], offset_array[1])
 		var npc_id = building_entry.get("npc_id", "")
+		var door_facing = building_entry.get("door_facing", "south")
 
 		var building_pos = center_pos + offset
 		var building_def = building_defs.get(building_id, {})
-		var npc_pos = _place_building(tiles_dict, building_def, building_pos, rng)
+		var npc_pos = _place_building(tiles_dict, building_def, building_pos, rng, door_facing)
 
 		# If building has an NPC, record spawn position
 		if not npc_id.is_empty() and npc_pos != Vector2i(-1, -1):
@@ -96,7 +97,7 @@ static func _clear_town_area(tiles_dict: Dictionary, center: Vector2i, size: Vec
 			tiles_dict[world_pos] = tile
 
 ## Place a building and return the NPC spawn position (or -1,-1 if no NPC position)
-static func _place_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, rng: SeededRandom) -> Vector2i:
+static func _place_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, rng: SeededRandom, door_facing: String = "south") -> Vector2i:
 	if building_def.is_empty():
 		push_warning("[TownGenerator] Empty building definition")
 		return Vector2i(-1, -1)
@@ -108,10 +109,10 @@ static func _place_building(tiles_dict: Dictionary, building_def: Dictionary, po
 		return _place_feature(tiles_dict, building_def, pos)
 	elif template_type == "building":
 		# Standard building with walls, floor, door
-		return _place_standard_building(tiles_dict, building_def, pos, rng)
+		return _place_standard_building(tiles_dict, building_def, pos, rng, door_facing)
 	elif template_type == "custom":
-		# Custom tile-by-tile layout
-		return _place_custom_building(tiles_dict, building_def, pos)
+		# Custom tile-by-tile layout with rotation support
+		return _place_custom_building(tiles_dict, building_def, pos, door_facing)
 
 	return Vector2i(-1, -1)
 
@@ -119,18 +120,27 @@ static func _place_building(tiles_dict: Dictionary, building_def: Dictionary, po
 static func _place_feature(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i) -> Vector2i:
 	var tile_type = building_def.get("tile_type", "floor")
 	var tile = GameTile.create(tile_type)
+
+	# Apply custom ascii_char and color if specified
+	if building_def.has("ascii_char"):
+		tile.ascii_char = building_def.get("ascii_char")
+		print("[TownGenerator] Feature '%s' placed at %v with char '%s' (U+%04X)" % [building_def.get("id", "unknown"), pos, tile.ascii_char, tile.ascii_char.unicode_at(0)])
+	if building_def.has("ascii_color"):
+		tile.color = Color.html(building_def.get("ascii_color"))
+
 	tiles_dict[pos] = tile
 	return Vector2i(-1, -1)  # Features don't have NPC positions
 
 ## Place a standard building with walls and door
 ## Preserves dungeon entrance tiles
-static func _place_standard_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, _rng: SeededRandom) -> Vector2i:
+static func _place_standard_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, _rng: SeededRandom, door_facing: String = "south") -> Vector2i:
 	var size_array = building_def.get("size", [5, 5])
 	var size = Vector2i(size_array[0], size_array[1])
 	var half_size = size / 2
 	var start = pos - half_size
 
-	var door_position = building_def.get("door_position", "south")
+	# Use door_facing from town definition, fall back to building's door_position
+	var door_position = door_facing if door_facing != "" else building_def.get("door_position", "south")
 	var npc_offset_array = building_def.get("npc_offset", [size.x / 2, size.y / 2])
 	var npc_offset = Vector2i(npc_offset_array[0], npc_offset_array[1])
 
@@ -173,7 +183,8 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 	return start + npc_offset
 
 ## Place a custom building with tile-by-tile layout
-static func _place_custom_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i) -> Vector2i:
+## Supports rotation via door_facing parameter (south=0, west=90, north=180, east=270)
+static func _place_custom_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, door_facing: String = "south") -> Vector2i:
 	var layout = building_def.get("layout", null)
 	if layout == null:
 		push_warning("[TownGenerator] Custom building missing layout")
@@ -181,16 +192,23 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 
 	var size_array = building_def.get("size", [5, 5])
 	var size = Vector2i(size_array[0], size_array[1])
-	var half_size = size / 2
+
+	# Rotate layout if needed (layouts are defined with door facing south)
+	var rotated_layout = _rotate_layout(layout, door_facing)
+	var rotated_size = size if door_facing in ["south", "north"] else Vector2i(size.y, size.x)
+
+	var half_size = rotated_size / 2
 	var start = pos - half_size
 
 	var npc_pos = Vector2i(-1, -1)
 
 	# Layout is expected to be an array of strings, each representing a row
-	for y in range(min(layout.size(), size.y)):
-		var row = layout[y]
-		for x in range(min(row.length(), size.x)):
+	for y in range(min(rotated_layout.size(), rotated_size.y)):
+		var row = rotated_layout[y]
+		for x in range(min(row.length(), rotated_size.x)):
 			var tile_char = row[x]
+			if tile_char == " ":
+				continue  # Skip empty spaces
 			var world_pos = start + Vector2i(x, y)
 			var tile = _char_to_tile(tile_char)
 			tiles_dict[world_pos] = tile
@@ -200,6 +218,48 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 				npc_pos = world_pos
 
 	return npc_pos
+
+## Rotate a layout array based on door facing direction
+## Layouts are defined with door facing south (bottom)
+static func _rotate_layout(layout: Array, door_facing: String) -> Array:
+	if door_facing == "south":
+		return layout  # No rotation needed
+
+	var height = layout.size()
+	var width = 0
+	for row in layout:
+		width = max(width, row.length())
+
+	# Pad rows to equal width
+	var padded: Array = []
+	for row in layout:
+		padded.append(row + " ".repeat(width - row.length()))
+
+	var rotated: Array = []
+
+	if door_facing == "north":
+		# 180 degree rotation
+		for y in range(height - 1, -1, -1):
+			var new_row = ""
+			for x in range(width - 1, -1, -1):
+				new_row += padded[y][x]
+			rotated.append(new_row)
+	elif door_facing == "west":
+		# 90 degree clockwise rotation
+		for x in range(width):
+			var new_row = ""
+			for y in range(height - 1, -1, -1):
+				new_row += padded[y][x]
+			rotated.append(new_row)
+	elif door_facing == "east":
+		# 90 degree counter-clockwise rotation
+		for x in range(width - 1, -1, -1):
+			var new_row = ""
+			for y in range(height):
+				new_row += padded[y][x]
+			rotated.append(new_row)
+
+	return rotated
 
 ## Convert layout character to tile
 static func _char_to_tile(tile_char: String) -> GameTile:

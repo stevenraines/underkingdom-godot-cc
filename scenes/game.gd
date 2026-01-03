@@ -1243,10 +1243,33 @@ func _find_valid_spawn_position() -> Vector2i:
 		# For chunk-based maps, use player_spawn metadata if available
 		if MapManager.current_map.has_meta("player_spawn"):
 			var spawn_pos = MapManager.current_map.get_meta("player_spawn")
-			print("[Game] Using player_spawn metadata: %v" % spawn_pos)
-			return spawn_pos
-		# Fallback: start in chunk 5,5 (center area near town)
-		center = Vector2i(5 * 32 + 10, 5 * 32 + 10)
+			print("[Game] Player spawn metadata: %v" % spawn_pos)
+
+			# IMPORTANT: Load the chunk first so town structures are generated
+			ChunkManager.update_active_chunks(spawn_pos)
+
+			# Verify the spawn position is walkable after town generation
+			# If not, search for a nearby valid position
+			if _is_valid_spawn_position(spawn_pos):
+				print("[Game] Spawn position valid: %v" % spawn_pos)
+				return spawn_pos
+			else:
+				print("[Game] Spawn position invalid (blocked), searching nearby...")
+				# Search in expanding rings around the intended spawn
+				for radius in range(1, 20):
+					for angle in range(0, 360, 30):
+						var rad = deg_to_rad(angle)
+						var offset = Vector2i(int(cos(rad) * radius), int(sin(rad) * radius))
+						var test_pos = spawn_pos + offset
+						if _is_open_spawn_position(test_pos):
+							print("[Game] Found valid spawn at: %v (offset %v from intended)" % [test_pos, offset])
+							return test_pos
+				# If still no valid position, continue to normal search below
+				print("[Game] No valid position near spawn metadata, using fallback search")
+				center = spawn_pos
+		else:
+			# Fallback: start in chunk 5,5 (center area near town)
+			center = Vector2i(5 * 32 + 10, 5 * 32 + 10)
 	else:
 		center = Vector2i(MapManager.current_map.width / 2, MapManager.current_map.height / 2)
 

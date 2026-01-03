@@ -144,18 +144,19 @@ static func _place_primary_town(world_seed: int, biome_prefs: Array, placement: 
 
 ## Place an additional town with spacing from existing towns
 static func _place_additional_town(world_seed: int, existing_positions: Array, biome_prefs: Array, placement: String, rng: SeededRandom) -> Vector2i:
-	# For coastal towns, we want to be ON land biomes but NEAR water
-	# Split biome prefs: coastal biomes (beach, marsh) indicate "near water" requirement
-	# Land biomes (grassland, woodland) are where we actually place the town
-	var coastal_indicator_biomes = ["beach", "marsh"]
-	var land_biomes: Array = []
+	# Use all biome preferences as valid placement biomes
+	# If placement is "coastal", we also require being near water
 	var wants_coastal = placement == "coastal"
 
+	# All biome preferences are valid for placement
+	var land_biomes: Array = biome_prefs.duplicate()
+
+	# If biome_prefs includes beach/marsh, that also implies wanting coastal
+	var coastal_indicator_biomes = ["beach", "marsh"]
 	for biome in biome_prefs:
 		if biome in coastal_indicator_biomes:
-			wants_coastal = true  # Having beach/marsh in prefs implies coastal
-		else:
-			land_biomes.append(biome)
+			wants_coastal = true
+			break
 
 	# If no land biomes specified, default to common ones
 	if land_biomes.is_empty():
@@ -208,6 +209,17 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 		if too_close:
 			continue
 
+		# Check coastal requirement - for coastal towns, this is REQUIRED not optional
+		var is_coastal = false
+		if wants_coastal:
+			is_coastal = _is_near_coast(candidate_pos, world_seed)
+			# If town wants coastal placement, SKIP non-coastal positions entirely
+			if not is_coastal:
+				# Log every 50th rejection to avoid spam
+				if _attempt % 50 == 0:
+					print("[SpecialFeaturePlacer] Rejected %v (biome=%s) - not near ocean coast" % [candidate_pos, biome.biome_name])
+				continue
+
 		# Score this candidate
 		var score = 0
 
@@ -215,12 +227,9 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 		if on_suitable_land:
 			score += 100
 
-		# Check coastal requirement
-		var is_coastal = false
-		if wants_coastal:
-			is_coastal = _is_near_coast(candidate_pos, world_seed)
-			if is_coastal:
-				score += 50
+		# Coastal bonus (already verified above if wants_coastal)
+		if is_coastal:
+			score += 50
 
 		# Prefer reasonable distance from other towns
 		if min_dist_to_town >= min_distance_from_towns and min_dist_to_town <= max_distance_from_towns:
@@ -245,18 +254,38 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 	return best_candidate
 
 
-## Check if a position is near coastal biomes (beach, marsh, or ocean)
+## Check if a position is near the ocean coastline
+## "Near coast" means within ~30 tiles of actual ocean (not just marsh/swamp)
+## AND there should be beach tiles between land and ocean
 static func _is_near_coast(pos: Vector2i, world_seed: int) -> bool:
-	var coastal_biomes = ["beach", "marsh", "ocean", "deep_ocean"]
-	for dx in range(-2, 3):
-		for dy in range(-2, 3):
-			if dx == 0 and dy == 0:
-				continue
-			var neighbor_pos = pos + Vector2i(dx * 32, dy * 32)
+	# We specifically want to find ocean biomes - the actual sea
+	var ocean_biomes = ["ocean", "deep_ocean"]
+	var beach_biome = "beach"
+
+	var found_ocean = false
+	var found_beach = false
+
+	# Check in 16 directions at multiple distances for more thorough coverage
+	for dist in [5, 10, 15, 20, 25, 30]:
+		for angle in range(0, 16):
+			var rad = angle * PI / 8.0  # 16 directions
+			var dx = int(cos(rad) * dist)
+			var dy = int(sin(rad) * dist)
+			var neighbor_pos = pos + Vector2i(dx, dy)
 			var biome = BiomeGenerator.get_biome_at(neighbor_pos.x, neighbor_pos.y, world_seed)
-			if biome.biome_name in coastal_biomes:
+
+			if biome.biome_name in ocean_biomes:
+				found_ocean = true
+			if biome.biome_name == beach_biome:
+				found_beach = true
+
+			# If we found both ocean and beach nearby, this is a true coastal location
+			if found_ocean and found_beach:
 				return true
-	return false
+
+	# Must have found at least ocean to be considered coastal
+	# (beach alone might be near a river or lake)
+	return found_ocean
 
 
 ## Place all dungeon entrances based on dungeon definitions
@@ -353,18 +382,41 @@ static func _place_near_town_dungeon(world_seed: int, town_pos: Vector2i, existi
 
 
 ## Place a dungeon entrance in/near town
+## Places the entrance within the town boundary but outside of any building footprints
 static func _place_town_dungeon(_world_seed: int, town_pos: Vector2i, existing: Array, rng: SeededRandom) -> Vector2i:
-	# Place within the town area but not in a building
-	# Town is 15x15, shop is 5x5 centered on town_pos
-	var town_radius = 7
+	# Get town definition to know building positions
+	var town_def = TownManager.get_town("starter_town")
+	var town_size_arr = town_def.get("size", [15, 15])
+	var town_radius = int(max(town_size_arr[0], town_size_arr[1]) / 2)
+	var buildings = town_def.get("buildings", [])
 
-	for _attempt in range(50):
+	# Build list of building footprints to avoid
+	var building_rects: Array = []
+	for building_entry in buildings:
+		var building_id = building_entry.get("building_id", "")
+		var offset_arr = building_entry.get("position_offset", [0, 0])
+		var offset = Vector2i(offset_arr[0], offset_arr[1])
+		var building_pos = town_pos + offset
+
+		var building_def = TownManager.building_definitions.get(building_id, {})
+		var size_arr = building_def.get("size", [5, 5])
+		var size = Vector2i(size_arr[0], size_arr[1])
+		var half_size = size / 2
+		var rect = Rect2i(building_pos - half_size, size)
+		building_rects.append(rect)
+
+	for _attempt in range(100):
 		var offset = Vector2i(rng.randi_range(-town_radius, town_radius), rng.randi_range(-town_radius, town_radius))
 		var candidate_pos = town_pos + offset
 
-		# Skip if too close to shop center (5x5 building)
-		var dist_to_center = (candidate_pos - town_pos).length()
-		if dist_to_center < 4:  # Shop is centered, avoid it
+		# Skip if inside any building footprint (with 1 tile buffer)
+		var in_building = false
+		for rect in building_rects:
+			var expanded_rect = Rect2i(rect.position - Vector2i(1, 1), rect.size + Vector2i(2, 2))
+			if expanded_rect.has_point(candidate_pos):
+				in_building = true
+				break
+		if in_building:
 			continue
 
 		# Skip if too close to existing entrances
@@ -379,8 +431,8 @@ static func _place_town_dungeon(_world_seed: int, town_pos: Vector2i, existing: 
 		# Valid position
 		return candidate_pos
 
-	# Fallback: place at fixed offset from town
-	return town_pos + Vector2i(6, 6)
+	# Fallback: place at corner of town area
+	return town_pos + Vector2i(town_radius - 1, town_radius - 1)
 
 
 ## Place a dungeon entrance in wilderness with biome preference

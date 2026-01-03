@@ -2,9 +2,13 @@
   "id": "shop",
   "name": "Shop",
   "description": "A merchant's shop for trading goods.",
-  "size": [5, 5],
-  "template_type": "building",
-  "door_position": "south",
-  "npc_offset": [2, 2],
-  "layout": null
+  "size": [8, 5],
+  "template_type": "custom",
+  "layout": [
+    "########",
+    "#..+.@.#",
+    "#..#...#",
+    "#..#...#",
+    "#####+##"
+  ]
 }

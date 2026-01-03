@@ -1,0 +1,11 @@
+{
+  "id": "shrine",
+  "name": "Shrine",
+  "description": "A small roadside shrine for offerings and prayers.",
+  "size": [1, 1],
+  "template_type": "feature",
+  "tile_type": "floor",
+  "ascii_char": "☥",
+  "ascii_color": "#AAAAAA",
+  "layout": null
+}

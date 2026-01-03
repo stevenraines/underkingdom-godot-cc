@@ -10,12 +10,17 @@
   "buildings": [
     {
       "building_id": "small_house",
-      "position_offset": [0, 0],
-      "npc_id": "fisherman"
+      "position_offset": [-3, -3],
+      "npc_id": "fisherman",
+      "door_facing": "east"
+    },
+    {
+      "building_id": "shrine",
+      "position_offset": [4, -2]
     },
     {
       "building_id": "well",
-      "position_offset": [5, 3]
+      "position_offset": [0, 3]
     }
   ],
   "decorations": {

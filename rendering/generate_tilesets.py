@@ -8,6 +8,7 @@ import os
 TILE_WIDTH = 38   # Width optimized for monospace fonts
 TILE_HEIGHT = 64  # Height for good vertical spacing
 DEFAULT_COLOR = (255, 255, 255)  # All white - colors applied via Godot modulation
+FONT_SIZE = 52  # Slightly smaller for regular weight fonts
 
 # ============================================================================
 # CP437 (Code Page 437) - 256 characters in 16x16 grid
@@ -91,12 +92,11 @@ def get_project_fonts_dir():
 
 
 def load_font():
-    """Load a monospace font with good Unicode support."""
+    """Load a monospace font with good Unicode support (regular weight, not bold)."""
     fonts_dir = get_project_fonts_dir()
 
     font_paths = [
-        # Project Noto fonts (preferred)
-        os.path.join(fonts_dir, "NotoSansMono-Black.ttf"),
+        # Project Noto fonts - prefer variable font for regular weight
         os.path.join(fonts_dir, "NotoSansMono-VariableFont_wdth,wght.ttf"),
         # System fallbacks
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",  # Linux DejaVu
@@ -109,7 +109,7 @@ def load_font():
 
     for font_path in font_paths:
         if os.path.exists(font_path):
-            font = ImageFont.truetype(font_path, 58)  # Larger font to fill 64px tiles
+            font = ImageFont.truetype(font_path, FONT_SIZE)
             print(f"Loaded font: {font_path}")
             return font
 
@@ -122,6 +122,7 @@ def load_symbol_fonts():
     fonts_dir = get_project_fonts_dir()
     symbol_fonts = []
 
+    # Order matters: Noto Symbols 1 first, then Noto Symbols 2 as fallback
     symbol_font_paths = [
         os.path.join(fonts_dir, "NotoSansSymbols-Regular.ttf"),
         os.path.join(fonts_dir, "NotoSansSymbols2-Regular.ttf"),
@@ -129,11 +130,144 @@ def load_symbol_fonts():
 
     for font_path in symbol_font_paths:
         if os.path.exists(font_path):
-            font = ImageFont.truetype(font_path, 58)
+            font = ImageFont.truetype(font_path, FONT_SIZE)
             print(f"Loaded symbol font: {font_path}")
             symbol_fonts.append(font)
 
     return symbol_fonts
+
+
+# Cache for tofu pixel counts per font
+_tofu_cache = {}
+
+
+def get_tofu_pixels(font):
+    """Get the pixel count of the 'tofu' (missing glyph) box for a font."""
+    font_id = id(font)
+    if font_id not in _tofu_cache:
+        # Render a character that definitely doesn't exist
+        img = Image.new('L', (100, 100), 0)
+        draw = ImageDraw.Draw(img)
+        draw.text((10, 10), chr(0xFFFF), fill=255, font=font)
+        pixels = sum(1 for p in img.getdata() if p > 0)
+        _tofu_cache[font_id] = pixels
+    return _tofu_cache[font_id]
+
+
+def font_has_glyph(font, char):
+    """Check if a font has a real glyph for a character (not the tofu box).
+
+    Uses pixel-based comparison: if rendering produces the same number of
+    pixels as the missing glyph box, it's probably tofu.
+    """
+    # Spaces are special - they have no pixels but are valid
+    if char in (' ', '\u00A0'):
+        return True
+
+    try:
+        # Render the character
+        img = Image.new('L', (100, 100), 0)
+        draw = ImageDraw.Draw(img)
+        draw.text((10, 10), char, fill=255, font=font)
+        pixels = sum(1 for p in img.getdata() if p > 0)
+
+        # Compare to tofu - if same pixel count, likely missing
+        tofu_pixels = get_tofu_pixels(font)
+
+        # Allow some variance (within 5%) to account for similar-looking glyphs
+        # but if it's exactly the tofu count, reject it
+        if pixels == tofu_pixels:
+            return False
+
+        # Also reject if no pixels at all (except spaces handled above)
+        if pixels == 0:
+            return False
+
+        return True
+    except:
+        return False
+
+
+def should_use_symbol_font(char):
+    """Check if a character should prefer symbol fonts over the main font.
+
+    Symbol fonts have better glyphs for these Unicode ranges:
+    - Miscellaneous Technical (0x2300-0x23FF)
+    - Miscellaneous Symbols (0x2600-0x26FF) - includes ☦ (U+2626)
+    - Dingbats (0x2700-0x27BF)
+    - Geometric Shapes (0x25A0-0x25FF)
+    """
+    codepoint = ord(char)
+
+    # Ranges where symbol fonts are preferred
+    symbol_ranges = [
+        (0x2300, 0x23FF),  # Miscellaneous Technical
+        (0x25A0, 0x25FF),  # Geometric Shapes
+        (0x2600, 0x26FF),  # Miscellaneous Symbols (☦ is here at U+2626)
+        (0x2700, 0x27BF),  # Dingbats
+    ]
+
+    for start, end in symbol_ranges:
+        if start <= codepoint <= end:
+            return True
+    return False
+
+
+def render_char_to_tile(char, font, tile_width, tile_height):
+    """Render a character to a tile image, scaling if necessary to fit."""
+    # First, render at full size to measure
+    temp_img = Image.new('RGBA', (tile_width * 3, tile_height * 2), (0, 0, 0, 0))
+    temp_draw = ImageDraw.Draw(temp_img)
+
+    # Draw at origin to measure
+    bbox = temp_draw.textbbox((0, 0), char, font=font)
+    if bbox is None:
+        bbox = (0, 0, 0, 0)
+
+    char_width = bbox[2] - bbox[0]
+    char_height = bbox[3] - bbox[1]
+
+    # Check if we need to scale
+    max_width = tile_width - 2  # Leave 1px padding on each side
+    max_height = tile_height - 4  # Leave 2px padding top/bottom
+
+    needs_scale = char_width > max_width or char_height > max_height
+
+    if needs_scale and char_width > 0 and char_height > 0:
+        # Calculate scale factor to fit
+        scale_x = max_width / char_width
+        scale_y = max_height / char_height
+        scale = min(scale_x, scale_y)
+
+        # Render at larger size for quality
+        large_size = (int(char_width * 2), int(char_height * 2))
+        large_img = Image.new('RGBA', large_size, (0, 0, 0, 0))
+        large_draw = ImageDraw.Draw(large_img)
+        large_draw.text((-bbox[0], -bbox[1]), char, fill=DEFAULT_COLOR + (255,), font=font)
+
+        # Scale down
+        new_width = max(1, int(char_width * scale))
+        new_height = max(1, int(char_height * scale))
+        scaled_img = large_img.resize((new_width, new_height), Image.LANCZOS)
+
+        # Create final tile and paste centered
+        tile_img = Image.new('RGBA', (tile_width, tile_height), (0, 0, 0, 0))
+        x = (tile_width - new_width) // 2
+        y = (tile_height - new_height) // 2
+        tile_img.paste(scaled_img, (x, y))
+
+        return tile_img
+    else:
+        # No scaling needed, render directly centered
+        tile_img = Image.new('RGBA', (tile_width, tile_height), (0, 0, 0, 0))
+        tile_draw = ImageDraw.Draw(tile_img)
+
+        x = (tile_width - char_width) // 2 - bbox[0]
+        y = (tile_height - char_height) // 2 - bbox[1]
+
+        tile_draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=font)
+
+        return tile_img
 
 
 def create_cp437_tileset():
@@ -146,7 +280,6 @@ def create_cp437_tileset():
     print(f"\nCreating CP437 tileset: {width}x{height} ({CP437_TILES_PER_ROW} columns x {rows} rows)")
 
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
     font = load_font()
 
     # Draw each character
@@ -156,14 +289,8 @@ def create_cp437_tileset():
         x_offset = col * TILE_WIDTH
         y_offset = row * TILE_HEIGHT
 
-        # Get text bounding box and center
-        bbox = draw.textbbox((0, 0), char, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        x = x_offset + (TILE_WIDTH - text_width) // 2
-        y = y_offset + (TILE_HEIGHT - text_height) // 2 - bbox[1]
-
-        draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=font)
+        tile = render_char_to_tile(char, font, TILE_WIDTH, TILE_HEIGHT)
+        image.paste(tile, (x_offset, y_offset))
 
     # Save CP437 tileset
     output_path = os.path.join(os.path.dirname(__file__), "tilesets", "ascii_tileset.png")
@@ -186,21 +313,6 @@ def create_cp437_tileset():
     print(f"Saved CP437 character map to: {charmap_path}")
 
 
-def font_has_glyph(font, char):
-    """Check if a font has a glyph for a character (not just a missing glyph box)."""
-    try:
-        # Try to get the glyph - if the bbox is all zeros or very small, it's likely missing
-        bbox = font.getbbox(char)
-        if bbox is None:
-            return False
-        width = bbox[2] - bbox[0]
-        height = bbox[3] - bbox[1]
-        # A missing glyph typically renders as a small box or nothing
-        return width > 2 and height > 2
-    except:
-        return False
-
-
 def create_unicode_tileset():
     """Create Unicode tileset (unicode_tileset.png) - comprehensive character set, 32-column grid."""
     num_chars = len(UNICODE_CHARS)
@@ -211,12 +323,12 @@ def create_unicode_tileset():
     print(f"\nCreating Unicode tileset: {width}x{height} ({UNICODE_TILES_PER_ROW} columns x {rows} rows)")
 
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
     main_font = load_font()
     symbol_fonts = load_symbol_fonts()
-    all_fonts = [main_font] + symbol_fonts
 
     missing_chars = []
+    symbol_font_used = 0
+    scaled_chars = 0
 
     # Draw each character
     for i, char in enumerate(UNICODE_CHARS):
@@ -226,33 +338,53 @@ def create_unicode_tileset():
         y_offset = row * TILE_HEIGHT
 
         # Find a font that has this character
-        selected_font = main_font
-        for font in all_fonts:
-            if font_has_glyph(font, char):
-                selected_font = font
-                break
+        # For symbol ranges, prefer symbol fonts over the main mono font
+        selected_font = None
+
+        if should_use_symbol_font(char):
+            # Try symbol fonts first for characters in symbol ranges
+            for font in symbol_fonts:
+                if font_has_glyph(font, char):
+                    selected_font = font
+                    symbol_font_used += 1
+                    break
+            # Fall back to main font if symbol fonts don't have it
+            if selected_font is None and font_has_glyph(main_font, char):
+                selected_font = main_font
         else:
-            # No font has this glyph
+            # For non-symbol characters, try main font first
+            if font_has_glyph(main_font, char):
+                selected_font = main_font
+            else:
+                # Fall back to symbol fonts
+                for font in symbol_fonts:
+                    if font_has_glyph(font, char):
+                        selected_font = font
+                        symbol_font_used += 1
+                        break
+
+        if selected_font is None:
+            # No font has this glyph - leave tile empty
             missing_chars.append((char, hex(ord(char))))
+            continue
 
-        # Get text bounding box and center
-        bbox = draw.textbbox((0, 0), char, font=selected_font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        x = x_offset + (TILE_WIDTH - text_width) // 2
-        y = y_offset + (TILE_HEIGHT - text_height) // 2 - bbox[1]
+        # Render the character to a tile (with scaling if needed)
+        tile = render_char_to_tile(char, selected_font, TILE_WIDTH, TILE_HEIGHT)
+        image.paste(tile, (x_offset, y_offset))
 
-        draw.text((x, y), char, fill=DEFAULT_COLOR + (255,), font=selected_font)
+    print(f"\nSymbol fonts used for {symbol_font_used} characters")
 
     if missing_chars:
-        print(f"\nWarning: {len(missing_chars)} characters missing from all fonts:")
+        print(f"Warning: {len(missing_chars)} characters missing from all fonts (left empty):")
         for char, code in missing_chars[:20]:  # Show first 20
             print(f"  {code}: '{char}'")
+        if len(missing_chars) > 20:
+            print(f"  ... and {len(missing_chars) - 20} more")
 
     # Save Unicode tileset
     output_path = os.path.join(os.path.dirname(__file__), "tilesets", "unicode_tileset.png")
     image.save(output_path)
-    print(f"Saved Unicode tileset to: {output_path}")
+    print(f"\nSaved Unicode tileset to: {output_path}")
     print(f"Image size: {width}x{height}")
     print(f"Grid: {UNICODE_TILES_PER_ROW} columns x {rows} rows")
 

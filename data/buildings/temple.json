@@ -1,0 +1,16 @@
+{
+  "id": "temple",
+  "name": "Temple",
+  "description": "A place of worship and sanctuary.",
+  "size": [7, 7],
+  "template_type": "custom",
+  "layout": [
+    " ##### ",
+    " #...# ",
+    "##.@.##",
+    "#.....#",
+    "#.....#",
+    "#.....#",
+    "###+###"
+  ]
+}

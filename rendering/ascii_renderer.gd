@@ -93,6 +93,7 @@ func _char_to_index(character: String) -> int:
 		return unicode_char_map[character]
 
 	# Fallback for unmapped characters - use space
+	push_warning("[ASCIIRenderer] Unmapped character '%s' (U+%04X), using space" % [character, character.unicode_at(0) if character.length() > 0 else 0])
 	return 0  # Space character at index 0
 
 # Default terrain colors (tiles should define their own colors)
@@ -176,7 +177,9 @@ func _create_ascii_tileset() -> TileSet:
 	var texture_path = "res://rendering/tilesets/unicode_tileset.png"
 	var texture = load(texture_path) as Texture2D
 
-	if not texture:
+	if texture:
+		print("[ASCIIRenderer] Loaded tileset texture: %s (%dx%d)" % [texture_path, texture.get_width(), texture.get_height()])
+	else:
 		push_error("Failed to load Unicode tileset: " + texture_path)
 		# Fall back to generated texture
 		texture = _generate_ascii_texture()

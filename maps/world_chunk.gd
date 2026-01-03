@@ -398,11 +398,11 @@ static func from_dict(data: Dictionary, world_seed: int) -> WorldChunk:
 
 ## Generate town structures within this chunk
 func _generate_town_structures(town_center: Vector2i, world_seed: int) -> void:
-	var rng = SeededRandom.new(world_seed + 999)
+	var _rng = SeededRandom.new(world_seed + 999)
 
 	# Town is 15x15 centered on town_center
 	var town_size = Vector2i(15, 15)
-	var town_start = town_center - town_size / 2
+	var _town_start = town_center - town_size / 2
 
 	# Shop building (5x5)
 	var shop_size = Vector2i(5, 5)

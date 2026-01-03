@@ -1,0 +1,14 @@
+{
+  "id": "priest",
+  "name": "Father Aldric",
+  "npc_type": "priest",
+  "ascii_char": "@",
+  "ascii_color": "#FFFFFF",
+  "faction": "neutral",
+  "gold": 100,
+  "dialogue": {
+    "greeting": "Blessings upon you, traveler. The light watches over all who seek refuge here.",
+    "farewell": "May your path be lit with hope.",
+    "no_gold": "The temple accepts all, rich or poor."
+  }
+}

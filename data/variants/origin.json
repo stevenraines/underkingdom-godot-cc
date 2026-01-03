@@ -1,0 +1,48 @@
+{
+  "variant_type": "origin",
+  "variants": {
+    "dwarven": {
+      "name_prefix": "Dwarven",
+      "description_modifier": "of dwarven make",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.3},
+        "durability": {"type": "multiply", "value": 1.5},
+        "damage_bonus": {"type": "add", "value": 1}
+      },
+      "overrides": {},
+      "tier": 2
+    },
+    "elven": {
+      "name_prefix": "Elven",
+      "description_modifier": "of elven craft",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.7},
+        "accuracy_modifier": {"type": "add", "value": 5}
+      },
+      "overrides": {},
+      "tier": 2
+    },
+    "ancient": {
+      "name_prefix": "Ancient",
+      "description_modifier": "from a bygone era",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.0}
+      },
+      "overrides": {},
+      "tier": 3
+    },
+    "abyssal": {
+      "name_prefix": "Abyssal",
+      "description_modifier": "forged in the depths",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5},
+        "damage_bonus": {"type": "add", "value": 2},
+        "durability": {"type": "multiply", "value": 0.8}
+      },
+      "overrides": {
+        "ascii_color": "#4B0082"
+      },
+      "tier": 4
+    }
+  }
+}

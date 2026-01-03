@@ -170,32 +170,72 @@ func spawn_ground_item(item: Item, pos: Vector2i, despawn_turns: int = -1) -> Gr
 	return ground_item
 
 ## Spawn an NPC from spawn data
+## spawn_data should contain: npc_id, position
+## If npc_id matches an NPCManager definition, use that; otherwise use legacy spawn_data fields
 func spawn_npc(spawn_data: Dictionary):
-	var NPCClass = load("res://entities/npc.gd")
-	var npc = NPCClass.new(
-		spawn_data.get("npc_id", "npc"),
-		spawn_data.get("position", Vector2i.ZERO),
-		"@",
-		Color("#FFAA00"),
-		true
-	)
+	var NPCClassRef = load("res://entities/npc.gd")
+	var npc_id = spawn_data.get("npc_id", "npc")
+	var position = spawn_data.get("position", Vector2i.ZERO)
 
-	npc.entity_type = "npc"
-	npc.npc_type = spawn_data.get("npc_type", "generic")
-	npc.name = spawn_data.get("name", "NPC")
-	npc.gold = spawn_data.get("gold", 0)
-	npc.restock_interval = spawn_data.get("restock_interval", 500)
-	npc.last_restock_turn = 0
+	# Try to get NPC definition from NPCManager
+	var npc_def = NPCManager.get_npc_definition(npc_id)
 
-	# Set dialogue for shop NPCs
-	if npc.npc_type == "shop":
-		npc.dialogue = {
-			"greeting": "Welcome to my shop, traveler! I have supplies for your journey.",
-			"buy": "Take a look at my wares. Fair prices, I assure you!",
-			"sell": "Let me see what you have. I'll pay a fair price.",
-			"farewell": "Safe travels, friend! Watch out for those barrows..."
-		}
-		npc.load_shop_inventory()
+	var npc: NPC
+	if not npc_def.is_empty():
+		# Use data-driven NPC definition
+		npc = NPCClassRef.new(
+			npc_id,
+			position,
+			npc_def.get("ascii_char", "@"),
+			Color.html(npc_def.get("ascii_color", "#FFAA00")),
+			true
+		)
+		npc.entity_type = "npc"
+		npc.npc_type = npc_def.get("npc_type", "generic")
+		npc.name = npc_def.get("name", npc_id)
+		npc.gold = npc_def.get("gold", 0)
+		npc.restock_interval = npc_def.get("restock_interval", 500)
+		npc.last_restock_turn = 0
+		npc.faction = npc_def.get("faction", "neutral")
+
+		# Load dialogue from definition
+		npc.dialogue = npc_def.get("dialogue", {}).duplicate()
+
+		# Load trade inventory from definition for shop NPCs
+		if npc.npc_type == "shop":
+			var trade_inv = npc_def.get("trade_inventory", [])
+			npc.trade_inventory = []
+			for item_data in trade_inv:
+				npc.trade_inventory.append(item_data.duplicate())
+
+		print("[EntityManager] Spawned data-driven NPC: %s (%s) at %v" % [npc.name, npc_id, position])
+	else:
+		# Legacy fallback: use spawn_data fields directly
+		npc = NPCClassRef.new(
+			npc_id,
+			position,
+			"@",
+			Color("#FFAA00"),
+			true
+		)
+		npc.entity_type = "npc"
+		npc.npc_type = spawn_data.get("npc_type", "generic")
+		npc.name = spawn_data.get("name", "NPC")
+		npc.gold = spawn_data.get("gold", 0)
+		npc.restock_interval = spawn_data.get("restock_interval", 500)
+		npc.last_restock_turn = 0
+
+		# Set dialogue for shop NPCs
+		if npc.npc_type == "shop":
+			npc.dialogue = {
+				"greeting": "Welcome to my shop, traveler! I have supplies for your journey.",
+				"buy": "Take a look at my wares. Fair prices, I assure you!",
+				"sell": "Let me see what you have. I'll pay a fair price.",
+				"farewell": "Safe travels, friend! Watch out for those barrows..."
+			}
+			npc.load_shop_inventory()
+
+		print("[EntityManager] Spawned legacy NPC: %s at %v" % [npc.name, position])
 
 	entities.append(npc)
 

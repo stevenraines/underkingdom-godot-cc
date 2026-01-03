@@ -13,13 +13,14 @@ The game uses a **signal-based event bus** for loose coupling between systems:
 - Key signals: `turn_advanced`, `player_moved`, `entity_died`, `item_picked_up`, etc.
 
 ### Autoload Singletons (Managers)
-Six persistent managers handle core systems:
+Seven persistent managers handle core systems:
 1. **EventBus** - Signal relay for all events
 2. **TurnManager** - Turn-based game loop, day/night cycle (1000 turns/day)
 3. **GameManager** - High-level game state, world seed, save slot management
 4. **MapManager** - Map caching, generation, transitions between overworld/dungeons
 5. **EntityManager** - Enemy definitions, entity spawning, turn processing
-6. **ItemManager** - Item definitions, item creation from JSON data
+6. **ItemManager** - Item definitions, item creation from JSON data (legacy + templated)
+7. **VariantManager** - Item templates and variant definitions for dynamic item generation
 
 ### Rendering Abstraction
 Game logic never touches visuals directly:
@@ -161,10 +162,18 @@ All interconnected for emergent gameplay:
 - 125%+: Cannot move
 
 **Items**:
-- All items defined in JSON (`data/items/*.json`)
+- All items defined in JSON (`data/items/*.json`) or generated from templates
 - Properties: id, name, weight, value, stack size, ASCII char/color, durability
 - Types: consumable, material, tool, weapon, armor, currency
 - Equipped items provide stat bonuses (weapon damage, armor)
+
+**Item Factory System** (Advanced Items):
+- Templates define base item properties (`data/item_templates/`)
+- Variants define modifiers (material, quality, origin) (`data/variants/`)
+- `ItemFactory.create_item("knife", {"material": "iron"})` generates items dynamically
+- Supports stacking multiple variants: "Dwarven Steel Sword", "Worn Flint Knife"
+- Modifier types: `multiply` (0.5 = 50%), `add` (+2), `override` (replace value)
+- Legacy items coexist with templated items (both loaded by ItemManager)
 
 **GroundItems**:
 - Items on the ground rendered on EntityLayer
@@ -281,6 +290,7 @@ res://
 │   ├── map_manager.gd
 │   ├── entity_manager.gd
 │   ├── item_manager.gd
+│   ├── variant_manager.gd  # Item templates and variant loading
 │   ├── recipe_manager.gd
 │   └── save_manager.gd
 ├── entities/           # Entity classes
@@ -290,7 +300,8 @@ res://
 │   ├── npc.gd
 │   └── ground_item.gd
 ├── items/              # Item system
-│   └── item.gd
+│   ├── item.gd
+│   └── item_factory.gd  # Creates items from templates + variants
 ├── systems/            # Game systems
 │   ├── combat_system.gd
 │   ├── ranged_combat_system.gd
@@ -322,13 +333,22 @@ res://
 │   └── inventory_screen.tscn
 ├── data/               # JSON data files (all systems are data-driven)
 │   ├── resources/      # Harvestable resource definitions
-│   ├── items/
+│   ├── items/          # Legacy item definitions
 │   │   ├── consumables/
 │   │   ├── materials/
 │   │   ├── tools/
 │   │   ├── weapons/
 │   │   ├── armor/
 │   │   └── misc/
+│   ├── item_templates/ # Base item templates for ItemFactory
+│   │   ├── tools/      # knife.json, etc.
+│   │   ├── weapons/    # sword.json, axe.json, etc.
+│   │   └── armor/      # chest_armor.json, etc.
+│   ├── variants/       # Variant modifiers for ItemFactory
+│   │   ├── materials.json      # flint, iron, steel, mithril
+│   │   ├── materials_armor.json # leather, chainmail, plate
+│   │   ├── quality.json        # worn, standard, fine, masterwork
+│   │   └── origin.json         # dwarven, elven, ancient
 │   ├── recipes/
 │   │   ├── consumables/
 │   │   ├── tools/
@@ -373,6 +393,8 @@ res://
 
 **Existing data-driven systems:**
 - Items: `data/items/` → ItemManager
+- Item Templates: `data/item_templates/` → VariantManager
+- Item Variants: `data/variants/` → VariantManager
 - Enemies: `data/enemies/` → EntityManager
 - Recipes: `data/recipes/` → RecipeManager
 - Resources: `data/resources/` → HarvestSystem

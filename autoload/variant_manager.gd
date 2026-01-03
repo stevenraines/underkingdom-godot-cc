@@ -1,0 +1,218 @@
+extends Node
+
+## VariantManager - Autoload singleton for item template and variant management
+##
+## Loads item templates and variant definitions from JSON files.
+## Templates define base item properties, variants define modifiers that
+## can be applied to create item variations (e.g., "Iron Knife", "Steel Sword").
+
+# Template data cache (template_id -> data dictionary)
+var _templates: Dictionary = {}
+
+# Variant data cache (variant_type -> {variant_name -> data})
+var _variants: Dictionary = {}
+
+# Base paths for data
+const TEMPLATE_PATH: String = "res://data/item_templates"
+const VARIANT_PATH: String = "res://data/variants"
+
+func _ready() -> void:
+	_load_templates()
+	_load_variants()
+	print("VariantManager: Loaded %d templates, %d variant types" % [_templates.size(), _variants.size()])
+
+
+## Load all templates by recursively scanning folders
+func _load_templates() -> void:
+	_load_templates_from_folder(TEMPLATE_PATH)
+
+
+## Recursively load templates from a folder and all subfolders
+func _load_templates_from_folder(path: String) -> void:
+	var dir = DirAccess.open(path)
+	if not dir:
+		# Directory might not exist yet - that's OK
+		return
+
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+
+	while file_name != "":
+		var full_path = path + "/" + file_name
+
+		if dir.current_is_dir():
+			# Skip hidden folders and navigate into subfolders
+			if not file_name.begins_with("."):
+				_load_templates_from_folder(full_path)
+		elif file_name.ends_with(".json"):
+			# Load JSON file as template data
+			_load_template_from_file(full_path)
+
+		file_name = dir.get_next()
+
+	dir.list_dir_end()
+
+
+## Load a single template from a JSON file
+func _load_template_from_file(path: String) -> void:
+	if not FileAccess.file_exists(path):
+		push_warning("VariantManager: Template file not found: %s" % path)
+		return
+
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_error("VariantManager: Could not open file: %s" % path)
+		return
+
+	var json_text = file.get_as_text()
+	file.close()
+
+	var json = JSON.new()
+	var error = json.parse(json_text)
+	if error != OK:
+		push_error("VariantManager: JSON parse error in %s at line %d: %s" % [
+			path, json.get_error_line(), json.get_error_message()
+		])
+		return
+
+	var data = json.data
+
+	if data is Dictionary and "template_id" in data:
+		var template_id = data.get("template_id", "")
+		if template_id != "":
+			_templates[template_id] = data
+		else:
+			push_warning("VariantManager: Template without ID in %s" % path)
+	else:
+		push_warning("VariantManager: Invalid template file format in %s" % path)
+
+
+## Load all variant definitions
+func _load_variants() -> void:
+	var dir = DirAccess.open(VARIANT_PATH)
+	if not dir:
+		# Directory might not exist yet - that's OK
+		return
+
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+
+	while file_name != "":
+		if file_name.ends_with(".json"):
+			_load_variant_from_file(VARIANT_PATH + "/" + file_name)
+		file_name = dir.get_next()
+
+	dir.list_dir_end()
+
+
+## Load a single variant file
+func _load_variant_from_file(path: String) -> void:
+	if not FileAccess.file_exists(path):
+		push_warning("VariantManager: Variant file not found: %s" % path)
+		return
+
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_error("VariantManager: Could not open file: %s" % path)
+		return
+
+	var json_text = file.get_as_text()
+	file.close()
+
+	var json = JSON.new()
+	var error = json.parse(json_text)
+	if error != OK:
+		push_error("VariantManager: JSON parse error in %s at line %d: %s" % [
+			path, json.get_error_line(), json.get_error_message()
+		])
+		return
+
+	var data = json.data
+
+	if data is Dictionary and "variant_type" in data and "variants" in data:
+		var variant_type = data.get("variant_type", "")
+		if variant_type != "":
+			_variants[variant_type] = data.get("variants", {})
+		else:
+			push_warning("VariantManager: Variant file without type in %s" % path)
+	else:
+		push_warning("VariantManager: Invalid variant file format in %s" % path)
+
+
+## Get a template by ID
+func get_template(template_id: String) -> Dictionary:
+	return _templates.get(template_id, {})
+
+
+## Check if template exists
+func has_template(template_id: String) -> bool:
+	return template_id in _templates
+
+
+## Get a specific variant
+func get_variant(variant_type: String, variant_name: String) -> Dictionary:
+	if variant_type in _variants:
+		return _variants[variant_type].get(variant_name, {})
+	return {}
+
+
+## Check if a variant exists
+func has_variant(variant_type: String, variant_name: String) -> bool:
+	if variant_type in _variants:
+		return variant_name in _variants[variant_type]
+	return false
+
+
+## Get all variants of a type
+func get_variants_of_type(variant_type: String) -> Dictionary:
+	return _variants.get(variant_type, {})
+
+
+## Get all variant type names
+func get_all_variant_types() -> Array[String]:
+	var result: Array[String] = []
+	for variant_type in _variants:
+		result.append(variant_type)
+	return result
+
+
+## Get variants by tier range
+func get_variants_by_tier(variant_type: String, min_tier: int, max_tier: int) -> Array[String]:
+	var result: Array[String] = []
+	if variant_type in _variants:
+		for variant_name in _variants[variant_type]:
+			var tier = _variants[variant_type][variant_name].get("tier", 1)
+			if tier >= min_tier and tier <= max_tier:
+				result.append(variant_name)
+	return result
+
+
+## Get all template IDs
+func get_all_template_ids() -> Array[String]:
+	var result: Array[String] = []
+	for id in _templates:
+		result.append(id)
+	return result
+
+
+## Get templates by category
+func get_templates_by_category(category: String) -> Array[String]:
+	var result: Array[String] = []
+	for template_id in _templates:
+		if _templates[template_id].get("category", "") == category:
+			result.append(template_id)
+	return result
+
+
+## Debug: Print all loaded templates and variants
+func debug_print_all() -> void:
+	print("=== Loaded Templates ===")
+	for template_id in _templates:
+		var data = _templates[template_id]
+		print("  %s: %s (%s)" % [template_id, data.get("display_name", "?"), data.get("category", "?")])
+
+	print("=== Loaded Variants ===")
+	for variant_type in _variants:
+		var variants = _variants[variant_type]
+		print("  %s: %s" % [variant_type, ", ".join(variants.keys())])
+	print("========================")

@@ -1,0 +1,98 @@
+{
+  "variant_type": "material",
+  "variants": {
+    "flint": {
+      "name_prefix": "Flint",
+      "description_modifier": "crude, made from flint",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.6},
+        "value": {"type": "multiply", "value": 0.33},
+        "durability": {"type": "multiply", "value": 0.5},
+        "damage_bonus": {"type": "add", "value": -2}
+      },
+      "overrides": {
+        "ascii_color": "#777777"
+      },
+      "tier": 1
+    },
+    "wood": {
+      "name_prefix": "Wooden",
+      "description_modifier": "simple wooden",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.5},
+        "value": {"type": "multiply", "value": 0.25},
+        "durability": {"type": "multiply", "value": 0.4},
+        "damage_bonus": {"type": "add", "value": -3}
+      },
+      "overrides": {
+        "ascii_color": "#8B5A2B"
+      },
+      "tier": 1
+    },
+    "bronze": {
+      "name_prefix": "Bronze",
+      "description_modifier": "bronze",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.1},
+        "value": {"type": "multiply", "value": 0.8},
+        "durability": {"type": "multiply", "value": 0.8},
+        "damage_bonus": {"type": "add", "value": -1}
+      },
+      "overrides": {
+        "ascii_color": "#CD7F32"
+      },
+      "tier": 2
+    },
+    "iron": {
+      "name_prefix": "Iron",
+      "description_modifier": "sturdy iron",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#AAAAAA"
+      },
+      "tier": 2
+    },
+    "steel": {
+      "name_prefix": "Steel",
+      "description_modifier": "fine steel",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.1},
+        "value": {"type": "multiply", "value": 2.0},
+        "durability": {"type": "multiply", "value": 1.5},
+        "damage_bonus": {"type": "add", "value": 2}
+      },
+      "overrides": {
+        "ascii_color": "#CCCCCC"
+      },
+      "tier": 3
+    },
+    "silver": {
+      "name_prefix": "Silver",
+      "description_modifier": "gleaming silver",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.2},
+        "value": {"type": "multiply", "value": 3.0},
+        "durability": {"type": "multiply", "value": 0.8},
+        "damage_bonus": {"type": "add", "value": 1}
+      },
+      "overrides": {
+        "ascii_color": "#C0C0C0"
+      },
+      "tier": 4
+    },
+    "mithril": {
+      "name_prefix": "Mithril",
+      "description_modifier": "gleaming mithril",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.5},
+        "value": {"type": "multiply", "value": 5.0},
+        "durability": {"type": "multiply", "value": 2.0},
+        "damage_bonus": {"type": "add", "value": 4}
+      },
+      "overrides": {
+        "ascii_color": "#E0E0FF"
+      },
+      "tier": 5
+    }
+  }
+}

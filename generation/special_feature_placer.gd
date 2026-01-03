@@ -17,22 +17,40 @@ static func place_all_towns(world_seed: int, town_definitions: Dictionary) -> Ar
 	# Get all town types from definitions
 	var town_types = town_definitions.keys()
 
+	print("[SpecialFeaturePlacer] Town definitions to place: %s" % [town_types])
+
 	# Sort towns so starter_town is placed first (it determines player spawn)
-	town_types.sort_custom(func(a, _b): return a == "starter_town")
+	# sort_custom expects: negative if a < b, 0 if equal, positive if a > b
+	# We want starter_town first, so it should be "less than" others
+	town_types.sort_custom(func(a, b):
+		if a == "starter_town" and b != "starter_town":
+			return true  # a comes first
+		if b == "starter_town" and a != "starter_town":
+			return false  # b comes first
+		return a < b  # alphabetical for others
+	)
+
+	print("[SpecialFeaturePlacer] Sorted town order: %s" % [town_types])
 
 	for town_id in town_types:
 		var town_def = town_definitions.get(town_id, {})
 		var biome_prefs = town_def.get("biome_preferences", ["grassland", "woodland"])
 		var placement = town_def.get("placement", "any")
 
+		print("[SpecialFeaturePlacer] Processing town: %s (biome_prefs=%s, placement=%s)" % [town_id, biome_prefs, placement])
+
 		var town_pos: Vector2i
 
 		if town_id == "starter_town" or towns.is_empty():
 			# First town uses original placement logic (coastal preferred)
+			print("[SpecialFeaturePlacer] Using primary town placement for %s" % town_id)
 			town_pos = _place_primary_town(world_seed, biome_prefs, placement)
 		else:
 			# Additional towns placed with spacing from existing towns
+			print("[SpecialFeaturePlacer] Using additional town placement for %s (existing positions: %s)" % [town_id, placed_positions])
 			town_pos = _place_additional_town(world_seed, placed_positions, biome_prefs, placement, rng)
+
+		print("[SpecialFeaturePlacer] Town %s placement result: %v" % [town_id, town_pos])
 
 		if town_pos != Vector2i(-1, -1):
 			placed_positions.append(town_pos)
@@ -48,10 +66,11 @@ static func place_all_towns(world_seed: int, town_definitions: Dictionary) -> Ar
 				"name": town_def.get("name", town_id),
 				"is_safe_zone": town_def.get("is_safe_zone", true)
 			})
-			print("[SpecialFeaturePlacer] Placed town %s at %v" % [town_id, town_pos])
+			print("[SpecialFeaturePlacer] SUCCESS: Placed town %s (%s) at %v" % [town_id, town_def.get("name", town_id), town_pos])
 		else:
-			push_warning("[SpecialFeaturePlacer] Could not place town %s" % town_id)
+			push_warning("[SpecialFeaturePlacer] FAILED: Could not place town %s" % town_id)
 
+	print("[SpecialFeaturePlacer] Total towns placed: %d" % towns.size())
 	return towns
 
 
@@ -125,67 +144,110 @@ static func _place_primary_town(world_seed: int, biome_prefs: Array, placement: 
 
 ## Place an additional town with spacing from existing towns
 static func _place_additional_town(world_seed: int, existing_positions: Array, biome_prefs: Array, placement: String, rng: SeededRandom) -> Vector2i:
-	var suitable_biomes = biome_prefs if not biome_prefs.is_empty() else ["grassland", "woodland"]
+	# For coastal towns, we want to be ON land biomes but NEAR water
+	# Split biome prefs: coastal biomes (beach, marsh) indicate "near water" requirement
+	# Land biomes (grassland, woodland) are where we actually place the town
+	var coastal_indicator_biomes = ["beach", "marsh"]
+	var land_biomes: Array = []
+	var wants_coastal = placement == "coastal"
+
+	for biome in biome_prefs:
+		if biome in coastal_indicator_biomes:
+			wants_coastal = true  # Having beach/marsh in prefs implies coastal
+		else:
+			land_biomes.append(biome)
+
+	# If no land biomes specified, default to common ones
+	if land_biomes.is_empty():
+		land_biomes = ["grassland", "woodland"]
+
 	var excluded_biomes = ["ocean", "deep_ocean", "water"]
-	var min_distance_from_towns = 40  # Minimum tiles between town centers
-	var max_distance_from_towns = 80  # Maximum tiles from nearest town
+	var min_distance_from_towns = 30  # Minimum tiles between town centers
+	var max_distance_from_towns = 120  # Maximum tiles from nearest town
+
+	print("[SpecialFeaturePlacer] Placing additional town: land_biomes=%s, wants_coastal=%s" % [land_biomes, wants_coastal])
 
 	# Get island bounds
 	var island_settings = BiomeManager.get_island_settings()
 	var island_width_chunks = island_settings.get("width_chunks", 25)
 	var island_height_chunks = island_settings.get("height_chunks", 25)
 
+	var best_candidate = Vector2i(-1, -1)
+	var best_score = -1
+
 	# Try random positions
-	for _attempt in range(200):
+	for _attempt in range(300):
 		# Random chunk within island
 		var chunk_x = rng.randi_range(2, island_width_chunks - 3)
 		var chunk_y = rng.randi_range(2, island_height_chunks - 3)
 		var candidate_pos = Vector2i(chunk_x * 32 + 16, chunk_y * 32 + 16)
 
-		# Check biome
+		# Check biome - must be on a land biome (not water)
 		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
 		if biome.biome_name in excluded_biomes:
 			continue
 
-		# Check biome preference
-		if not suitable_biomes.is_empty() and not (biome.biome_name in suitable_biomes):
-			continue
+		# Check if on a suitable land biome
+		var on_suitable_land = biome.biome_name in land_biomes
+		if not on_suitable_land:
+			# After many attempts, accept any non-water biome
+			if _attempt < 200:
+				continue
 
 		# Check distance from existing towns
 		var too_close = false
-		var too_far = true
+		var min_dist_to_town = 9999.0
 		for pos in existing_positions:
 			var dist = (candidate_pos - pos).length()
 			if dist < min_distance_from_towns:
 				too_close = true
 				break
-			if dist <= max_distance_from_towns:
-				too_far = false
+			if dist < min_dist_to_town:
+				min_dist_to_town = dist
 
 		if too_close:
 			continue
 
-		# If all towns are too far, accept anyway if this is the best we found
-		# (This handles cases where the island is large)
-		if too_far and existing_positions.size() > 0:
-			# Relax distance requirement after many attempts
-			if _attempt < 100:
-				continue
+		# Score this candidate
+		var score = 0
 
-		# Check coastal requirement if specified
-		if placement == "coastal":
-			var is_coastal = _is_near_coast(candidate_pos, world_seed)
-			if not is_coastal and _attempt < 150:  # Relax after many attempts
-				continue
+		# Prefer suitable land biomes
+		if on_suitable_land:
+			score += 100
 
-		return candidate_pos
+		# Check coastal requirement
+		var is_coastal = false
+		if wants_coastal:
+			is_coastal = _is_near_coast(candidate_pos, world_seed)
+			if is_coastal:
+				score += 50
 
-	return Vector2i(-1, -1)
+		# Prefer reasonable distance from other towns
+		if min_dist_to_town >= min_distance_from_towns and min_dist_to_town <= max_distance_from_towns:
+			score += 25
+
+		# Track best candidate
+		if score > best_score:
+			best_score = score
+			best_candidate = candidate_pos
+			print("[SpecialFeaturePlacer] New best candidate at %v (score=%d, biome=%s, coastal=%s)" % [candidate_pos, score, biome.biome_name, is_coastal])
+
+		# If we found an ideal candidate (suitable land + coastal), return immediately
+		if score >= 150:
+			print("[SpecialFeaturePlacer] Found ideal position at %v (score=%d, biome=%s)" % [candidate_pos, score, biome.biome_name])
+			return candidate_pos
+
+	# Return best candidate found, or -1,-1 if none
+	if best_candidate != Vector2i(-1, -1):
+		print("[SpecialFeaturePlacer] Using best candidate at %v (score=%d)" % [best_candidate, best_score])
+	else:
+		push_warning("[SpecialFeaturePlacer] Failed to place additional town after 300 attempts! land_biomes=%s, wants_coastal=%s" % [land_biomes, wants_coastal])
+	return best_candidate
 
 
-## Check if a position is near coastal biomes
+## Check if a position is near coastal biomes (beach, marsh, or ocean)
 static func _is_near_coast(pos: Vector2i, world_seed: int) -> bool:
-	var coastal_biomes = ["beach", "marsh"]
+	var coastal_biomes = ["beach", "marsh", "ocean", "deep_ocean"]
 	for dx in range(-2, 3):
 		for dy in range(-2, 3):
 			if dx == 0 and dy == 0:
@@ -215,10 +277,13 @@ static func place_all_dungeon_entrances(world_seed: int, primary_town_pos: Vecto
 		var entrance_pos: Vector2i
 
 		if placement == "town":
-			# Place in/near primary town (sewers, etc.)
+			# Place within the town itself (sewers, etc.)
 			entrance_pos = _place_town_dungeon(world_seed, primary_town_pos, placed_positions, rng)
+		elif placement == "near_town":
+			# Place near but outside town (barrows, etc.) - within 20-60 tiles
+			entrance_pos = _place_near_town_dungeon(world_seed, primary_town_pos, placed_positions, biome_prefs, rng)
 		else:
-			# Place in wilderness with appropriate biome
+			# Place in wilderness across the island
 			entrance_pos = _place_wilderness_dungeon(world_seed, primary_town_pos, placed_positions, biome_prefs, rng)
 
 		if entrance_pos != Vector2i(-1, -1):
@@ -235,6 +300,56 @@ static func place_all_dungeon_entrances(world_seed: int, primary_town_pos: Vecto
 			push_warning("[SpecialFeaturePlacer] Could not place %s" % dungeon_type)
 
 	return entrances
+
+
+## Place a dungeon entrance near but outside town (20-60 tiles away)
+static func _place_near_town_dungeon(world_seed: int, town_pos: Vector2i, existing: Array, biome_prefs: Array, rng: SeededRandom) -> Vector2i:
+	var min_distance = 20  # Outside town bounds
+	var max_distance = 60  # But not too far
+	var min_distance_from_others = 15
+	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+
+	for _attempt in range(100):
+		var angle = rng.randf() * 2 * PI
+		var distance = rng.randf_range(min_distance, max_distance)
+		var offset = Vector2(cos(angle), sin(angle)) * distance
+		var candidate_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+
+		# Check biome
+		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
+		if biome.biome_name in excluded_biomes:
+			continue
+
+		# Check biome preference
+		if not ("any" in biome_prefs) and not (biome.biome_name in biome_prefs):
+			continue
+
+		# Check distance from other entrances
+		var too_close = false
+		for pos in existing:
+			if (candidate_pos - pos).length() < min_distance_from_others:
+				too_close = true
+				break
+		if too_close:
+			continue
+
+		return candidate_pos
+
+	# Fallback: accept any non-water biome near town
+	for _attempt in range(50):
+		var angle = rng.randf() * 2 * PI
+		var distance = rng.randf_range(min_distance, max_distance)
+		var offset = Vector2(cos(angle), sin(angle)) * distance
+		var candidate_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+
+		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
+		if biome.biome_name in excluded_biomes:
+			continue
+
+		return candidate_pos
+
+	# Ultimate fallback
+	return town_pos + Vector2i(30, 30)
 
 
 ## Place a dungeon entrance in/near town
@@ -269,18 +384,23 @@ static func _place_town_dungeon(_world_seed: int, town_pos: Vector2i, existing: 
 
 
 ## Place a dungeon entrance in wilderness with biome preference
+## Distributes dungeons across the entire island, not just near town
 static func _place_wilderness_dungeon(world_seed: int, town_pos: Vector2i, existing: Array, biome_prefs: Array, rng: SeededRandom) -> Vector2i:
-	var min_distance_from_town = 20
-	var max_distance_from_town = 60
-	var min_distance_from_others = 15
+	var min_distance_from_town = 25  # Not too close to starter town
+	var min_distance_from_others = 40  # Spread dungeons apart
 	var excluded_biomes = ["ocean", "deep_ocean", "water"]
 
-	# Try to find a suitable position
-	for _attempt in range(100):
-		var angle = rng.randf() * 2 * PI
-		var distance = rng.randf_range(min_distance_from_town, max_distance_from_town)
-		var offset = Vector2(cos(angle), sin(angle)) * distance
-		var candidate_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+	# Get island bounds for full-island placement
+	var island_settings = BiomeManager.get_island_settings()
+	var island_width_chunks = island_settings.get("width_chunks", 25)
+	var island_height_chunks = island_settings.get("height_chunks", 25)
+
+	# Try to find a suitable position anywhere on the island
+	for _attempt in range(200):
+		# Random position anywhere on the island (avoiding edge chunks)
+		var chunk_x = rng.randi_range(3, island_width_chunks - 4)
+		var chunk_y = rng.randi_range(3, island_height_chunks - 4)
+		var candidate_pos = Vector2i(chunk_x * 32 + rng.randi_range(8, 24), chunk_y * 32 + rng.randi_range(8, 24))
 
 		# Check biome
 		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
@@ -289,6 +409,11 @@ static func _place_wilderness_dungeon(world_seed: int, town_pos: Vector2i, exist
 
 		# Check biome preference (skip if not "any" and not matching)
 		if not ("any" in biome_prefs) and not (biome.biome_name in biome_prefs):
+			continue
+
+		# Check distance from town
+		var dist_to_town = (candidate_pos - town_pos).length()
+		if dist_to_town < min_distance_from_town:
 			continue
 
 		# Check distance from other entrances
@@ -302,20 +427,20 @@ static func _place_wilderness_dungeon(world_seed: int, town_pos: Vector2i, exist
 
 		return candidate_pos
 
-	# Second pass: accept any non-water biome
-	for _attempt in range(100):
-		var angle = rng.randf() * 2 * PI
-		var distance = rng.randf_range(min_distance_from_town, max_distance_from_town)
-		var offset = Vector2(cos(angle), sin(angle)) * distance
-		var candidate_pos = town_pos + Vector2i(int(offset.x), int(offset.y))
+	# Second pass: accept any non-water biome, relax distance constraints
+	for _attempt in range(200):
+		var chunk_x = rng.randi_range(3, island_width_chunks - 4)
+		var chunk_y = rng.randi_range(3, island_height_chunks - 4)
+		var candidate_pos = Vector2i(chunk_x * 32 + rng.randi_range(8, 24), chunk_y * 32 + rng.randi_range(8, 24))
 
 		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
 		if biome.biome_name in excluded_biomes:
 			continue
 
+		# Relaxed distance check - just avoid being on top of others
 		var too_close = false
 		for pos in existing:
-			if (candidate_pos - pos).length() < min_distance_from_others:
+			if (candidate_pos - pos).length() < 20:  # Reduced minimum
 				too_close = true
 				break
 		if too_close:

@@ -4,6 +4,9 @@ extends Node
 ## Manages three save slots, save/load operations, and state serialization.
 ## Save files are stored as JSON in user:// directory.
 
+# Preload ItemFactory for template-based item deserialization
+const ItemFactoryClass = preload("res://items/item_factory.gd")
+
 const SAVE_DIR = "user://saves/"
 const SAVE_FILE_PATTERN = "save_slot_%d.json"
 const MAX_SLOTS = 3
@@ -239,29 +242,31 @@ func _serialize_inventory(inventory: Inventory) -> Array:
 
 	var items = []
 	for item in inventory.items:
-		# Support both Item instances and legacy/data objects
-		var count_val = item.stack_size if item is Item else item.count
-		var durability_val = null
 		if item is Item:
-			if item.durability != null and item.durability > -1:
-				durability_val = item.durability
+			# Use Item's serialize method for proper template/variant handling
+			items.append(item.serialize())
 		else:
-			# If it's a data/dict-like object, try to read durability if present
-			durability_val = item.get("durability") if typeof(item) == TYPE_DICTIONARY else null
-
-		items.append({
-			"item_id": item.id,
-			"count": count_val,
-			"durability": durability_val
-		})
+			# Legacy fallback for non-Item objects
+			var count_val = item.count if "count" in item else 1
+			var durability_val = item.get("durability") if typeof(item) == TYPE_DICTIONARY else null
+			items.append({
+				"id": item.id,
+				"stack_size": count_val,
+				"durability": durability_val
+			})
 	return items
 
 ## Serialize equipment
 func _serialize_equipment(equipment: Dictionary) -> Dictionary:
 	var equipped = {}
 	for slot in equipment.keys():
-		if equipment[slot]:
-			equipped[slot] = equipment[slot].id
+		var item = equipment[slot]
+		if item:
+			# Use Item's serialize method for proper template/variant handling
+			if item is Item:
+				equipped[slot] = item.serialize()
+			else:
+				equipped[slot] = {"id": item.id, "stack_size": 1}
 	return equipped
 
 ## Serialize maps (save current map tiles to preserve harvested resources)
@@ -472,10 +477,24 @@ func _deserialize_inventory(inventory: Inventory, items_data: Array):
 
 	inventory.items.clear()
 	for item_data in items_data:
-		var item = ItemManager.create_item(item_data.item_id, item_data.count)
+		var item: Item = null
+
+		# Check if this is a templated item (has template_id and variants)
+		if item_data.has("template_id") and item_data.has("variants"):
+			item = ItemFactoryClass.create_item(
+				item_data.template_id,
+				item_data.variants,
+				item_data.get("stack_size", 1)
+			)
+		else:
+			# Legacy format or non-templated item
+			var item_id = item_data.get("id", item_data.get("item_id", ""))
+			var count = item_data.get("stack_size", item_data.get("count", 1))
+			item = ItemManager.create_item(item_id, count)
+
 		if item:
 			# Restore durability if it was saved
-			if item_data.durability != null:
+			if item_data.has("durability") and item_data.durability != null:
 				item.durability = item_data.durability
 			inventory.items.append(item)
 
@@ -490,8 +509,28 @@ func _deserialize_equipment(inventory: Inventory, equipment_data: Dictionary):
 
 	# Load equipped items
 	for slot in equipment_data.keys():
-		var item_id = equipment_data[slot]
-		var item = ItemManager.create_item(item_id, 1)
+		var item_data = equipment_data[slot]
+		var item: Item = null
+
+		# Handle new format (dictionary with possible template_id)
+		if item_data is Dictionary:
+			if item_data.has("template_id") and item_data.has("variants"):
+				item = ItemFactoryClass.create_item(
+					item_data.template_id,
+					item_data.variants,
+					1
+				)
+			else:
+				var item_id = item_data.get("id", "")
+				item = ItemManager.create_item(item_id, 1)
+
+			# Restore durability if saved
+			if item and item_data.has("durability") and item_data.durability != null:
+				item.durability = item_data.durability
+		else:
+			# Legacy format: just item_id string
+			item = ItemManager.create_item(item_data, 1)
+
 		if item:
 			inventory.equipment[slot] = item
 

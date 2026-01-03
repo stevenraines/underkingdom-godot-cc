@@ -62,6 +62,11 @@ var effects: Dictionary = {}        # {"hunger": 30, "thirst": 20, "health": 10}
 # Transform on use (e.g., full waterskin -> empty waterskin)
 var transforms_into: String = ""    # Item ID to transform into after use
 
+# Template/variant tracking (for factory-generated items)
+var template_id: String = ""        # Original template ID (e.g., "knife")
+var applied_variants: Dictionary = {} # {variant_type: variant_name}
+var is_templated: bool = false      # True if created from template + variants
+
 ## Create an item from a data dictionary (loaded from JSON)
 static func create_from_data(data: Dictionary) -> Item:
 	var item = Item.new()
@@ -132,7 +137,13 @@ static func create_from_data(data: Dictionary) -> Item:
 	
 	# Transform on use
 	item.transforms_into = data.get("transforms_into", "")
-	
+
+	# Template/variant tracking (for factory-generated items)
+	if "_template_id" in data:
+		item.template_id = data.get("_template_id", "")
+		item.applied_variants = data.get("_variants", {}).duplicate()
+		item.is_templated = true
+
 	return item
 
 ## Create a copy of this item
@@ -167,6 +178,9 @@ func duplicate_item() -> Item:
 	copy.skeleton_key_level = skeleton_key_level
 	copy.effects = effects.duplicate()
 	copy.transforms_into = transforms_into
+	copy.template_id = template_id
+	copy.applied_variants = applied_variants.duplicate()
+	copy.is_templated = is_templated
 	return copy
 
 ## Use this item on an entity
@@ -365,6 +379,26 @@ func get_tooltip() -> String:
 ## Get display color as Color object
 func get_color() -> Color:
 	return Color.from_string(ascii_color, Color.WHITE)
+
+
+## Serialize item for saving
+## Returns minimal data needed to recreate this item
+func serialize() -> Dictionary:
+	var data: Dictionary = {
+		"id": id,
+		"stack_size": stack_size
+	}
+
+	# Only save durability if not at max
+	if durability >= 0 and durability != max_durability:
+		data["durability"] = durability
+
+	# Include template info for templated items
+	if is_templated:
+		data["template_id"] = template_id
+		data["variants"] = applied_variants.duplicate()
+
+	return data
 
 ## Check if item stack is empty
 func is_empty() -> bool:

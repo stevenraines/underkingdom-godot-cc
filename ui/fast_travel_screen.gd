@@ -27,6 +27,12 @@ func _ready() -> void:
 
 ## Open the fast travel screen
 func open() -> void:
+	# Prevent fast travel when in a dungeon
+	if MapManager.current_map and MapManager.current_map.map_id != "overworld":
+		EventBus.message_logged.emit("You cannot fast travel from inside a dungeon.")
+		closed.emit()
+		return
+
 	_populate_locations()
 	_populate_content()
 	show()

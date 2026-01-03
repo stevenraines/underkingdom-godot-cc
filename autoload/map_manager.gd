@@ -96,41 +96,45 @@ func _generate_map(map_id: String, world_seed: int) -> GameMap:
 		# Note: Terrain generation happens in ChunkManager on demand
 		# Use SpecialFeaturePlacer to find suitable biome-based locations for special features
 
-		# Place town first in suitable biome (grassland, woodland)
-		var town_pos = SpecialFeaturePlacer.place_town(world_seed)
+		# Clear any previously placed towns from TownManager
+		TownManager.clear_placed_towns()
+
+		# Place all towns based on town definitions
+		var town_definitions = TownManager.town_definitions
+		var towns = SpecialFeaturePlacer.place_all_towns(world_seed, town_definitions)
+
+		# Get primary town position (first town, usually starter_town)
+		var primary_town_pos = towns[0].position if towns.size() > 0 else Vector2i(400, 400)
 
 		# Place all dungeon entrances based on dungeon definitions
-		var dungeon_entrances = SpecialFeaturePlacer.place_all_dungeon_entrances(world_seed, town_pos)
+		var dungeon_entrances = SpecialFeaturePlacer.place_all_dungeon_entrances(world_seed, primary_town_pos)
 
 		# Get first wilderness dungeon for player spawn calculation
-		var first_wilderness_entrance = Vector2i(town_pos.x + 15, town_pos.y)
+		var first_wilderness_entrance = Vector2i(primary_town_pos.x + 15, primary_town_pos.y)
 		for entrance in dungeon_entrances:
 			var dungeon_def = DungeonManager.get_dungeon(entrance.dungeon_type)
 			if dungeon_def.get("placement", "wilderness") == "wilderness":
 				first_wilderness_entrance = entrance.position
 				break
 
-		# Place player spawn just outside town (10 tiles away, opposite from first dungeon)
-		var player_spawn = SpecialFeaturePlacer.place_player_spawn(town_pos, first_wilderness_entrance, world_seed)
+		# Place player spawn just outside primary town (10 tiles away, opposite from first dungeon)
+		var player_spawn = SpecialFeaturePlacer.place_player_spawn(primary_town_pos, first_wilderness_entrance, world_seed)
 
 		# Store special positions in map metadata
 		# ChunkManager will check these and place actual tiles when chunks load
-		map.set_meta("town_center", town_pos)
+		map.set_meta("town_center", primary_town_pos)  # Legacy compatibility
 		map.set_meta("player_spawn", player_spawn)
 		map.set_meta("dungeon_entrances", dungeon_entrances)
 
-		# Store shop NPC spawn data in metadata
-		var shop_npc_pos = town_pos  # Center of shop (5x5 building centered on town_pos)
-		map.metadata["npc_spawns"] = [{
-			"npc_type": "shop",
-			"npc_id": "shop_keeper",
-			"position": shop_npc_pos,
-			"name": "Olaf the Trader",
-			"gold": 500,
-			"restock_interval": 500
-		}]
+		# Store all towns in metadata for multi-town support
+		map.metadata["towns"] = towns
 
-		print("[MapManager] Special features placed: town=%v, %d dungeons, spawn=%v" % [town_pos, dungeon_entrances.size(), player_spawn])
+		# Initialize empty NPC spawns array (will be populated when town chunks generate)
+		map.metadata["npc_spawns"] = []
+
+		print("[MapManager] Special features placed: %d towns, %d dungeons, spawn=%v" % [towns.size(), dungeon_entrances.size(), player_spawn])
+		for town in towns:
+			print("[MapManager]   - %s at %v" % [town.name, town.position])
 
 		return map
 

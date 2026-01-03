@@ -5,6 +5,7 @@ extends Node2D
 ## Initializes the game, creates player, manages rendering and updates.
 
 const ItemClass = preload("res://items/item.gd")
+const ItemFactory = preload("res://items/item_factory.gd")
 const GroundItemClass = preload("res://entities/ground_item.gd")
 const ItemManagerScript = preload("res://autoload/item_manager.gd")
 const JsonHelperScript = preload("res://autoload/json_helper.gd")
@@ -285,14 +286,28 @@ func _give_starter_items() -> void:
 
 	var item_mgr = get_node("/root/ItemManager")
 	for item_data in items_data:
-		var item_id = item_data.get("id", "")
 		var count = int(item_data.get("count", 1))
-		if item_id == "":
-			continue
-		var stacks = item_mgr.create_item_stacks(item_id, count)
-		for it in stacks:
-			if it:
-				player.inventory.add_item(it)
+		var item: Item = null
+
+		# Support both formats:
+		# 1. Template-based: {"template_id": "knife", "variants": {"material": "flint"}, "count": 1}
+		# 2. Legacy/ID-based: {"id": "flint_knife", "count": 1}
+		if item_data.has("template_id"):
+			var template_id = item_data.get("template_id", "")
+			var variants = item_data.get("variants", {})
+			if template_id != "":
+				item = ItemFactory.create_item(template_id, variants, count)
+		else:
+			var item_id = item_data.get("id", "")
+			if item_id != "":
+				var stacks = item_mgr.create_item_stacks(item_id, count)
+				for it in stacks:
+					if it:
+						player.inventory.add_item(it)
+				continue  # Already added via stacks
+
+		if item:
+			player.inventory.add_item(item)
 
 	# Give player some starter recipes for testing
 	player.learn_recipe("bandage")

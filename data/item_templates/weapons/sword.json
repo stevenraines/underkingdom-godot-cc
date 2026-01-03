@@ -1,0 +1,30 @@
+{
+  "template_id": "sword",
+  "display_name": "Sword",
+  "description_base": "A balanced sword for combat.",
+  "category": "weapon",
+  "subtype": "sword",
+  "base_properties": {
+    "ascii_char": "|",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 1.5,
+    "value": 40,
+    "durability": 100,
+    "damage_bonus": 6
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

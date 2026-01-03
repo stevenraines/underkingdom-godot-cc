@@ -1,0 +1,70 @@
+{
+  "variant_type": "material_armor",
+  "variants": {
+    "cloth": {
+      "name_prefix": "Cloth",
+      "description_modifier": "simple cloth",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.3},
+        "value": {"type": "multiply", "value": 0.25},
+        "durability": {"type": "multiply", "value": 0.4},
+        "armor_value": {"type": "add", "value": -2}
+      },
+      "overrides": {
+        "ascii_color": "#D2B48C"
+      },
+      "tier": 1
+    },
+    "leather": {
+      "name_prefix": "Leather",
+      "description_modifier": "sturdy leather",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#8B4513"
+      },
+      "tier": 2
+    },
+    "chainmail": {
+      "name_prefix": "Chainmail",
+      "description_modifier": "linked chainmail",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.5},
+        "value": {"type": "multiply", "value": 2.0},
+        "durability": {"type": "multiply", "value": 1.3},
+        "armor_value": {"type": "add", "value": 2}
+      },
+      "overrides": {
+        "ascii_color": "#A0A0A0"
+      },
+      "tier": 3
+    },
+    "plate": {
+      "name_prefix": "Plate",
+      "description_modifier": "heavy plate",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 2.5},
+        "value": {"type": "multiply", "value": 3.0},
+        "durability": {"type": "multiply", "value": 1.5},
+        "armor_value": {"type": "add", "value": 4}
+      },
+      "overrides": {
+        "ascii_color": "#C0C0C0"
+      },
+      "tier": 4
+    },
+    "mithril": {
+      "name_prefix": "Mithril",
+      "description_modifier": "gleaming mithril",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.6},
+        "value": {"type": "multiply", "value": 5.0},
+        "durability": {"type": "multiply", "value": 2.0},
+        "armor_value": {"type": "add", "value": 5}
+      },
+      "overrides": {
+        "ascii_color": "#E0E0FF"
+      },
+      "tier": 5
+    }
+  }
+}

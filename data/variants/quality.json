@@ -1,0 +1,48 @@
+{
+  "variant_type": "quality",
+  "variants": {
+    "worn": {
+      "name_prefix": "Worn",
+      "description_modifier": "showing signs of wear",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 0.5},
+        "durability": {"type": "multiply", "value": 0.5},
+        "damage_bonus": {"type": "add", "value": -1},
+        "armor_value": {"type": "add", "value": -1}
+      },
+      "overrides": {},
+      "tier": 0
+    },
+    "standard": {
+      "name_prefix": "",
+      "description_modifier": "",
+      "modifiers": {},
+      "overrides": {},
+      "tier": 1
+    },
+    "fine": {
+      "name_prefix": "Fine",
+      "description_modifier": "expertly crafted",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.5},
+        "durability": {"type": "multiply", "value": 1.25},
+        "damage_bonus": {"type": "add", "value": 1},
+        "armor_value": {"type": "add", "value": 1}
+      },
+      "overrides": {},
+      "tier": 2
+    },
+    "masterwork": {
+      "name_prefix": "Masterwork",
+      "description_modifier": "a masterpiece of craftsmanship",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 3.0},
+        "durability": {"type": "multiply", "value": 1.5},
+        "damage_bonus": {"type": "add", "value": 2},
+        "armor_value": {"type": "add", "value": 2}
+      },
+      "overrides": {},
+      "tier": 3
+    }
+  }
+}

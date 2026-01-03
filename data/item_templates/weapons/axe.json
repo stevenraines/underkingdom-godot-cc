@@ -1,0 +1,31 @@
+{
+  "template_id": "axe",
+  "display_name": "Axe",
+  "description_base": "A sturdy axe for chopping and combat.",
+  "category": "weapon",
+  "subtype": "axe",
+  "base_properties": {
+    "ascii_char": "P",
+    "tool_type": "axe",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": true
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 2.0,
+    "value": 30,
+    "durability": 120,
+    "damage_bonus": 5
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

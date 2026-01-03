@@ -7,7 +7,6 @@
   "biome_preferences": ["town"],
   "placement": "town",
   "known_at_start": true,
-
   "map_size": {
     "width": 50,
     "height": 50

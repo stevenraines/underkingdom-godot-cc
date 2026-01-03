@@ -1,0 +1,9 @@
+{
+  "id": "well",
+  "name": "Well",
+  "description": "A water source.",
+  "size": [1, 1],
+  "template_type": "feature",
+  "tile_type": "water",
+  "layout": null
+}

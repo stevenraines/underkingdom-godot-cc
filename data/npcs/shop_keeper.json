@@ -1,0 +1,28 @@
+{
+  "id": "shop_keeper",
+  "name": "Olaf the Trader",
+  "npc_type": "shop",
+  "ascii_char": "@",
+  "ascii_color": "#FFAA00",
+  "faction": "neutral",
+  "gold": 500,
+  "restock_interval": 500,
+  "dialogue": {
+    "greeting": "Welcome to my shop, traveler! I have wares if you have coin.",
+    "farewell": "Safe travels, friend.",
+    "no_gold": "Come back when you have more coin."
+  },
+  "trade_inventory": [
+    {"item_id": "raw_meat", "count": 10, "base_price": 5},
+    {"item_id": "cooked_meat", "count": 5, "base_price": 8},
+    {"item_id": "waterskin_empty", "count": 5, "base_price": 10},
+    {"item_id": "torch", "count": 20, "base_price": 3},
+    {"item_id": "bandage", "count": 8, "base_price": 12},
+    {"item_id": "cord", "count": 15, "base_price": 2},
+    {"item_id": "cloth", "count": 10, "base_price": 3},
+    {"item_id": "flint", "count": 8, "base_price": 5},
+    {"item_id": "pickaxe", "count": 2, "base_price": 10},
+    {"item_id": "iron_ore", "count": 10, "base_price": 2},
+    {"item_id": "hammer", "count": 2, "base_price": 2}
+  ]
+}

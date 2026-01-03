@@ -62,15 +62,34 @@ Determines what happens to the resource after harvesting.
 | `non_consumable` | Never consumed | No | Not needed |
 
 ### `required_tools`
-**Type**: array of strings
+**Type**: array of strings OR array of tool objects
 **Required**: No
 **Default**: [] (can harvest with bare hands)
 
-List of item IDs that can be used to harvest this resource. If empty, no tool is needed.
+List of tools that can be used to harvest this resource. Supports two formats:
 
-**Example**: `["axe", "flint_knife", "iron_knife"]`
+**Simple format** (backwards compatible):
+```json
+"required_tools": ["axe", "flint_knife", "iron_knife"]
+```
 
-Any tool in the list works - player only needs one of them.
+**Object format** (with bonuses):
+```json
+"required_tools": [
+    {"tool_id": "axe", "action_reduction": 2, "yield_bonus": 2},
+    {"tool_id": "flint_knife", "action_reduction": 0, "yield_bonus": 0},
+    {"tool_id": "iron_knife", "action_reduction": 0, "yield_bonus": 0}
+]
+```
+
+**Tool Object Properties**:
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `tool_id` | string | required | Item ID of the tool |
+| `action_reduction` | int | 0 | Reduces required harvest actions |
+| `yield_bonus` | int | 0 | Adds to yield count |
+
+Any tool in the list works - player only needs one of them. Preferred tools (with bonuses) make harvesting faster and more productive.
 
 ### `tool_must_be_equipped`
 **Type**: bool
@@ -103,17 +122,22 @@ Stamina consumed per harvest action. Harvest fails if player doesn't have enough
 **Required**: No
 **Default**: 1
 
-Number of harvest actions required to complete the harvest. Each action consumes stamina and advances one turn. Resources with `harvest_actions > 1` require the player to repeatedly perform the harvest action before yields are produced.
+Base number of harvest actions required to complete the harvest. Each action consumes stamina and advances one turn. Resources with `harvest_actions > 1` require the player to repeatedly perform the harvest action before yields are produced.
+
+**Effective Actions**: `max(1, harvest_actions - tool.action_reduction)`
+
+Preferred tools can reduce this via `action_reduction`. For example, a tree with 5 base actions and an axe with `action_reduction: 2` only requires 3 actions.
 
 **Use cases**:
 - `1`: Instant harvest (picking wheat, filling waterskin)
-- `3`: Medium effort (chopping a tree)
-- `5+`: Extended effort (mining large ore deposits)
+- `3-5`: Medium effort (chopping a tree with proper tool)
+- `5+`: Extended effort (mining with basic tool, felling trees with knife)
 
 **Behavior**:
 - Progress is tracked per map position
 - Progress persists across save/load
 - Switching to a different resource resets progress
+- Minimum effective actions is always 1
 
 ### `progress_message`
 **Type**: string
@@ -184,7 +208,12 @@ Message template shown after successful harvest.
 ### Yield Calculation
 1. For each yield entry, roll against `chance`
 2. If roll passes, generate random count between min and max
-3. Create item with that quantity
+3. Add tool's `yield_bonus` to the count
+4. Create item with that quantity
+
+**Effective Yield**: `random(min_count, max_count) + tool.yield_bonus`
+
+For example, a tree yielding 2-4 wood with an axe that has `yield_bonus: 2` produces 4-6 wood.
 
 ### Example
 ```json
@@ -199,16 +228,20 @@ This produces:
 
 ## Complete Examples
 
-### Permanent Destruction (Multi-Turn)
+### Permanent Destruction with Preferred Tools
 ```json
 {
   "id": "tree",
   "name": "Tree",
-  "required_tools": ["axe", "flint_knife", "iron_knife"],
+  "required_tools": [
+    {"tool_id": "axe", "action_reduction": 2, "yield_bonus": 2},
+    {"tool_id": "flint_knife", "action_reduction": 0, "yield_bonus": 0},
+    {"tool_id": "iron_knife", "action_reduction": 0, "yield_bonus": 0}
+  ],
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
-  "stamina_cost": 20,
-  "harvest_actions": 3,
+  "stamina_cost": 10,
+  "harvest_actions": 5,
   "yields": [
     {"item_id": "wood", "min_count": 2, "max_count": 4}
   ],
@@ -217,7 +250,9 @@ This produces:
   "progress_message": "Chopping tree... (%current%/%total%)"
 }
 ```
-This tree requires 3 harvest actions to fell, consuming 20 stamina each time (60 total).
+
+**With Axe (preferred)**: 3 actions (5-2), yields 4-6 wood (2-4+2), 30 stamina total
+**With Knife (basic)**: 5 actions, yields 2-4 wood, 50 stamina total
 
 ### Renewable Resource
 ```json
@@ -258,26 +293,32 @@ This tree requires 3 harvest actions to fell, consuming 20 stamina each time (60
 {
   "id": "rock",
   "name": "Rock",
-  "required_tools": ["pickaxe"],
+  "required_tools": [
+    {"tool_id": "pickaxe", "action_reduction": 1, "yield_bonus": 1}
+  ],
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",
   "stamina_cost": 15,
+  "harvest_actions": 3,
   "yields": [
     {"item_id": "stone", "min_count": 3, "max_count": 6},
     {"item_id": "flint", "min_count": 1, "max_count": 2, "chance": 0.3}
   ],
   "replacement_tile": "floor",
-  "harvest_message": "Broke rock with %tool%, got %yield%"
+  "harvest_message": "Broke rock with %tool%, got %yield%",
+  "progress_message": "Mining rock... (%current%/%total%)"
 }
 ```
 
+**With Pickaxe**: 2 actions (3-1), yields 4-7 stone (3-6+1), 30 stamina total
+
 ## Current Resources
 
-| ID | Tools | Behavior | Stamina | Actions | Yields | Respawn |
-|----|-------|----------|---------|---------|--------|---------|
-| tree | axe, knives | Permanent | 20 | 3 | Wood ×2-4 | Never |
-| rock | pickaxe | Permanent | 25 | 1 | Stone ×3-6, Flint ×0-2 (30%) | Never |
-| iron_ore | pickaxe | Permanent | 30 | 1 | Iron Ore ×2-5 | Never |
+| ID | Tools | Behavior | Stamina | Base Actions | Yields | Respawn |
+|----|-------|----------|---------|--------------|--------|---------|
+| tree | axe (+2 reduction, +2 yield), knives | Permanent | 10 | 5 | Wood ×2-4 | Never |
+| rock | pickaxe (+1 reduction, +1 yield) | Permanent | 15 | 3 | Stone ×3-6, Flint ×0-2 (30%) | Never |
+| iron_ore | pickaxe (+1 reduction, +1 yield) | Permanent | 20 | 4 | Iron Ore ×2-5 | Never |
 | wheat | knives, sickle | Renewable | 5 | 1 | Wheat ×1-3 | 5000 turns |
 | water | waterskin, bottle | Non-consumable | 5 | 1 | Waterskin Full ×1 | N/A |
 

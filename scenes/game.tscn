@@ -161,6 +161,19 @@ theme_override_colors/font_color = Color(0.5, 0.9, 0.5, 1)
 theme_override_font_sizes/font_size = 13
 text = "[G] Auto-pickup: ON"
 
+[node name="Ability2" type="Label" parent="HUD/BottomBar/Abilities"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+text = "[O] Auto-door: OFF"
+
+[node name="Ability3" type="Label" parent="HUD/BottomBar/Abilities"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1.0, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 13
+text = "HARVESTING"
+visible = false
+
 [node name="DebugInfo" type="Label" parent="HUD/BottomBar"]
 layout_mode = 1
 anchors_preset = 3

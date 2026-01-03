@@ -23,6 +23,10 @@ var is_initial_wait_press: bool = true
 
 # Harvest mode
 var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
+var _harvesting_active: bool = false  # Currently in continuous harvesting mode
+var _harvest_direction: Vector2i = Vector2i.ZERO  # Direction being harvested
+var _harvest_timer: float = 0.0  # Timer for continuous harvesting
+var _skip_movement_this_frame: bool = false  # Prevent movement after harvest completion
 
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
@@ -51,13 +55,18 @@ func set_player(p: Player) -> void:
 func _process(delta: float) -> void:
 	if not player or not TurnManager.is_player_turn:
 		return
-	
+
 	# Don't process input if player is dead
 	if not player.is_alive:
 		return
-	
+
 	# Don't process movement input if UI is blocking
 	if ui_blocking_input:
+		return
+
+	# Skip movement this frame (e.g., after harvest completion to prevent moving into harvested space)
+	if _skip_movement_this_frame:
+		_skip_movement_this_frame = false
 		return
 
 	# If in look mode and player presses movement, exit look mode first
@@ -83,6 +92,37 @@ func _process(delta: float) -> void:
 	# If in targeting mode, don't process movement
 	if targeting_system and targeting_system.is_active():
 		return
+
+	# Continuous harvesting mode - keep harvesting while holding the direction key
+	if _harvesting_active and _harvest_direction != Vector2i.ZERO:
+		var still_holding = false
+		match _harvest_direction:
+			Vector2i.UP:
+				still_holding = Input.is_action_pressed("ui_up")
+			Vector2i.DOWN:
+				still_holding = Input.is_action_pressed("ui_down")
+			Vector2i.LEFT:
+				still_holding = Input.is_action_pressed("ui_left")
+			Vector2i.RIGHT:
+				still_holding = Input.is_action_pressed("ui_right")
+
+		if still_holding:
+			_harvest_timer -= delta
+			if _harvest_timer <= 0.0:
+				var harvest_result = _try_harvest(_harvest_direction)
+				if harvest_result.success:
+					TurnManager.advance_turn()
+					# Exit harvest mode if resource is depleted
+					if harvest_result.harvest_complete:
+						_exit_harvesting_mode()
+					else:
+						_harvest_timer = move_delay  # Use same timing as continuous movement
+				else:
+					# Harvest failed (no resource, wrong tool, etc.) - exit harvest mode
+					_exit_harvesting_mode()
+			return  # Don't process other input while harvesting
+		# Note: Don't exit harvest mode when key is released - allow re-pressing
+		# Harvest mode will be exited by pressing a different key or ESC
 
 	# Continuous wait key handling (period key '.')
 	# If player holds the '.' key, repeatedly perform wait action with same timing as movement
@@ -198,10 +238,58 @@ func _unhandled_input(event: InputEvent) -> void:
 			move_timer = initial_delay
 			is_initial_press = true
 
-			var action_taken = _try_harvest(direction)
-			if action_taken:
+			var harvest_result = _try_harvest(direction)
+			if harvest_result.success:
 				TurnManager.advance_turn()
+				# Only enter continuous harvesting mode if harvest is still in progress
+				if not harvest_result.harvest_complete:
+					_harvesting_active = true
+					_harvest_direction = direction
+					_harvest_timer = initial_delay  # Use initial delay before next harvest
+					EventBus.harvesting_mode_changed.emit(true)
 			return
+
+	# If in continuous harvesting mode, handle direction key presses and ESC
+	if _harvesting_active and event is InputEventKey and event.pressed and not event.echo:
+		var pressed_direction = Vector2i.ZERO
+		match event.keycode:
+			KEY_UP, KEY_W:
+				pressed_direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				pressed_direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				pressed_direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				pressed_direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel harvesting mode
+				_exit_harvesting_mode()
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Stopped harvesting", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if pressed_direction != Vector2i.ZERO:
+			if pressed_direction == _harvest_direction:
+				# Same direction - perform another harvest
+				var harvest_result = _try_harvest(_harvest_direction)
+				if harvest_result.success:
+					TurnManager.advance_turn()
+					# Exit harvest mode if resource is depleted
+					if harvest_result.harvest_complete:
+						_exit_harvesting_mode()
+					else:
+						_harvest_timer = initial_delay  # Reset timer for next auto-harvest
+				else:
+					# Harvest failed - exit harvest mode
+					_exit_harvesting_mode()
+				get_viewport().set_input_as_handled()
+				return
+			else:
+				# Different direction pressed - exit harvest mode and process normally
+				_exit_harvesting_mode()
+				# Don't return - let normal input processing handle the movement
 
 	# Stairs navigation and wait action - check for specific key presses
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -522,6 +610,19 @@ func _start_harvest_mode() -> void:
 	ui_blocking_input = true
 	_awaiting_harvest_direction = true
 
+## Exit continuous harvesting mode
+func _exit_harvesting_mode() -> void:
+	if _harvesting_active:
+		_harvesting_active = false
+		_harvest_direction = Vector2i.ZERO
+		_harvest_timer = 0.0
+		_skip_movement_this_frame = true  # Prevent moving into harvested space
+		EventBus.harvesting_mode_changed.emit(false)
+
+## Check if currently in harvesting mode (for status bar)
+func is_harvesting() -> bool:
+	return _harvesting_active
+
 ## Open character sheet
 func _open_character_sheet() -> void:
 	print("[InputHandler] Opening character sheet")
@@ -555,12 +656,20 @@ func _try_interact_feature() -> bool:
 
 
 ## Try to harvest a resource in the given direction
-func _try_harvest(direction: Vector2i) -> bool:
+## Returns a Dictionary with keys: success (bool), harvest_complete (bool)
+## - success: true if harvest action was performed
+## - harvest_complete: true if resource is now depleted (no more harvesting possible)
+func _try_harvest(direction: Vector2i) -> Dictionary:
 	var result = player.harvest_resource(direction)
 
 	var game = get_parent()
 	if game and game.has_method("_add_message"):
 		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
+		# If there's a progress message (for multi-turn harvests completing), show it first
+		var progress_msg = result.get("progress_message", "")
+		if progress_msg != "":
+			game._add_message(progress_msg, color)
+		# Show the main message (progress or harvest completion)
 		game._add_message(result.message, color)
 
 	# If successful, trigger a map re-render to show the resource is gone
@@ -572,7 +681,11 @@ func _try_harvest(direction: Vector2i) -> bool:
 		if game.has_method("get_node") and game.get("renderer"):
 			game.renderer.render_entity(player.position, "@", Color.YELLOW)
 
-	return result.success
+	# Determine if harvest is complete (resource depleted)
+	# Harvest is complete when: success=true AND in_progress is not true
+	var harvest_complete = result.success and not result.get("in_progress", false)
+
+	return {"success": result.success, "harvest_complete": harvest_complete}
 
 
 ## Start ranged targeting mode

@@ -26,6 +26,7 @@ var _awaiting_harvest_direction: bool = false  # Waiting for player to specify d
 var _harvesting_active: bool = false  # Currently in continuous harvesting mode
 var _harvest_direction: Vector2i = Vector2i.ZERO  # Direction being harvested
 var _harvest_timer: float = 0.0  # Timer for continuous harvesting
+var _skip_movement_this_frame: bool = false  # Prevent movement after harvest completion
 
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
@@ -54,13 +55,18 @@ func set_player(p: Player) -> void:
 func _process(delta: float) -> void:
 	if not player or not TurnManager.is_player_turn:
 		return
-	
+
 	# Don't process input if player is dead
 	if not player.is_alive:
 		return
-	
+
 	# Don't process movement input if UI is blocking
 	if ui_blocking_input:
+		return
+
+	# Skip movement this frame (e.g., after harvest completion to prevent moving into harvested space)
+	if _skip_movement_this_frame:
+		_skip_movement_this_frame = false
 		return
 
 	# If in look mode and player presses movement, exit look mode first
@@ -610,6 +616,7 @@ func _exit_harvesting_mode() -> void:
 		_harvesting_active = false
 		_harvest_direction = Vector2i.ZERO
 		_harvest_timer = 0.0
+		_skip_movement_this_frame = true  # Prevent moving into harvested space
 		EventBus.harvesting_mode_changed.emit(false)
 
 ## Check if currently in harvesting mode (for status bar)

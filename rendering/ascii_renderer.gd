@@ -138,6 +138,7 @@ var fow_enabled: bool = true
 var current_map_id: String = ""
 var is_chunk_based: bool = false
 var current_map = null  # Reference to current GameMap for visibility checks
+var player_position: Vector2i = Vector2i.ZERO  # Player position for LOS checks
 
 # Dictionaries to track modulated cells for runtime coloring
 var terrain_modulated_cells: Dictionary = {}
@@ -414,9 +415,11 @@ func clear_entity(position: Vector2i) -> void:
 
 ## Update field of view and apply fog of war
 ## visible_tiles: tiles visible for entities (requires LOS)
-## terrain_visible_tiles: deprecated, no longer used (kept for API compatibility)
-func update_fov(new_visible_tiles: Array[Vector2i], _terrain_visible_tiles: Array[Vector2i] = []) -> void:
+## origin: player position for LOS calculations (optional but recommended)
+func update_fov(new_visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(-1, -1)) -> void:
 	visible_tiles = new_visible_tiles
+	if origin.x >= 0:
+		player_position = origin
 
 	if not fow_enabled:
 		return
@@ -545,23 +548,48 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 	return true
 
 ## Strict line-of-sight check using Bresenham's algorithm
-## Returns true only if there's a completely clear path to target
+## Returns true only if there's a completely clear path from player to target
 func _has_clear_los_to(target: Vector2i) -> bool:
 	if not current_map:
 		return false
 
-	# Get player position from the visible_tiles origin (first tile is usually player position)
-	# Actually we need a reference to player position - let's use the center of visible_tiles
-	# For now, check if ANY adjacent tile to target is transparent and visible
-	var directions = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
-	for dir in directions:
-		var adjacent = target + dir
-		var adj_tile = current_map.get_tile(adjacent)
-		# If there's an open door or transparent tile adjacent that's visible, allow seeing the entity
-		if adj_tile and adj_tile.transparent and visible_tiles.has(adjacent):
-			return true
+	# Use Bresenham's line algorithm to check all tiles between player and target
+	var x0 = player_position.x
+	var y0 = player_position.y
+	var x1 = target.x
+	var y1 = target.y
 
-	return false
+	var dx = abs(x1 - x0)
+	var dy = abs(y1 - y0)
+	var sx = 1 if x0 < x1 else -1
+	var sy = 1 if y0 < y1 else -1
+	var err = dx - dy
+
+	var x = x0
+	var y = y0
+
+	while true:
+		# Skip the start and end positions
+		if not (x == x0 and y == y0) and not (x == x1 and y == y1):
+			var check_pos = Vector2i(x, y)
+			var tile = current_map.get_tile(check_pos)
+			# If any tile along the path is not transparent, LOS is blocked
+			if tile and not tile.transparent:
+				return false
+
+		# Reached target
+		if x == x1 and y == y1:
+			break
+
+		var e2 = 2 * err
+		if e2 > -dy:
+			err -= dy
+			x += sx
+		if e2 < dx:
+			err += dx
+			y += sy
+
+	return true
 
 ## Apply fog tint to a color
 func _apply_fog_tint(original: Color, fog_color: Color, amount: float) -> Color:

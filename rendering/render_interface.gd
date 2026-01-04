@@ -20,8 +20,8 @@ func clear_entity(position: Vector2i) -> void:
 
 ## Update field of view (dim/hide tiles outside visible range)
 ## visible_tiles: tiles visible for entities (requires LOS)
-## terrain_visible_tiles: tiles visible for terrain only (optional, daytime outdoors)
-func update_fov(visible_tiles: Array[Vector2i], terrain_visible_tiles: Array[Vector2i] = []) -> void:
+## origin: player position for LOS calculations
+func update_fov(visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(-1, -1)) -> void:
 	push_error("update_fov must be overridden in subclass")
 
 ## Center camera on position

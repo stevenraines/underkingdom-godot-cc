@@ -171,7 +171,7 @@ func _ready() -> void:
 	# Calculate initial visibility (FOV + lighting)
 	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
 	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+	renderer.update_fov(visible_tiles, player.position)
 
 	# Connect signals
 	EventBus.player_moved.connect(_on_player_moved)
@@ -1776,4 +1776,4 @@ func _update_visibility() -> void:
 	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
 
 	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer
-	renderer.update_fov(visible_tiles)
+	renderer.update_fov(visible_tiles, player.position)

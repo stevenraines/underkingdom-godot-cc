@@ -6,6 +6,7 @@ extends Node
 
 # Preload ItemFactory for template-based item deserialization
 const ItemFactoryClass = preload("res://items/item_factory.gd")
+const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 
 const SAVE_DIR = "user://saves/"
 const SAVE_FILE_PATTERN = "save_slot_%d.json"
@@ -167,7 +168,8 @@ func _serialize_game_state() -> Dictionary:
 		"player": _serialize_player(),
 		"maps": _serialize_maps(),
 		"entities": _serialize_entities(),
-		"harvest": _serialize_harvest()
+		"harvest": _serialize_harvest(),
+		"fog_of_war": FogOfWarSystemClass.serialize()
 	}
 
 ## Serialize save metadata
@@ -406,6 +408,10 @@ func _deserialize_game_state(save_data: Dictionary):
 	# Restore harvest system state
 	if save_data.has("harvest"):
 		_deserialize_harvest(save_data.harvest)
+
+	# Restore fog of war (explored tiles)
+	if save_data.has("fog_of_war"):
+		FogOfWarSystemClass.deserialize(save_data.fog_of_war)
 
 	# Clear flag
 	is_deserializing = false

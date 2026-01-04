@@ -1,0 +1,25 @@
+{
+  "id": "candle",
+  "name": "Candle",
+  "description": "A simple wax candle. Provides dim light.",
+  "category": "tool",
+  "subtype": "light",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "light_source": true
+  },
+  "weight": 0.1,
+  "value": 1,
+  "max_stack": 10,
+  "ascii_char": "!",
+  "ascii_color": "#FFEE88",
+  "durability": 200,
+  "tool_type": "light",
+  "equip_slots": ["off_hand"],
+  "provides_light": true,
+  "light_radius": 2,
+  "burns_per_turn": 1
+}

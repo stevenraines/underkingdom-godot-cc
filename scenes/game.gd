@@ -11,6 +11,9 @@ const ItemManagerScript = preload("res://autoload/item_manager.gd")
 const JsonHelperScript = preload("res://autoload/json_helper.gd")
 const Structure = preload("res://entities/structure.gd")
 const StructurePlacement = preload("res://systems/structure_placement.gd")
+const LightingSystemClass = preload("res://systems/lighting_system.gd")
+const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+const FOVSystemClass = preload("res://systems/fov_system.gd")
 
 var player: Player
 var renderer: ASCIIRenderer
@@ -156,10 +159,19 @@ func _ready() -> void:
 	if _tree:
 		_tree.paused = false
 
-	# Calculate initial FOV
-	# TEMP: Commented out to debug gray overlay
-	#var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
-	#renderer.update_fov(visible_tiles)
+	# Setup fog of war
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
+	renderer.set_map_info(map_id, chunk_based)
+	renderer.set_fow_enabled(true)
+
+	# Register light sources from structures
+	_register_light_sources()
+
+	# Calculate initial visibility (FOV + lighting)
+	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
+	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
+	renderer.update_fov(visible_tiles)
 
 	# Connect signals
 	EventBus.player_moved.connect(_on_player_moved)
@@ -430,10 +442,8 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
 
-	# Update FOV
-	# TEMP: Commented out to debug gray overlay
-	#var visible_tiles = FOVSystem.calculate_fov(new_pos, player.perception_range, MapManager.current_map)
-	#renderer.update_fov(visible_tiles)
+	# Update visibility (FOV + lighting)
+	_update_visibility()
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()
@@ -532,9 +542,8 @@ func _on_map_changed(map_id: String) -> void:
 		return
 
 	# Invalidate FOV cache since map changed
-	# TEMP: Commented out to debug gray overlay
-	#print("[Game] 1/8 Invalidating FOV cache")
-	#FOVSystem.invalidate_cache()
+	print("[Game] 1/8 Invalidating FOV cache")
+	FOVSystemClass.invalidate_cache()
 
 	# Clear existing entities from EntityManager
 	print("[Game] 2/8 Clearing entities")
@@ -565,11 +574,14 @@ func _on_map_changed(map_id: String) -> void:
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
 
-	# Update FOV
-	# TEMP: Commented out to debug gray overlay
-	#print("[Game] 8/8 Calculating FOV")
-	#var visible_tiles = FOVSystem.calculate_fov(player.position, player.perception_range, MapManager.current_map)
-	#renderer.update_fov(visible_tiles)
+	# Setup fog of war for new map
+	var fow_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
+	renderer.set_map_info(fow_map_id, fow_chunk_based)
+
+	# Update visibility (FOV + lighting)
+	print("[Game] 8/8 Calculating visibility")
+	_update_visibility()
 
 	# Update message
 	_update_message()
@@ -1666,3 +1678,96 @@ func _update_build_cursor() -> void:
 	# Render cursor at new position
 	var cursor_pos = player.position + build_cursor_offset
 	renderer.render_entity(cursor_pos, "X", Color(1.0, 1.0, 0.0, 0.8))
+
+
+## Register light sources from structures on the current map
+func _register_light_sources() -> void:
+	# Clear existing light sources
+	LightingSystemClass.clear_light_sources()
+
+	if not MapManager.current_map:
+		return
+
+	var map_id = MapManager.current_map.map_id
+
+	# Register light sources from structures (campfires, etc.)
+	var structures = StructureManager.get_structures_on_map(map_id)
+	for structure in structures:
+		if structure.has_component("fire"):
+			var fire_comp = structure.get_component("fire")
+			if fire_comp.is_lit:
+				LightingSystemClass.add_light_source(structure.position, LightingSystemClass.LightType.CAMPFIRE)
+
+	# Register light sources from dungeon features (braziers, glowing moss, etc.)
+	for pos in FeatureManager.active_features:
+		var feature = FeatureManager.active_features[pos]
+		var definition = feature.get("definition", {})
+		# Check if feature provides light
+		if definition.get("provides_light", false):
+			var light_type_str = definition.get("light_type", "torch")
+			var light_type = _get_light_type_from_string(light_type_str)
+			LightingSystemClass.add_light_source(pos, light_type)
+
+	# Register town lights (lampposts) on overworld
+	if map_id == "overworld":
+		_register_town_lights()
+
+	# Register light sources from enemies with INT > 5 (they carry torches at night)
+	if TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk":
+		for entity in EntityManager.entities:
+			if entity is Enemy and entity.is_alive:
+				# Check if enemy is intelligent enough to carry a light
+				var enemy_int = entity.attributes.get("INT", 1)
+				if enemy_int >= 5:
+					LightingSystemClass.add_light_source(entity.position, LightingSystemClass.LightType.TORCH)
+
+
+## Register town lights (lampposts) at night
+func _register_town_lights() -> void:
+	# Get town center from map metadata
+	var town_center = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
+	if town_center == Vector2i(-1, -1):
+		return
+
+	# Get town size (default 20x20)
+	var town_size = MapManager.current_map.get_meta("town_size", Vector2i(20, 20))
+	var half_size = town_size / 2
+
+	# Place lamppost lights at corners and center of town
+	var lamppost_positions = [
+		town_center,  # Town center
+		town_center + Vector2i(-half_size.x / 2, -half_size.y / 2),  # NW quadrant
+		town_center + Vector2i(half_size.x / 2, -half_size.y / 2),   # NE quadrant
+		town_center + Vector2i(-half_size.x / 2, half_size.y / 2),   # SW quadrant
+		town_center + Vector2i(half_size.x / 2, half_size.y / 2),    # SE quadrant
+	]
+
+	for pos in lamppost_positions:
+		LightingSystemClass.add_light_source(pos, LightingSystemClass.LightType.LANTERN)
+
+
+## Convert light type string to LightType enum
+func _get_light_type_from_string(type_str: String) -> int:
+	match type_str.to_lower():
+		"torch": return LightingSystemClass.LightType.TORCH
+		"lantern": return LightingSystemClass.LightType.LANTERN
+		"campfire": return LightingSystemClass.LightType.CAMPFIRE
+		"brazier": return LightingSystemClass.LightType.BRAZIER
+		"glowing_moss": return LightingSystemClass.LightType.GLOWING_MOSS
+		"magical": return LightingSystemClass.LightType.MAGICAL
+		"candle": return LightingSystemClass.LightType.CANDLE
+		_: return LightingSystemClass.LightType.TORCH
+
+
+## Update visibility after player moves or light sources change
+func _update_visibility() -> void:
+	if not player or not MapManager.current_map:
+		return
+
+	# Re-register light sources (enemy positions may have changed)
+	_register_light_sources()
+
+	# Calculate visibility
+	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
+	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
+	renderer.update_fov(visible_tiles)

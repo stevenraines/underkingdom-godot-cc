@@ -362,6 +362,31 @@ func get_total_armor() -> int:
 			total += item.armor_value
 	return total
 
+## Get light radius from equipped light sources
+## Returns 0 if no light source equipped
+func get_equipped_light_radius() -> int:
+	# Check off-hand first (typical light source slot)
+	var off_hand = equipment.get("off_hand", null)
+	if off_hand and off_hand.provides_light:
+		return off_hand.light_radius
+
+	# Check main hand (torch can be wielded)
+	var main_hand = equipment.get("main_hand", null)
+	if main_hand and main_hand.provides_light:
+		return main_hand.light_radius
+
+	# Check accessory slots for magical light sources
+	for slot in ["accessory_1", "accessory_2"]:
+		var accessory = equipment.get(slot, null)
+		if accessory and accessory.provides_light:
+			return accessory.light_radius
+
+	return 0
+
+## Check if player has a light source equipped
+func has_light_source_equipped() -> bool:
+	return get_equipped_light_radius() > 0
+
 ## Get all items as array (for UI display)
 func get_all_items() -> Array[Item]:
 	return items

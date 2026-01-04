@@ -1,0 +1,20 @@
+{
+    "id": "magical_orb",
+    "name": "Magical Orb",
+    "description": "A floating orb of magical light illuminates the area.",
+    "ascii_char": "◎",
+    "color": "#9966FF",
+    "walkable": true,
+    "blocks_los": false,
+    "provides_light": true,
+    "light_type": "magical",
+    "light_radius": 6,
+    "interact_action": "examine",
+    "examine_text": "An orb of pure magical energy floats silently, pulsing with arcane light.",
+    "allowed_dungeons": ["wizard_tower", "temple_ruins"],
+    "placement": {
+        "min_per_floor": 1,
+        "max_per_floor": 3,
+        "locations": ["room_center", "near_stairs"]
+    }
+}

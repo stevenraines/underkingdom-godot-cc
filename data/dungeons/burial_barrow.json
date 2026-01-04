@@ -95,6 +95,18 @@
       "spawn_chance": 0.2,
       "room_types": ["any"],
       "provides_hint": true
+    },
+    {
+      "feature_id": "brazier",
+      "spawn_chance": 0.25,
+      "room_types": ["large", "entrance"],
+      "provides_light": true
+    },
+    {
+      "feature_id": "wall_torch",
+      "spawn_chance": 0.15,
+      "room_types": ["any"],
+      "provides_light": true
     }
   ],
 

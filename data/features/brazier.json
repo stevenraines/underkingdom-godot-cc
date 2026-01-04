@@ -1,0 +1,20 @@
+{
+    "id": "brazier",
+    "name": "Brazier",
+    "description": "A stone brazier holding a flickering flame.",
+    "ascii_char": "☗",
+    "color": "#FF6600",
+    "walkable": false,
+    "blocks_los": false,
+    "provides_light": true,
+    "light_type": "brazier",
+    "light_radius": 4,
+    "interact_action": "examine",
+    "examine_text": "A stone brazier burns with an eternal flame, casting dancing shadows on the walls.",
+    "allowed_dungeons": ["burial_barrow", "ancient_fort", "temple_ruins", "wizard_tower"],
+    "placement": {
+        "min_per_floor": 2,
+        "max_per_floor": 6,
+        "locations": ["room_corner", "corridor_intersection", "near_entrance"]
+    }
+}

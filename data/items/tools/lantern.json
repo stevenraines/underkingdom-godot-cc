@@ -1,0 +1,25 @@
+{
+  "id": "lantern",
+  "name": "Lantern",
+  "description": "An oil lantern that provides steady light. Uses oil to burn.",
+  "category": "tool",
+  "subtype": "light",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "light_source": true
+  },
+  "weight": 1.0,
+  "value": 15,
+  "max_stack": 1,
+  "ascii_char": "¤",
+  "ascii_color": "#FFCC00",
+  "durability": 1000,
+  "tool_type": "light",
+  "equip_slots": ["off_hand"],
+  "provides_light": true,
+  "light_radius": 7,
+  "burns_per_turn": 0.5
+}

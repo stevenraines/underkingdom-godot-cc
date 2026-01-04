@@ -5,9 +5,17 @@ extends RenderInterface
 ##
 ## Renders the game world using ASCII characters.
 ## Uses two TileMapLayer nodes: one for terrain, one for entities.
+## Supports fog of war: unexplored tiles are very dark gray,
+## explored but not visible tiles are dark gray.
+
+const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 
 const TILE_WIDTH = 38
 const TILE_HEIGHT = 64
+
+# Fog of war colors
+const FOG_UNEXPLORED_COLOR = Color(0.08, 0.08, 0.08)  # Very dark gray
+const FOG_EXPLORED_COLOR = Color(0.18, 0.18, 0.18)    # Dark gray
 
 # Child nodes (set in scene or _ready)
 @onready var terrain_layer: TileMapLayer = $TerrainLayer
@@ -124,9 +132,18 @@ var default_terrain_colors: Dictionary = {
 
 var visible_tiles: Array[Vector2i] = []
 
+# Fog of war state
+var fow_enabled: bool = true
+var current_map_id: String = ""
+var is_chunk_based: bool = false
+
 # Dictionaries to track modulated cells for runtime coloring
 var terrain_modulated_cells: Dictionary = {}
 var entity_modulated_cells: Dictionary = {}
+
+# Store original colors for fog of war dimming
+var terrain_original_colors: Dictionary = {}
+var entity_original_colors: Dictionary = {}
 
 # Track hidden floor tiles (positions where entities are standing)
 var hidden_floor_positions: Dictionary = {}
@@ -389,13 +406,109 @@ func clear_entity(position: Vector2i) -> void:
 		terrain_layer.notify_runtime_tile_data_update()
 		hidden_floor_positions.erase(position)
 
-## Update field of view
+## Update field of view and apply fog of war
 func update_fov(new_visible_tiles: Array[Vector2i]) -> void:
 	visible_tiles = new_visible_tiles
 
-	# TODO: Implement FOV dimming using shader or CanvasModulate
-	# For now, FOV is tracked but all tiles remain visible
-	# This is acceptable for Phase 1 core loop testing
+	if not fow_enabled:
+		return
+
+	# Apply fog of war to terrain tiles
+	_apply_fog_of_war_to_terrain()
+
+	# Apply fog of war to entity layer (hide entities not in visible tiles)
+	_apply_fog_of_war_to_entities()
+
+## Set map info for fog of war tracking
+func set_map_info(map_id: String, chunk_based: bool) -> void:
+	current_map_id = map_id
+	is_chunk_based = chunk_based
+
+## Enable or disable fog of war
+func set_fow_enabled(enabled: bool) -> void:
+	fow_enabled = enabled
+	if not enabled:
+		# Restore all original colors
+		_restore_all_colors()
+
+## Apply fog of war dimming to terrain tiles
+func _apply_fog_of_war_to_terrain() -> void:
+	if not terrain_layer:
+		return
+
+	# Collect all rendered terrain positions
+	var all_positions: Array = terrain_modulated_cells.keys()
+
+	for pos in all_positions:
+		var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+		var original_color = terrain_original_colors.get(pos, terrain_modulated_cells.get(pos, Color.WHITE))
+
+		# Store original color if not already stored
+		if not terrain_original_colors.has(pos):
+			terrain_original_colors[pos] = original_color
+
+		match tile_state:
+			"visible":
+				# Full brightness
+				terrain_modulated_cells[pos] = original_color
+			"explored":
+				# Dark gray tint (lerp toward fog color)
+				terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+			"unexplored":
+				# Very dark gray
+				terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+
+	terrain_layer.notify_runtime_tile_data_update()
+
+## Apply fog of war to entities (hide entities not in visible tiles)
+func _apply_fog_of_war_to_entities() -> void:
+	if not entity_layer:
+		return
+
+	# For entities, we need to hide those not in visible tiles
+	var all_positions: Array = entity_modulated_cells.keys()
+
+	for pos in all_positions:
+		var pos_is_visible = visible_tiles.has(pos)
+		var original_color = entity_original_colors.get(pos, entity_modulated_cells.get(pos, Color.WHITE))
+
+		# Store original color if not already stored
+		if not entity_original_colors.has(pos):
+			entity_original_colors[pos] = original_color
+
+		if pos_is_visible:
+			# Show entity with original color
+			entity_modulated_cells[pos] = original_color
+		else:
+			# Check if explored - show as dark silhouette for structures/items
+			var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+			if tile_state == "explored":
+				# Show as very dark version (for static objects like structures)
+				entity_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.8)
+			else:
+				# Unexplored - hide completely (make invisible)
+				entity_modulated_cells[pos] = Color(0, 0, 0, 0)
+
+	entity_layer.notify_runtime_tile_data_update()
+
+## Apply fog tint to a color
+func _apply_fog_tint(original: Color, fog_color: Color, amount: float) -> Color:
+	return original.lerp(fog_color, amount)
+
+## Restore all colors to original (when disabling FOW)
+func _restore_all_colors() -> void:
+	for pos in terrain_original_colors:
+		if terrain_modulated_cells.has(pos):
+			terrain_modulated_cells[pos] = terrain_original_colors[pos]
+
+	for pos in entity_original_colors:
+		if entity_modulated_cells.has(pos):
+			entity_modulated_cells[pos] = entity_original_colors[pos]
+
+	if terrain_layer:
+		terrain_layer.notify_runtime_tile_data_update()
+	if entity_layer:
+		entity_layer.notify_runtime_tile_data_update()
 
 ## Center camera on position
 func center_camera(pos: Vector2i) -> void:

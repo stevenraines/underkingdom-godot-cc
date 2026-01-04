@@ -1,7 +1,7 @@
 {
   "id": "torch",
   "name": "Torch",
-  "description": "A wooden torch that provides light.",
+  "description": "A wooden torch that provides light. Burns for a limited time.",
   "category": "tool",
   "subtype": "light",
   "flags": {
@@ -16,7 +16,10 @@
   "max_stack": 5,
   "ascii_char": "|",
   "ascii_color": "#FF8800",
-  "durability": 100,
+  "durability": 500,
   "tool_type": "light",
-  "equip_slots": ["main_hand", "off_hand"]
+  "equip_slots": ["main_hand", "off_hand"],
+  "provides_light": true,
+  "light_radius": 5,
+  "burns_per_turn": 1
 }

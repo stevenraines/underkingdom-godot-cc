@@ -96,6 +96,18 @@
       "room_types": ["library"],
       "contains_loot": true,
       "loot_type": "scrolls"
+    },
+    {
+      "feature_id": "magical_orb",
+      "spawn_chance": 0.35,
+      "room_types": ["any"],
+      "provides_light": true
+    },
+    {
+      "feature_id": "brazier",
+      "spawn_chance": 0.2,
+      "room_types": ["entrance"],
+      "provides_light": true
     }
   ],
 

@@ -115,6 +115,18 @@
       "room_types": ["side_chamber"],
       "contains_loot": true,
       "hidden": true
+    },
+    {
+      "feature_id": "glowing_moss",
+      "spawn_chance": 0.2,
+      "room_types": ["any"],
+      "provides_light": true
+    },
+    {
+      "feature_id": "wall_torch",
+      "spawn_chance": 0.1,
+      "room_types": ["junction", "main_tunnel"],
+      "provides_light": true
     }
   ],
 

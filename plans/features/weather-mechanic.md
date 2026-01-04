@@ -353,7 +353,6 @@ Display in message log when weather changes:
   "color": "#FFD700",
   "category": "storm",
   "temp_modifier": -15,
-  "visibility_modifier": -4,
   "stamina_drain_modifier": 1.3,
   "thirst_drain_modifier": 0.3,
   "fire_prevention": true,

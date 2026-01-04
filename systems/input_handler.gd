@@ -180,14 +180,27 @@ func _process(delta: float) -> void:
 ## Try to move or attack in a direction
 func _try_move_or_attack(direction: Vector2i) -> bool:
 	var target_pos = player.position + direction
-	
-	# Check for enemy at target position
+
+	# Check for blocking entity at target position
 	var blocking_entity = EntityManager.get_blocking_entity_at(target_pos)
-	
+
 	if blocking_entity and blocking_entity is Enemy:
 		# Attack the enemy (always consumes turn)
 		player.attack(blocking_entity)
 		return true
+	elif blocking_entity and blocking_entity is NPC:
+		# Check if NPC is inside their shop (both player and NPC on interior tiles)
+		var npc_tile = MapManager.current_map.get_tile(target_pos) if MapManager.current_map else null
+		var player_tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
+
+		if npc_tile and npc_tile.is_interior and player_tile and player_tile.is_interior:
+			# Both inside building - trigger NPC interaction
+			blocking_entity.interact(player)
+			return true
+		else:
+			# Outside shop - show blocked message
+			EventBus.message_logged.emit("Your path is blocked by %s." % blocking_entity.name)
+			return false
 	else:
 		# Try to move
 		return player.move(direction)

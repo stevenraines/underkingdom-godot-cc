@@ -181,7 +181,16 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 	var best_candidate = Vector2i(-1, -1)
 	var best_score = -1
 
-	# Try random positions
+	# For coastal towns, use a targeted search strategy: find ocean first, then search nearby land
+	if wants_coastal:
+		print("[SpecialFeaturePlacer] Using coastal-targeted search strategy")
+		var coastal_candidate = _find_coastal_position(world_seed, existing_positions, land_biomes, min_distance_from_towns, rng, island_width_chunks, island_height_chunks)
+		if coastal_candidate != Vector2i(-1, -1):
+			print("[SpecialFeaturePlacer] Found coastal position at %v" % coastal_candidate)
+			return coastal_candidate
+		print("[SpecialFeaturePlacer] Coastal-targeted search failed, falling back to random search")
+
+	# Try random positions (fallback or for non-coastal towns)
 	for _attempt in range(300):
 		# Random chunk within island
 		var chunk_x = rng.randi_range(2, island_width_chunks - 3)
@@ -257,6 +266,69 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 	else:
 		push_warning("[SpecialFeaturePlacer] Failed to place additional town after 300 attempts! land_biomes=%s, wants_coastal=%s" % [land_biomes, wants_coastal])
 	return best_candidate
+
+
+## Find a coastal position by searching from the island edge inward
+## This is more reliable than random sampling for finding coastal locations
+static func _find_coastal_position(world_seed: int, existing_positions: Array, land_biomes: Array, min_distance_from_towns: int, rng: SeededRandom, island_width_chunks: int, island_height_chunks: int) -> Vector2i:
+	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var ocean_biomes = ["ocean", "deep_ocean"]
+	var candidates: Array = []
+
+	# Sample along the perimeter of the island at multiple radii
+	# This finds where ocean meets land more reliably
+	var center = Vector2i(island_width_chunks * 32 / 2, island_height_chunks * 32 / 2)
+
+	# Scan in 32 directions from center, moving outward until we hit ocean
+	for angle in range(32):
+		var rad = angle * PI / 16.0
+		var dir = Vector2(cos(rad), sin(rad))
+
+		# Start from center and move outward
+		for dist in range(50, 400, 10):  # 50 to 400 tiles from center
+			var pos = center + Vector2i(int(dir.x * dist), int(dir.y * dist))
+
+			# Check if this position is in ocean
+			var biome = BiomeGenerator.get_biome_at(pos.x, pos.y, world_seed)
+			if biome.biome_name in ocean_biomes:
+				# Found ocean! Now search back toward land for a suitable town position
+				# Start at 5 tiles (to include beach biome) and go up to 50 tiles inland
+				for land_dist in range(5, 55, 5):
+					var land_pos = pos - Vector2i(int(dir.x * land_dist), int(dir.y * land_dist))
+					var land_biome = BiomeGenerator.get_biome_at(land_pos.x, land_pos.y, world_seed)
+
+					if land_biome.biome_name in excluded_biomes:
+						continue
+
+					# Check if on suitable biome
+					var on_suitable = land_biome.biome_name in land_biomes
+					if not on_suitable:
+						continue
+
+					# Check distance from other towns
+					var too_close = false
+					for town_pos in existing_positions:
+						if (land_pos - town_pos).length() < min_distance_from_towns:
+							too_close = true
+							break
+					if too_close:
+						continue
+
+					# Verify it's actually near coast
+					if _is_near_coast(land_pos, world_seed):
+						candidates.append({"pos": land_pos, "biome": land_biome.biome_name})
+
+				break  # Found ocean in this direction, move to next angle
+
+	# Return a random candidate from found positions
+	if candidates.size() > 0:
+		var selected_idx = rng.randi_range(0, candidates.size() - 1)
+		var selected = candidates[selected_idx]
+		print("[SpecialFeaturePlacer] Selected coastal candidate %v from %d options (biome=%s)" % [selected.pos, candidates.size(), selected.biome])
+		return selected.pos
+
+	print("[SpecialFeaturePlacer] No coastal candidates found in targeted search")
+	return Vector2i(-1, -1)
 
 
 ## Check if a position is near the ocean coastline

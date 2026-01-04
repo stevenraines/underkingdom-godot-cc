@@ -176,7 +176,7 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 
 			var tile: GameTile
 			if is_door:
-				tile = GameTile.create("door")
+				tile = GameTile.create("door_closed")  # Exterior doors start closed
 			elif is_wall:
 				tile = GameTile.create("wall")
 			else:
@@ -316,7 +316,7 @@ static func _char_to_tile(tile_char: String) -> GameTile:
 		"#":
 			return GameTile.create("wall")
 		"+":
-			return GameTile.create("door")
+			return GameTile.create("door_closed")  # Doors start closed
 		".":
 			var tile = GameTile.create("floor")
 			tile.is_interior = true  # Floor inside building

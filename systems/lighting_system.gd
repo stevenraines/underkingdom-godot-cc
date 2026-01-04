@@ -72,11 +72,11 @@ static func get_sun_light_radius(is_underground: bool = false) -> int:
 
 	var time = TurnManager.time_of_day
 	match time:
-		"day":
+		"day", "mid_day":
 			return 999  # Sun illuminates everything in LOS
 		"dawn", "dusk":
 			return 15   # Reduced visibility at twilight
-		"night":
+		"night", "midnight":
 			return 0    # No sunlight at night
 		_:
 			return 999

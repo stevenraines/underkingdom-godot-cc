@@ -1547,9 +1547,15 @@ func _on_harvesting_mode_changed(is_active: bool) -> void:
 		_add_message("Entered harvesting mode - keep pressing direction to continue", Color(0.6, 0.9, 0.6))
 
 
-## Called when time of day changes - handle shop door locking
+## Called when time of day changes - refresh FOV/lighting and handle shop door locking
 func _on_time_of_day_changed(new_time: String) -> void:
-	# Only handle shop door locking on overworld
+	# Refresh FOV and lighting since sun position affects visibility
+	if player and MapManager.current_map:
+		var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
+		var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
+		renderer.update_fov(visible_tiles, player.position)
+
+	# Handle shop door locking on overworld
 	if not MapManager.current_map or MapManager.current_map.map_id != "overworld":
 		return
 
@@ -1562,7 +1568,7 @@ func _on_time_of_day_changed(new_time: String) -> void:
 	# door at shop_start + Vector2i(2, 4) = town_center + Vector2i(0, 2)
 	var shop_door_pos = town_center + Vector2i(0, 2)
 
-	if new_time == "night":
+	if new_time == "night" or new_time == "midnight":
 		_lock_shop_door_if_player_outside(shop_door_pos, town_center)
 	elif new_time == "dawn":
 		_unlock_shop_door(shop_door_pos)

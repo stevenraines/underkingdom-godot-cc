@@ -426,16 +426,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				_exit_fishing_mode()
 				# Don't return - let normal input processing handle the movement
 
-	# Stairs navigation and wait action - check for specific key presses
+	# Stairs navigation - check for specific key presses
+	# Note: Wait action (. key) is handled in _process() for proper timing with held keys
 	if event is InputEventKey and event.pressed and not event.echo:
 		var action_taken = false
-		
+
 		# Check for > key (descend) - check unicode for web compatibility
 		var is_descend_key = (event.keycode == KEY_PERIOD and event.shift_pressed) or event.unicode == 62  # 62 = '>'
-		# Check for < key (ascend) - check unicode for web compatibility  
+		# Check for < key (ascend) - check unicode for web compatibility
 		var is_ascend_key = (event.keycode == KEY_COMMA and event.shift_pressed) or event.unicode == 60  # 60 = '<'
-		# Check for . key (wait) - not shifted
-		var is_wait_key = (event.keycode == KEY_PERIOD and not event.shift_pressed) or (event.unicode == 46 and not event.shift_pressed)  # 46 = '.'
 
 		if is_descend_key:
 			# Descend stairs - works on stairs_down tiles AND dungeon_entrance tiles
@@ -486,11 +485,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			else:
 				print("[InputHandler] Not on stairs_up tile - cannot ascend")
-		elif is_wait_key:
-			# Wait action - skip turn and get bonus stamina regen
-			_do_wait_action()
-			action_taken = true
-			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_I:  # I key - toggle inventory
 			_toggle_inventory()
 			get_viewport().set_input_as_handled()

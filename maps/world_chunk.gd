@@ -318,6 +318,10 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 			if existing_tile.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up", "tree", "rock"]:
 				continue
 
+			# Don't replace interior floor tiles (inside buildings)
+			if existing_tile.is_interior:
+				continue
+
 			# Handle water crossings with bridges
 			if existing_tile.tile_type == "water":
 				var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"

@@ -59,14 +59,19 @@ static func place_all_towns(world_seed: int, town_definitions: Dictionary) -> Ar
 			var size_array = town_def.get("size", [15, 15])
 			var town_size = Vector2i(size_array[0], size_array[1])
 
+			# Get roads configuration
+			var roads_config = town_def.get("roads", {})
+			var roads_connected = roads_config.get("connected_to_other_towns", false)
+
 			towns.append({
 				"town_id": town_id,
 				"position": town_pos,
 				"size": town_size,
 				"name": town_def.get("name", town_id),
-				"is_safe_zone": town_def.get("is_safe_zone", true)
+				"is_safe_zone": town_def.get("is_safe_zone", true),
+				"roads_connected": roads_connected
 			})
-			print("[SpecialFeaturePlacer] SUCCESS: Placed town %s (%s) at %v" % [town_id, town_def.get("name", town_id), town_pos])
+			print("[SpecialFeaturePlacer] SUCCESS: Placed town %s (%s) at %v (roads_connected=%s)" % [town_id, town_def.get("name", town_id), town_pos, roads_connected])
 		else:
 			push_warning("[SpecialFeaturePlacer] FAILED: Could not place town %s" % town_id)
 

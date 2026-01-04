@@ -208,8 +208,9 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 	var start = pos - half_size
 
 	var npc_pos = Vector2i(-1, -1)
+	var door_positions: Array[Vector2i] = []
 
-	# Layout is expected to be an array of strings, each representing a row
+	# First pass: place all tiles and track door positions
 	for y in range(min(rotated_layout.size(), rotated_size.y)):
 		var row = rotated_layout[y]
 		for x in range(min(row.length(), rotated_size.x)):
@@ -224,7 +225,48 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 			if tile_char == "@":
 				npc_pos = world_pos
 
+			# Track door positions for second pass
+			if tile_char == "+":
+				door_positions.append(world_pos)
+
+	# Second pass: lock interior doors (doors surrounded by interior tiles)
+	for door_pos in door_positions:
+		if _is_interior_door(tiles_dict, door_pos):
+			var door_tile = tiles_dict[door_pos]
+			door_tile.is_open = false
+			door_tile.walkable = false
+			door_tile.transparent = false
+			door_tile.ascii_char = "+"
+			door_tile.is_locked = true
+
 	return npc_pos
+
+## Check if a door is an interior door (has interior floor tiles on both sides)
+## Interior doors connect two interior spaces, exterior doors connect interior to exterior
+static func _is_interior_door(tiles_dict: Dictionary, door_pos: Vector2i) -> bool:
+	# Check horizontal neighbors (left and right)
+	var left_pos = door_pos + Vector2i(-1, 0)
+	var right_pos = door_pos + Vector2i(1, 0)
+	var left_tile = tiles_dict.get(left_pos)
+	var right_tile = tiles_dict.get(right_pos)
+
+	# If both left and right are interior floor tiles, this is a horizontal interior door
+	if left_tile and right_tile:
+		if left_tile.is_interior and right_tile.is_interior:
+			return true
+
+	# Check vertical neighbors (up and down)
+	var up_pos = door_pos + Vector2i(0, -1)
+	var down_pos = door_pos + Vector2i(0, 1)
+	var up_tile = tiles_dict.get(up_pos)
+	var down_tile = tiles_dict.get(down_pos)
+
+	# If both up and down are interior floor tiles, this is a vertical interior door
+	if up_tile and down_tile:
+		if up_tile.is_interior and down_tile.is_interior:
+			return true
+
+	return false
 
 ## Rotate a layout array based on door facing direction
 ## Layouts are defined with door facing south (bottom)

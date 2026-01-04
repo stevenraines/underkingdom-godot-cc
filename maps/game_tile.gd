@@ -13,6 +13,7 @@ var is_fire_source: bool = false  # Used for proximity crafting
 var harvestable_resource_id: String = ""  # ID of harvestable resource (if any)
 var color: Color = Color.WHITE  # Tile color (set by biome for floor/grass tiles)
 var is_open: bool = false  # For doors: true = open (walkable/transparent), false = closed
+var is_interior: bool = false  # True for tiles inside buildings (provides temperature bonus)
 
 # Lock properties (for doors)
 var is_locked: bool = false      # Whether the door is locked

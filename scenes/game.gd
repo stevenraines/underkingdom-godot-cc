@@ -845,18 +845,20 @@ func _update_hud() -> void:
 	if not player:
 		return
 
-	# Update character info line
+	# Update character info line with calendar data
 	if character_info_label:
-		var day_suffix = _get_day_suffix(TurnManager.current_day)
-		character_info_label.text = "Day %d%s - %s" % [TurnManager.current_day, day_suffix, TurnManager.time_of_day.capitalize()]
+		# Format: "Moonday, 15th Bloom - Dawn (Year 342)"
+		var date_str = CalendarManager.get_short_date_string()
+		var time_str = TurnManager.time_of_day.capitalize()
+		var year_str = "Year %d" % CalendarManager.current_year
+		character_info_label.text = "%s - %s (%s)" % [date_str, time_str, year_str]
 
 	# Update status line with health and survival
 	if status_line:
 		# Health with color coding
 		var hp_text = "HP: %d/%d" % [player.current_health, player.max_health]
 		var turn_text = "Turn: %d" % TurnManager.current_turn
-		var time_text = TurnManager.time_of_day.capitalize()
-		
+
 		# Survival stats (if available)
 		var survival_text = ""
 		if player.survival:
@@ -867,7 +869,7 @@ func _update_hud() -> void:
 			var temp_text = "Tmp: %d°F" % int(s.temperature)
 			survival_text = "  %s  %s  %s  %s" % [stam_text, hunger_text, thirst_text, temp_text]
 
-		status_line.text = "%s%s  %s  %s" % [hp_text, survival_text, turn_text, time_text]
+		status_line.text = "%s%s  %s" % [hp_text, survival_text, turn_text]
 
 	# Update XP label if present
 	if xp_label and player:

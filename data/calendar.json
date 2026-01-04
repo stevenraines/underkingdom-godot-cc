@@ -1,0 +1,70 @@
+{
+  "days_per_week": 7,
+  "days_per_month": 28,
+  "months_per_season": 3,
+  "turns_per_day": 100,
+  "starting_year_min": 101,
+  "starting_year_max": 899,
+  "day_names": [
+    "Solday",
+    "Moonday",
+    "Earthday",
+    "Windday",
+    "Waterday",
+    "Fireday",
+    "Restday"
+  ],
+  "seasons": [
+    {
+      "id": "spring",
+      "name": "Spring",
+      "months": [
+        { "id": "thaw", "name": "Thaw", "temp_modifier": -5 },
+        { "id": "bloom", "name": "Bloom", "temp_modifier": 0 },
+        { "id": "growth", "name": "Growth", "temp_modifier": 5 }
+      ],
+      "base_temp": 58
+    },
+    {
+      "id": "summer",
+      "name": "Summer",
+      "months": [
+        { "id": "sunpeak", "name": "Sunpeak", "temp_modifier": 5 },
+        { "id": "highsun", "name": "Highsun", "temp_modifier": 10 },
+        { "id": "harvest", "name": "Harvest", "temp_modifier": 5 }
+      ],
+      "base_temp": 75
+    },
+    {
+      "id": "autumn",
+      "name": "Autumn",
+      "months": [
+        { "id": "falling", "name": "Falling", "temp_modifier": 0 },
+        { "id": "windfall", "name": "Windfall", "temp_modifier": -5 },
+        { "id": "fading", "name": "Fading", "temp_modifier": -10 }
+      ],
+      "base_temp": 55
+    },
+    {
+      "id": "winter",
+      "name": "Winter",
+      "months": [
+        { "id": "frost", "name": "Frost", "temp_modifier": -5 },
+        { "id": "deepcold", "name": "Deepcold", "temp_modifier": -15 },
+        { "id": "thawing", "name": "Thawing", "temp_modifier": -5 }
+      ],
+      "base_temp": 35
+    }
+  ],
+  "time_of_day": {
+    "dawn": { "start": 0, "end": 15, "temp_modifier": -5 },
+    "day": { "start": 15, "end": 70, "temp_modifier": 0 },
+    "dusk": { "start": 70, "end": 85, "temp_modifier": -4 },
+    "night": { "start": 85, "end": 100, "temp_modifier": -14 }
+  },
+  "daily_temp_variation": {
+    "min": -3,
+    "max": 3
+  },
+  "interior_temp_bonus": 10
+}

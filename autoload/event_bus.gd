@@ -10,6 +10,8 @@ extends Node
 signal turn_advanced(turn_number: int)
 @warning_ignore("unused_signal")
 signal time_of_day_changed(period: String)  # "dawn", "day", "dusk", "night"
+@warning_ignore("unused_signal")
+signal day_changed(day: int)  # New calendar day
 
 # Player signals
 @warning_ignore("unused_signal")

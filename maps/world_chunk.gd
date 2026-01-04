@@ -58,6 +58,22 @@ func generate(world_seed: int) -> void:
 	for entrance in dungeon_entrances:
 		entrance_lookup[entrance.position] = entrance
 
+	# Build a dictionary of road positions for quick lookup (to avoid spawning resources on roads)
+	var road_positions: Dictionary = {}
+	var road_paths_data: Array = map.metadata.get("road_paths", []) if map else []
+	for road_path in road_paths_data:
+		var points: Array = road_path.get("points", [])
+		for point_data in points:
+			var pos_value = point_data.get("pos")
+			var world_pos: Vector2i
+			if pos_value is Vector2i:
+				world_pos = pos_value
+			elif pos_value is Array:
+				world_pos = Vector2i(pos_value[0], pos_value[1])
+			else:
+				continue
+			road_positions[world_pos] = true
+
 	# Generate all tiles in chunk using biome system
 	for local_y in range(CHUNK_SIZE):
 		for local_x in range(CHUNK_SIZE):
@@ -105,9 +121,10 @@ func generate(world_seed: int) -> void:
 
 			tiles[Vector2i(local_x, local_y)] = tile
 
-			# Try to spawn resources on floor tiles (skip in town areas)
+			# Try to spawn resources on floor tiles (skip in town areas and on road paths)
 			var min_dist_to_town = _get_min_distance_to_towns(world_pos, towns_data)
-			if tile.walkable and tile.tile_type == "floor" and min_dist_to_town > 10:
+			var is_on_road = world_pos in road_positions
+			if tile.walkable and tile.tile_type == "floor" and min_dist_to_town > 10 and not is_on_road:
 				# Try to spawn tree
 				if rng.randf() < biome.tree_density:
 					var resource_instance = ResourceSpawner.ResourceInstance.new("tree", world_pos, chunk_coords)
@@ -314,8 +331,8 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 
 			var existing_tile = tiles[local_pos]
 
-			# Don't replace special structures
-			if existing_tile.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up", "tree", "rock"]:
+			# Don't replace special structures (but do allow replacing trees/rocks for roads)
+			if existing_tile.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up"]:
 				continue
 
 			# Don't replace interior floor tiles (inside buildings)
@@ -328,8 +345,8 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 				tiles[local_pos] = GameTile.create(bridge_type)
 				continue
 
-			# Replace floor/grass tiles with road
-			if existing_tile.walkable and existing_tile.tile_type == "floor":
+			# Replace floor/grass tiles and resources (trees/rocks) with road
+			if existing_tile.tile_type in ["floor", "tree", "rock"]:
 				tiles[local_pos] = GameTile.create(road_type)
 
 

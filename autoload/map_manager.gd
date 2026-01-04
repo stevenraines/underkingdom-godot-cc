@@ -274,6 +274,7 @@ func _find_nearest_towns(town: Dictionary, all_towns: Array, count: int) -> Arra
 
 ## Generate a road path between two towns with material transitions
 ## Returns dictionary with path points and their road types
+## Roads are 2 tiles wide for better visibility and traversal
 func _generate_road_path_between_towns(from_pos: Vector2i, to_pos: Vector2i, world_seed: int) -> Dictionary:
 	var rng = SeededRandom.new(world_seed + from_pos.x * 1000 + from_pos.y + to_pos.x * 100 + to_pos.y)
 
@@ -283,12 +284,35 @@ func _generate_road_path_between_towns(from_pos: Vector2i, to_pos: Vector2i, wor
 	var cobblestone_threshold = 0.15
 	var gravel_threshold = 0.30
 
-	# Generate meandering path
-	var path_points = _generate_meandering_path(from_pos, to_pos, rng, total_dist)
+	# Generate meandering center path
+	var center_path = _generate_meandering_path(from_pos, to_pos, rng, total_dist)
 
-	# Build path data with road types
+	# Expand path to 2 tiles wide by adding perpendicular neighbor
 	var path_data: Array = []
-	for pos in path_points:
+	var added_positions: Dictionary = {}  # Track positions to avoid duplicates
+
+	for i in range(center_path.size()):
+		var pos = center_path[i]
+
+		# Calculate perpendicular direction based on path direction
+		var perpendicular: Vector2i
+		if i < center_path.size() - 1:
+			var next_pos = center_path[i + 1]
+			var direction = Vector2(next_pos - pos).normalized()
+			# Perpendicular is 90 degrees rotated
+			perpendicular = Vector2i(int(-direction.y), int(direction.x))
+			if perpendicular == Vector2i.ZERO:
+				perpendicular = Vector2i(1, 0)  # Default if direction is zero
+		elif i > 0:
+			var prev_pos = center_path[i - 1]
+			var direction = Vector2(pos - prev_pos).normalized()
+			perpendicular = Vector2i(int(-direction.y), int(direction.x))
+			if perpendicular == Vector2i.ZERO:
+				perpendicular = Vector2i(1, 0)
+		else:
+			perpendicular = Vector2i(1, 0)  # Default for single point
+
+		# Calculate road type based on distance
 		var dist_from_start = (pos - from_pos).length()
 		var dist_from_end = (pos - to_pos).length()
 		var min_dist = min(dist_from_start, dist_from_end)
@@ -302,7 +326,16 @@ func _generate_road_path_between_towns(from_pos: Vector2i, to_pos: Vector2i, wor
 		else:
 			road_type = "road_dirt"
 
-		path_data.append({"pos": pos, "type": road_type})
+		# Add center tile
+		if pos not in added_positions:
+			path_data.append({"pos": pos, "type": road_type})
+			added_positions[pos] = true
+
+		# Add perpendicular neighbor for 2-tile width
+		var neighbor_pos = pos + perpendicular
+		if neighbor_pos not in added_positions:
+			path_data.append({"pos": neighbor_pos, "type": road_type})
+			added_positions[neighbor_pos] = true
 
 	return {
 		"from": from_pos,

@@ -865,6 +865,9 @@ func _try_harvest(direction: Vector2i) -> Dictionary:
 		# Re-render player (not in EntityManager.entities)
 		if game.has_method("get_node") and game.get("renderer"):
 			game.renderer.render_entity(player.position, "@", Color.YELLOW)
+		# Re-apply visibility/fog of war after re-rendering
+		if game.has_method("_update_visibility"):
+			game._update_visibility()
 
 	# Determine if harvest is complete (resource depleted)
 	# Harvest is complete when: success=true AND in_progress is not true

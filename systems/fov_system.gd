@@ -251,14 +251,16 @@ static func is_daytime_outdoors(map: GameMap) -> bool:
 	var sun_radius = LightingSystemClass.get_sun_light_radius()
 	return sun_radius >= 999  # Full daylight
 
-## Get terrain visible tiles (all tiles within perception range during daytime outdoors)
-## During daytime outdoors, terrain is visible without LOS checks
+## Get terrain visible tiles (outdoor tiles within perception range during daytime)
+## During daytime outdoors, OUTDOOR terrain is visible without LOS checks
+## Building interiors still require LOS (you can't see inside without entering)
 ## Returns empty array if not daytime outdoors (fall back to normal visibility)
 static func get_terrain_visible_tiles(origin: Vector2i, perception_range: int, map: GameMap) -> Array[Vector2i]:
 	if not is_daytime_outdoors(map):
 		return []  # Empty means use normal LOS-based visibility
 
-	# During daytime outdoors, all terrain within perception range is visible
+	# During daytime outdoors, outdoor terrain within perception range is visible
+	# But building interiors still require LOS
 	var terrain_tiles: Array[Vector2i] = []
 	var adjusted_range = _adjust_range_for_time(perception_range)
 
@@ -267,6 +269,10 @@ static func get_terrain_visible_tiles(origin: Vector2i, perception_range: int, m
 			var pos = origin + Vector2i(dx, dy)
 			# Use chebyshev distance (square FOV) for consistent visibility
 			if _chebyshev_distance(origin, pos) <= adjusted_range:
+				# Check if this is an interior tile - if so, skip it (requires LOS)
+				var tile = map.get_tile(pos)
+				if tile and tile.is_interior:
+					continue  # Interior tiles require LOS even during daytime
 				terrain_tiles.append(pos)
 
 	return terrain_tiles

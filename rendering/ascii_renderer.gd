@@ -471,11 +471,12 @@ func _apply_fog_of_war_to_terrain(terrain_vis: Array[Vector2i]) -> void:
 	terrain_layer.notify_runtime_tile_data_update()
 
 ## Apply fog of war to entities (hide entities not in visible tiles)
+## Entities (NPCs, enemies, items) require LOS to be visible - completely hidden otherwise
 func _apply_fog_of_war_to_entities() -> void:
 	if not entity_layer:
 		return
 
-	# For entities, we need to hide those not in visible tiles
+	# For entities, we need to hide those not in visible tiles (LOS required)
 	var all_positions: Array = entity_modulated_cells.keys()
 
 	for pos in all_positions:
@@ -490,14 +491,9 @@ func _apply_fog_of_war_to_entities() -> void:
 			# Show entity with original color
 			entity_modulated_cells[pos] = original_color
 		else:
-			# Check if explored - show as dark silhouette for structures/items
-			var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
-			if tile_state == "explored":
-				# Show as very dark version (for static objects like structures)
-				entity_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.8)
-			else:
-				# Unexplored - hide completely (make invisible)
-				entity_modulated_cells[pos] = Color(0, 0, 0, 0)
+			# Not in LOS - hide completely (entities require line of sight)
+			# This applies to NPCs, enemies, items - they can't be seen through walls
+			entity_modulated_cells[pos] = Color(0, 0, 0, 0)
 
 	entity_layer.notify_runtime_tile_data_update()
 

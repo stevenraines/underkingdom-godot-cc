@@ -278,33 +278,30 @@ func regenerate_stamina(regen_modifier: float = 1.0) -> void:
 		EventBus.survival_stat_changed.emit("stamina", old_stamina, stamina)
 
 ## Update temperature based on environment
+## Now uses CalendarManager for seasonal temperature variations
 func update_temperature(map_id: String, time_of_day: String, player_pos: Vector2i) -> void:
 	var old_temp = temperature
 
 	# Determine base temperature
 	var base_temp: float
 	if map_id.begins_with("dungeon_"):
+		# Dungeons have constant temperature, unaffected by seasons
 		base_temp = TEMP_DUNGEON_BASE
 	else:
-		base_temp = TEMP_WOODLAND_BASE
+		# Overworld uses seasonal temperature from CalendarManager
+		base_temp = CalendarManager.get_ambient_temperature(time_of_day)
 
-	# Apply time of day modifier (only for overworld)
-	var time_modifier: float = 0.0
-	if not map_id.begins_with("dungeon_"):
-		match time_of_day:
-			"dawn":
-				time_modifier = TEMP_MOD_DAWN
-			"day":
-				time_modifier = TEMP_MOD_DAY
-			"dusk":
-				time_modifier = TEMP_MOD_DUSK
-			"night":
-				time_modifier = TEMP_MOD_NIGHT
+	# Check if player is inside a building (interior tile)
+	var interior_bonus: float = 0.0
+	if MapManager.current_map:
+		var tile = MapManager.current_map.get_tile(player_pos)
+		if tile and tile.is_interior:
+			interior_bonus = CalendarManager.get_interior_temp_bonus()
 
 	# Apply structure temperature bonuses (campfires, shelters)
 	var structure_bonus = _calculate_structure_temperature_bonus(player_pos, map_id)
 
-	temperature = base_temp + time_modifier + structure_bonus
+	temperature = base_temp + interior_bonus + structure_bonus
 
 	if temperature != old_temp:
 		EventBus.survival_stat_changed.emit("temperature", old_temp, temperature)

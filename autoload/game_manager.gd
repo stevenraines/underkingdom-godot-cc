@@ -46,6 +46,9 @@ func start_new_game(world_name_input: String = "") -> void:
 	TurnManager.current_turn = 0
 	TurnManager.time_of_day = "dawn"
 
+	# Initialize calendar with world seed
+	CalendarManager.initialize_with_seed(world_seed)
+
 	# Clear map cache to ensure new world generation with new seed
 	MapManager.loaded_maps.clear()
 

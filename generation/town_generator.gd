@@ -182,6 +182,7 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 			else:
 				tile = GameTile.create("floor")
 				tile.color = Color.WHITE  # Indoor floor uses default color
+				tile.is_interior = true  # Mark as interior for temperature bonus
 
 			tiles_dict[world_pos] = tile
 
@@ -275,12 +276,15 @@ static func _char_to_tile(tile_char: String) -> GameTile:
 		"+":
 			return GameTile.create("door")
 		".":
-			return GameTile.create("floor")
+			var tile = GameTile.create("floor")
+			tile.is_interior = true  # Floor inside building
+			return tile
 		"~":
 			return GameTile.create("water")
 		"@":
 			var tile = GameTile.create("floor")
 			tile.color = Color.WHITE
+			tile.is_interior = true  # NPC spawn point is inside building
 			return tile
 		_:
 			return GameTile.create("floor")

@@ -189,7 +189,8 @@ func _serialize_world() -> Dictionary:
 		"time_of_day": TurnManager.get_time_of_day(),
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
 		"current_dungeon_floor": MapManager.current_dungeon_floor,
-		"visited_locations": GameManager.visited_locations.duplicate(true)
+		"visited_locations": GameManager.visited_locations.duplicate(true),
+		"calendar": CalendarManager.serialize()
 	}
 
 ## Serialize player state
@@ -422,6 +423,13 @@ func _deserialize_world(world_data: Dictionary):
 		GameManager.visited_locations = world_data.visited_locations.duplicate(true)
 	else:
 		GameManager.visited_locations.clear()
+
+	# Restore calendar state
+	if world_data.has("calendar"):
+		CalendarManager.deserialize(world_data.calendar)
+	else:
+		# Initialize calendar fresh if no saved state (backwards compatibility)
+		CalendarManager.initialize_with_seed(GameManager.world_seed)
 
 ## Deserialize player state
 func _deserialize_player(player_data: Dictionary):

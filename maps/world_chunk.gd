@@ -200,7 +200,7 @@ func _get_town_size(town: Dictionary) -> Vector2i:
 	return size
 
 
-## Generate town structures for towns whose center is in this chunk
+## Generate town structures for towns that overlap with this chunk
 func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 	# Get TownManager singleton through Engine
 	var town_manager = Engine.get_singleton("TownManager") if Engine.has_singleton("TownManager") else null
@@ -208,44 +208,61 @@ func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 		# Fallback: try to get from tree (autoload)
 		town_manager = _get_autoload("TownManager")
 
+	# Get this chunk's world bounds
+	var chunk_bounds = get_world_bounds()
+	var chunk_rect = Rect2i(chunk_bounds.min, Vector2i(CHUNK_SIZE, CHUNK_SIZE))
+
 	for town in towns_data:
 		var town_pos = _get_town_position(town)
+		var town_size = _get_town_size(town)
+
+		# Calculate town bounding rect (with extra padding for building offsets)
+		# Buildings can have offsets up to half the town size, so use town_size as padding
+		var town_rect = Rect2i(town_pos - town_size, town_size * 2)
+
+		# Check if town bounds overlap with this chunk
+		if not chunk_rect.intersects(town_rect):
+			continue
+
+		var town_id = town.get("town_id", "starter_town")
+
+		# Determine if this is the "primary" chunk for this town (contains the center)
 		var town_chunk = Vector2i(
 			floori(float(town_pos.x) / CHUNK_SIZE),
 			floori(float(town_pos.y) / CHUNK_SIZE)
 		)
+		var is_primary_chunk = (chunk_coords == town_chunk)
 
-		if chunk_coords == town_chunk:
-			var town_id = town.get("town_id", "starter_town")
-			print("[WorldChunk] *** GENERATING %s STRUCTURES in chunk %v ***" % [town_id, chunk_coords])
+		print("[WorldChunk] Generating %s structures in chunk %v (primary=%s)" % [town_id, chunk_coords, is_primary_chunk])
 
-			# Get definitions from TownManager (or use defaults)
-			var town_def: Dictionary = {}
-			var building_defs: Dictionary = {}
-			if town_manager:
-				town_def = town_manager.get_town(town_id)
-				building_defs = town_manager.building_definitions
-			else:
-				# Fallback to default definitions
-				town_def = _get_default_town_def()
-				building_defs = _get_default_building_defs()
+		# Get definitions from TownManager (or use defaults)
+		var town_def: Dictionary = {}
+		var building_defs: Dictionary = {}
+		if town_manager:
+			town_def = town_manager.get_town(town_id)
+			building_defs = town_manager.building_definitions
+		else:
+			# Fallback to default definitions
+			town_def = _get_default_town_def()
+			building_defs = _get_default_building_defs()
 
-			# Convert tiles dict from local to world coords for TownGenerator
-			var world_tiles: Dictionary = {}
-			for local_pos in tiles:
-				var world_pos_tile = chunk_to_world_position(local_pos)
-				world_tiles[world_pos_tile] = tiles[local_pos]
+		# Convert tiles dict from local to world coords for TownGenerator
+		var world_tiles: Dictionary = {}
+		for local_pos in tiles:
+			var world_pos_tile = chunk_to_world_position(local_pos)
+			world_tiles[world_pos_tile] = tiles[local_pos]
 
-			# Generate using data-driven TownGenerator
-			var result = TownGeneratorScript.generate_town(town_id, town_pos, world_seed, world_tiles, town_def, building_defs)
+		# Generate using data-driven TownGenerator
+		var result = TownGeneratorScript.generate_town(town_id, town_pos, world_seed, world_tiles, town_def, building_defs)
 
-			# Copy generated tiles back to chunk local coordinates
-			for world_pos_tile in world_tiles:
-				var local_pos = world_to_chunk_position(world_pos_tile)
-				if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
-					tiles[local_pos] = world_tiles[world_pos_tile]
+		# Copy generated tiles back to chunk local coordinates
+		for world_pos_tile in world_tiles:
+			var local_pos = world_to_chunk_position(world_pos_tile)
+			if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
+				tiles[local_pos] = world_tiles[world_pos_tile]
 
-			# Spawn NPCs directly via EntityManager
+		# Only spawn NPCs and register town from the primary chunk to avoid duplicates
+		if is_primary_chunk:
 			if result.has("npc_spawns") and result.npc_spawns.size() > 0:
 				_spawn_town_npcs(result.npc_spawns, town_id)
 

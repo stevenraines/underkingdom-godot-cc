@@ -588,13 +588,12 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change COMPLETE ===")
 
 ## Called when a single tile changes (door opened/closed, etc.)
-func _on_tile_changed(pos: Vector2i) -> void:
+func _on_tile_changed(_pos: Vector2i) -> void:
 	if not MapManager.current_map:
 		return
 
-	var tile = MapManager.current_map.get_tile(pos)
-	if tile:
-		renderer.render_tile(pos, tile.ascii_char)
+	# Recalculate visibility when tiles change (doors open/close affects LOS)
+	_update_visibility()
 
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
@@ -1767,7 +1766,11 @@ func _update_visibility() -> void:
 	# Re-register light sources (enemy positions may have changed)
 	_register_light_sources()
 
-	# Calculate visibility
+	# Calculate visibility (LOS-based, for entities)
 	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
 	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
-	renderer.update_fov(visible_tiles)
+
+	# During daytime outdoors, terrain is visible in full perception range (no LOS needed)
+	var terrain_visible_tiles = FOVSystemClass.get_terrain_visible_tiles(player.position, player.perception_range, MapManager.current_map)
+
+	renderer.update_fov(visible_tiles, terrain_visible_tiles)

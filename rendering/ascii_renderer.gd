@@ -407,16 +407,20 @@ func clear_entity(position: Vector2i) -> void:
 		hidden_floor_positions.erase(position)
 
 ## Update field of view and apply fog of war
-func update_fov(new_visible_tiles: Array[Vector2i]) -> void:
+## visible_tiles: tiles visible for entities (requires LOS)
+## terrain_visible_tiles: tiles visible for terrain only (daytime outdoors, no LOS needed)
+func update_fov(new_visible_tiles: Array[Vector2i], terrain_visible_tiles: Array[Vector2i] = []) -> void:
 	visible_tiles = new_visible_tiles
+	# Use terrain_visible_tiles if provided, otherwise use visible_tiles for terrain too
+	var terrain_vis = terrain_visible_tiles if terrain_visible_tiles.size() > 0 else new_visible_tiles
 
 	if not fow_enabled:
 		return
 
-	# Apply fog of war to terrain tiles
-	_apply_fog_of_war_to_terrain()
+	# Apply fog of war to terrain tiles (uses terrain visibility)
+	_apply_fog_of_war_to_terrain(terrain_vis)
 
-	# Apply fog of war to entity layer (hide entities not in visible tiles)
+	# Apply fog of war to entity layer (uses LOS-based visibility)
 	_apply_fog_of_war_to_entities()
 
 ## Set map info for fog of war tracking
@@ -432,7 +436,8 @@ func set_fow_enabled(enabled: bool) -> void:
 		_restore_all_colors()
 
 ## Apply fog of war dimming to terrain tiles
-func _apply_fog_of_war_to_terrain() -> void:
+## terrain_vis: tiles that should be visible for terrain (may differ from entity visibility during daytime)
+func _apply_fog_of_war_to_terrain(terrain_vis: Array[Vector2i]) -> void:
 	if not terrain_layer:
 		return
 
@@ -440,23 +445,28 @@ func _apply_fog_of_war_to_terrain() -> void:
 	var all_positions: Array = terrain_modulated_cells.keys()
 
 	for pos in all_positions:
-		var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+		# Check if tile is in terrain-visible set
+		var is_terrain_visible = terrain_vis.has(pos)
 		var original_color = terrain_original_colors.get(pos, terrain_modulated_cells.get(pos, Color.WHITE))
 
 		# Store original color if not already stored
 		if not terrain_original_colors.has(pos):
 			terrain_original_colors[pos] = original_color
 
-		match tile_state:
-			"visible":
-				# Full brightness
-				terrain_modulated_cells[pos] = original_color
-			"explored":
-				# Dark gray tint (lerp toward fog color)
-				terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
-			"unexplored":
-				# Very dark gray
-				terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+		if is_terrain_visible:
+			# Mark as visible in fog of war system and show at full brightness
+			FogOfWarSystemClass.mark_explored(current_map_id, pos, is_chunk_based)
+			terrain_modulated_cells[pos] = original_color
+		else:
+			# Check explored state from fog of war system
+			var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+			match tile_state:
+				"explored":
+					# Dark gray tint (lerp toward fog color)
+					terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+				_:  # "unexplored"
+					# Very dark gray
+					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 
 	terrain_layer.notify_runtime_tile_data_update()
 

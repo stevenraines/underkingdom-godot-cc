@@ -237,3 +237,36 @@ static func get_cached_visible() -> Array[Vector2i]:
 ## Chebyshev distance (max of dx, dy)
 static func _chebyshev_distance(a: Vector2i, b: Vector2i) -> int:
 	return max(abs(a.x - b.x), abs(a.y - b.y))
+
+## Check if current conditions allow terrain-only visibility (daytime outdoors)
+## When true, terrain is visible within perception range without LOS,
+## but entities still require LOS to be seen
+static func is_daytime_outdoors(map: GameMap) -> bool:
+	if not map:
+		return false
+	# Overworld maps are chunk-based
+	if not map.chunk_based:
+		return false  # Dungeons always require LOS
+	# Check if daytime
+	var sun_radius = LightingSystemClass.get_sun_light_radius()
+	return sun_radius >= 999  # Full daylight
+
+## Get terrain visible tiles (all tiles within perception range during daytime outdoors)
+## During daytime outdoors, terrain is visible without LOS checks
+## Returns empty array if not daytime outdoors (fall back to normal visibility)
+static func get_terrain_visible_tiles(origin: Vector2i, perception_range: int, map: GameMap) -> Array[Vector2i]:
+	if not is_daytime_outdoors(map):
+		return []  # Empty means use normal LOS-based visibility
+
+	# During daytime outdoors, all terrain within perception range is visible
+	var terrain_tiles: Array[Vector2i] = []
+	var adjusted_range = _adjust_range_for_time(perception_range)
+
+	for dx in range(-adjusted_range, adjusted_range + 1):
+		for dy in range(-adjusted_range, adjusted_range + 1):
+			var pos = origin + Vector2i(dx, dy)
+			# Use chebyshev distance (square FOV) for consistent visibility
+			if _chebyshev_distance(origin, pos) <= adjusted_range:
+				terrain_tiles.append(pos)
+
+	return terrain_tiles

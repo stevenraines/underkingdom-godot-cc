@@ -1,11 +1,15 @@
 {
 	"id": "crystal_formation",
 	"name": "Crystal Formation",
-	"ascii_char": "^",
+	"description": "Luminescent crystals emit a soft blue glow.",
+	"ascii_char": "◇",
 	"color": "#00FFFF",
 	"blocking": true,
 	"interactable": true,
 	"interaction_verb": "harvest",
 	"harvestable": true,
-	"removes_on_interact": true
+	"removes_on_interact": true,
+	"provides_light": true,
+	"light_type": "magical",
+	"light_radius": 4
 }

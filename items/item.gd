@@ -52,6 +52,12 @@ var recovery_chance: float = 0.5    # Chance ammo/thrown weapon can be recovered
 # Tool properties
 var tool_type: String = ""          # "knife", "hammer", etc. for crafting requirements
 
+# Light source properties
+var provides_light: bool = false    # True if this item provides light
+var light_radius: int = 0           # Light radius in tiles (0 = no light)
+var burns_per_turn: float = 0.0     # Durability consumed per turn when lit
+var is_lit: bool = false            # True if the light source is currently lit (for torches/lanterns)
+
 # Key properties
 var key_id: String = ""             # For specific keys - matches a lock's lock_id
 var skeleton_key_level: int = 0     # For skeleton keys - can open locks at or below this level
@@ -128,6 +134,12 @@ static func create_from_data(data: Dictionary) -> Item:
 	# Tool
 	item.tool_type = data.get("tool_type", "")
 
+	# Light source properties
+	item.provides_light = data.get("provides_light", false)
+	item.light_radius = data.get("light_radius", 0)
+	item.burns_per_turn = data.get("burns_per_turn", 0.0)
+	item.is_lit = data.get("is_lit", false)
+
 	# Key properties
 	item.key_id = data.get("key_id", "")
 	item.skeleton_key_level = data.get("skeleton_key_level", 0)
@@ -174,6 +186,10 @@ func duplicate_item() -> Item:
 	copy.accuracy_modifier = accuracy_modifier
 	copy.recovery_chance = recovery_chance
 	copy.tool_type = tool_type
+	copy.provides_light = provides_light
+	copy.light_radius = light_radius
+	copy.burns_per_turn = burns_per_turn
+	copy.is_lit = is_lit
 	copy.key_id = key_id
 	copy.skeleton_key_level = skeleton_key_level
 	copy.effects = effects.duplicate()
@@ -415,6 +431,10 @@ func serialize() -> Dictionary:
 	if is_templated:
 		data["template_id"] = template_id
 		data["variants"] = applied_variants.duplicate()
+
+	# Save lit state for light sources
+	if is_lit:
+		data["is_lit"] = true
 
 	return data
 

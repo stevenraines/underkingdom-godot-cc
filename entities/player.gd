@@ -427,20 +427,34 @@ func get_total_armor() -> int:
 func pickup_item(ground_item: GroundItem) -> bool:
 	if not ground_item or not ground_item.item:
 		return false
-	
+
 	if not inventory:
 		return false
-	
+
 	# Check encumbrance before picking up
 	var new_weight = inventory.get_total_weight() + ground_item.item.get_total_weight()
 	if new_weight / inventory.max_weight > 1.25:
 		# Would be too heavy to move at all
 		return false
-	
-	if inventory.add_item(ground_item.item):
-		EventBus.item_picked_up.emit(ground_item.item)
+
+	var item = ground_item.item
+
+	# Auto-equip lit light sources to off-hand if available
+	if item.provides_light and item.is_lit and item.can_equip_to_slot("off_hand"):
+		var off_hand = inventory.get_equipped("off_hand")
+		var main_hand = inventory.get_equipped("main_hand")
+		# Check if off-hand is free (and not blocked by two-handed weapon)
+		if off_hand == null and (main_hand == null or not main_hand.is_two_handed()):
+			# Directly equip to off-hand
+			inventory.equipment["off_hand"] = item
+			EventBus.item_picked_up.emit(item)
+			EventBus.item_equipped.emit(item, "off_hand")
+			return true
+
+	if inventory.add_item(item):
+		EventBus.item_picked_up.emit(item)
 		return true
-	
+
 	return false
 
 ## Drop an item from inventory

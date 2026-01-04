@@ -6,14 +6,23 @@ class_name FOVSystem
 ## Based on: https://www.albertford.com/shadowcasting/
 ## Reference: https://www.roguebasin.com/index.php/FOV_using_recursive_shadowcasting
 ## Includes caching to avoid unnecessary recalculations
+##
+## Visibility requires BOTH:
+## 1. Line of sight (calculated via shadowcasting)
+## 2. Illumination (from LightingSystem)
+
+const LightingSystemClass = preload("res://systems/lighting_system.gd")
+const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 
 # FOV cache variables
 static var cached_fov: Array[Vector2i] = []
+static var cached_visible: Array[Vector2i] = []  # FOV filtered by lighting
 static var cache_origin: Vector2i = Vector2i(-999, -999)
 static var cache_range: int = -1
 static var cache_time: String = ""
 static var cache_map_id: String = ""
 static var cache_dirty: bool = true
+static var cache_light_sources_hash: int = 0
 
 ## Row structure for shadowcasting algorithm
 class Row:
@@ -170,3 +179,95 @@ static func _adjust_range_for_time(base_range: int) -> int:
 			return int(base_range * 0.75)  # 25% reduction at dawn/dusk
 		_:  # "day"
 			return base_range
+
+## Calculate visible tiles (FOV + lighting) and update fog of war
+## This is the main function to call from game.gd
+## Returns tiles that are currently visible (in LOS AND illuminated)
+static func calculate_visibility(origin: Vector2i, perception_range: int, light_radius: int, map: GameMap) -> Array[Vector2i]:
+	# First, calculate raw FOV (line of sight)
+	var los_tiles = calculate_fov(origin, perception_range, map)
+
+	# Get map info for fog of war
+	var map_id = map.map_id if map else ""
+	var chunk_based = map.chunk_based if map else false
+
+	# Dungeons (non-chunk-based maps) have no sunlight - always require light sources
+	var is_underground = not chunk_based
+
+	# Set underground state in lighting system so is_illuminated() works correctly
+	LightingSystemClass.set_underground(is_underground)
+
+	# Check sun light (0 in dungeons, varies by time on overworld)
+	var sun_radius = LightingSystemClass.get_sun_light_radius(is_underground)
+
+	if sun_radius >= 999:
+		# Full daylight on overworld - all tiles in LOS are visible
+		FogOfWarSystemClass.set_visible_tiles(los_tiles)
+		FogOfWarSystemClass.mark_many_explored(map_id, los_tiles, chunk_based)
+		cached_visible = los_tiles
+		return los_tiles
+
+	# Night/twilight/dungeon - need to check illumination from light sources
+	var visible_tiles: Array[Vector2i] = []
+
+	# Player's own tile is always visible
+	visible_tiles.append(origin)
+
+	# Calculate illuminated area from light sources
+	LightingSystemClass.calculate_illuminated_area(origin, perception_range)
+
+	for tile_pos in los_tiles:
+		# Check if illuminated by any light source (torches, braziers, etc.)
+		var is_lit = LightingSystemClass.is_illuminated(tile_pos)
+
+		# Player's equipped light source illuminates tiles in their LOS
+		if not is_lit and light_radius > 0:
+			var dist = _chebyshev_distance(origin, tile_pos)
+			if dist <= light_radius:
+				is_lit = true
+
+		if is_lit:
+			if not visible_tiles.has(tile_pos):
+				visible_tiles.append(tile_pos)
+
+	# Update fog of war
+	FogOfWarSystemClass.set_visible_tiles(visible_tiles)
+	FogOfWarSystemClass.mark_many_explored(map_id, visible_tiles, chunk_based)
+
+	cached_visible = visible_tiles
+	return visible_tiles
+
+## Get the last calculated visible tiles
+static func get_cached_visible() -> Array[Vector2i]:
+	return cached_visible
+
+## Chebyshev distance (max of dx, dy)
+static func _chebyshev_distance(a: Vector2i, b: Vector2i) -> int:
+	return max(abs(a.x - b.x), abs(a.y - b.y))
+
+## Check if current conditions allow terrain-only visibility (daytime outdoors)
+## When true, terrain is visible within perception range without LOS,
+## but entities still require LOS to be seen
+static func is_daytime_outdoors(map: GameMap) -> bool:
+	if not map:
+		return false
+	# Overworld maps are chunk-based, dungeons are not
+	if not map.chunk_based:
+		return false  # Dungeons always require LOS and light sources
+	# Check if daytime (passing false for is_underground since we're on overworld)
+	var sun_radius = LightingSystemClass.get_sun_light_radius(false)
+	return sun_radius >= 999  # Full daylight
+
+## Check if a specific tile should be terrain-visible during daytime outdoors
+## This is more efficient than generating a huge array of all visible tiles
+## Returns true if: daytime outdoors AND tile is not an interior tile
+static func is_terrain_visible_at(pos: Vector2i, map: GameMap) -> bool:
+	if not is_daytime_outdoors(map):
+		return false  # Not daytime outdoors, use normal LOS visibility
+
+	# Check if this is an interior tile - interiors require LOS even during daytime
+	var tile = map.get_tile(pos)
+	if tile and tile.is_interior:
+		return false
+
+	return true  # Outdoor tile during daytime - visible without LOS

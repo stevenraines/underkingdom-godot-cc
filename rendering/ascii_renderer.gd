@@ -5,9 +5,18 @@ extends RenderInterface
 ##
 ## Renders the game world using ASCII characters.
 ## Uses two TileMapLayer nodes: one for terrain, one for entities.
+## Supports fog of war: unexplored tiles are very dark gray,
+## explored but not visible tiles are dark gray.
+
+const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+const FOVSystemClass = preload("res://systems/fov_system.gd")
 
 const TILE_WIDTH = 38
 const TILE_HEIGHT = 64
+
+# Fog of war colors
+const FOG_UNEXPLORED_COLOR = Color(0.08, 0.08, 0.08)  # Very dark gray
+const FOG_EXPLORED_COLOR = Color(0.18, 0.18, 0.18)    # Dark gray
 
 # Child nodes (set in scene or _ready)
 @onready var terrain_layer: TileMapLayer = $TerrainLayer
@@ -123,10 +132,26 @@ var default_terrain_colors: Dictionary = {
 }
 
 var visible_tiles: Array[Vector2i] = []
+var visible_tiles_set: Dictionary = {}  # Dictionary for O(1) lookups
+
+# Fog of war state
+var fow_enabled: bool = true
+var current_map_id: String = ""
+var is_chunk_based: bool = false
+var current_map = null  # Reference to current GameMap for visibility checks
+var player_position: Vector2i = Vector2i.ZERO  # Player position for LOS checks
 
 # Dictionaries to track modulated cells for runtime coloring
 var terrain_modulated_cells: Dictionary = {}
 var entity_modulated_cells: Dictionary = {}
+
+# Store original colors for fog of war dimming
+var terrain_original_colors: Dictionary = {}
+var entity_original_colors: Dictionary = {}
+
+# Track hidden entities (erased due to being outside LOS)
+# Stores {position: {atlas: Vector2i, color: Color}} so they can be restored
+var hidden_entity_positions: Dictionary = {}
 
 # Track hidden floor tiles (positions where entities are standing)
 var hidden_floor_positions: Dictionary = {}
@@ -389,13 +414,213 @@ func clear_entity(position: Vector2i) -> void:
 		terrain_layer.notify_runtime_tile_data_update()
 		hidden_floor_positions.erase(position)
 
-## Update field of view
-func update_fov(new_visible_tiles: Array[Vector2i]) -> void:
+## Update field of view and apply fog of war
+## visible_tiles: tiles visible for entities (requires LOS)
+## origin: player position for LOS calculations (optional but recommended)
+func update_fov(new_visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(-1, -1)) -> void:
 	visible_tiles = new_visible_tiles
+	if origin.x >= 0:
+		player_position = origin
 
-	# TODO: Implement FOV dimming using shader or CanvasModulate
-	# For now, FOV is tracked but all tiles remain visible
-	# This is acceptable for Phase 1 core loop testing
+	# Build a set for O(1) lookups instead of O(n) array.has()
+	visible_tiles_set.clear()
+	for pos in new_visible_tiles:
+		visible_tiles_set[pos] = true
+
+	if not fow_enabled:
+		return
+
+	# Apply fog of war to terrain tiles
+	# Uses per-tile visibility check for efficiency
+	_apply_fog_of_war_to_terrain()
+
+	# Apply fog of war to entity layer (uses LOS-based visibility)
+	_apply_fog_of_war_to_entities()
+
+## Set map info for fog of war tracking
+func set_map_info(map_id: String, chunk_based: bool, map = null) -> void:
+	current_map_id = map_id
+	is_chunk_based = chunk_based
+	current_map = map
+
+## Enable or disable fog of war
+func set_fow_enabled(enabled: bool) -> void:
+	fow_enabled = enabled
+	if not enabled:
+		# Restore all original colors
+		_restore_all_colors()
+
+## Apply fog of war dimming to terrain tiles
+## Uses efficient per-tile visibility checks instead of array lookup
+func _apply_fog_of_war_to_terrain() -> void:
+	if not terrain_layer:
+		return
+
+	# Collect all rendered terrain positions
+	var all_positions: Array = terrain_modulated_cells.keys()
+
+	# Check if we're in daytime outdoors mode (can skip many checks)
+	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
+
+	for pos in all_positions:
+		# Check if tile is visible:
+		# 1. In LOS-based visible_tiles_set (O(1) lookup), OR
+		# 2. Daytime outdoors and not an interior tile
+		var is_terrain_visible = visible_tiles_set.has(pos)
+		if not is_terrain_visible and is_daytime_outdoors:
+			# During daytime outdoors, check if tile is exterior (visible without LOS)
+			var tile = current_map.get_tile(pos)
+			if tile and not tile.is_interior:
+				is_terrain_visible = true
+
+		var original_color = terrain_original_colors.get(pos, terrain_modulated_cells.get(pos, Color.WHITE))
+
+		# Store original color if not already stored
+		if not terrain_original_colors.has(pos):
+			terrain_original_colors[pos] = original_color
+
+		if is_terrain_visible:
+			# Mark as visible in fog of war system and show at full brightness
+			FogOfWarSystemClass.mark_explored(current_map_id, pos, is_chunk_based)
+			terrain_modulated_cells[pos] = original_color
+		else:
+			# Check explored state from fog of war system
+			var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+			match tile_state:
+				"explored":
+					# Dark gray tint (lerp toward fog color)
+					terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+				_:  # "unexplored"
+					# Very dark gray
+					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+
+	terrain_layer.notify_runtime_tile_data_update()
+
+## Apply fog of war to entities (hide entities not in visible tiles)
+## Entities (NPCs, enemies, items) require LOS to be visible - completely hidden otherwise
+## Interior tiles also require strict LOS even if the FOV algorithm marks them visible
+func _apply_fog_of_war_to_entities() -> void:
+	if not entity_layer:
+		return
+
+	# First, check if any hidden entities should be restored (now visible)
+	var hidden_to_restore: Array = []
+	for pos in hidden_entity_positions.keys():
+		if _is_entity_visible_at(pos):
+			hidden_to_restore.append(pos)
+
+	for pos in hidden_to_restore:
+		var hidden_data = hidden_entity_positions[pos]
+		# Restore the entity cell
+		entity_layer.set_cell(pos, 0, hidden_data["atlas"])
+		entity_modulated_cells[pos] = hidden_data["color"]
+		hidden_entity_positions.erase(pos)
+
+	# Now process currently rendered entities
+	var all_positions: Array = entity_modulated_cells.keys().duplicate()
+
+	for pos in all_positions:
+		var pos_is_visible = _is_entity_visible_at(pos)
+		var original_color = entity_original_colors.get(pos, entity_modulated_cells.get(pos, Color.WHITE))
+
+		# Store original color if not already stored
+		if not entity_original_colors.has(pos):
+			entity_original_colors[pos] = original_color
+
+		if pos_is_visible:
+			# Show entity with original color
+			entity_modulated_cells[pos] = original_color
+		else:
+			# Not in LOS - store entity data and erase the cell
+			var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
+			hidden_entity_positions[pos] = {
+				"atlas": atlas_coords,
+				"color": original_color
+			}
+			entity_layer.erase_cell(pos)
+			entity_modulated_cells.erase(pos)
+
+	entity_layer.notify_runtime_tile_data_update()
+
+## Check if an entity at a position should be visible
+## Entities in interior tiles require strict LOS - no corner peeking allowed
+func _is_entity_visible_at(pos: Vector2i) -> bool:
+	# First check basic visibility using O(1) set lookup
+	if not visible_tiles_set.has(pos):
+		return false
+
+	# For interior tiles, do an additional Bresenham line-of-sight check
+	# This prevents corner-peeking issues with shadowcasting
+	if current_map:
+		var tile = current_map.get_tile(pos)
+		if tile and tile.is_interior:
+			# Do strict line-of-sight check for interior tiles
+			return _has_clear_los_to(pos)
+
+	return true
+
+## Strict line-of-sight check using Bresenham's algorithm
+## Returns true only if there's a completely clear path from player to target
+func _has_clear_los_to(target: Vector2i) -> bool:
+	if not current_map:
+		return false
+
+	# Use Bresenham's line algorithm to check all tiles between player and target
+	var x0 = player_position.x
+	var y0 = player_position.y
+	var x1 = target.x
+	var y1 = target.y
+
+	var dx = abs(x1 - x0)
+	var dy = abs(y1 - y0)
+	var sx = 1 if x0 < x1 else -1
+	var sy = 1 if y0 < y1 else -1
+	var err = dx - dy
+
+	var x = x0
+	var y = y0
+
+	while true:
+		# Skip the start and end positions
+		if not (x == x0 and y == y0) and not (x == x1 and y == y1):
+			var check_pos = Vector2i(x, y)
+			var tile = current_map.get_tile(check_pos)
+			# If any tile along the path is not transparent, LOS is blocked
+			if tile and not tile.transparent:
+				return false
+
+		# Reached target
+		if x == x1 and y == y1:
+			break
+
+		var e2 = 2 * err
+		if e2 > -dy:
+			err -= dy
+			x += sx
+		if e2 < dx:
+			err += dx
+			y += sy
+
+	return true
+
+## Apply fog tint to a color
+func _apply_fog_tint(original: Color, fog_color: Color, amount: float) -> Color:
+	return original.lerp(fog_color, amount)
+
+## Restore all colors to original (when disabling FOW)
+func _restore_all_colors() -> void:
+	for pos in terrain_original_colors:
+		if terrain_modulated_cells.has(pos):
+			terrain_modulated_cells[pos] = terrain_original_colors[pos]
+
+	for pos in entity_original_colors:
+		if entity_modulated_cells.has(pos):
+			entity_modulated_cells[pos] = entity_original_colors[pos]
+
+	if terrain_layer:
+		terrain_layer.notify_runtime_tile_data_update()
+	if entity_layer:
+		entity_layer.notify_runtime_tile_data_update()
 
 ## Center camera on position
 func center_camera(pos: Vector2i) -> void:
@@ -417,6 +642,9 @@ func clear_all() -> void:
 	entity_modulated_cells.clear()
 	highlight_modulated_cells.clear()
 	hidden_floor_positions.clear()
+	hidden_entity_positions.clear()
+	entity_original_colors.clear()
+	terrain_original_colors.clear()
 	current_highlight_position = Vector2i(-1, -1)
 
 

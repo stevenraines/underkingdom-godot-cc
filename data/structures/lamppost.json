@@ -1,0 +1,20 @@
+{
+  "id": "lamppost",
+  "name": "Lamppost",
+  "description": "A tall lamppost that illuminates the area at night.",
+  "ascii_char": "!",
+  "ascii_color": "#FFCC00",
+  "blocks_movement": true,
+  "structure_type": "lamppost",
+  "durability": -1,
+  "components": {
+    "fire": {
+      "heat_radius": 0,
+      "temperature_bonus": 0.0,
+      "light_radius": 6,
+      "is_lit": true
+    }
+  },
+  "placeable_by_player": false,
+  "buildable": false
+}

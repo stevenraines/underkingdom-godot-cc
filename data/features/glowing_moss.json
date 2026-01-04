@@ -1,0 +1,22 @@
+{
+    "id": "glowing_moss",
+    "name": "Glowing Moss",
+    "description": "Phosphorescent moss emits a soft, eerie glow.",
+    "ascii_char": "∴",
+    "color": "#66FF99",
+    "walkable": true,
+    "blocks_los": false,
+    "provides_light": true,
+    "light_type": "glowing_moss",
+    "light_radius": 3,
+    "interact_action": "harvest",
+    "harvest_result": "glowing_moss_sample",
+    "harvest_chance": 0.5,
+    "examine_text": "The moss glows with a faint bioluminescence, providing just enough light to see by.",
+    "allowed_dungeons": ["natural_cave", "sewers", "abandoned_mine"],
+    "placement": {
+        "min_per_floor": 3,
+        "max_per_floor": 8,
+        "locations": ["wall_adjacent", "dead_end", "room_corner"]
+    }
+}

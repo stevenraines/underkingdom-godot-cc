@@ -92,6 +92,12 @@
       "room_types": ["any"],
       "harvestable": true,
       "poisons_on_damage": true
+    },
+    {
+      "feature_id": "glowing_moss",
+      "spawn_chance": 0.3,
+      "room_types": ["any"],
+      "provides_light": true
     }
   ],
 

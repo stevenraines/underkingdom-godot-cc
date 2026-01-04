@@ -1,0 +1,22 @@
+{
+    "id": "wall_torch",
+    "name": "Wall Torch",
+    "description": "A torch mounted on the wall.",
+    "ascii_char": "¡",
+    "color": "#FF9900",
+    "walkable": false,
+    "blocks_los": false,
+    "provides_light": true,
+    "light_type": "torch",
+    "light_radius": 5,
+    "interact_action": "take",
+    "take_result": "torch",
+    "take_removes_feature": true,
+    "examine_text": "A burning torch is mounted in a simple iron sconce.",
+    "allowed_dungeons": ["burial_barrow", "ancient_fort", "military_compound", "sewers"],
+    "placement": {
+        "min_per_floor": 2,
+        "max_per_floor": 5,
+        "locations": ["corridor_wall", "room_entrance", "near_stairs"]
+    }
+}

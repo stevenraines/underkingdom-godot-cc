@@ -557,6 +557,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_Y:  # Y key - pick/lock a lock
 			action_taken = _try_lockpick()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_Q:  # Q key - toggle light source (light/extinguish)
+			_try_toggle_light()
+			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
 		if action_taken:
@@ -643,6 +646,37 @@ func _try_lockpick() -> bool:
 func _emit_fov_invalidate() -> void:
 	const FOVSystemClass = preload("res://systems/fov_system.gd")
 	FOVSystemClass.invalidate_cache()
+
+## Toggle an equipped light source (light if unlit, extinguish if lit)
+func _try_toggle_light() -> void:
+	var game = get_parent()
+	if not player or not player.inventory:
+		return
+
+	# Check equipped slots for burnable light sources
+	for slot in ["main_hand", "off_hand"]:
+		var item = player.inventory.get_equipped(slot)
+		if item and item.provides_light and item.burns_per_turn > 0:
+			if item.is_lit:
+				# Extinguish it
+				item.is_lit = false
+				if game and game.has_method("_add_message"):
+					game._add_message("You extinguish the %s." % item.name, Color(0.6, 0.6, 0.6))
+			else:
+				# Light it
+				item.is_lit = true
+				if game and game.has_method("_add_message"):
+					game._add_message("You light the %s." % item.name, Color(1.0, 0.8, 0.4))
+			# Update visibility and HUD
+			if game and game.has_method("_update_visibility"):
+				game._update_visibility()
+			if game and game.has_method("_update_hud"):
+				game._update_hud()
+			return
+
+	# No light source found
+	if game and game.has_method("_add_message"):
+		game._add_message("You have no light source to light or extinguish.", Color.GRAY)
 
 ## Wait action - rest in place for bonus stamina regeneration
 func _do_wait_action() -> void:
@@ -865,6 +899,9 @@ func _try_harvest(direction: Vector2i) -> Dictionary:
 		# Re-render player (not in EntityManager.entities)
 		if game.has_method("get_node") and game.get("renderer"):
 			game.renderer.render_entity(player.position, "@", Color.YELLOW)
+		# Re-apply visibility/fog of war after re-rendering
+		if game.has_method("_update_visibility"):
+			game._update_visibility()
 
 	# Determine if harvest is complete (resource depleted)
 	# Harvest is complete when: success=true AND in_progress is not true
@@ -1507,8 +1544,8 @@ func _get_item_description(ground_item: GroundItem) -> String:
 	if ground_item.item:
 		var item = ground_item.item
 		var desc_parts = []
-		if item.stack_count > 1:
-			desc_parts.append("x%d" % item.stack_count)
+		if item.stack_size > 1:
+			desc_parts.append("x%d" % item.stack_size)
 		if item.weight > 0:
 			desc_parts.append("%.1f kg" % item.weight)
 		return ", ".join(desc_parts) if desc_parts.size() > 0 else ""

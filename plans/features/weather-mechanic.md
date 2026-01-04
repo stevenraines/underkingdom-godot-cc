@@ -381,12 +381,11 @@ Display in message log when weather changes:
     "clear": 15,
     "partly_cloudy": 10,
     "cloudy": 20,
-    "fog": 5,
     "light_snow": 20,
     "snow": 15,
     "blizzard": 5,
     "sleet": 8,
-    "wind": 2
+    "wind": 7
   },
   "rain_to_snow_temp_threshold": 38,
   "storm_frequency_modifier": 0.8,

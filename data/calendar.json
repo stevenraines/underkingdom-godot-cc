@@ -2,7 +2,6 @@
   "days_per_week": 7,
   "days_per_month": 28,
   "months_per_season": 3,
-  "turns_per_day": 100,
   "starting_year_min": 101,
   "starting_year_max": 899,
   "day_names": [
@@ -56,12 +55,16 @@
       "base_temp": 35
     }
   ],
-  "time_of_day": {
-    "dawn": { "start": 0, "end": 15, "temp_modifier": -5 },
-    "day": { "start": 15, "end": 70, "temp_modifier": 0 },
-    "dusk": { "start": 70, "end": 85, "temp_modifier": -4 },
-    "night": { "start": 85, "end": 100, "temp_modifier": -14 }
-  },
+  "time_periods": [
+    { "id": "dawn", "duration": 15, "temp_modifier": -5 },
+    { "id": "day", "duration": 27, "temp_modifier": 0 },
+    { "id": "mid_day", "duration": 1, "temp_modifier": 2 },
+    { "id": "day", "duration": 27, "temp_modifier": 0 },
+    { "id": "dusk", "duration": 15, "temp_modifier": -4 },
+    { "id": "night", "duration": 7, "temp_modifier": -14 },
+    { "id": "midnight", "duration": 1, "temp_modifier": -18 },
+    { "id": "night", "duration": 7, "temp_modifier": -14 }
+  ],
   "daily_temp_variation": {
     "min": -3,
     "max": 3

@@ -13,8 +13,8 @@ var current_turn: int = 0
 var time_of_day: String = "dawn"
 var is_player_turn: bool = true
 
-# Cached time periods from CalendarManager
-var _time_periods: Dictionary = {}
+# Cached time periods from CalendarManager (array of {id, duration, temp_modifier, start, end})
+var _time_periods: Array = []
 
 func _ready() -> void:
 	# Load time periods from CalendarManager (will be available after CalendarManager._ready())
@@ -65,20 +65,14 @@ func get_time_of_day() -> String:
 	var turns_per_day = get_turns_per_day()
 	var turn_in_day = current_turn % turns_per_day
 
-	# Use time periods from calendar data
-	for period_name in _time_periods:
-		var period = _time_periods[period_name]
+	# Use time periods from calendar data (array with start/end computed from durations)
+	for period in _time_periods:
 		var start = period.get("start", 0)
 		var end = period.get("end", 100)
 
-		# Handle wrap-around for night (85-100 and 0)
-		if start < end:
-			if turn_in_day >= start and turn_in_day < end:
-				return period_name
-		else:
-			# Night wraps from end of day to start
-			if turn_in_day >= start or turn_in_day < end:
-				return period_name
+		# Check if current turn falls within this period
+		if turn_in_day >= start and turn_in_day < end:
+			return period.get("id", "day")
 
 	return "day"  # Fallback
 

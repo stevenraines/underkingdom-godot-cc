@@ -24,7 +24,10 @@ var daily_temp_variation: float = 0.0
 var _days_per_week: int = 7
 var _days_per_month: int = 28
 var _months_per_season: int = 3
-var _turns_per_day: int = 100
+var _turns_per_day: int = 100  # Calculated from time_periods
+
+# Time period data (array of {id, duration, temp_modifier, start, end})
+var _time_periods: Array = []
 
 func _ready() -> void:
 	_load_calendar_data()
@@ -51,7 +54,31 @@ func _load_calendar_data() -> void:
 	_days_per_week = calendar_data.get("days_per_week", 7)
 	_days_per_month = calendar_data.get("days_per_month", 28)
 	_months_per_season = calendar_data.get("months_per_season", 3)
-	_turns_per_day = calendar_data.get("turns_per_day", 100)
+
+	# Load time periods and calculate turns_per_day from sum of durations
+	_load_time_periods()
+
+## Load time periods from JSON and calculate turns_per_day from durations
+func _load_time_periods() -> void:
+	var periods_data = calendar_data.get("time_periods", [])
+	_time_periods.clear()
+	_turns_per_day = 0
+
+	var current_turn = 0
+	for period in periods_data:
+		var duration = period.get("duration", 1)
+		var period_entry = {
+			"id": period.get("id", "unknown"),
+			"duration": duration,
+			"temp_modifier": period.get("temp_modifier", 0),
+			"start": current_turn,
+			"end": current_turn + duration
+		}
+		_time_periods.append(period_entry)
+		current_turn += duration
+
+	_turns_per_day = current_turn
+	print("[CalendarManager] Loaded %d time periods, turns_per_day = %d" % [_time_periods.size(), _turns_per_day])
 
 ## Initialize calendar with world seed
 func initialize_with_seed(world_seed: int) -> void:
@@ -200,9 +227,10 @@ func get_month_temp_modifier() -> float:
 
 ## Get temperature modifier for time of day (°F)
 func get_time_of_day_temp_modifier(time_of_day: String) -> float:
-	var tod_data = calendar_data.get("time_of_day", {})
-	var period = tod_data.get(time_of_day, {})
-	return period.get("temp_modifier", 0.0)
+	for period in _time_periods:
+		if period.id == time_of_day:
+			return period.temp_modifier
+	return 0.0
 
 ## Get the ambient temperature for current conditions (°F)
 ## Combines season base + month modifier + time of day modifier + daily variation
@@ -213,9 +241,9 @@ func get_ambient_temperature(time_of_day: String) -> float:
 	temp += daily_temp_variation
 	return temp
 
-## Get time of day periods from data
-func get_time_periods() -> Dictionary:
-	return calendar_data.get("time_of_day", {})
+## Get time of day periods from data (returns array of period dictionaries)
+func get_time_periods() -> Array:
+	return _time_periods
 
 ## Get temperature bonus for being inside a building (°F)
 func get_interior_temp_bonus() -> float:

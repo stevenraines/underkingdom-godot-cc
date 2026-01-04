@@ -51,9 +51,10 @@ ASCIIRenderer (TileMapLayer-based)
 4. Survival systems drain (hunger, thirst, fatigue)
 5. Repeat
 
-**Day/Night Cycle**: 1000 turns = 1 day
-- Dawn (0-150), Day (150-700), Dusk (700-850), Night (850-1000)
-- Affects: visibility range, enemy spawn rates, survival drain rates
+**Day/Night Cycle**: Configured in `data/calendar.json`, turns_per_day calculated from time period durations
+- Default: 100 turns/day with periods: dawn (15), day (27), mid_day (1), day (27), dusk (15), night (7), midnight (1), night (7)
+- Time periods define duration and temperature modifiers; start/end turns computed automatically
+- Affects: visibility range, enemy spawn rates, survival drain rates, temperature
 
 ### Entity-Component System
 **Base Classes**:

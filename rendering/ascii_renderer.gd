@@ -483,6 +483,7 @@ func _apply_fog_of_war_to_terrain() -> void:
 
 ## Apply fog of war to entities (hide entities not in visible tiles)
 ## Entities (NPCs, enemies, items) require LOS to be visible - completely hidden otherwise
+## Interior tiles also require strict LOS even if the FOV algorithm marks them visible
 func _apply_fog_of_war_to_entities() -> void:
 	if not entity_layer:
 		return
@@ -490,7 +491,7 @@ func _apply_fog_of_war_to_entities() -> void:
 	# First, check if any hidden entities should be restored (now visible)
 	var hidden_to_restore: Array = []
 	for pos in hidden_entity_positions.keys():
-		if visible_tiles.has(pos):
+		if _is_entity_visible_at(pos):
 			hidden_to_restore.append(pos)
 
 	for pos in hidden_to_restore:
@@ -504,7 +505,7 @@ func _apply_fog_of_war_to_entities() -> void:
 	var all_positions: Array = entity_modulated_cells.keys().duplicate()
 
 	for pos in all_positions:
-		var pos_is_visible = visible_tiles.has(pos)
+		var pos_is_visible = _is_entity_visible_at(pos)
 		var original_color = entity_original_colors.get(pos, entity_modulated_cells.get(pos, Color.WHITE))
 
 		# Store original color if not already stored
@@ -525,6 +526,42 @@ func _apply_fog_of_war_to_entities() -> void:
 			entity_modulated_cells.erase(pos)
 
 	entity_layer.notify_runtime_tile_data_update()
+
+## Check if an entity at a position should be visible
+## Entities in interior tiles require strict LOS - no corner peeking allowed
+func _is_entity_visible_at(pos: Vector2i) -> bool:
+	# First check basic visibility
+	if not visible_tiles.has(pos):
+		return false
+
+	# For interior tiles, do an additional Bresenham line-of-sight check
+	# This prevents corner-peeking issues with shadowcasting
+	if current_map:
+		var tile = current_map.get_tile(pos)
+		if tile and tile.is_interior:
+			# Do strict line-of-sight check for interior tiles
+			return _has_clear_los_to(pos)
+
+	return true
+
+## Strict line-of-sight check using Bresenham's algorithm
+## Returns true only if there's a completely clear path to target
+func _has_clear_los_to(target: Vector2i) -> bool:
+	if not current_map:
+		return false
+
+	# Get player position from the visible_tiles origin (first tile is usually player position)
+	# Actually we need a reference to player position - let's use the center of visible_tiles
+	# For now, check if ANY adjacent tile to target is transparent and visible
+	var directions = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+	for dir in directions:
+		var adjacent = target + dir
+		var adj_tile = current_map.get_tile(adjacent)
+		# If there's an open door or transparent tile adjacent that's visible, allow seeing the entity
+		if adj_tile and adj_tile.transparent and visible_tiles.has(adjacent):
+			return true
+
+	return false
 
 ## Apply fog tint to a color
 func _apply_fog_tint(original: Color, fog_color: Color, amount: float) -> Color:

@@ -191,29 +191,32 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	var map_id = map.map_id if map else ""
 	var chunk_based = map.chunk_based if map else false
 
-	# During day, all LOS tiles are visible
-	var sun_radius = LightingSystemClass.get_sun_light_radius()
+	# Dungeons (non-chunk-based maps) have no sunlight - always require light sources
+	var is_underground = not chunk_based
+
+	# Check sun light (0 in dungeons, varies by time on overworld)
+	var sun_radius = LightingSystemClass.get_sun_light_radius(is_underground)
 	if sun_radius >= 999:
-		# Full daylight - all tiles in LOS are visible
+		# Full daylight on overworld - all tiles in LOS are visible
 		FogOfWarSystemClass.set_visible_tiles(los_tiles)
 		FogOfWarSystemClass.mark_many_explored(map_id, los_tiles, chunk_based)
 		cached_visible = los_tiles
 		return los_tiles
 
-	# Night/twilight - need to check illumination
+	# Night/twilight/dungeon - need to check illumination from light sources
 	var visible_tiles: Array[Vector2i] = []
 
 	# Player's own tile is always visible
 	visible_tiles.append(origin)
 
-	# Calculate illuminated area
+	# Calculate illuminated area from light sources
 	LightingSystemClass.calculate_illuminated_area(origin, perception_range)
 
 	for tile_pos in los_tiles:
-		# Check if illuminated by any light source
+		# Check if illuminated by any light source (torches, braziers, etc.)
 		var is_lit = LightingSystemClass.is_illuminated(tile_pos)
 
-		# Player's light source illuminates tiles in their LOS
+		# Player's equipped light source illuminates tiles in their LOS
 		if not is_lit and light_radius > 0:
 			var dist = _chebyshev_distance(origin, tile_pos)
 			if dist <= light_radius:
@@ -244,11 +247,11 @@ static func _chebyshev_distance(a: Vector2i, b: Vector2i) -> int:
 static func is_daytime_outdoors(map: GameMap) -> bool:
 	if not map:
 		return false
-	# Overworld maps are chunk-based
+	# Overworld maps are chunk-based, dungeons are not
 	if not map.chunk_based:
-		return false  # Dungeons always require LOS
-	# Check if daytime
-	var sun_radius = LightingSystemClass.get_sun_light_radius()
+		return false  # Dungeons always require LOS and light sources
+	# Check if daytime (passing false for is_underground since we're on overworld)
+	var sun_radius = LightingSystemClass.get_sun_light_radius(false)
 	return sun_radius >= 999  # Full daylight
 
 ## Check if a specific tile should be terrain-visible during daytime outdoors

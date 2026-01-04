@@ -57,9 +57,14 @@ static func remove_light_source(position: Vector2i) -> void:
 			light_sources.remove_at(i)
 	cache_dirty = true
 
-## Get the effective sun light radius based on time of day
-## Returns 0 at night (no sun), full perception at day
-static func get_sun_light_radius() -> int:
+## Get the effective sun light radius based on time of day and location
+## Returns 0 in dungeons (no sun underground), 0 at night, full perception at day
+## Pass is_underground=true for dungeons to disable sunlight
+static func get_sun_light_radius(is_underground: bool = false) -> int:
+	# No sunlight in dungeons/underground areas
+	if is_underground:
+		return 0
+
 	var time = TurnManager.time_of_day
 	match time:
 		"day":

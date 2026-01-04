@@ -477,7 +477,8 @@ func _apply_fog_of_war_to_entities() -> void:
 		return
 
 	# For entities, we need to hide those not in visible tiles (LOS required)
-	var all_positions: Array = entity_modulated_cells.keys()
+	# We actually erase cells for non-visible entities to ensure they're hidden
+	var all_positions: Array = entity_modulated_cells.keys().duplicate()
 
 	for pos in all_positions:
 		var pos_is_visible = visible_tiles.has(pos)
@@ -491,9 +492,12 @@ func _apply_fog_of_war_to_entities() -> void:
 			# Show entity with original color
 			entity_modulated_cells[pos] = original_color
 		else:
-			# Not in LOS - hide completely (entities require line of sight)
-			# This applies to NPCs, enemies, items - they can't be seen through walls
-			entity_modulated_cells[pos] = Color(0, 0, 0, 0)
+			# Not in LOS - actually erase the cell to hide it completely
+			# Color modulation with alpha=0 doesn't always work, so we erase
+			entity_layer.erase_cell(pos)
+			entity_modulated_cells.erase(pos)
+			# Note: We keep the original color stored in entity_original_colors
+			# so it can be restored if the entity becomes visible again
 
 	entity_layer.notify_runtime_tile_data_update()
 

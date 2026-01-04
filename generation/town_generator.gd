@@ -7,6 +7,7 @@ extends Node
 # Type references
 const GameTile = preload("res://maps/game_tile.gd")
 const SeededRandom = preload("res://generation/seeded_random.gd")
+const RoadGeneratorClass = preload("res://generation/road_generator.gd")
 
 ## Generates a town at the specified position using the given town definition
 ## Returns the town data dictionary with all placement information
@@ -54,6 +55,12 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		var max_trees = decorations.get("max_trees", 12)
 		_add_decorative_trees(tiles_dict, center_pos, town_size, max_trees, rng)
 
+	# Generate internal town roads if enabled
+	var roads_config = town_def.get("roads", {})
+	if roads_config.get("internal_roads", false) or roads_config.get("town_square", false):
+		var has_town_square = roads_config.get("town_square", false)
+		RoadGeneratorClass.generate_town_roads(tiles_dict, center_pos, town_size, buildings, building_defs, has_town_square)
+
 	# Build result data
 	var town_data = {
 		"town_id": town_id,
@@ -61,7 +68,8 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		"position": center_pos,
 		"size": town_size,
 		"is_safe_zone": town_def.get("is_safe_zone", true),
-		"npc_spawns": npc_spawns
+		"npc_spawns": npc_spawns,
+		"roads_connected": roads_config.get("connected_to_other_towns", false)
 	}
 
 	print("[TownGenerator] Generated %s at %v (size %v, %d NPCs)" % [town_data.name, center_pos, town_size, npc_spawns.size()])

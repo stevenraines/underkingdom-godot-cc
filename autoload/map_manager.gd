@@ -129,10 +129,14 @@ func _generate_map(map_id: String, world_seed: int) -> GameMap:
 		# Store all towns in metadata for multi-town support
 		map.metadata["towns"] = towns
 
+		# Generate inter-town road paths (stored in metadata, tiles placed when chunks load)
+		var road_paths = _generate_inter_town_road_paths(towns, world_seed)
+		map.metadata["road_paths"] = road_paths
+
 		# Initialize empty NPC spawns array (will be populated when town chunks generate)
 		map.metadata["npc_spawns"] = []
 
-		print("[MapManager] Special features placed: %d towns, %d dungeons, spawn=%v" % [towns.size(), dungeon_entrances.size(), player_spawn])
+		print("[MapManager] Special features placed: %d towns, %d dungeons, %d road paths, spawn=%v" % [towns.size(), dungeon_entrances.size(), road_paths.size(), player_spawn])
 		for town in towns:
 			print("[MapManager]   - %s at %v" % [town.name, town.position])
 
@@ -196,3 +200,173 @@ func get_dungeon_entrance_at(pos: Vector2i) -> Variant:
 func clear_cache() -> void:
 	loaded_maps.clear()
 	print("Map cache cleared")
+
+
+## Generate road paths between connected towns
+## Returns array of road path dictionaries with positions and road types
+func _generate_inter_town_road_paths(towns: Array, world_seed: int) -> Array:
+	var road_paths: Array = []
+
+	# Filter towns that want road connections
+	var connected_towns: Array = []
+	for town in towns:
+		if town.get("roads_connected", false):
+			connected_towns.append(town)
+
+	if connected_towns.size() < 2:
+		return road_paths
+
+	# Track connections to avoid duplicates
+	var connections_made: Array = []
+
+	for town in connected_towns:
+		var town_pos = town.get("position", Vector2i(0, 0))
+		var town_id = town.get("town_id", "")
+
+		# Find nearest 2 towns
+		var nearest = _find_nearest_towns(town, connected_towns, 2)
+
+		for other_town in nearest:
+			var other_id = other_town.get("town_id", "")
+
+			# Check if connection already made
+			var connection_key = [town_id, other_id]
+			connection_key.sort()
+			if connection_key in connections_made:
+				continue
+
+			connections_made.append(connection_key)
+
+			# Generate road path
+			var other_pos = other_town.get("position", Vector2i(0, 0))
+			var path = _generate_road_path_between_towns(town_pos, other_pos, world_seed)
+			road_paths.append(path)
+
+	print("[MapManager] Generated %d inter-town road paths" % road_paths.size())
+	return road_paths
+
+
+## Find the N nearest towns to a given town
+func _find_nearest_towns(town: Dictionary, all_towns: Array, count: int) -> Array:
+	var town_pos = town.get("position", Vector2i(0, 0))
+	var town_id = town.get("town_id", "")
+
+	var distances: Array = []
+	for other in all_towns:
+		var other_id = other.get("town_id", "")
+		if other_id == town_id:
+			continue
+
+		var other_pos = other.get("position", Vector2i(0, 0))
+		var dist = (other_pos - town_pos).length()
+		distances.append({"town": other, "distance": dist})
+
+	# Sort by distance
+	distances.sort_custom(func(a, b): return a.distance < b.distance)
+
+	# Return top N
+	var result: Array = []
+	for i in range(min(count, distances.size())):
+		result.append(distances[i].town)
+
+	return result
+
+
+## Generate a road path between two towns with material transitions
+## Returns dictionary with path points and their road types
+func _generate_road_path_between_towns(from_pos: Vector2i, to_pos: Vector2i, world_seed: int) -> Dictionary:
+	var rng = SeededRandom.new(world_seed + from_pos.x * 1000 + from_pos.y + to_pos.x * 100 + to_pos.y)
+
+	var total_dist = (to_pos - from_pos).length()
+
+	# Transition thresholds
+	var cobblestone_threshold = 0.15
+	var gravel_threshold = 0.30
+
+	# Generate meandering path
+	var path_points = _generate_meandering_path(from_pos, to_pos, rng, total_dist)
+
+	# Build path data with road types
+	var path_data: Array = []
+	for pos in path_points:
+		var dist_from_start = (pos - from_pos).length()
+		var dist_from_end = (pos - to_pos).length()
+		var min_dist = min(dist_from_start, dist_from_end)
+		var dist_ratio = min_dist / total_dist if total_dist > 0 else 0
+
+		var road_type: String
+		if dist_ratio < cobblestone_threshold:
+			road_type = "road_cobblestone"
+		elif dist_ratio < gravel_threshold:
+			road_type = "road_gravel"
+		else:
+			road_type = "road_dirt"
+
+		path_data.append({"pos": pos, "type": road_type})
+
+	return {
+		"from": from_pos,
+		"to": to_pos,
+		"points": path_data
+	}
+
+
+## Generate a slightly meandering path between two points
+func _generate_meandering_path(from_pos: Vector2i, to_pos: Vector2i, rng: SeededRandom, total_dist: float) -> Array[Vector2i]:
+	var path: Array[Vector2i] = []
+
+	if total_dist < 30:
+		return _generate_straight_path(from_pos, to_pos)
+
+	var num_segments = int(total_dist / 20) + 1
+	var waypoints: Array[Vector2i] = [from_pos]
+
+	for i in range(1, num_segments):
+		var t = float(i) / num_segments
+		var base_pos = from_pos + Vector2i(
+			int((to_pos.x - from_pos.x) * t),
+			int((to_pos.y - from_pos.y) * t)
+		)
+
+		var perpendicular = Vector2(-(to_pos.y - from_pos.y), to_pos.x - from_pos.x).normalized()
+		var deviation = rng.randf_range(-8.0, 8.0)
+		var waypoint = base_pos + Vector2i(int(perpendicular.x * deviation), int(perpendicular.y * deviation))
+		waypoints.append(waypoint)
+
+	waypoints.append(to_pos)
+
+	for i in range(waypoints.size() - 1):
+		var segment = _generate_straight_path(waypoints[i], waypoints[i + 1])
+		for pos in segment:
+			if pos not in path:
+				path.append(pos)
+
+	return path
+
+
+## Generate a straight path between two points (Bresenham-like)
+func _generate_straight_path(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
+	var path: Array[Vector2i] = []
+	var current = from_pos
+
+	var dx = abs(to_pos.x - from_pos.x)
+	var dy = abs(to_pos.y - from_pos.y)
+	var sx = 1 if from_pos.x < to_pos.x else -1
+	var sy = 1 if from_pos.y < to_pos.y else -1
+	var err = dx - dy
+
+	while true:
+		path.append(current)
+
+		if current == to_pos:
+			break
+
+		var e2 = 2 * err
+		if e2 > -dy:
+			err -= dy
+			current.x += sx
+		if e2 < dx:
+			err += dx
+			current.y += sy
+
+	return path

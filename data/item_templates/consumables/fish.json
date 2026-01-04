@@ -1,0 +1,30 @@
+{
+  "template_id": "fish",
+  "display_name": "Fish",
+  "description_base": "A freshly caught fish.",
+  "category": "consumable",
+  "subtype": "food",
+  "base_properties": {
+    "ascii_char": "><",
+    "flags": {
+      "equippable": false,
+      "consumable": true,
+      "craftable": false,
+      "tool": false,
+      "cookable": true,
+      "fish": true
+    },
+    "max_stack": 10
+  },
+  "base_stats": {
+    "weight": 0.4,
+    "value": 5,
+    "hunger": 15,
+    "catch_chance": 0.15
+  },
+  "applicable_variants": ["fish_species"],
+  "default_variants": {
+    "fish_species": "common"
+  },
+  "required_variants": ["fish_species"]
+}

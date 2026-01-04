@@ -61,8 +61,11 @@ func _build_help_content() -> void:
 	_add_section_header("== CRAFTING & BUILDING ==")
 	_add_keybind("C", "Open crafting menu")
 	_add_keybind("H", "Harvest resource (then direction)")
+	_add_keybind("F", "Fish (when near water) / interact with feature")
 	_add_keybind("B", "Open build mode")
 	_add_keybind("E", "Interact with structure")
+	_add_help_text("Fishing requires a rod (with bait) or net")
+	_add_help_text("Must be adjacent to 8+ contiguous water tiles")
 	_add_spacer()
 
 	# NPCs & Shopping

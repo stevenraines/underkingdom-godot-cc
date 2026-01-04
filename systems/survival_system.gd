@@ -49,6 +49,9 @@ var _last_thirst_drain_turn: int = 0
 var _last_fatigue_turn: int = 0
 var _last_health_drain_turn: int = 0
 
+# Track previous states for change-only warnings
+var _last_temperature_state: String = "comfortable"
+
 # Owner reference
 var _owner: Entity = null
 
@@ -217,15 +220,21 @@ func _generate_warnings() -> Array[String]:
 	elif thirst <= 50:
 		warnings.append("You are very thirsty.")
 	
-	# Temperature warnings
-	if temperature < TEMP_FREEZING:
-		warnings.append("You are freezing!")
-	elif temperature < TEMP_COLD:
-		warnings.append("You are cold.")
-	elif temperature > TEMP_HYPERTHERMIA:
-		warnings.append("You are overheating!")
-	elif temperature > TEMP_HOT:
-		warnings.append("You are hot.")
+	# Temperature warnings (only show when state changes)
+	var current_temp_state = _get_temperature_state()
+	if current_temp_state != _last_temperature_state:
+		_last_temperature_state = current_temp_state
+		match current_temp_state:
+			"freezing":
+				warnings.append("You are freezing!")
+			"cold":
+				warnings.append("You are cold.")
+			"hot":
+				warnings.append("You are hot.")
+			"overheating":
+				warnings.append("You are overheating!")
+			"comfortable":
+				warnings.append("You feel comfortable again.")
 	
 	# Fatigue warnings
 	if fatigue >= 90:
@@ -242,6 +251,19 @@ func _generate_warnings() -> Array[String]:
 		warnings.append("You are low on stamina.")
 	
 	return warnings
+
+## Get the current temperature state as a string
+func _get_temperature_state() -> String:
+	if temperature < TEMP_FREEZING:
+		return "freezing"
+	elif temperature < TEMP_COLD:
+		return "cold"
+	elif temperature > TEMP_HYPERTHERMIA:
+		return "overheating"
+	elif temperature > TEMP_HOT:
+		return "hot"
+	else:
+		return "comfortable"
 
 ## Consume stamina for an action
 ## Returns true if action can proceed, false if not enough stamina

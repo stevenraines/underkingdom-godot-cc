@@ -1,0 +1,23 @@
+{
+  "id": "fishing_rod",
+  "name": "Fishing Rod",
+  "description": "A simple fishing rod. Requires bait to use.",
+  "category": "tool",
+  "subtype": "fishing",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "two_handed": true
+  },
+  "weight": 1.5,
+  "value": 15,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#8B4513",
+  "durability": 50,
+  "tool_type": "fishing_rod",
+  "equip_slots": ["main_hand"],
+  "requires_bait": true
+}

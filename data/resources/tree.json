@@ -2,9 +2,10 @@
   "id": "tree",
   "name": "Tree",
   "required_tools": [
-    {"tool_id": "axe", "action_reduction": 2, "yield_bonus": 2},
-    {"tool_id": "flint_knife", "action_reduction": 0, "yield_bonus": 0},
-    {"tool_id": "iron_knife", "action_reduction": 0, "yield_bonus": 0}
+    {"tool_id": "two_handed_axe", "action_reduction": 2, "yield_bonus": 2},
+    {"tool_id": "hatchet", "action_reduction": 1, "yield_bonus": 0},
+    {"tool_id": "axe", "action_reduction": 0, "yield_bonus": 0},
+    {"tool_id": "knife", "action_reduction": 0, "yield_bonus": 0}
   ],
   "tool_must_be_equipped": true,
   "harvest_behavior": "destroy_permanent",

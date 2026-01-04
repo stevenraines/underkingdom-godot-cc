@@ -9,7 +9,9 @@ const ShopSystem = preload("res://systems/shop_system.gd")
 
 signal closed()
 
+@onready var shop_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/ShopPanel/ScrollContainer
 @onready var shop_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/ShopPanel/ScrollContainer/ShopList
+@onready var player_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/PlayerPanel/ScrollContainer
 @onready var player_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/PlayerPanel/ScrollContainer/PlayerList
 @onready var shop_title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleContainer/ShopTitle
 @onready var shopkeeper_label: Label = $Panel/MarginContainer/VBoxContainer/TitleContainer/ShopKeeperLabel
@@ -285,3 +287,40 @@ func _refresh_display() -> void:
 	# Update button states
 	buy_button.disabled = not is_shop_focused or shop_npc.trade_inventory.size() == 0
 	sell_button.disabled = is_shop_focused or player.inventory.items.size() == 0
+
+	# Scroll to selected item after the frame updates
+	_scroll_to_selected.call_deferred()
+
+func _scroll_to_selected() -> void:
+	var scroll: ScrollContainer
+	var list: VBoxContainer
+
+	if is_shop_focused:
+		scroll = shop_scroll
+		list = shop_list
+	else:
+		scroll = player_scroll
+		list = player_list
+
+	if not scroll or not list:
+		return
+
+	if selected_index < 0 or selected_index >= list.get_child_count():
+		return
+
+	var selected_label = list.get_child(selected_index) as Control
+	if not selected_label:
+		return
+
+	# Get the position and size of the selected item relative to the list
+	var item_top = selected_label.position.y
+	var item_bottom = item_top + selected_label.size.y
+	var visible_top = scroll.scroll_vertical
+	var visible_bottom = visible_top + scroll.size.y
+
+	# Scroll up if item is above visible area
+	if item_top < visible_top:
+		scroll.scroll_vertical = int(item_top)
+	# Scroll down if item is below visible area
+	elif item_bottom > visible_bottom:
+		scroll.scroll_vertical = int(item_bottom - scroll.size.y)

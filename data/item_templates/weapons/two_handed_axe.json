@@ -1,27 +1,28 @@
 {
-  "template_id": "axe",
-  "display_name": "Axe",
-  "description_base": "A sturdy axe for chopping and combat.",
+  "template_id": "two_handed_axe",
+  "display_name": "Two-Handed Axe",
+  "description_base": "A heavy two-handed axe for felling trees and cleaving foes.",
   "category": "weapon",
   "subtype": "axe",
   "base_properties": {
     "ascii_char": "P",
     "tool_type": "axe",
-    "equip_slots": ["main_hand"],
+    "equip_slots": ["main_hand", "off_hand"],
     "flags": {
       "equippable": true,
       "consumable": false,
       "craftable": true,
-      "tool": true
+      "tool": true,
+      "two_handed": true
     },
     "attack_type": "melee",
     "max_stack": 1
   },
   "base_stats": {
-    "weight": 2.0,
-    "value": 30,
-    "durability": 120,
-    "damage_bonus": 5
+    "weight": 4.0,
+    "value": 50,
+    "durability": 150,
+    "damage_bonus": 8
   },
   "applicable_variants": ["material", "quality", "origin"],
   "default_variants": {

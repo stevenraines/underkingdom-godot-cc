@@ -9,6 +9,7 @@ extends RenderInterface
 ## explored but not visible tiles are dark gray.
 
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+const FOVSystemClass = preload("res://systems/fov_system.gd")
 
 const TILE_WIDTH = 38
 const TILE_HEIGHT = 64
@@ -136,6 +137,7 @@ var visible_tiles: Array[Vector2i] = []
 var fow_enabled: bool = true
 var current_map_id: String = ""
 var is_chunk_based: bool = false
+var current_map = null  # Reference to current GameMap for visibility checks
 
 # Dictionaries to track modulated cells for runtime coloring
 var terrain_modulated_cells: Dictionary = {}
@@ -408,25 +410,25 @@ func clear_entity(position: Vector2i) -> void:
 
 ## Update field of view and apply fog of war
 ## visible_tiles: tiles visible for entities (requires LOS)
-## terrain_visible_tiles: tiles visible for terrain only (daytime outdoors, no LOS needed)
-func update_fov(new_visible_tiles: Array[Vector2i], terrain_visible_tiles: Array[Vector2i] = []) -> void:
+## terrain_visible_tiles: deprecated, no longer used (kept for API compatibility)
+func update_fov(new_visible_tiles: Array[Vector2i], _terrain_visible_tiles: Array[Vector2i] = []) -> void:
 	visible_tiles = new_visible_tiles
-	# Use terrain_visible_tiles if provided, otherwise use visible_tiles for terrain too
-	var terrain_vis = terrain_visible_tiles if terrain_visible_tiles.size() > 0 else new_visible_tiles
 
 	if not fow_enabled:
 		return
 
-	# Apply fog of war to terrain tiles (uses terrain visibility)
-	_apply_fog_of_war_to_terrain(terrain_vis)
+	# Apply fog of war to terrain tiles
+	# Uses per-tile visibility check for efficiency
+	_apply_fog_of_war_to_terrain()
 
 	# Apply fog of war to entity layer (uses LOS-based visibility)
 	_apply_fog_of_war_to_entities()
 
 ## Set map info for fog of war tracking
-func set_map_info(map_id: String, chunk_based: bool) -> void:
+func set_map_info(map_id: String, chunk_based: bool, map = null) -> void:
 	current_map_id = map_id
 	is_chunk_based = chunk_based
+	current_map = map
 
 ## Enable or disable fog of war
 func set_fow_enabled(enabled: bool) -> void:
@@ -436,8 +438,8 @@ func set_fow_enabled(enabled: bool) -> void:
 		_restore_all_colors()
 
 ## Apply fog of war dimming to terrain tiles
-## terrain_vis: tiles that should be visible for terrain (may differ from entity visibility during daytime)
-func _apply_fog_of_war_to_terrain(terrain_vis: Array[Vector2i]) -> void:
+## Uses efficient per-tile visibility checks instead of array lookup
+func _apply_fog_of_war_to_terrain() -> void:
 	if not terrain_layer:
 		return
 
@@ -445,8 +447,13 @@ func _apply_fog_of_war_to_terrain(terrain_vis: Array[Vector2i]) -> void:
 	var all_positions: Array = terrain_modulated_cells.keys()
 
 	for pos in all_positions:
-		# Check if tile is in terrain-visible set
-		var is_terrain_visible = terrain_vis.has(pos)
+		# Check if tile is visible:
+		# 1. In LOS-based visible_tiles, OR
+		# 2. Daytime outdoors and not an interior tile
+		var is_terrain_visible = visible_tiles.has(pos)
+		if not is_terrain_visible and current_map:
+			is_terrain_visible = FOVSystemClass.is_terrain_visible_at(pos, current_map)
+
 		var original_color = terrain_original_colors.get(pos, terrain_modulated_cells.get(pos, Color.WHITE))
 
 		# Store original color if not already stored

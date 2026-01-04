@@ -251,27 +251,16 @@ static func is_daytime_outdoors(map: GameMap) -> bool:
 	var sun_radius = LightingSystemClass.get_sun_light_radius()
 	return sun_radius >= 999  # Full daylight
 
-## Get terrain visible tiles (outdoor tiles within view range during daytime)
-## During daytime outdoors, OUTDOOR terrain is visible without LOS checks
-## Building interiors still require LOS (you can't see inside without entering)
-## Returns empty array if not daytime outdoors (fall back to normal visibility)
-## view_range: how far terrain can be seen (should be larger than screen to cover all rendered tiles)
-static func get_terrain_visible_tiles(origin: Vector2i, _perception_range: int, map: GameMap, view_range: int = 50) -> Array[Vector2i]:
+## Check if a specific tile should be terrain-visible during daytime outdoors
+## This is more efficient than generating a huge array of all visible tiles
+## Returns true if: daytime outdoors AND tile is not an interior tile
+static func is_terrain_visible_at(pos: Vector2i, map: GameMap) -> bool:
 	if not is_daytime_outdoors(map):
-		return []  # Empty means use normal LOS-based visibility
+		return false  # Not daytime outdoors, use normal LOS visibility
 
-	# During daytime outdoors, all outdoor terrain within view is visible
-	# Use a large view_range to cover the entire screen (typically 50+ tiles)
-	# Building interiors still require LOS
-	var terrain_tiles: Array[Vector2i] = []
+	# Check if this is an interior tile - interiors require LOS even during daytime
+	var tile = map.get_tile(pos)
+	if tile and tile.is_interior:
+		return false
 
-	for dx in range(-view_range, view_range + 1):
-		for dy in range(-view_range, view_range + 1):
-			var pos = origin + Vector2i(dx, dy)
-			# Check if this is an interior tile - if so, skip it (requires LOS)
-			var tile = map.get_tile(pos)
-			if tile and tile.is_interior:
-				continue  # Interior tiles require LOS even during daytime
-			terrain_tiles.append(pos)
-
-	return terrain_tiles
+	return true  # Outdoor tile during daytime - visible without LOS

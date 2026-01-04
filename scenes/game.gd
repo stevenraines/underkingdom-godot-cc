@@ -162,7 +162,7 @@ func _ready() -> void:
 	# Setup fog of war
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
 	var chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
-	renderer.set_map_info(map_id, chunk_based)
+	renderer.set_map_info(map_id, chunk_based, MapManager.current_map)
 	renderer.set_fow_enabled(true)
 
 	# Register light sources from structures
@@ -577,7 +577,7 @@ func _on_map_changed(map_id: String) -> void:
 	# Setup fog of war for new map
 	var fow_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
 	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
-	renderer.set_map_info(fow_map_id, fow_chunk_based)
+	renderer.set_map_info(fow_map_id, fow_chunk_based, MapManager.current_map)
 
 	# Update visibility (FOV + lighting)
 	print("[Game] 8/8 Calculating visibility")
@@ -1770,7 +1770,5 @@ func _update_visibility() -> void:
 	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
 	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
 
-	# During daytime outdoors, terrain is visible in full perception range (no LOS needed)
-	var terrain_visible_tiles = FOVSystemClass.get_terrain_visible_tiles(player.position, player.perception_range, MapManager.current_map)
-
-	renderer.update_fov(visible_tiles, terrain_visible_tiles)
+	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer
+	renderer.update_fov(visible_tiles)

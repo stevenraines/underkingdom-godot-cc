@@ -7,6 +7,7 @@ extends Node
 
 const TargetingSystemClass = preload("res://systems/targeting_system.gd")
 const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+const FishingSystemClass = preload("res://systems/fishing_system.gd")
 
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
@@ -27,6 +28,12 @@ var _harvesting_active: bool = false  # Currently in continuous harvesting mode
 var _harvest_direction: Vector2i = Vector2i.ZERO  # Direction being harvested
 var _harvest_timer: float = 0.0  # Timer for continuous harvesting
 var _skip_movement_this_frame: bool = false  # Prevent movement after harvest completion
+
+# Fishing mode
+var _awaiting_fishing_direction: bool = false  # Waiting for player to specify direction to fish
+var _fishing_active: bool = false  # Currently in continuous fishing mode
+var _fishing_direction: Vector2i = Vector2i.ZERO  # Direction being fished
+var _fishing_timer: float = 0.0  # Timer for continuous fishing
 
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
@@ -123,6 +130,37 @@ func _process(delta: float) -> void:
 			return  # Don't process other input while harvesting
 		# Note: Don't exit harvest mode when key is released - allow re-pressing
 		# Harvest mode will be exited by pressing a different key or ESC
+
+	# Continuous fishing mode - keep fishing while holding the direction key
+	if _fishing_active and _fishing_direction != Vector2i.ZERO:
+		var still_holding_fish = false
+		match _fishing_direction:
+			Vector2i.UP:
+				still_holding_fish = Input.is_action_pressed("ui_up")
+			Vector2i.DOWN:
+				still_holding_fish = Input.is_action_pressed("ui_down")
+			Vector2i.LEFT:
+				still_holding_fish = Input.is_action_pressed("ui_left")
+			Vector2i.RIGHT:
+				still_holding_fish = Input.is_action_pressed("ui_right")
+
+		if still_holding_fish:
+			_fishing_timer -= delta
+			if _fishing_timer <= 0.0:
+				var fish_result = _try_fish(_fishing_direction)
+				if fish_result.success:
+					TurnManager.advance_turn()
+					# Exit fish mode if session ended
+					if fish_result.session_ended:
+						_exit_fishing_mode()
+					else:
+						_fishing_timer = move_delay  # Use same timing as continuous movement
+				else:
+					# Fish failed - exit fish mode
+					_exit_fishing_mode()
+			return  # Don't process other input while fishing
+		# Note: Don't exit fish mode when key is released - allow re-pressing
+		# Fish mode will be exited by pressing a different key or ESC
 
 	# Continuous wait key handling (period key '.')
 	# If player holds the '.' key, repeatedly perform wait action with same timing as movement
@@ -304,6 +342,90 @@ func _unhandled_input(event: InputEvent) -> void:
 				_exit_harvesting_mode()
 				# Don't return - let normal input processing handle the movement
 
+	# If awaiting fishing direction, handle directional input
+	if _awaiting_fishing_direction and event is InputEventKey and event.pressed and not event.echo:
+		var direction = Vector2i.ZERO
+
+		match event.keycode:
+			KEY_UP, KEY_W:
+				direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel fishing
+				_awaiting_fishing_direction = false
+				ui_blocking_input = false
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Cancelled fishing", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if direction != Vector2i.ZERO:
+			_awaiting_fishing_direction = false
+			ui_blocking_input = false
+			get_viewport().set_input_as_handled()  # Consume input BEFORE processing
+
+			# Reset movement timer to prevent immediate movement after fishing
+			move_timer = initial_delay
+			is_initial_press = true
+
+			var fish_result = _try_fish(direction)
+			if fish_result.success:
+				TurnManager.advance_turn()
+				# Only enter continuous fishing mode if session is still active
+				if not fish_result.session_ended:
+					_fishing_active = true
+					_fishing_direction = direction
+					_fishing_timer = initial_delay  # Use initial delay before next fish attempt
+			return
+
+	# If in continuous fishing mode, handle direction key presses and ESC
+	if _fishing_active and event is InputEventKey and event.pressed and not event.echo:
+		var pressed_direction = Vector2i.ZERO
+		match event.keycode:
+			KEY_UP, KEY_W:
+				pressed_direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				pressed_direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				pressed_direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				pressed_direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel fishing mode
+				_exit_fishing_mode()
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Stopped fishing", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if pressed_direction != Vector2i.ZERO:
+			if pressed_direction == _fishing_direction:
+				# Same direction - perform another fish attempt
+				var fish_result = _try_fish(_fishing_direction)
+				if fish_result.success:
+					TurnManager.advance_turn()
+					# Exit fish mode if session ended
+					if fish_result.session_ended:
+						_exit_fishing_mode()
+					else:
+						_fishing_timer = initial_delay  # Reset timer for next auto-fish
+				else:
+					# Fish failed - exit fish mode
+					_exit_fishing_mode()
+				get_viewport().set_input_as_handled()
+				return
+			else:
+				# Different direction pressed - exit fish mode and process normally
+				_exit_fishing_mode()
+				# Don't return - let normal input processing handle the movement
+
 	# Stairs navigation and wait action - check for specific key presses
 	if event is InputEventKey and event.pressed and not event.echo:
 		var action_taken = false
@@ -401,8 +523,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
 			_start_harvest_mode()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_F:  # F key - interact with dungeon feature
-			action_taken = _try_interact_feature()
+		elif event.keycode == KEY_F:  # F key - fish or interact with dungeon feature
+			# Check if adjacent to water for fishing
+			if FishingSystemClass.is_adjacent_to_water(player):
+				_start_fishing_mode()
+			else:
+				action_taken = _try_interact_feature()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_P:  # P key - character sheet
 			_open_character_sheet()
@@ -638,6 +764,43 @@ func _exit_harvesting_mode() -> void:
 ## Check if currently in harvesting mode (for status bar)
 func is_harvesting() -> bool:
 	return _harvesting_active
+
+## Start fishing mode - player will be prompted for direction
+func _start_fishing_mode() -> void:
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		game._add_message("Fish which direction? (Arrow keys or WASD)", Color(0.6, 0.8, 1.0))
+
+	# Set a flag to await direction input
+	ui_blocking_input = true
+	_awaiting_fishing_direction = true
+
+## Exit continuous fishing mode
+func _exit_fishing_mode() -> void:
+	if _fishing_active:
+		_fishing_active = false
+		_fishing_direction = Vector2i.ZERO
+		_fishing_timer = 0.0
+		_skip_movement_this_frame = true
+		FishingSystemClass.cancel_session(player)
+
+## Check if currently in fishing mode (for status bar)
+func is_fishing() -> bool:
+	return _fishing_active
+
+## Try to fish in a direction
+## Returns: {success: bool, session_ended: bool}
+func _try_fish(direction: Vector2i) -> Dictionary:
+	var result = FishingSystemClass.fish(player, direction)
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
+		if result.get("bait_lost", false):
+			color = Color(0.9, 0.7, 0.4)  # Orange for bait loss
+		game._add_message(result.message, color)
+
+	return {"success": result.success, "session_ended": result.get("session_ended", false)}
 
 ## Open character sheet
 func _open_character_sheet() -> void:

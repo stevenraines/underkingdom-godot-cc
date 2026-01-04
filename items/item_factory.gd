@@ -17,10 +17,10 @@ static var _item_cache: Dictionary = {}
 const MAX_CACHE_SIZE: int = 500
 
 # Variant application order (for consistent modifier stacking)
-const VARIANT_ORDER: Array[String] = ["material", "quality", "origin"]
+const VARIANT_ORDER: Array[String] = ["material", "quality", "origin", "fish_species"]
 
 # Display order for name generation (differs from application order)
-const NAME_ORDER: Array[String] = ["origin", "quality", "material"]
+const NAME_ORDER: Array[String] = ["origin", "quality", "material", "fish_species"]
 
 
 ## Create an item from template + variants
@@ -170,6 +170,8 @@ static func _compose_item_data(template: Dictionary, variants: Dictionary) -> Di
 	# Copy category/subtype from template
 	data["category"] = template.get("category", "")
 	data["subtype"] = template.get("subtype", "")
+	# Set item_type from category for backwards compatibility
+	data["item_type"] = template.get("category", "material")
 
 	# Start with base stats
 	var stats = template.get("base_stats", {}).duplicate()
@@ -269,14 +271,26 @@ static func _apply_modifiers(base_stats: Dictionary, variants: Array[Dictionary]
 ## Display order: origin, quality, material, template name
 static func _generate_name(template: Dictionary, applied_variants: Array[Dictionary]) -> String:
 	var prefixes: Array[String] = []
+	var name_override: String = ""
 
 	# Collect prefixes in display order
 	for variant_type in NAME_ORDER:
 		for variant in applied_variants:
 			if variant.get("_type", "") == variant_type:
+				# Check for name_override first (completely replaces base name)
+				if variant.has("name_override") and variant.get("name_override", "") != "":
+					name_override = variant.get("name_override")
 				var prefix = variant.get("name_prefix", "")
 				if prefix != "":
 					prefixes.append(prefix)
+
+	# Use override if present, otherwise use base name with prefixes
+	if name_override != "":
+		if prefixes.is_empty():
+			return name_override
+		else:
+			prefixes.append(name_override)
+			return " ".join(prefixes)
 
 	# Add base name
 	prefixes.append(template.get("display_name", "Item"))

@@ -31,6 +31,7 @@ Create a new git branch from main:
 
 ```bash
 git checkout main
+git fetch
 git pull
 git checkout -b feature/{feature-name}
 ```
@@ -46,6 +47,7 @@ Before writing code:
 3. Identify which files need to be modified
 4. Understand the existing code patterns
 5. Ask clarifying questions, as needed
+6. Update the feature MD file with the plan, tasks, and answers to questions.
 
 ### 4. Implement the Feature
 

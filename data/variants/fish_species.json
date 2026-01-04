@@ -1,0 +1,90 @@
+{
+  "variant_type": "fish_species",
+  "variants": {
+    "common": {
+      "name_prefix": "Common",
+      "description_modifier": "a small, common fish",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 0.75},
+        "value": {"type": "multiply", "value": 0.6},
+        "hunger": {"type": "multiply", "value": 0.67},
+        "catch_chance": {"type": "override", "value": 0.08}
+      },
+      "overrides": {
+        "ascii_color": "#888888"
+      },
+      "tier": 1
+    },
+    "trout": {
+      "name_prefix": "",
+      "name_override": "Trout",
+      "description_modifier": "a freshwater trout, good eating",
+      "modifiers": {
+        "catch_chance": {"type": "override", "value": 0.05}
+      },
+      "overrides": {
+        "ascii_color": "#A0522D"
+      },
+      "tier": 2
+    },
+    "bass": {
+      "name_prefix": "",
+      "name_override": "Bass",
+      "description_modifier": "a largemouth bass",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.25},
+        "value": {"type": "multiply", "value": 1.2},
+        "hunger": {"type": "multiply", "value": 1.15},
+        "catch_chance": {"type": "override", "value": 0.04}
+      },
+      "overrides": {
+        "ascii_color": "#6B8E23"
+      },
+      "tier": 2
+    },
+    "salmon": {
+      "name_prefix": "",
+      "name_override": "Salmon",
+      "description_modifier": "a large, pink-fleshed salmon, prized for its taste",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 2.0},
+        "value": {"type": "multiply", "value": 2.0},
+        "hunger": {"type": "multiply", "value": 1.33},
+        "catch_chance": {"type": "override", "value": 0.025}
+      },
+      "overrides": {
+        "ascii_color": "#FA8072"
+      },
+      "tier": 3
+    },
+    "catfish": {
+      "name_prefix": "",
+      "name_override": "Catfish",
+      "description_modifier": "a whiskered catfish from deep waters",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 2.5},
+        "value": {"type": "multiply", "value": 1.5},
+        "hunger": {"type": "multiply", "value": 1.5},
+        "catch_chance": {"type": "override", "value": 0.02}
+      },
+      "overrides": {
+        "ascii_color": "#4A4A4A"
+      },
+      "tier": 3
+    },
+    "golden": {
+      "name_prefix": "Sturgeon",
+      "description_modifier": "a legendary fish, extremely rare and valuable",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.5},
+        "value": {"type": "multiply", "value": 10.0},
+        "hunger": {"type": "multiply", "value": 1.67},
+        "catch_chance": {"type": "override", "value": 0.005}
+      },
+      "overrides": {
+        "ascii_color": "#FFD700"
+      },
+      "tier": 5
+    }
+  }
+}

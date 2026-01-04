@@ -172,35 +172,52 @@ static func get_resource(resource_id: String) -> HarvestableResource:
 
 # Check if player has required tool for harvesting
 # Returns: {has_tool, tool_name, tool_item, action_reduction, yield_bonus}
+# Matching priority: exact item ID > specific variant ID > tool_type > template_id
 static func has_required_tool(player: Player, resource: HarvestableResource) -> Dictionary:
 	if resource.required_tools.is_empty():
 		return {"has_tool": true, "tool_name": "hands", "tool_item": null, "action_reduction": 0, "yield_bonus": 0}
 
-	for tool_req in resource.required_tools:
-		var tool_id = tool_req.tool_id
-		# Check equipped items first (always valid)
-		if player.inventory.equipment.main_hand and player.inventory.equipment.main_hand.id == tool_id:
-			return {
-				"has_tool": true,
-				"tool_name": player.inventory.equipment.main_hand.name,
-				"tool_item": player.inventory.equipment.main_hand,
-				"action_reduction": tool_req.action_reduction,
-				"yield_bonus": tool_req.yield_bonus
-			}
-		if player.inventory.equipment.off_hand and player.inventory.equipment.off_hand.id == tool_id:
-			return {
-				"has_tool": true,
-				"tool_name": player.inventory.equipment.off_hand.name,
-				"tool_item": player.inventory.equipment.off_hand,
-				"action_reduction": tool_req.action_reduction,
-				"yield_bonus": tool_req.yield_bonus
-			}
+	# Get equipped items
+	var equipped_items: Array[Item] = []
+	if player.inventory.equipment.main_hand:
+		equipped_items.append(player.inventory.equipment.main_hand)
+	if player.inventory.equipment.off_hand:
+		equipped_items.append(player.inventory.equipment.off_hand)
 
-		# Only check inventory if tool doesn't need to be equipped
-		if not resource.tool_must_be_equipped:
-			for item in player.inventory.items:
-				if item.id == tool_id:
-					return {
+	# Get inventory items if tool doesn't need to be equipped
+	var inventory_items: Array[Item] = []
+	if not resource.tool_must_be_equipped:
+		for item in player.inventory.items:
+			inventory_items.append(item)
+
+	# Combine all available tools
+	var all_items = equipped_items + inventory_items
+
+	# Find the best matching tool requirement for each item
+	# Priority: exact ID match > tool_type/template_id match
+	var best_match: Dictionary = {"has_tool": false, "tool_name": "", "tool_item": null, "action_reduction": 0, "yield_bonus": 0}
+	var best_priority = -1  # Higher is better: 2=exact ID, 1=tool_type/template match
+
+	for item in all_items:
+		for tool_req in resource.required_tools:
+			var tool_id = tool_req.tool_id
+			var match_priority = _get_match_priority(item, tool_id)
+
+			if match_priority > 0 and match_priority > best_priority:
+				best_priority = match_priority
+				best_match = {
+					"has_tool": true,
+					"tool_name": item.name,
+					"tool_item": item,
+					"action_reduction": tool_req.action_reduction,
+					"yield_bonus": tool_req.yield_bonus
+				}
+			elif match_priority > 0 and match_priority == best_priority:
+				# Same priority - prefer higher bonuses
+				var total_bonus = tool_req.action_reduction + tool_req.yield_bonus
+				var best_bonus = best_match.action_reduction + best_match.yield_bonus
+				if total_bonus > best_bonus:
+					best_match = {
 						"has_tool": true,
 						"tool_name": item.name,
 						"tool_item": item,
@@ -208,7 +225,26 @@ static func has_required_tool(player: Player, resource: HarvestableResource) -> 
 						"yield_bonus": tool_req.yield_bonus
 					}
 
-	return {"has_tool": false, "tool_name": "", "tool_item": null, "action_reduction": 0, "yield_bonus": 0}
+	return best_match
+
+# Get match priority for an item against a tool requirement
+# Returns: 3 = exact ID match, 2 = template_id match, 1 = tool_type match, 0 = no match
+static func _get_match_priority(item: Item, tool_id: String) -> int:
+	# Exact ID match (highest priority - e.g., "iron_hatchet" matches "iron_hatchet")
+	if item.id == tool_id:
+		return 3
+	# Match by template_id (e.g., "iron_hatchet" has template_id "hatchet" -> matches "hatchet")
+	if item.is_templated and item.template_id == tool_id:
+		return 2
+	# Match by tool_type (lowest priority - e.g., "iron_hatchet" has tool_type "axe" -> matches "axe")
+	if item.tool_type != "" and item.tool_type == tool_id:
+		return 1
+	return 0
+
+# Check if an item matches a tool requirement
+# Matches by item.id OR item.tool_type (for template-based items)
+static func _item_matches_tool(item: Item, tool_id: String) -> bool:
+	return _get_match_priority(item, tool_id) > 0
 
 # Generate a unique key for tracking harvest progress at a position
 static func _get_progress_key(map_id: String, pos: Vector2i) -> String:
@@ -328,7 +364,7 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 		# Check if the tool used is one of the required tools (for transformation check)
 		var tool_is_required = false
 		for tool_req in resource.required_tools:
-			if tool_used_item.id == tool_req.tool_id:
+			if _item_matches_tool(tool_used_item, tool_req.tool_id):
 				tool_is_required = true
 				break
 		# Check if the yield matches a transformation (e.g., yielding waterskin_full when using waterskin_empty)

@@ -1,0 +1,19 @@
+{
+  "id": "bait",
+  "name": "Bait",
+  "description": "Worms and grubs used to attract fish when fishing with a rod.",
+  "category": "consumable",
+  "subtype": "fishing",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.05,
+  "value": 1,
+  "max_stack": 20,
+  "ascii_char": "~",
+  "ascii_color": "#8B4513",
+  "nibble_loss_chance": 0.1
+}

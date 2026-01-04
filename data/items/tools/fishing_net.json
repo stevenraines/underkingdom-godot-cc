@@ -1,0 +1,23 @@
+{
+  "id": "fishing_net",
+  "name": "Fishing Net",
+  "description": "A woven net for catching fish. Does not require bait.",
+  "category": "tool",
+  "subtype": "fishing",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "two_handed": true
+  },
+  "weight": 2.0,
+  "value": 20,
+  "max_stack": 1,
+  "ascii_char": "#",
+  "ascii_color": "#D2B48C",
+  "durability": 30,
+  "tool_type": "fishing_net",
+  "equip_slots": ["main_hand"],
+  "requires_bait": false
+}

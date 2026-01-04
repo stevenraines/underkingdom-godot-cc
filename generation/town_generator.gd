@@ -363,11 +363,7 @@ static func _add_decorative_trees(tiles_dict: Dictionary, center: Vector2i, size
 		if pos in tiles_dict:
 			var existing = tiles_dict[pos]
 			if existing.walkable and existing.tile_type == "floor":
-				var tree_tile = GameTile.create("floor")
-				tree_tile.walkable = false
-				tree_tile.transparent = false
-				tree_tile.ascii_char = "T"
-				tree_tile.color = Color.WHITE
+				var tree_tile = GameTile.create("tree")
 				tiles_dict[pos] = tree_tile
 				trees_placed += 1
 

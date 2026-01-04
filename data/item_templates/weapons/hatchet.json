@@ -1,0 +1,31 @@
+{
+  "template_id": "hatchet",
+  "display_name": "Hatchet",
+  "description_base": "A small one-handed axe for light chopping and combat.",
+  "category": "weapon",
+  "subtype": "axe",
+  "base_properties": {
+    "ascii_char": "P",
+    "tool_type": "axe",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": true
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 1.5,
+    "value": 20,
+    "durability": 100,
+    "damage_bonus": 3
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

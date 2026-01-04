@@ -3,9 +3,12 @@ extends Control
 ## InventoryScreen - UI for displaying and managing player inventory
 ##
 ## Shows equipped items, inventory contents, weight, and encumbrance.
-## Allows equipping, using, and dropping items.
+## Allows equipping, using, dropping, and inscribing items.
 
 signal closed()
+
+# Inscription dialog preload
+const InscriptionDialogScene = preload("res://ui/inscription_dialog.tscn")
 
 @onready var equipment_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentList
 @onready var inventory_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer/InventoryList
@@ -26,6 +29,8 @@ signal closed()
 @onready var action_e: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionE
 @onready var action_u: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionU
 @onready var action_d: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionD
+@onready var action_inscribe: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionInscribe
+@onready var action_uninscribe: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionUninscribe
 
 var player: Player = null
 var selected_item: Item = null
@@ -39,6 +44,10 @@ var slot_selection_mode: bool = false
 var slot_selection_items: Array[Item] = []
 var slot_selection_index: int = 0
 var pending_equip_slot: String = ""  # The slot we're trying to equip to
+
+# Inscription dialog
+var inscription_dialog = null
+var inscription_dialog_active: bool = false
 
 # Colors
 const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
@@ -81,14 +90,32 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	
+
+	# Don't process input if inscription dialog is active
+	if inscription_dialog_active:
+		return
+
 	if event is InputEventKey and event.pressed and not event.echo:
 		# Handle slot selection mode separately
 		if slot_selection_mode:
 			_handle_slot_selection_input(event.keycode)
 			get_viewport().set_input_as_handled()
 			return
-		
+
+		# Check for { key (inscribe) - Shift+[ or unicode 123
+		var is_inscribe_key = (event.keycode == KEY_BRACKETLEFT and event.shift_pressed) or event.unicode == 123
+		# Check for } key (uninscribe) - Shift+] or unicode 125
+		var is_uninscribe_key = (event.keycode == KEY_BRACKETRIGHT and event.shift_pressed) or event.unicode == 125
+
+		if is_inscribe_key:
+			_inscribe_selected()
+			get_viewport().set_input_as_handled()
+			return
+		elif is_uninscribe_key:
+			_uninscribe_selected()
+			get_viewport().set_input_as_handled()
+			return
+
 		match event.keycode:
 			KEY_ESCAPE, KEY_I:
 				_close()
@@ -183,7 +210,7 @@ func _update_equipment_display() -> void:
 		if equipped_item:
 			container.get_node("Icon").text = equipped_item.ascii_char
 			container.get_node("Icon").add_theme_color_override("font_color", equipped_item.get_color())
-			container.get_node("Name").text = equipped_item.name
+			container.get_node("Name").text = equipped_item.get_display_name()
 			container.get_node("Name").add_theme_color_override("font_color", COLOR_EQUIPPED)
 			container.get_node("Weight").text = "%.1fkg" % equipped_item.weight
 			container.get_node("Weight").add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
@@ -221,10 +248,10 @@ func _update_inventory_display() -> void:
 			
 			container.get_node("Icon").text = item.ascii_char
 			container.get_node("Icon").add_theme_color_override("font_color", item.get_color())
-			
-			var name_text = item.name
+
+			var name_text = item.get_display_name()
 			if item.stack_size > 1:
-				name_text = "%s (x%d)" % [item.name, item.stack_size]
+				name_text = "%s (x%d)" % [item.get_display_name(), item.stack_size]
 			container.get_node("Name").text = name_text
 			container.get_node("Name").add_theme_color_override("font_color", item.get_color())
 			
@@ -398,8 +425,8 @@ func _update_tooltip() -> void:
 
 ## Populate the tooltip UI with item data
 func _populate_item_tooltip(item: Item) -> void:
-	# Name column
-	item_name_label.text = item.name
+	# Name column - show inscription if present
+	item_name_label.text = item.get_display_name()
 	item_name_label.add_theme_color_override("font_color", item.get_color())
 	item_desc_label.text = item.description
 
@@ -468,6 +495,8 @@ func _update_action_visibility(item: Item) -> void:
 		action_e.visible = false
 		action_u.visible = false
 		action_d.visible = false
+		action_inscribe.visible = false
+		action_uninscribe.visible = false
 		return
 
 	# Show/hide actions based on item properties and context
@@ -482,6 +511,10 @@ func _update_action_visibility(item: Item) -> void:
 
 	action_u.visible = item.is_consumable()
 	action_d.visible = true
+
+	# Inscription actions - always show inscribe, only show uninscribe if item has inscription
+	action_inscribe.visible = true
+	action_uninscribe.visible = item.has_inscription()
 
 func _navigate(direction: int) -> void:
 	if is_equipment_focused:
@@ -739,7 +772,7 @@ func _drop_selected() -> void:
 func _action_selected() -> void:
 	if not selected_item:
 		return
-	
+
 	# Default action based on item type
 	match selected_item.item_type:
 		"consumable":
@@ -748,3 +781,63 @@ func _action_selected() -> void:
 			_equip_selected()
 		_:
 			pass  # No default action for materials
+
+
+## Inscribe the selected item - open inscription dialog
+func _inscribe_selected() -> void:
+	if not player or not selected_item:
+		return
+
+	# Create inscription dialog if it doesn't exist
+	if not inscription_dialog:
+		inscription_dialog = InscriptionDialogScene.instantiate()
+		add_child(inscription_dialog)
+		inscription_dialog.inscription_entered.connect(_on_inscription_entered)
+		inscription_dialog.cancelled.connect(_on_inscription_cancelled)
+
+	inscription_dialog_active = true
+	inscription_dialog.open_inscribe(selected_item)
+
+
+## Uninscribe the selected item - remove inscription
+func _uninscribe_selected() -> void:
+	if not player or not selected_item:
+		return
+
+	# Only uninscribe if item has an inscription
+	if not selected_item.has_inscription():
+		return
+
+	# Create inscription dialog if it doesn't exist
+	if not inscription_dialog:
+		inscription_dialog = InscriptionDialogScene.instantiate()
+		add_child(inscription_dialog)
+		inscription_dialog.inscription_entered.connect(_on_inscription_entered)
+		inscription_dialog.cancelled.connect(_on_inscription_cancelled)
+
+	inscription_dialog_active = true
+	inscription_dialog.open_uninscribe(selected_item)
+
+
+## Handle inscription dialog completion
+func _on_inscription_entered(text: String) -> void:
+	inscription_dialog_active = false
+
+	if not selected_item:
+		return
+
+	if text == "":
+		# Empty text means uninscribe
+		selected_item.uninscribe()
+		EventBus.message_logged.emit("Removed inscription from %s." % selected_item.name)
+	else:
+		# Set the inscription
+		selected_item.inscribe(text)
+		EventBus.message_logged.emit("Inscribed %s with {%s}." % [selected_item.name, text])
+
+	refresh()
+
+
+## Handle inscription dialog cancellation
+func _on_inscription_cancelled() -> void:
+	inscription_dialog_active = false

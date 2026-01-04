@@ -62,6 +62,9 @@ var is_lit: bool = false            # True if the light source is currently lit 
 var key_id: String = ""             # For specific keys - matches a lock's lock_id
 var skeleton_key_level: int = 0     # For skeleton keys - can open locks at or below this level
 
+# Inscription (player-added label)
+var inscription: String = ""        # Player-written inscription displayed in {curly braces}
+
 # Consumable effects
 var effects: Dictionary = {}        # {"hunger": 30, "thirst": 20, "health": 10}
 
@@ -192,6 +195,7 @@ func duplicate_item() -> Item:
 	copy.is_lit = is_lit
 	copy.key_id = key_id
 	copy.skeleton_key_level = skeleton_key_level
+	copy.inscription = inscription
 	copy.effects = effects.duplicate()
 	copy.transforms_into = transforms_into
 	copy.template_id = template_id
@@ -415,6 +419,28 @@ func get_color() -> Color:
 	return Color.from_string(ascii_color, Color.WHITE)
 
 
+## Get display name including inscription if present
+func get_display_name() -> String:
+	if inscription != "":
+		return "%s {%s}" % [name, inscription]
+	return name
+
+
+## Inscribe text on this item
+func inscribe(text: String) -> void:
+	inscription = text
+
+
+## Remove inscription from this item
+func uninscribe() -> void:
+	inscription = ""
+
+
+## Check if this item has an inscription
+func has_inscription() -> bool:
+	return inscription != ""
+
+
 ## Serialize item for saving
 ## Returns minimal data needed to recreate this item
 func serialize() -> Dictionary:
@@ -435,6 +461,10 @@ func serialize() -> Dictionary:
 	# Save lit state for light sources
 	if is_lit:
 		data["is_lit"] = true
+
+	# Save inscription if present
+	if inscription != "":
+		data["inscription"] = inscription
 
 	return data
 

@@ -517,6 +517,9 @@ func _deserialize_inventory(inventory: Inventory, items_data: Array):
 			# Restore durability if it was saved
 			if item_data.has("durability") and item_data.durability != null:
 				item.durability = item_data.durability
+			# Restore inscription if it was saved
+			if item_data.has("inscription") and item_data.inscription != null:
+				item.inscription = item_data.inscription
 			inventory.items.append(item)
 
 ## Deserialize equipment
@@ -548,6 +551,9 @@ func _deserialize_equipment(inventory: Inventory, equipment_data: Dictionary):
 			# Restore durability if saved
 			if item and item_data.has("durability") and item_data.durability != null:
 				item.durability = item_data.durability
+			# Restore inscription if saved
+			if item and item_data.has("inscription") and item_data.inscription != null:
+				item.inscription = item_data.inscription
 		else:
 			# Legacy format: just item_id string
 			item = ItemManager.create_item(item_data, 1)

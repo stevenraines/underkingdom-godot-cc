@@ -54,7 +54,10 @@ func _build_help_content() -> void:
 	_add_keybind("E (in inventory)", "Equip/Unequip item")
 	_add_keybind("U (in inventory)", "Use consumable")
 	_add_keybind("D (in inventory)", "Drop item")
+	_add_keybind("{ (in inventory)", "Inscribe text on item")
+	_add_keybind("} (in inventory)", "Remove inscription from item")
 	_add_keybind("G", "Toggle auto-pickup on/off")
+	_add_help_text("Inscriptions appear in {curly braces} after item name")
 	_add_spacer()
 
 	# Crafting & Building

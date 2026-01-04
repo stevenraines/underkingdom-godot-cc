@@ -244,6 +244,18 @@ theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
 theme_override_font_sizes/font_size = 13
 text = "[D] Drop"
 
+[node name="ActionInscribe" type="Label" parent="Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+text = "[{] Inscribe"
+
+[node name="ActionUninscribe" type="Label" parent="Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+text = "[}] Uninscribe"
+
 [node name="Spacer" type="Control" parent="Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow"]
 layout_mode = 2
 size_flags_horizontal = 3

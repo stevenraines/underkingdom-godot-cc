@@ -74,6 +74,8 @@ func move(direction: Vector2i) -> bool:
 
 	# Check if new position is walkable
 	if not MapManager.current_map or not MapManager.current_map.is_walkable(new_pos):
+		# Notify player why they can't move
+		_notify_blocked_by_tile(new_pos)
 		return false
 
 	# Consume stamina for movement (allow move even if depleted, just add fatigue)
@@ -96,6 +98,66 @@ func move(direction: Vector2i) -> bool:
 			_interact_with_feature_at(new_pos)
 
 	return true
+
+
+## Notify player when blocked by a non-walkable tile
+func _notify_blocked_by_tile(pos: Vector2i) -> void:
+	var tile = MapManager.current_map.get_tile(pos) if MapManager.current_map else null
+	if not tile:
+		return
+
+	# Get a human-readable name for the blocking tile
+	var tile_name = _get_tile_display_name(tile)
+	EventBus.message_logged.emit("Your path is blocked by %s." % tile_name)
+
+
+## Get a human-readable display name for a tile type
+func _get_tile_display_name(tile) -> String:
+	# First check by ascii character for special structures/features
+	# This catches wells, shrines, and resources on floor tiles
+	match tile.ascii_char:
+		"☥":
+			return "a shrine"
+		"○":
+			return "a well"
+		"◆":
+			return "a rock"
+		"◊":
+			return "iron ore"
+
+	# Then check by tile type for standard tiles
+	match tile.tile_type:
+		"wall":
+			return "a wall"
+		"tree":
+			return "a tree"
+		"rock":
+			return "a rock"
+		"water":
+			return "water"
+		"door":
+			if tile.is_locked:
+				return "a locked door"
+			return "a closed door"
+		"iron_ore":
+			return "iron ore"
+		"wheat":
+			return "wheat"
+
+	# For floor tiles that are blocking, check remaining ascii characters
+	if tile.tile_type == "floor" and not tile.walkable:
+		match tile.ascii_char:
+			"T":
+				return "a tree"
+			"#":
+				return "a wall"
+			_:
+				return "an obstacle"
+
+	# Fallback for unknown types
+	if tile.tile_type != "" and tile.tile_type != "floor":
+		return "a " + tile.tile_type.replace("_", " ")
+	return "an obstacle"
 
 
 ## Check for hazards at the given position

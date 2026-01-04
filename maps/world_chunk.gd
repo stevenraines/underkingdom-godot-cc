@@ -136,6 +136,10 @@ func generate(world_seed: int) -> void:
 	# Generate town structures for any towns whose center is in this chunk
 	_generate_towns_in_chunk(towns_data, world_seed)
 
+	# Place inter-town road tiles that fall within this chunk
+	var road_paths: Array = map.metadata.get("road_paths", []) if map else []
+	_place_road_tiles_in_chunk(road_paths, world_seed)
+
 	is_loaded = true
 	is_dirty = true
 
@@ -274,6 +278,55 @@ func _get_default_building_defs() -> Dictionary:
 			"tile_type": "water"
 		}
 	}
+
+
+## Place inter-town road tiles that fall within this chunk
+func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
+	if road_paths.is_empty():
+		return
+
+	var bounds = get_world_bounds()
+	var chunk_rect = Rect2i(bounds.min, Vector2i(CHUNK_SIZE, CHUNK_SIZE))
+
+	for road_path in road_paths:
+		var points: Array = road_path.get("points", [])
+
+		for point_data in points:
+			var world_pos: Vector2i
+			var pos_value = point_data.get("pos")
+			if pos_value is Vector2i:
+				world_pos = pos_value
+			elif pos_value is Array:
+				world_pos = Vector2i(pos_value[0], pos_value[1])
+			else:
+				continue
+
+			# Check if this point is within this chunk
+			if not chunk_rect.has_point(world_pos):
+				continue
+
+			var local_pos = world_to_chunk_position(world_pos)
+			var road_type = point_data.get("type", "road_dirt")
+
+			# Get existing tile at this position
+			if local_pos not in tiles:
+				continue
+
+			var existing_tile = tiles[local_pos]
+
+			# Don't replace special structures
+			if existing_tile.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up", "tree", "rock"]:
+				continue
+
+			# Handle water crossings with bridges
+			if existing_tile.tile_type == "water":
+				var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
+				tiles[local_pos] = GameTile.create(bridge_type)
+				continue
+
+			# Replace floor/grass tiles with road
+			if existing_tile.walkable and existing_tile.tile_type == "floor":
+				tiles[local_pos] = GameTile.create(road_type)
 
 
 ## Spawn NPCs directly via EntityManager

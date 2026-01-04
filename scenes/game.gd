@@ -588,9 +588,14 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change COMPLETE ===")
 
 ## Called when a single tile changes (door opened/closed, etc.)
-func _on_tile_changed(_pos: Vector2i) -> void:
+func _on_tile_changed(pos: Vector2i) -> void:
 	if not MapManager.current_map:
 		return
+
+	# Re-render the changed tile (e.g., door opened/closed)
+	var tile = MapManager.current_map.get_tile(pos)
+	if tile:
+		renderer.render_tile(pos, tile.ascii_char)
 
 	# Recalculate visibility when tiles change (doors open/close affects LOS)
 	_update_visibility()

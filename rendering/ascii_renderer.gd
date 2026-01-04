@@ -147,6 +147,10 @@ var entity_modulated_cells: Dictionary = {}
 var terrain_original_colors: Dictionary = {}
 var entity_original_colors: Dictionary = {}
 
+# Track hidden entities (erased due to being outside LOS)
+# Stores {position: {atlas: Vector2i, color: Color}} so they can be restored
+var hidden_entity_positions: Dictionary = {}
+
 # Track hidden floor tiles (positions where entities are standing)
 var hidden_floor_positions: Dictionary = {}
 
@@ -483,8 +487,20 @@ func _apply_fog_of_war_to_entities() -> void:
 	if not entity_layer:
 		return
 
-	# For entities, we need to hide those not in visible tiles (LOS required)
-	# We actually erase cells for non-visible entities to ensure they're hidden
+	# First, check if any hidden entities should be restored (now visible)
+	var hidden_to_restore: Array = []
+	for pos in hidden_entity_positions.keys():
+		if visible_tiles.has(pos):
+			hidden_to_restore.append(pos)
+
+	for pos in hidden_to_restore:
+		var hidden_data = hidden_entity_positions[pos]
+		# Restore the entity cell
+		entity_layer.set_cell(pos, 0, hidden_data["atlas"])
+		entity_modulated_cells[pos] = hidden_data["color"]
+		hidden_entity_positions.erase(pos)
+
+	# Now process currently rendered entities
 	var all_positions: Array = entity_modulated_cells.keys().duplicate()
 
 	for pos in all_positions:
@@ -499,12 +515,14 @@ func _apply_fog_of_war_to_entities() -> void:
 			# Show entity with original color
 			entity_modulated_cells[pos] = original_color
 		else:
-			# Not in LOS - actually erase the cell to hide it completely
-			# Color modulation with alpha=0 doesn't always work, so we erase
+			# Not in LOS - store entity data and erase the cell
+			var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
+			hidden_entity_positions[pos] = {
+				"atlas": atlas_coords,
+				"color": original_color
+			}
 			entity_layer.erase_cell(pos)
 			entity_modulated_cells.erase(pos)
-			# Note: We keep the original color stored in entity_original_colors
-			# so it can be restored if the entity becomes visible again
 
 	entity_layer.notify_runtime_tile_data_update()
 
@@ -547,6 +565,9 @@ func clear_all() -> void:
 	entity_modulated_cells.clear()
 	highlight_modulated_cells.clear()
 	hidden_floor_positions.clear()
+	hidden_entity_positions.clear()
+	entity_original_colors.clear()
+	terrain_original_colors.clear()
 	current_highlight_position = Vector2i(-1, -1)
 
 

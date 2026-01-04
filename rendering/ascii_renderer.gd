@@ -421,7 +421,10 @@ func update_fov(new_visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(
 	if origin.x >= 0:
 		player_position = origin
 
+	print("[Renderer] update_fov: received %d visible_tiles, is_chunk_based=%s, current_map=%s" % [visible_tiles.size(), is_chunk_based, current_map_id])
+
 	if not fow_enabled:
+		print("[Renderer] FOW disabled, skipping")
 		return
 
 	# Apply fog of war to terrain tiles
@@ -453,6 +456,10 @@ func _apply_fog_of_war_to_terrain() -> void:
 	# Collect all rendered terrain positions
 	var all_positions: Array = terrain_modulated_cells.keys()
 
+	var visible_count = 0
+	var explored_count = 0
+	var unexplored_count = 0
+
 	for pos in all_positions:
 		# Check if tile is visible:
 		# 1. In LOS-based visible_tiles, OR
@@ -471,6 +478,7 @@ func _apply_fog_of_war_to_terrain() -> void:
 			# Mark as visible in fog of war system and show at full brightness
 			FogOfWarSystemClass.mark_explored(current_map_id, pos, is_chunk_based)
 			terrain_modulated_cells[pos] = original_color
+			visible_count += 1
 		else:
 			# Check explored state from fog of war system
 			var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
@@ -478,9 +486,13 @@ func _apply_fog_of_war_to_terrain() -> void:
 				"explored":
 					# Dark gray tint (lerp toward fog color)
 					terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+					explored_count += 1
 				_:  # "unexplored"
 					# Very dark gray
 					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+					unexplored_count += 1
+
+	print("[Renderer] FOW terrain: %d visible, %d explored, %d unexplored (total %d tiles)" % [visible_count, explored_count, unexplored_count, all_positions.size()])
 
 	terrain_layer.notify_runtime_tile_data_update()
 

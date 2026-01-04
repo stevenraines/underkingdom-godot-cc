@@ -194,10 +194,17 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	# Dungeons (non-chunk-based maps) have no sunlight - always require light sources
 	var is_underground = not chunk_based
 
+	# Set underground state in lighting system so is_illuminated() works correctly
+	LightingSystemClass.set_underground(is_underground)
+
 	# Check sun light (0 in dungeons, varies by time on overworld)
 	var sun_radius = LightingSystemClass.get_sun_light_radius(is_underground)
+
+	print("[FOV] calculate_visibility: map_id=%s, chunk_based=%s, is_underground=%s, sun_radius=%d, light_radius=%d, los_tiles=%d" % [map_id, chunk_based, is_underground, sun_radius, light_radius, los_tiles.size()])
+
 	if sun_radius >= 999:
 		# Full daylight on overworld - all tiles in LOS are visible
+		print("[FOV] Full daylight - returning %d los_tiles" % los_tiles.size())
 		FogOfWarSystemClass.set_visible_tiles(los_tiles)
 		FogOfWarSystemClass.mark_many_explored(map_id, los_tiles, chunk_based)
 		cached_visible = los_tiles
@@ -229,6 +236,8 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	# Update fog of war
 	FogOfWarSystemClass.set_visible_tiles(visible_tiles)
 	FogOfWarSystemClass.mark_many_explored(map_id, visible_tiles, chunk_based)
+
+	print("[FOV] Night/dungeon - returning %d visible_tiles (from %d los_tiles)" % [visible_tiles.size(), los_tiles.size()])
 
 	cached_visible = visible_tiles
 	return visible_tiles

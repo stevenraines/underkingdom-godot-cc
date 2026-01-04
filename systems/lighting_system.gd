@@ -34,6 +34,11 @@ const LIGHT_RADII: Dictionary = {
 static var illuminated_positions: Dictionary = {}  # Vector2i -> light_level (0.0-1.0)
 static var light_sources: Array = []  # Array of {position: Vector2i, type: LightType, radius: int}
 static var cache_dirty: bool = true
+static var current_is_underground: bool = false  # Track if current map is underground (no sunlight)
+
+## Set whether current map is underground (no sunlight)
+static func set_underground(is_underground: bool) -> void:
+	current_is_underground = is_underground
 
 ## Clear all light sources and mark cache dirty
 static func clear_light_sources() -> void:
@@ -79,8 +84,8 @@ static func get_sun_light_radius(is_underground: bool = false) -> int:
 ## Check if a position is illuminated by any light source
 ## Returns light level 0.0 (dark) to 1.0 (bright)
 static func get_light_level_at(position: Vector2i) -> float:
-	# Check sun first (overworld during day)
-	var sun_radius = get_sun_light_radius()
+	# Check sun first (overworld during day) - use tracked underground state
+	var sun_radius = get_sun_light_radius(current_is_underground)
 	if sun_radius >= 999:
 		return 1.0  # Full daylight
 
@@ -94,8 +99,8 @@ static func get_light_level_at(position: Vector2i) -> float:
 			var falloff = 1.0 - (float(dist) / float(source.radius + 1))
 			max_light = max(max_light, falloff)
 
-	# Add partial sun light at dawn/dusk
-	if sun_radius > 0 and sun_radius < 999:
+	# Add partial sun light at dawn/dusk (only on surface)
+	if not current_is_underground and sun_radius > 0 and sun_radius < 999:
 		# Dawn/dusk provides ambient light that adds to other sources
 		max_light = max(max_light, 0.3)
 

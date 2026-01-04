@@ -58,6 +58,22 @@ func generate(world_seed: int) -> void:
 	for entrance in dungeon_entrances:
 		entrance_lookup[entrance.position] = entrance
 
+	# Build a dictionary of road positions for quick lookup (to avoid spawning resources on roads)
+	var road_positions: Dictionary = {}
+	var road_paths_data: Array = map.metadata.get("road_paths", []) if map else []
+	for road_path in road_paths_data:
+		var points: Array = road_path.get("points", [])
+		for point_data in points:
+			var pos_value = point_data.get("pos")
+			var world_pos: Vector2i
+			if pos_value is Vector2i:
+				world_pos = pos_value
+			elif pos_value is Array:
+				world_pos = Vector2i(pos_value[0], pos_value[1])
+			else:
+				continue
+			road_positions[world_pos] = true
+
 	# Generate all tiles in chunk using biome system
 	for local_y in range(CHUNK_SIZE):
 		for local_x in range(CHUNK_SIZE):
@@ -105,9 +121,10 @@ func generate(world_seed: int) -> void:
 
 			tiles[Vector2i(local_x, local_y)] = tile
 
-			# Try to spawn resources on floor tiles (skip in town areas)
+			# Try to spawn resources on floor tiles (skip in town areas and on road paths)
 			var min_dist_to_town = _get_min_distance_to_towns(world_pos, towns_data)
-			if tile.walkable and tile.tile_type == "floor" and min_dist_to_town > 10:
+			var is_on_road = world_pos in road_positions
+			if tile.walkable and tile.tile_type == "floor" and min_dist_to_town > 10 and not is_on_road:
 				# Try to spawn tree
 				if rng.randf() < biome.tree_density:
 					var resource_instance = ResourceSpawner.ResourceInstance.new("tree", world_pos, chunk_coords)
@@ -135,6 +152,10 @@ func generate(world_seed: int) -> void:
 
 	# Generate town structures for any towns whose center is in this chunk
 	_generate_towns_in_chunk(towns_data, world_seed)
+
+	# Place inter-town road tiles that fall within this chunk
+	var road_paths: Array = map.metadata.get("road_paths", []) if map else []
+	_place_road_tiles_in_chunk(road_paths, world_seed)
 
 	is_loaded = true
 	is_dirty = true
@@ -179,7 +200,7 @@ func _get_town_size(town: Dictionary) -> Vector2i:
 	return size
 
 
-## Generate town structures for towns whose center is in this chunk
+## Generate town structures for towns that overlap with this chunk
 func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 	# Get TownManager singleton through Engine
 	var town_manager = Engine.get_singleton("TownManager") if Engine.has_singleton("TownManager") else null
@@ -187,44 +208,61 @@ func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 		# Fallback: try to get from tree (autoload)
 		town_manager = _get_autoload("TownManager")
 
+	# Get this chunk's world bounds
+	var chunk_bounds = get_world_bounds()
+	var chunk_rect = Rect2i(chunk_bounds.min, Vector2i(CHUNK_SIZE, CHUNK_SIZE))
+
 	for town in towns_data:
 		var town_pos = _get_town_position(town)
+		var town_size = _get_town_size(town)
+
+		# Calculate town bounding rect (with extra padding for building offsets)
+		# Buildings can have offsets up to half the town size, so use town_size as padding
+		var town_rect = Rect2i(town_pos - town_size, town_size * 2)
+
+		# Check if town bounds overlap with this chunk
+		if not chunk_rect.intersects(town_rect):
+			continue
+
+		var town_id = town.get("town_id", "starter_town")
+
+		# Determine if this is the "primary" chunk for this town (contains the center)
 		var town_chunk = Vector2i(
 			floori(float(town_pos.x) / CHUNK_SIZE),
 			floori(float(town_pos.y) / CHUNK_SIZE)
 		)
+		var is_primary_chunk = (chunk_coords == town_chunk)
 
-		if chunk_coords == town_chunk:
-			var town_id = town.get("town_id", "starter_town")
-			print("[WorldChunk] *** GENERATING %s STRUCTURES in chunk %v ***" % [town_id, chunk_coords])
+		print("[WorldChunk] Generating %s structures in chunk %v (primary=%s)" % [town_id, chunk_coords, is_primary_chunk])
 
-			# Get definitions from TownManager (or use defaults)
-			var town_def: Dictionary = {}
-			var building_defs: Dictionary = {}
-			if town_manager:
-				town_def = town_manager.get_town(town_id)
-				building_defs = town_manager.building_definitions
-			else:
-				# Fallback to default definitions
-				town_def = _get_default_town_def()
-				building_defs = _get_default_building_defs()
+		# Get definitions from TownManager (or use defaults)
+		var town_def: Dictionary = {}
+		var building_defs: Dictionary = {}
+		if town_manager:
+			town_def = town_manager.get_town(town_id)
+			building_defs = town_manager.building_definitions
+		else:
+			# Fallback to default definitions
+			town_def = _get_default_town_def()
+			building_defs = _get_default_building_defs()
 
-			# Convert tiles dict from local to world coords for TownGenerator
-			var world_tiles: Dictionary = {}
-			for local_pos in tiles:
-				var world_pos_tile = chunk_to_world_position(local_pos)
-				world_tiles[world_pos_tile] = tiles[local_pos]
+		# Convert tiles dict from local to world coords for TownGenerator
+		var world_tiles: Dictionary = {}
+		for local_pos in tiles:
+			var world_pos_tile = chunk_to_world_position(local_pos)
+			world_tiles[world_pos_tile] = tiles[local_pos]
 
-			# Generate using data-driven TownGenerator
-			var result = TownGeneratorScript.generate_town(town_id, town_pos, world_seed, world_tiles, town_def, building_defs)
+		# Generate using data-driven TownGenerator
+		var result = TownGeneratorScript.generate_town(town_id, town_pos, world_seed, world_tiles, town_def, building_defs)
 
-			# Copy generated tiles back to chunk local coordinates
-			for world_pos_tile in world_tiles:
-				var local_pos = world_to_chunk_position(world_pos_tile)
-				if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
-					tiles[local_pos] = world_tiles[world_pos_tile]
+		# Copy generated tiles back to chunk local coordinates
+		for world_pos_tile in world_tiles:
+			var local_pos = world_to_chunk_position(world_pos_tile)
+			if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
+				tiles[local_pos] = world_tiles[world_pos_tile]
 
-			# Spawn NPCs directly via EntityManager
+		# Only spawn NPCs and register town from the primary chunk to avoid duplicates
+		if is_primary_chunk:
 			if result.has("npc_spawns") and result.npc_spawns.size() > 0:
 				_spawn_town_npcs(result.npc_spawns, town_id)
 
@@ -274,6 +312,59 @@ func _get_default_building_defs() -> Dictionary:
 			"tile_type": "water"
 		}
 	}
+
+
+## Place inter-town road tiles that fall within this chunk
+func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
+	if road_paths.is_empty():
+		return
+
+	var bounds = get_world_bounds()
+	var chunk_rect = Rect2i(bounds.min, Vector2i(CHUNK_SIZE, CHUNK_SIZE))
+
+	for road_path in road_paths:
+		var points: Array = road_path.get("points", [])
+
+		for point_data in points:
+			var world_pos: Vector2i
+			var pos_value = point_data.get("pos")
+			if pos_value is Vector2i:
+				world_pos = pos_value
+			elif pos_value is Array:
+				world_pos = Vector2i(pos_value[0], pos_value[1])
+			else:
+				continue
+
+			# Check if this point is within this chunk
+			if not chunk_rect.has_point(world_pos):
+				continue
+
+			var local_pos = world_to_chunk_position(world_pos)
+			var road_type = point_data.get("type", "road_dirt")
+
+			# Get existing tile at this position
+			if local_pos not in tiles:
+				continue
+
+			var existing_tile = tiles[local_pos]
+
+			# Don't replace special structures (but do allow replacing trees/rocks for roads)
+			if existing_tile.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up"]:
+				continue
+
+			# Don't replace interior floor tiles (inside buildings)
+			if existing_tile.is_interior:
+				continue
+
+			# Handle water crossings with bridges
+			if existing_tile.tile_type == "water":
+				var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
+				tiles[local_pos] = GameTile.create(bridge_type)
+				continue
+
+			# Replace floor/grass tiles and resources (trees/rocks) with road
+			if existing_tile.tile_type in ["floor", "tree", "rock"]:
+				tiles[local_pos] = GameTile.create(road_type)
 
 
 ## Spawn NPCs directly via EntityManager

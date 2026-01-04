@@ -256,7 +256,7 @@ static func calculate_miss_landing(from: Vector2i, to: Vector2i, max_range: int)
 
 
 ## Get all valid targets in range from a position
-## Returns enemies within range and line of sight
+## Returns enemies within range, line of sight, and visibility (illuminated)
 static func get_valid_targets(attacker: Entity, weapon: Item) -> Array[Entity]:
 	var targets: Array[Entity] = []
 
@@ -271,6 +271,10 @@ static func get_valid_targets(attacker: Entity, weapon: Item) -> Array[Entity]:
 		if not entity is Enemy:
 			continue
 		if not entity.is_alive:
+			continue
+
+		# Check if target is currently visible (in FOV and illuminated)
+		if not FogOfWarSystem.is_visible(entity.position):
 			continue
 
 		# Check range

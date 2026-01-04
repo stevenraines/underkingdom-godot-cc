@@ -28,5 +28,10 @@
   "decorations": {
     "perimeter_trees": true,
     "max_trees": 12
+  },
+  "roads": {
+    "internal_roads": true,
+    "town_square": true,
+    "connected_to_other_towns": true
   }
 }

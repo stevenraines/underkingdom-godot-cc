@@ -793,6 +793,9 @@ func _exit_harvesting_mode() -> void:
 		_harvest_direction = Vector2i.ZERO
 		_harvest_timer = 0.0
 		_skip_movement_this_frame = true  # Prevent moving into harvested space
+		# Reset movement timer to prevent immediate movement when key is held
+		move_timer = initial_delay
+		is_initial_press = true
 		EventBus.harvesting_mode_changed.emit(false)
 
 ## Check if currently in harvesting mode (for status bar)
@@ -816,6 +819,9 @@ func _exit_fishing_mode() -> void:
 		_fishing_direction = Vector2i.ZERO
 		_fishing_timer = 0.0
 		_skip_movement_this_frame = true
+		# Reset movement timer to prevent immediate movement when key is held
+		move_timer = initial_delay
+		is_initial_press = true
 		FishingSystemClass.cancel_session(player)
 
 ## Check if currently in fishing mode (for status bar)
@@ -1405,6 +1411,10 @@ func _get_visible_objects() -> Array:
 		if distance > player.perception_range:
 			continue
 
+		# Check if entity is currently visible (in FOV and illuminated)
+		if not FogOfWarSystem.is_visible(entity.position):
+			continue
+
 		# Handle different entity types
 		if entity is GroundItem:
 			objects.append({
@@ -1444,6 +1454,9 @@ func _get_visible_objects() -> Array:
 	for pos in FeatureManager.active_features:
 		var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
 		if distance <= player.perception_range:
+			# Check if feature is currently visible (in FOV and illuminated)
+			if not FogOfWarSystem.is_visible(pos):
+				continue
 			var feature = FeatureManager.active_features[pos]
 			var definition = feature.get("definition", {})
 			objects.append({
@@ -1459,6 +1472,9 @@ func _get_visible_objects() -> Array:
 		if HazardManager.has_visible_hazard(pos):
 			var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
 			if distance <= player.perception_range:
+				# Check if hazard is currently visible (in FOV and illuminated)
+				if not FogOfWarSystem.is_visible(pos):
+					continue
 				var hazard = HazardManager.active_hazards[pos]
 				var definition = hazard.get("definition", {})
 				objects.append({

@@ -109,6 +109,31 @@ static func create(type: String) -> GameTile:
 			tile.transparent = false
 			tile.ascii_char = "◊"
 			tile.harvestable_resource_id = "iron_ore"
+		"road_cobblestone":
+			tile.tile_type = "road_cobblestone"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "▪"  # Small filled square
+		"road_gravel":
+			tile.tile_type = "road_gravel"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "·"  # Middle dot
+		"road_dirt":
+			tile.tile_type = "road_dirt"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "░"  # Light shade
+		"bridge_wood":
+			tile.tile_type = "bridge_wood"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "="  # Double horizontal line for wooden planks
+		"bridge_stone":
+			tile.tile_type = "bridge_stone"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "≡"  # Triple horizontal line for stone bridge
 		_:
 			push_warning("Unknown tile type: " + type + ", defaulting to floor")
 			tile.tile_type = "floor"

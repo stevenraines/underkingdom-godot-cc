@@ -129,6 +129,13 @@ var default_terrain_colors: Dictionary = {
 	# Harvestable resources
 	"◆": Color(0.6, 0.6, 0.6),         # Gray - Rock
 	"◊": Color(0.7, 0.5, 0.3),         # Rusty Brown - Iron Ore
+
+	# Road tiles
+	"▪": Color(0.5, 0.5, 0.55),        # Gray-blue - Cobblestone road
+
+	# Bridge tiles
+	"=": Color(0.55, 0.4, 0.25),       # Brown - Wood bridge
+	"≡": Color(0.55, 0.55, 0.6),       # Gray - Stone bridge
 }
 
 var visible_tiles: Array[Vector2i] = []

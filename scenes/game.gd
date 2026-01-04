@@ -1158,13 +1158,13 @@ func _get_terrain_name(terrain_char: String, biome_id: String = "") -> String:
 	# Standard terrain names
 	var terrain_names = {
 		"#": "Wall",
-		"░": "Wall",
+		"░": "Dirt Road",
 		"T": "Tree",
 		"\"": "Grass",
 		",": "Grass",
 		"^": "Rocky",
 		"*": "Snow",
-		"·": "Barren",
+		"·": "Gravel Road",
 		"~": "Water",
 		"≈": "Deep Water",
 		"▲": "Mountain",
@@ -1172,7 +1172,10 @@ func _get_terrain_name(terrain_char: String, biome_id: String = "") -> String:
 		"◊": "Iron Ore",
 		">": "Stairs Down",
 		"<": "Stairs Up",
-		"+": "Door"
+		"+": "Door",
+		"▪": "Cobblestone Road",
+		"=": "Wooden Bridge",
+		"≡": "Stone Bridge"
 	}
 	return terrain_names.get(terrain_char, "Unknown")
 

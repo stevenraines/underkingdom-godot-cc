@@ -56,6 +56,7 @@ var tool_type: String = ""          # "knife", "hammer", etc. for crafting requi
 var provides_light: bool = false    # True if this item provides light
 var light_radius: int = 0           # Light radius in tiles (0 = no light)
 var burns_per_turn: float = 0.0     # Durability consumed per turn when lit
+var is_lit: bool = false            # True if the light source is currently lit (for torches/lanterns)
 
 # Key properties
 var key_id: String = ""             # For specific keys - matches a lock's lock_id
@@ -137,6 +138,7 @@ static func create_from_data(data: Dictionary) -> Item:
 	item.provides_light = data.get("provides_light", false)
 	item.light_radius = data.get("light_radius", 0)
 	item.burns_per_turn = data.get("burns_per_turn", 0.0)
+	item.is_lit = data.get("is_lit", false)
 
 	# Key properties
 	item.key_id = data.get("key_id", "")
@@ -187,6 +189,7 @@ func duplicate_item() -> Item:
 	copy.provides_light = provides_light
 	copy.light_radius = light_radius
 	copy.burns_per_turn = burns_per_turn
+	copy.is_lit = is_lit
 	copy.key_id = key_id
 	copy.skeleton_key_level = skeleton_key_level
 	copy.effects = effects.duplicate()
@@ -428,6 +431,10 @@ func serialize() -> Dictionary:
 	if is_templated:
 		data["template_id"] = template_id
 		data["variants"] = applied_variants.duplicate()
+
+	# Save lit state for light sources
+	if is_lit:
+		data["is_lit"] = true
 
 	return data
 

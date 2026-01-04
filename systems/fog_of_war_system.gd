@@ -83,15 +83,29 @@ static func serialize() -> Dictionary:
 	var result: Dictionary = {}
 	for map_id in explored_tiles:
 		var map_data = explored_tiles[map_id]
-		if map_data is Dictionary:
+		if not map_data is Dictionary:
+			continue
+
+		# Check if this is chunk-based by looking at the first value
+		# Chunk-based: {string_key: {Vector2i: bool}}
+		# Global: {Vector2i: bool}
+		var is_chunk_based = false
+		for key in map_data:
+			# If the first key is a string, it's chunk-based
+			if key is String:
+				is_chunk_based = true
+			break
+
+		if is_chunk_based:
 			# Chunk-based map - serialize chunk data
 			var serialized_chunks: Dictionary = {}
 			for chunk_key in map_data:
 				var positions = map_data[chunk_key]
-				var pos_list: Array = []
-				for pos in positions:
-					pos_list.append([pos.x, pos.y])
-				serialized_chunks[chunk_key] = pos_list
+				if positions is Dictionary:
+					var pos_list: Array = []
+					for pos in positions:
+						pos_list.append([pos.x, pos.y])
+					serialized_chunks[chunk_key] = pos_list
 			result[map_id] = {"type": "chunk", "data": serialized_chunks}
 		else:
 			# Global map - serialize as array of positions

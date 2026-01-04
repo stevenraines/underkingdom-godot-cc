@@ -363,25 +363,35 @@ func get_total_armor() -> int:
 	return total
 
 ## Get light radius from equipped light sources
-## Returns 0 if no light source equipped
+## Returns 0 if no light source equipped or if the light source is not lit
 func get_equipped_light_radius() -> int:
 	# Check off-hand first (typical light source slot)
 	var off_hand = equipment.get("off_hand", null)
-	if off_hand and off_hand.provides_light:
+	if off_hand and off_hand.provides_light and _is_light_active(off_hand):
 		return off_hand.light_radius
 
 	# Check main hand (torch can be wielded)
 	var main_hand = equipment.get("main_hand", null)
-	if main_hand and main_hand.provides_light:
+	if main_hand and main_hand.provides_light and _is_light_active(main_hand):
 		return main_hand.light_radius
 
 	# Check accessory slots for magical light sources
 	for slot in ["accessory_1", "accessory_2"]:
 		var accessory = equipment.get(slot, null)
-		if accessory and accessory.provides_light:
+		if accessory and accessory.provides_light and _is_light_active(accessory):
 			return accessory.light_radius
 
 	return 0
+
+## Check if a light source is actually active
+## For items that burn (torches, lanterns), they must be lit
+## For magical items, they are always active
+func _is_light_active(item: Item) -> bool:
+	# Items that burn need to be lit
+	if item.burns_per_turn > 0:
+		return item.is_lit
+	# Magical or non-burning light sources are always active
+	return true
 
 ## Check if player has a light source equipped
 func has_light_source_equipped() -> bool:
@@ -439,24 +449,29 @@ func serialize() -> Dictionary:
 
 ## Serialize a single item
 func _serialize_item(item: Item) -> Dictionary:
-	return {
+	var data = {
 		"id": item.id,
 		"stack_size": item.stack_size,
 		"durability": item.durability
 	}
+	# Save lit state for light sources
+	if item.is_lit:
+		data["is_lit"] = true
+	return data
 
 ## Deserialize inventory from save data
 func deserialize(data: Dictionary) -> void:
 	clear()
-	
+
 	# Load inventory items
 	if "items" in data:
 		for item_data in data.items:
 			var item = ItemManager.create_item(item_data.id, item_data.get("stack_size", 1))
 			if item:
 				item.durability = item_data.get("durability", item.max_durability)
+				item.is_lit = item_data.get("is_lit", false)
 				items.append(item)
-	
+
 	# Load equipped items
 	if "equipment" in data:
 		for slot in data.equipment:
@@ -464,7 +479,8 @@ func deserialize(data: Dictionary) -> void:
 			var item = ItemManager.create_item(item_data.id, 1)
 			if item:
 				item.durability = item_data.get("durability", item.max_durability)
+				item.is_lit = item_data.get("is_lit", false)
 				equipment[slot] = item
-	
+
 	EventBus.inventory_changed.emit()
 	EventBus.encumbrance_changed.emit(get_encumbrance_ratio())

@@ -10,5 +10,6 @@
     {"id": "short_bow", "count": 1},
     {"id": "arrow", "count": 10},
     {"id": "sling_stone", "count": 5},
-    {"id": "lockpick", "count": 5}
+    {"id": "lockpick", "count": 5},
+    {"id": "torch", "count": 3}
 ]

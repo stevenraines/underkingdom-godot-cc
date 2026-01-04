@@ -193,6 +193,8 @@ func _ready() -> void:
 	EventBus.combat_message.connect(_on_combat_message)
 	EventBus.time_of_day_changed.connect(_on_time_of_day_changed)
 	EventBus.harvesting_mode_changed.connect(_on_harvesting_mode_changed)
+	EventBus.item_equipped.connect(_on_item_equipped)
+	EventBus.item_unequipped.connect(_on_item_unequipped)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -885,7 +887,17 @@ func _update_hud() -> void:
 			var temp_text = "Tmp: %d°F" % int(s.temperature)
 			survival_text = "  %s  %s  %s  %s" % [stam_text, hunger_text, thirst_text, temp_text]
 
-		status_line.text = "%s%s  %s" % [hp_text, survival_text, turn_text]
+		# Light source indicator
+		var light_text = ""
+		if player.inventory:
+			var light_item = _get_equipped_light_source()
+			if light_item:
+				if light_item.is_lit:
+					light_text = "  [Torch: LIT]"
+				else:
+					light_text = "  [Torch: OUT]"
+
+		status_line.text = "%s%s%s  %s" % [hp_text, survival_text, light_text, turn_text]
 
 	# Update XP label if present
 	if xp_label and player:
@@ -972,6 +984,24 @@ func _get_status_color() -> Color:
 		return Color(1.0, 0.7, 0.3)  # Orange - hurt
 	else:
 		return Color(1.0, 0.4, 0.4)  # Red - critical
+
+## Get the equipped light source item (torch, lantern, etc.)
+## Returns null if no light source is equipped
+func _get_equipped_light_source() -> Item:
+	if not player or not player.inventory:
+		return null
+
+	# Check off-hand first (typical light source slot)
+	var off_hand = player.inventory.get_equipped("off_hand")
+	if off_hand and off_hand.provides_light:
+		return off_hand
+
+	# Check main hand
+	var main_hand = player.inventory.get_equipped("main_hand")
+	if main_hand and main_hand.provides_light:
+		return main_hand
+
+	return null
 
 ## Update survival-specific display elements
 func _update_survival_display() -> void:
@@ -1377,7 +1407,11 @@ func _render_ground_items() -> void:
 			# Don't render items under the player - player renders on top
 			if player and entity.position == player.position:
 				continue
-			renderer.render_entity(entity.position, entity.ascii_char, entity.color)
+			# Lit light sources get a bright orange/yellow color
+			var render_color = entity.color
+			if entity.item and entity.item.provides_light and entity.item.is_lit:
+				render_color = Color(1.0, 0.7, 0.2)  # Bright orange-yellow for lit torches
+			renderer.render_entity(entity.position, entity.ascii_char, render_color)
 
 ## Called when inventory contents change - only refresh if already open
 func _on_inventory_changed() -> void:
@@ -1609,8 +1643,30 @@ func _on_item_picked_up(item) -> void:
 func _on_item_dropped(item, pos: Vector2i) -> void:
 	_add_message("Dropped: %s" % item.name, Color(0.7, 0.7, 0.7))
 	# Re-render to show dropped item
-	renderer.render_entity(pos, item.ascii_char, item.get_color())
+	var render_color = item.get_color()
+	# Lit light sources get a bright orange/yellow color
+	if item.provides_light and item.is_lit:
+		render_color = Color(1.0, 0.7, 0.2)
+		# Update visibility since we dropped a light source
+		_update_visibility()
+	renderer.render_entity(pos, item.ascii_char, render_color)
 	_update_hud()
+
+## Called when an item is equipped
+func _on_item_equipped(item, _slot: String) -> void:
+	# Auto-light torches and other burnable light sources when equipped
+	if item.provides_light and item.burns_per_turn > 0 and not item.is_lit:
+		item.is_lit = true
+		_add_message("You light the %s." % item.name, Color(1.0, 0.8, 0.4))
+		# Update visibility since we now have a light source
+		_update_visibility()
+
+## Called when an item is unequipped
+func _on_item_unequipped(item, _slot: String) -> void:
+	# When a lit torch is unequipped (but not dropped), it stays lit
+	# The light source will be recalculated on next visibility update
+	if item.provides_light and item.is_lit:
+		_update_visibility()
 
 ## Called when a message is logged from any system
 func _on_message_logged(message: String) -> void:
@@ -1724,6 +1780,13 @@ func _register_light_sources() -> void:
 				var enemy_int = entity.attributes.get("INT", 1)
 				if enemy_int >= 5:
 					LightingSystemClass.add_light_source(entity.position, LightingSystemClass.LightType.TORCH)
+
+	# Register light sources from lit ground items (dropped torches, lanterns)
+	for entity in EntityManager.entities:
+		if entity is GroundItem:
+			var item = entity.item
+			if item and item.provides_light and item.is_lit:
+				LightingSystemClass.add_light_source(entity.position, LightingSystemClass.LightType.TORCH, item.light_radius)
 
 
 ## Register town lights (lampposts) at night

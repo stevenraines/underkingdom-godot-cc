@@ -585,7 +585,7 @@ signal special_weather_event(event_id: String)
 3. Message: "A fierce blizzard descends upon you!"
 4. Temperature drops by 30°F to -35°F (Freezing)
 5. Visibility reduced by 5 tiles
-6. Player starts taking exposure damage (1 HP / 30 turns)
+6. Player starts taking exposure damage (e.g., 1 HP / 30 turns, using a shorter exposure_damage_interval than heavy_rain and thunderstorm to reflect the extreme danger of blizzards)
 7. Player must find shelter (cave, tent, or descend to lower altitude)
 
 ### Rainy Spring Day

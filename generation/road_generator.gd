@@ -127,12 +127,17 @@ static func _place_road_tile(tiles_dict: Dictionary, pos: Vector2i, road_type: S
 
 	var existing = tiles_dict[pos]
 
-	# Don't replace special tiles
-	if existing.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up", "tree", "water"]:
+	# Don't replace special tiles (walls, doors, stairs, trees)
+	if existing.tile_type in ["wall", "door", "door_closed", "door_open", "dungeon_entrance", "stairs_down", "stairs_up", "tree"]:
 		return
 
-	# If it's water, use a bridge instead
+	# Don't replace water features (wells) - check for custom ascii_char
+	# Natural water uses "~", wells use "○"
 	if existing.tile_type == "water":
+		if existing.ascii_char != "~":
+			# This is a feature like a well, not natural water - preserve it
+			return
+		# Natural water - use a bridge instead
 		var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
 		tiles_dict[pos] = GameTile.create(bridge_type)
 		return
@@ -334,18 +339,21 @@ static func _place_inter_town_road_tile(tiles_dict: Dictionary, pos: Vector2i, r
 	var existing = tiles_dict[pos]
 
 	# Don't replace special structures
-	if existing.tile_type in ["wall", "door", "dungeon_entrance", "stairs_down", "stairs_up"]:
-		return
-
-	# Handle water crossings with bridges
-	if existing.tile_type == "water":
-		var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
-		tiles_dict[pos] = GameTile.create(bridge_type)
+	if existing.tile_type in ["wall", "door", "door_closed", "door_open", "dungeon_entrance", "stairs_down", "stairs_up"]:
 		return
 
 	# Don't replace trees on inter-town roads (go around in real pathfinding)
-	# For now, we skip trees - a more advanced system would pathfind around them
 	if existing.tile_type == "tree":
+		return
+
+	# Handle water - check for features (wells) vs natural water
+	if existing.tile_type == "water":
+		if existing.ascii_char != "~":
+			# This is a feature like a well, not natural water - preserve it
+			return
+		# Natural water - use a bridge instead
+		var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
+		tiles_dict[pos] = GameTile.create(bridge_type)
 		return
 
 	# Replace floor/grass tiles with road

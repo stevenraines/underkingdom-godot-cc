@@ -1,0 +1,13 @@
+{
+  "id": "stamina_potion",
+  "result": "stamina_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "cave_mushroom", "count": 2},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 2,
+  "discovery_hint": "Cave fungi contain restorative properties when brewed"
+}

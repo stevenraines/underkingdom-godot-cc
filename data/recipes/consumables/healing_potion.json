@@ -1,0 +1,13 @@
+{
+  "id": "healing_potion",
+  "result": "healing_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "herb", "count": 3},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 3,
+  "discovery_hint": "Boiling medicinal herbs creates a potent healing draught"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "rope",
+  "result": "rope",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "cord", "count": 3}
+  ],
+  "tool_required": "",
+  "fire_required": false,
+  "difficulty": 1,
+  "discovery_hint": "Braiding multiple cords together creates sturdy rope"
+}

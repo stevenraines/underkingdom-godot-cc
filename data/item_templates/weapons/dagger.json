@@ -1,0 +1,33 @@
+{
+  "template_id": "dagger",
+  "display_name": "Dagger",
+  "description_base": "A small, light blade for quick strikes.",
+  "category": "weapon",
+  "subtype": "dagger",
+  "base_properties": {
+    "ascii_char": "-",
+    "equip_slots": ["main_hand", "off_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false,
+      "throwable": true
+    },
+    "attack_type": "melee",
+    "attack_range": 1,
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 0.5,
+    "value": 15,
+    "durability": 80,
+    "damage_bonus": 3,
+    "accuracy_modifier": 5
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

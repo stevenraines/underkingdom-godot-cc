@@ -1,0 +1,21 @@
+{
+  "id": "bread",
+  "name": "Bread",
+  "description": "A loaf of hearty bread. Satisfies hunger.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.3,
+  "value": 5,
+  "max_stack": 10,
+  "ascii_char": "o",
+  "ascii_color": "#D4A574",
+  "effects": {
+    "hunger": 25
+  }
+}

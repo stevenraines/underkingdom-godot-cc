@@ -1,0 +1,13 @@
+{
+  "id": "leather_pants",
+  "result": "leather_pants",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "leather", "count": 2},
+    {"item": "cord", "count": 2}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Leather leggings provide leg protection"
+}

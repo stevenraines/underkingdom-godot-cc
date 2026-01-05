@@ -1,0 +1,21 @@
+{
+  "id": "stamina_potion",
+  "name": "Stamina Potion",
+  "description": "A yellow potion that restores stamina.",
+  "category": "consumable",
+  "subtype": "potion",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.3,
+  "value": 40,
+  "max_stack": 5,
+  "ascii_char": "!",
+  "ascii_color": "#FFCC00",
+  "effects": {
+    "stamina": 50
+  }
+}

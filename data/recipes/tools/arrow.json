@@ -1,0 +1,14 @@
+{
+  "id": "arrow",
+  "result": "arrow",
+  "result_count": 5,
+  "ingredients": [
+    {"item": "wood", "count": 1},
+    {"item": "feather", "count": 2},
+    {"item": "flint", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 1,
+  "discovery_hint": "Sharpened stone, shaft, and feathers make arrows"
+}

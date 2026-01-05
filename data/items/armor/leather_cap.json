@@ -17,5 +17,6 @@
   "ascii_color": "#8B4513",
   "durability": 50,
   "equip_slots": ["head"],
-  "armor_value": 1
+  "armor_value": 1,
+  "warmth": 3
 }

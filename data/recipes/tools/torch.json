@@ -1,0 +1,13 @@
+{
+  "id": "torch",
+  "result": "torch",
+  "result_count": 2,
+  "ingredients": [
+    {"item": "wood", "count": 1},
+    {"item": "cloth", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": false,
+  "difficulty": 1,
+  "discovery_hint": "Cloth wrapped around wood makes a simple torch"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "cheese",
+  "name": "Cheese",
+  "description": "A wedge of aged cheese.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.2,
+  "value": 8,
+  "max_stack": 10,
+  "ascii_char": "◊",
+  "ascii_color": "#FFD700",
+  "effects": {
+    "hunger": 15
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "ale",
+  "name": "Ale",
+  "description": "A mug of hearty ale. Quenches thirst but clouds the mind.",
+  "category": "consumable",
+  "subtype": "drink",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.5,
+  "value": 4,
+  "max_stack": 5,
+  "ascii_char": "u",
+  "ascii_color": "#B8860B",
+  "effects": {
+    "thirst": 30
+  }
+}

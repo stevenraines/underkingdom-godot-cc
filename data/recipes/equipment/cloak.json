@@ -1,0 +1,13 @@
+{
+  "id": "cloak",
+  "result": "cloak",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "cloth", "count": 3},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": false,
+  "difficulty": 1,
+  "discovery_hint": "Large cloth sewn together makes a warm traveling cloak"
+}

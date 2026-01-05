@@ -1,12 +1,12 @@
 {
-  "template_id": "chest_armor",
-  "display_name": "Armor",
-  "description_base": "Body armor that provides protection.",
+  "template_id": "gauntlets",
+  "display_name": "Gauntlets",
+  "description_base": "Protective gloves for the hands.",
   "category": "armor",
-  "subtype": "body",
+  "subtype": "gauntlets",
   "base_properties": {
     "ascii_char": "[",
-    "equip_slots": ["torso"],
+    "equip_slots": ["hands"],
     "flags": {
       "equippable": true,
       "consumable": false,
@@ -16,11 +16,11 @@
     "max_stack": 1
   },
   "base_stats": {
-    "weight": 5.0,
-    "value": 50,
-    "durability": 100,
-    "armor_value": 4,
-    "warmth": 8
+    "weight": 0.8,
+    "value": 20,
+    "durability": 70,
+    "armor_value": 1,
+    "warmth": 2
   },
   "applicable_variants": ["material_armor", "quality", "origin"],
   "default_variants": {

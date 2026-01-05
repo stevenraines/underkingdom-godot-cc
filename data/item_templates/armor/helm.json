@@ -1,12 +1,12 @@
 {
-  "template_id": "chest_armor",
-  "display_name": "Armor",
-  "description_base": "Body armor that provides protection.",
+  "template_id": "helm",
+  "display_name": "Helm",
+  "description_base": "Protective headgear.",
   "category": "armor",
-  "subtype": "body",
+  "subtype": "helm",
   "base_properties": {
-    "ascii_char": "[",
-    "equip_slots": ["torso"],
+    "ascii_char": "^",
+    "equip_slots": ["head"],
     "flags": {
       "equippable": true,
       "consumable": false,
@@ -16,11 +16,11 @@
     "max_stack": 1
   },
   "base_stats": {
-    "weight": 5.0,
-    "value": 50,
-    "durability": 100,
-    "armor_value": 4,
-    "warmth": 8
+    "weight": 1.5,
+    "value": 25,
+    "durability": 80,
+    "armor_value": 2,
+    "warmth": 3
   },
   "applicable_variants": ["material_armor", "quality", "origin"],
   "default_variants": {

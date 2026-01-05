@@ -332,7 +332,10 @@ func update_temperature(map_id: String, time_of_day: String, player_pos: Vector2
 	# Apply structure temperature bonuses (campfires, shelters)
 	var structure_bonus = _calculate_structure_temperature_bonus(player_pos, map_id)
 
-	temperature = base_temp + interior_bonus + structure_bonus
+	# Apply equipment warmth bonus
+	var equipment_warmth = _calculate_equipment_warmth()
+
+	temperature = base_temp + interior_bonus + structure_bonus + equipment_warmth
 
 	if temperature != old_temp:
 		EventBus.survival_stat_changed.emit("temperature", old_temp, temperature)
@@ -361,6 +364,14 @@ func _calculate_weather_modifier() -> float:
 		return 0.0
 
 	return WeatherManager.get_weather_temp_modifier()
+
+
+## Calculate temperature modifier from equipped armor/clothing
+func _calculate_equipment_warmth() -> float:
+	if not _owner or not _owner.inventory:
+		return 0.0
+
+	return _owner.inventory.get_total_warmth()
 
 
 ## Calculate temperature bonus from nearby structures

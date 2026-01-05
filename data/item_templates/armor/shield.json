@@ -1,12 +1,12 @@
 {
-  "template_id": "chest_armor",
-  "display_name": "Armor",
-  "description_base": "Body armor that provides protection.",
+  "template_id": "shield",
+  "display_name": "Shield",
+  "description_base": "A defensive shield held in the off-hand.",
   "category": "armor",
-  "subtype": "body",
+  "subtype": "shield",
   "base_properties": {
-    "ascii_char": "[",
-    "equip_slots": ["torso"],
+    "ascii_char": ")",
+    "equip_slots": ["off_hand"],
     "flags": {
       "equippable": true,
       "consumable": false,
@@ -16,11 +16,10 @@
     "max_stack": 1
   },
   "base_stats": {
-    "weight": 5.0,
-    "value": 50,
+    "weight": 3.0,
+    "value": 35,
     "durability": 100,
-    "armor_value": 4,
-    "warmth": 8
+    "armor_value": 3
   },
   "applicable_variants": ["material_armor", "quality", "origin"],
   "default_variants": {

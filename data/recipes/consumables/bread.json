@@ -1,0 +1,13 @@
+{
+  "id": "bread",
+  "result": "bread",
+  "result_count": 2,
+  "ingredients": [
+    {"item": "wheat", "count": 3},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 1,
+  "discovery_hint": "Ground grain and water baked over fire makes bread"
+}

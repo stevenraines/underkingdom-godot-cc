@@ -115,6 +115,14 @@ signal load_failed(error: String)
 @warning_ignore("unused_signal")
 signal message_logged(message: String)
 
+# Rest/wait signals
+@warning_ignore("unused_signal")
+signal rest_started(turns: int)
+@warning_ignore("unused_signal")
+signal rest_interrupted(reason: String)
+@warning_ignore("unused_signal")
+signal rest_completed(turns_rested: int)
+
 # Feature signals
 @warning_ignore("unused_signal")
 signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)

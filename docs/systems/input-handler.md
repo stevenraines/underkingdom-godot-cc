@@ -40,7 +40,8 @@ var current_target: Entity = null
 | Key | Action |
 |-----|--------|
 | Arrow Keys / WASD | Move or attack |
-| . (period) | Wait (bonus stamina regen) |
+| . (period) | Wait one turn (bonus stamina regen) |
+| Shift+R | Rest menu (rest multiple turns) |
 | Hold keys | Continuous movement |
 
 ### Navigation
@@ -159,6 +160,29 @@ func _do_wait_action():
 ```
 
 Waiting gives bonus stamina regeneration.
+
+## Rest System
+
+The rest menu (Shift+R) allows resting for multiple turns:
+
+**Rest Options:**
+1. **Until fully rested** - Rest until stamina is restored
+2. **Until next time period** - Rest until dawn/day/dusk/night changes
+3. **X turns** - Rest for a specific number of turns
+
+**Interruption:**
+- Rest is automatically interrupted if any event occurs
+- Events are detected via the `message_logged` signal
+- Combat, item pickups, or any logged message stops rest
+
+```gdscript
+# Rest is handled in game.gd
+func _on_rest_requested(type: String, turns: int):
+    is_resting = true
+    rest_turns_remaining = turns
+    # Connect to message_logged for interruption
+    EventBus.message_logged.connect(_on_rest_interrupted_by_message)
+```
 
 ## Stair Navigation
 

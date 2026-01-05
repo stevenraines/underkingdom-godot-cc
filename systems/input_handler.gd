@@ -533,7 +533,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_TAB:  # Tab key - cycle targets
 			_cycle_target()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_R:  # R key - ranged attack / fire at current target
+		elif event.keycode == KEY_R and event.shift_pressed:  # Shift+R - open rest menu
+			_open_rest_menu()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_R and not event.shift_pressed:  # R key - ranged attack / fire at current target
 			_fire_at_target()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_L:  # L key - enter look mode
@@ -859,6 +862,12 @@ func _toggle_fast_travel() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_fast_travel"):
 		game.toggle_fast_travel()
+
+## Open rest menu
+func _open_rest_menu() -> void:
+	var game = get_parent()
+	if game and game.has_method("open_rest_menu"):
+		game.open_rest_menu()
 
 ## Try to interact with a dungeon feature at player position
 func _try_interact_feature() -> bool:

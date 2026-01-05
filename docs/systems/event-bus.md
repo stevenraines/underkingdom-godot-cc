@@ -126,6 +126,14 @@ The Event Bus is a central signal hub that enables loose coupling between game s
 |--------|------------|-------------|
 | `message_logged` | message: String | Message for game log |
 
+### Rest/Wait
+
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `rest_started` | turns: int | Rest session began |
+| `rest_interrupted` | reason: String | Rest stopped by event |
+| `rest_completed` | turns_rested: int | Rest finished normally |
+
 ## Usage Patterns
 
 ### Emitting Signals

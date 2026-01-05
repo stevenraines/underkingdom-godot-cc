@@ -469,6 +469,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# If awaiting plant direction, handle directional input
 	if _awaiting_plant_direction and event is InputEventKey and event.pressed and not event.echo:
+		print("[DEBUG] Plant direction input received, keycode: ", event.keycode)
 		var direction = Vector2i.ZERO
 
 		match event.keycode:
@@ -490,6 +491,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 		if direction != Vector2i.ZERO:
+			print("[DEBUG] Plant direction recognized: ", direction)
 			_exit_plant_mode()
 			get_viewport().set_input_as_handled()
 
@@ -498,9 +500,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			is_initial_press = true
 
 			var success = _try_plant(direction)
+			print("[DEBUG] Plant result: ", success)
 			if success:
 				TurnManager.advance_turn()
 			return
+		else:
+			print("[DEBUG] Plant direction NOT recognized, direction is still ZERO")
 
 	# Stairs navigation - check for specific key presses
 	# Note: Wait action (. key) is handled in _process() for proper timing with held keys
@@ -1009,6 +1014,7 @@ func _start_plant_mode() -> void:
 	_selected_seed_for_planting = seeds[0]
 	_awaiting_plant_direction = true
 	ui_blocking_input = true
+	print("[DEBUG] Plant mode started, awaiting direction. Seed: ", _selected_seed_for_planting.name)
 
 	if game and game.has_method("_add_message"):
 		game._add_message("Plant %s in which direction? (Arrow keys/WASD, ESC to cancel)" % _selected_seed_for_planting.name, Color(0.8, 0.9, 1.0))
@@ -1021,11 +1027,15 @@ func _exit_plant_mode() -> void:
 
 ## Try to plant a seed in the given direction
 func _try_plant(direction: Vector2i) -> bool:
+	print("[DEBUG] _try_plant called with direction: ", direction)
 	if not _selected_seed_for_planting:
+		print("[DEBUG] No seed selected!")
 		return false
 
 	var target_pos = player.position + direction
+	print("[DEBUG] Target position for planting: ", target_pos)
 	var result = FarmingSystemClass.plant_seed(player, target_pos, _selected_seed_for_planting)
+	print("[DEBUG] plant_seed result: ", result)
 
 	var game = get_parent()
 	if game and game.has_method("_add_message"):

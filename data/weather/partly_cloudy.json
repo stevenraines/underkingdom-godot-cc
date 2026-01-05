@@ -1,0 +1,24 @@
+{
+  "id": "partly_cloudy",
+  "name": "Partly Cloudy",
+  "ascii_char": "\u26c5",
+  "color": "#D3D3D3",
+  "category": "fair",
+  "temp_modifier": 0,
+  "visibility_modifier": 0,
+  "stamina_drain_modifier": 1.0,
+  "thirst_drain_modifier": 1.0,
+  "fire_prevention": false,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.0,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["clear", "cloudy", "light_rain"],
+  "messages": {
+    "start": "Scattered clouds drift across the sky.",
+    "ongoing": "The sky is partly cloudy.",
+    "end": "The clouds are shifting."
+  },
+  "seasonal_availability": ["spring", "summer", "autumn", "winter"]
+}

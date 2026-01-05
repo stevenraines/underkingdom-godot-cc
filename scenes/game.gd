@@ -195,6 +195,7 @@ func _ready() -> void:
 	EventBus.harvesting_mode_changed.connect(_on_harvesting_mode_changed)
 	EventBus.item_equipped.connect(_on_item_equipped)
 	EventBus.item_unequipped.connect(_on_item_unequipped)
+	EventBus.weather_changed.connect(_on_weather_changed)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -863,13 +864,21 @@ func _update_hud() -> void:
 	if not player:
 		return
 
-	# Update character info line with calendar data
+	# Update character info line with calendar data and weather
 	if character_info_label:
-		# Format: "Moonday, 15th Bloom - Dawn (Year 342)"
+		# Format: "Moonday, 15th Bloom - Dawn (Year 342) | ☀ Clear"
 		var date_str = CalendarManager.get_short_date_string()
 		var time_str = TurnManager.time_of_day.capitalize()
 		var year_str = "Year %d" % CalendarManager.current_year
-		character_info_label.text = "%s - %s (%s)" % [date_str, time_str, year_str]
+
+		# Add weather info if on overworld
+		var weather_text = ""
+		if WeatherManager.should_apply_weather_effects():
+			var weather_char = WeatherManager.get_current_weather_char()
+			var weather_name = WeatherManager.get_current_weather_name()
+			weather_text = " | %s %s" % [weather_char, weather_name]
+
+		character_info_label.text = "%s - %s (%s)%s" % [date_str, time_str, year_str, weather_text]
 
 	# Update status line with health and survival
 	if status_line:
@@ -1546,6 +1555,13 @@ func _on_harvesting_mode_changed(is_active: bool) -> void:
 	if is_active:
 		_add_message("Entered harvesting mode - keep pressing direction to continue", Color(0.6, 0.9, 0.6))
 
+
+## Called when weather changes
+func _on_weather_changed(_old_weather: String, _new_weather: String, message: String) -> void:
+	if message != "":
+		# Get weather color for the message
+		var weather_color = WeatherManager.get_current_weather_color()
+		_add_message(message, weather_color)
 
 ## Called when time of day changes - refresh FOV/lighting and handle shop door locking
 func _on_time_of_day_changed(new_time: String) -> void:

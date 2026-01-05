@@ -1,0 +1,24 @@
+{
+  "id": "rain",
+  "name": "Rain",
+  "ascii_char": "\u2592",
+  "color": "#4682B4",
+  "category": "precipitation",
+  "temp_modifier": -12,
+  "visibility_modifier": -2,
+  "stamina_drain_modifier": 1.2,
+  "thirst_drain_modifier": 0.5,
+  "fire_prevention": true,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.1,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["light_rain", "heavy_rain", "thunderstorm"],
+  "messages": {
+    "start": "Rain begins to fall steadily.",
+    "ongoing": "Rain falls in a steady rhythm.",
+    "end": "The rain begins to let up."
+  },
+  "seasonal_availability": ["spring", "summer", "autumn"]
+}

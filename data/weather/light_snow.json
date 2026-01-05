@@ -1,0 +1,24 @@
+{
+  "id": "light_snow",
+  "name": "Light Snow",
+  "ascii_char": "\u00b7",
+  "color": "#F0F8FF",
+  "category": "precipitation",
+  "temp_modifier": -15,
+  "visibility_modifier": -1,
+  "stamina_drain_modifier": 1.1,
+  "thirst_drain_modifier": 0.8,
+  "fire_prevention": false,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.1,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["cloudy", "snow", "partly_cloudy"],
+  "messages": {
+    "start": "Light flurries begin to fall.",
+    "ongoing": "Snowflakes drift gently down.",
+    "end": "The flurries taper off."
+  },
+  "seasonal_availability": ["autumn", "winter", "spring"]
+}

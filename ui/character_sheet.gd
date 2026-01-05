@@ -50,6 +50,8 @@ func _populate_content() -> void:
 	_add_spacer()
 	_add_survival_section()
 	_add_spacer()
+	_add_weather_section()
+	_add_spacer()
 	_add_progression_section()
 
 ## Add the attributes section (STR, DEX, CON, INT, WIS, CHA)
@@ -167,6 +169,78 @@ func _add_survival_section() -> void:
 		var percent = (weight / max_weight) * 100.0
 		_add_stat_line("Carry Weight", "%.1f / %.1f kg (%.0f%%)" % [weight, max_weight, percent],
 			_get_encumbrance_color(percent))
+
+## Add the weather section
+func _add_weather_section() -> void:
+	var section_header = _create_section_header("== WEATHER ==")
+	content_container.add_child(section_header)
+
+	# Current date and time
+	var date_str = CalendarManager.get_date_string()
+	var time_str = CalendarManager.get_time_of_day_name()
+	_add_stat_line("Date", date_str, Color(0.8, 0.8, 0.6))
+	_add_stat_line("Time", time_str.capitalize(), _get_time_color(time_str))
+
+	# Current weather
+	var weather = WeatherManager.get_current_weather()
+	if weather.is_empty():
+		_add_stat_line("Weather", "Unknown", Color(0.7, 0.7, 0.7))
+	else:
+		var weather_name = weather.get("name", "Unknown")
+		var weather_char = weather.get("ascii_char", "?")
+		var weather_color_hex = weather.get("color", "#FFFFFF")
+		var weather_color = Color.from_string(weather_color_hex, Color.WHITE)
+
+		# Weather name with icon
+		_add_stat_line("Weather", "%s %s" % [weather_char, weather_name], weather_color)
+
+		# Temperature modifier
+		var temp_mod = weather.get("temp_modifier", 0)
+		if temp_mod != 0:
+			var mod_text = "%+d°F" % temp_mod
+			var mod_color = Color(0.4, 0.8, 1.0) if temp_mod < 0 else Color(1.0, 0.6, 0.4)
+			_add_stat_line("Weather Effect", mod_text, mod_color)
+
+		# Visibility modifier
+		var vis_mod = weather.get("visibility_modifier", 0)
+		if vis_mod != 0:
+			_add_stat_line("Visibility", "%+d tiles" % vis_mod, Color(0.7, 0.7, 0.9))
+
+		# Shelter warning
+		if weather.get("shelter_required", false):
+			_add_stat_line("Warning", "Seek shelter!", Color(1.0, 0.4, 0.4))
+
+	# Season
+	var season = CalendarManager.get_season_name()
+	_add_stat_line("Season", season.capitalize(), _get_season_color(season))
+
+## Helper: Get color for time of day
+func _get_time_color(time_of_day: String) -> Color:
+	match time_of_day:
+		"dawn":
+			return Color(1.0, 0.8, 0.5)  # Orange
+		"day", "mid_day":
+			return Color(1.0, 1.0, 0.7)  # Yellow
+		"dusk":
+			return Color(0.9, 0.6, 0.5)  # Reddish
+		"night", "midnight":
+			return Color(0.5, 0.5, 0.8)  # Blue
+		_:
+			return Color(0.8, 0.8, 0.8)
+
+## Helper: Get color for season
+func _get_season_color(season: String) -> Color:
+	match season:
+		"spring":
+			return Color(0.5, 1.0, 0.5)  # Green
+		"summer":
+			return Color(1.0, 0.9, 0.3)  # Yellow
+		"autumn":
+			return Color(1.0, 0.6, 0.3)  # Orange
+		"winter":
+			return Color(0.7, 0.9, 1.0)  # Light blue
+		_:
+			return Color(0.8, 0.8, 0.8)
 
 ## Add the progression section
 func _add_progression_section() -> void:

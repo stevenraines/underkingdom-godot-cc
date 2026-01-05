@@ -145,5 +145,15 @@ signal harvesting_mode_changed(is_active: bool)
 @warning_ignore("unused_signal")
 signal location_discovered(location_id: String, location_name: String)
 
+# Weather signals
+@warning_ignore("unused_signal")
+signal weather_changed(old_weather: String, new_weather: String, message: String)
+@warning_ignore("unused_signal")
+signal exposure_warning(message: String, severity: String)
+@warning_ignore("unused_signal")
+signal exposure_damage(amount: int)
+@warning_ignore("unused_signal")
+signal special_weather_event(event_id: String, started: bool)
+
 func _ready() -> void:
 	print("EventBus initialized")

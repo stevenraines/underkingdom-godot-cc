@@ -1,0 +1,28 @@
+{
+  "season": "summer",
+  "base_weather_weights": {
+    "clear": 35,
+    "partly_cloudy": 30,
+    "cloudy": 10,
+    "light_rain": 10,
+    "rain": 5,
+    "heavy_rain": 3,
+    "thunderstorm": 7
+  },
+  "rain_to_snow_temp_threshold": 32,
+  "storm_frequency_modifier": 1.2,
+  "special_events": {
+    "heat_wave": {
+      "chance": 0.05,
+      "duration_days": 4,
+      "temp_modifier": 15,
+      "message": "A scorching heat wave settles over the land."
+    },
+    "drought": {
+      "chance": 0.02,
+      "duration_days": 7,
+      "temp_modifier": 10,
+      "message": "A prolonged drought parches the land."
+    }
+  }
+}

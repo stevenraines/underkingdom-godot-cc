@@ -49,6 +49,9 @@ func start_new_game(world_name_input: String = "") -> void:
 	# Initialize calendar with world seed
 	CalendarManager.initialize_with_seed(world_seed)
 
+	# Initialize weather with world seed
+	WeatherManager.initialize_with_seed(world_seed)
+
 	# Clear map cache to ensure new world generation with new seed
 	MapManager.loaded_maps.clear()
 

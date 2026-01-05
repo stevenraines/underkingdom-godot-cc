@@ -1,0 +1,24 @@
+{
+  "id": "sleet",
+  "name": "Sleet",
+  "ascii_char": "\u2235",
+  "color": "#B0E0E6",
+  "category": "precipitation",
+  "temp_modifier": -14,
+  "visibility_modifier": -2,
+  "stamina_drain_modifier": 1.3,
+  "thirst_drain_modifier": 0.6,
+  "fire_prevention": true,
+  "shelter_required": true,
+  "exposure_damage_interval": 70,
+  "movement_cost_modifier": 1.3,
+  "min_duration_days": 1,
+  "max_duration_days": 1,
+  "transitions_to": ["rain", "snow", "light_snow", "cloudy"],
+  "messages": {
+    "start": "Sleet begins to fall, mixing rain and ice.",
+    "ongoing": "Icy sleet pelts down around you.",
+    "end": "The sleet gives way to other weather."
+  },
+  "seasonal_availability": ["autumn", "winter", "spring"]
+}

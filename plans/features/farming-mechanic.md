@@ -394,7 +394,7 @@ systems/
 
 ## Testing Checklist
 
-- [ ] Hoe can be crafted/found
+- [ ] Hoe can be crafted/found/bought
 - [ ] Grass/dirt tiles can be tilled with hoe
 - [ ] Tilled soil appears with correct visual
 - [ ] Seeds can be planted on tilled soil

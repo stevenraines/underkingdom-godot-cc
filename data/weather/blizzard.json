@@ -1,0 +1,24 @@
+{
+  "id": "blizzard",
+  "name": "Blizzard",
+  "ascii_char": "\u2744",
+  "color": "#E0FFFF",
+  "category": "storm",
+  "temp_modifier": -30,
+  "visibility_modifier": -5,
+  "stamina_drain_modifier": 1.8,
+  "thirst_drain_modifier": 0.5,
+  "fire_prevention": true,
+  "shelter_required": true,
+  "exposure_damage_interval": 30,
+  "movement_cost_modifier": 1.5,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["snow", "light_snow"],
+  "messages": {
+    "start": "A fierce blizzard descends upon you!",
+    "ongoing": "The blizzard rages around you with blinding fury.",
+    "end": "The blizzard finally begins to relent."
+  },
+  "seasonal_availability": ["winter"]
+}

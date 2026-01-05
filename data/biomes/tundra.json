@@ -6,5 +6,12 @@
   "tree_density": 0.01,
   "rock_density": 0.08,
   "color_floor": [0.6, 0.6, 0.5],
-  "color_grass": [0.65, 0.65, 0.55]
+  "color_grass": [0.65, 0.65, 0.55],
+  "altitude_tier": 3,
+  "base_temp_modifier": -12,
+  "weather_modifiers": {
+    "snow_chance_bonus": 0.25,
+    "wind_chance_bonus": 0.2,
+    "rain_to_snow_threshold": 42
+  }
 }

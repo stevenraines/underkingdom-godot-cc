@@ -37,6 +37,7 @@ RecipeManager="*res://autoload/recipe_manager.gd"
 StructureManager="*res://autoload/structure_manager.gd"
 SaveManager="*res://autoload/save_manager.gd"
 VariantManager="*res://autoload/variant_manager.gd"
+WeatherManager="*res://autoload/weather_manager.gd"
 
 [debug]
 

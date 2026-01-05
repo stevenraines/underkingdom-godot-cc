@@ -1,10 +1,16 @@
 {
-	"id": "forest",
-	"name": "Forest",
-	"base_tile": "floor",
-	"grass_char": ",",
-	"tree_density": 0.3,
-	"rock_density": 0.02,
-	"color_floor": [0.15, 0.3, 0.15],
-	"color_grass": [0.2, 0.35, 0.2]
+  "id": "forest",
+  "name": "Forest",
+  "base_tile": "floor",
+  "grass_char": ",",
+  "tree_density": 0.3,
+  "rock_density": 0.02,
+  "color_floor": [0.15, 0.3, 0.15],
+  "color_grass": [0.2, 0.35, 0.2],
+  "altitude_tier": 2,
+  "base_temp_modifier": -5,
+  "weather_modifiers": {
+    "fog_chance_bonus": 0.1,
+    "rain_to_snow_threshold": 36
+  }
 }

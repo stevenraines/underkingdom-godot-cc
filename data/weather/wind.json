@@ -1,0 +1,24 @@
+{
+  "id": "wind",
+  "name": "Wind",
+  "ascii_char": "~",
+  "color": "#D3D3D3",
+  "category": "fair",
+  "temp_modifier": -5,
+  "visibility_modifier": 0,
+  "stamina_drain_modifier": 1.2,
+  "thirst_drain_modifier": 1.2,
+  "fire_prevention": true,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.1,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["partly_cloudy", "cloudy", "clear"],
+  "messages": {
+    "start": "Strong winds begin to blow.",
+    "ongoing": "The wind howls around you.",
+    "end": "The wind dies down."
+  },
+  "seasonal_availability": ["spring", "autumn", "winter"]
+}

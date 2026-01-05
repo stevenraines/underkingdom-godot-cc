@@ -1,0 +1,28 @@
+{
+  "season": "autumn",
+  "base_weather_weights": {
+    "clear": 15,
+    "partly_cloudy": 20,
+    "cloudy": 25,
+    "fog": 15,
+    "light_rain": 12,
+    "rain": 8,
+    "wind": 5
+  },
+  "rain_to_snow_temp_threshold": 36,
+  "storm_frequency_modifier": 0.9,
+  "special_events": {
+    "early_frost": {
+      "chance": 0.04,
+      "duration_days": 2,
+      "temp_modifier": -12,
+      "message": "An early frost catches the land off guard."
+    },
+    "harvest_moon": {
+      "chance": 0.03,
+      "duration_days": 3,
+      "temp_modifier": 5,
+      "message": "The harvest moon brings clear, mild nights."
+    }
+  }
+}

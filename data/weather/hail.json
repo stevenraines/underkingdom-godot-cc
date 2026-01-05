@@ -1,0 +1,24 @@
+{
+  "id": "hail",
+  "name": "Hail",
+  "ascii_char": "\u2022",
+  "color": "#B0C4DE",
+  "category": "storm",
+  "temp_modifier": -10,
+  "visibility_modifier": -2,
+  "stamina_drain_modifier": 1.4,
+  "thirst_drain_modifier": 0.6,
+  "fire_prevention": true,
+  "shelter_required": true,
+  "exposure_damage_interval": 40,
+  "movement_cost_modifier": 1.2,
+  "min_duration_days": 1,
+  "max_duration_days": 1,
+  "transitions_to": ["rain", "thunderstorm", "cloudy"],
+  "messages": {
+    "start": "Ice pellets begin to fall from the sky.",
+    "ongoing": "Hail batters the ground around you.",
+    "end": "The hail finally stops."
+  },
+  "seasonal_availability": ["spring", "autumn"]
+}

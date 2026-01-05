@@ -1,0 +1,24 @@
+{
+  "id": "snow",
+  "name": "Snow",
+  "ascii_char": "*",
+  "color": "#FFFFFF",
+  "category": "precipitation",
+  "temp_modifier": -22,
+  "visibility_modifier": -2,
+  "stamina_drain_modifier": 1.3,
+  "thirst_drain_modifier": 0.6,
+  "fire_prevention": false,
+  "shelter_required": true,
+  "exposure_damage_interval": 80,
+  "movement_cost_modifier": 1.3,
+  "min_duration_days": 1,
+  "max_duration_days": 3,
+  "transitions_to": ["light_snow", "blizzard", "cloudy"],
+  "messages": {
+    "start": "Snow starts falling from the sky.",
+    "ongoing": "Snow falls in a steady blanket.",
+    "end": "The snowfall begins to diminish."
+  },
+  "seasonal_availability": ["winter"]
+}

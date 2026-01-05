@@ -166,6 +166,47 @@ var hidden_entity_positions: Dictionary = {}
 # Track hidden floor tiles (positions where entities are standing)
 var hidden_floor_positions: Dictionary = {}
 
+# Deferred update flags - batch notify_runtime_tile_data_update() calls
+var _terrain_dirty: bool = false
+var _entity_dirty: bool = false
+var _highlight_dirty: bool = false
+
+## Mark terrain layer as needing update (batched)
+func _mark_terrain_dirty() -> void:
+	if not _terrain_dirty:
+		_terrain_dirty = true
+		call_deferred("_flush_terrain_updates")
+
+## Mark entity layer as needing update (batched)
+func _mark_entity_dirty() -> void:
+	if not _entity_dirty:
+		_entity_dirty = true
+		call_deferred("_flush_entity_updates")
+
+## Mark highlight layer as needing update (batched)
+func _mark_highlight_dirty() -> void:
+	if not _highlight_dirty:
+		_highlight_dirty = true
+		call_deferred("_flush_highlight_updates")
+
+## Flush terrain layer updates (called once per frame via call_deferred)
+func _flush_terrain_updates() -> void:
+	if _terrain_dirty and terrain_layer:
+		terrain_layer.notify_runtime_tile_data_update()
+		_terrain_dirty = false
+
+## Flush entity layer updates (called once per frame via call_deferred)
+func _flush_entity_updates() -> void:
+	if _entity_dirty and entity_layer:
+		entity_layer.notify_runtime_tile_data_update()
+		_entity_dirty = false
+
+## Flush highlight layer updates (called once per frame via call_deferred)
+func _flush_highlight_updates() -> void:
+	if _highlight_dirty and highlight_layer:
+		highlight_layer.notify_runtime_tile_data_update()
+		_highlight_dirty = false
+
 ## Setup TileMapLayer nodes with tileset
 func _setup_tilemap_layers() -> void:
 	# Set renderer reference on layers for runtime tile data updates
@@ -332,7 +373,7 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0, color:
 	else:
 		tile_color = default_terrain_colors.get(tile_type, Color.WHITE)
 	terrain_modulated_cells[position] = tile_color
-	terrain_layer.notify_runtime_tile_data_update()
+	_mark_terrain_dirty()
 
 ## Render an entire chunk (optimized batch rendering)
 func render_chunk(chunk: WorldChunk) -> void:
@@ -365,8 +406,8 @@ func render_chunk(chunk: WorldChunk) -> void:
 			var tile_color = tile.color if tile.color != Color.WHITE else default_terrain_colors.get(tile_char, Color.WHITE)
 			terrain_modulated_cells[world_pos] = tile_color
 
-	# Notify once after batch update
-	terrain_layer.notify_runtime_tile_data_update()
+	# Mark for deferred update after batch
+	_mark_terrain_dirty()
 
 ## Render an entity
 func render_entity(position: Vector2i, entity_type: String, color: Color = Color.WHITE) -> void:
@@ -398,7 +439,7 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 			}
 			terrain_layer.erase_cell(position)
 			terrain_modulated_cells.erase(position)
-			terrain_layer.notify_runtime_tile_data_update()
+			_mark_terrain_dirty()
 
 	# Get the tile index from the character directly
 	var tile_index = _char_to_index(entity_type)
@@ -413,7 +454,7 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 	# Also update the original color cache so FOV doesn't restore a stale color
 	entity_modulated_cells[position] = color
 	entity_original_colors[position] = color
-	entity_layer.notify_runtime_tile_data_update()
+	_mark_entity_dirty()
 
 ## Clear entity at position
 func clear_entity(position: Vector2i) -> void:
@@ -422,14 +463,14 @@ func clear_entity(position: Vector2i) -> void:
 
 	entity_layer.erase_cell(position)
 	entity_modulated_cells.erase(position)
-	entity_layer.notify_runtime_tile_data_update()
+	_mark_entity_dirty()
 
 	# Restore hidden floor tile if there was one
 	if position in hidden_floor_positions:
 		var floor_data = hidden_floor_positions[position]
 		terrain_layer.set_cell(position, 0, floor_data["atlas"])
 		terrain_modulated_cells[position] = floor_data["color"]
-		terrain_layer.notify_runtime_tile_data_update()
+		_mark_terrain_dirty()
 		hidden_floor_positions.erase(position)
 
 ## Update field of view and apply fog of war
@@ -512,7 +553,7 @@ func _apply_fog_of_war_to_terrain() -> void:
 					# Very dark gray
 					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 
-	terrain_layer.notify_runtime_tile_data_update()
+	_mark_terrain_dirty()
 
 ## Apply fog of war to entities (hide entities not in visible tiles)
 ## Entities (NPCs, enemies, items) require LOS to be visible - completely hidden otherwise
@@ -558,7 +599,7 @@ func _apply_fog_of_war_to_entities() -> void:
 			entity_layer.erase_cell(pos)
 			entity_modulated_cells.erase(pos)
 
-	entity_layer.notify_runtime_tile_data_update()
+	_mark_entity_dirty()
 
 ## Check if an entity at a position should be visible
 ## Entities in interior tiles require strict LOS - no corner peeking allowed
@@ -635,10 +676,8 @@ func _restore_all_colors() -> void:
 		if entity_modulated_cells.has(pos):
 			entity_modulated_cells[pos] = entity_original_colors[pos]
 
-	if terrain_layer:
-		terrain_layer.notify_runtime_tile_data_update()
-	if entity_layer:
-		entity_layer.notify_runtime_tile_data_update()
+	_mark_terrain_dirty()
+	_mark_entity_dirty()
 
 ## Center camera on position
 func center_camera(pos: Vector2i) -> void:
@@ -697,7 +736,7 @@ func render_highlight_border(pos: Vector2i, color: Color = Color.CYAN) -> void:
 		highlight_layer.set_cell(corner_pos, 0, Vector2i(col, row))
 		highlight_modulated_cells[corner_pos] = color
 
-	highlight_layer.notify_runtime_tile_data_update()
+	_mark_highlight_dirty()
 
 
 ## Clear the current highlight
@@ -713,7 +752,7 @@ func clear_highlight() -> void:
 			highlight_layer.erase_cell(corner_pos)
 			highlight_modulated_cells.erase(corner_pos)
 
-		highlight_layer.notify_runtime_tile_data_update()
+		_mark_highlight_dirty()
 
 	current_highlight_position = Vector2i(-1, -1)
 

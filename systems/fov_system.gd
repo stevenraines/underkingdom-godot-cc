@@ -64,17 +64,23 @@ static func calculate_fov(origin: Vector2i, range: int, map: GameMap) -> Array[V
 		return cached_fov
 
 	# Cache miss - recalculate
-	var visible: Array[Vector2i] = []
+	# Use dictionary for O(1) deduplication, then convert to array at the end
+	var visible_set: Dictionary = {}
 
 	# Adjust range based on time of day
 	var adjusted_range = _adjust_range_for_time(range)
 
 	# Origin is always visible
-	visible.append(origin)
+	visible_set[origin] = true
 
 	# Calculate FOV for all 8 cardinal and diagonal directions
 	for direction in 8:
-		_scan_quadrant(origin, adjusted_range, direction, map, visible)
+		_scan_quadrant(origin, adjusted_range, direction, map, visible_set)
+
+	# Convert to array for return
+	var visible: Array[Vector2i] = []
+	for pos in visible_set:
+		visible.append(pos)
 
 	# Update cache
 	cached_fov = visible
@@ -91,12 +97,13 @@ static func invalidate_cache() -> void:
 	cache_dirty = true
 
 ## Scan a single quadrant using recursive shadowcasting
-static func _scan_quadrant(origin: Vector2i, max_range: int, direction: int, map: GameMap, visible: Array[Vector2i]) -> void:
+static func _scan_quadrant(origin: Vector2i, max_range: int, direction: int, map: GameMap, visible_set: Dictionary) -> void:
 	var first_row = Row.new(1, -1.0, 1.0)
-	_scan(origin, max_range, first_row, direction, map, visible)
+	_scan(origin, max_range, first_row, direction, map, visible_set)
 
 ## Recursive scanning function
-static func _scan(origin: Vector2i, max_range: int, row: Row, direction: int, map: GameMap, visible: Array[Vector2i]) -> void:
+## visible_set is a Dictionary for O(1) lookups (Vector2i -> true)
+static func _scan(origin: Vector2i, max_range: int, row: Row, direction: int, map: GameMap, visible_set: Dictionary) -> void:
 	var prev_tile_blocked = false
 
 	for col in row.tiles():
@@ -107,17 +114,17 @@ static func _scan(origin: Vector2i, max_range: int, row: Row, direction: int, ma
 			if tile_pos.x < 0 or tile_pos.x >= map.width or tile_pos.y < 0 or tile_pos.y >= map.height:
 				continue
 
-		# Check if within range
-		var distance = (tile_pos - origin).length()
-		if distance > max_range:
+		# Check if within range using squared distance (avoid sqrt)
+		var delta = tile_pos - origin
+		var dist_squared = delta.x * delta.x + delta.y * delta.y
+		if dist_squared > max_range * max_range:
 			continue
 
 		# Check if tile blocks vision
 		var blocks_vision = not map.is_transparent(tile_pos)
 
-		# If in bounds and in range, tile is visible
-		if not visible.has(tile_pos):
-			visible.append(tile_pos)
+		# If in bounds and in range, tile is visible (O(1) dictionary insert)
+		visible_set[tile_pos] = true
 
 		# Handle shadow propagation
 		if prev_tile_blocked:
@@ -134,13 +141,13 @@ static func _scan(origin: Vector2i, max_range: int, row: Row, direction: int, ma
 				# Current tile blocks, create shadow
 				var next_row = row.next()
 				next_row.end_slope = _slope(col)
-				_scan(origin, max_range, next_row, direction, map, visible)
+				_scan(origin, max_range, next_row, direction, map, visible_set)
 
 		prev_tile_blocked = blocks_vision
 
 	# Continue to next row if last tile wasn't blocking
 	if not prev_tile_blocked and row.depth < max_range:
-		_scan(origin, max_range, row.next(), direction, map, visible)
+		_scan(origin, max_range, row.next(), direction, map, visible_set)
 
 ## Calculate slope for shadowcasting
 static func _slope(col: int) -> float:
@@ -208,10 +215,11 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 		return los_tiles
 
 	# Night/twilight/dungeon - need to check illumination from light sources
-	var visible_tiles: Array[Vector2i] = []
+	# Use dictionary for O(1) deduplication
+	var visible_set: Dictionary = {}
 
 	# Player's own tile is always visible
-	visible_tiles.append(origin)
+	visible_set[origin] = true
 
 	# Calculate illuminated area from light sources
 	LightingSystemClass.calculate_illuminated_area(origin, perception_range)
@@ -227,8 +235,12 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 				is_lit = true
 
 		if is_lit:
-			if not visible_tiles.has(tile_pos):
-				visible_tiles.append(tile_pos)
+			visible_set[tile_pos] = true
+
+	# Convert to array for return and fog of war
+	var visible_tiles: Array[Vector2i] = []
+	for pos in visible_set:
+		visible_tiles.append(pos)
 
 	# Update fog of war
 	FogOfWarSystemClass.set_visible_tiles(visible_tiles)

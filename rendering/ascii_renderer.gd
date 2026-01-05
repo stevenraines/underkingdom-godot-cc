@@ -138,7 +138,7 @@ var default_terrain_colors: Dictionary = {
 	"≡": Color(0.55, 0.55, 0.6),       # Gray - Stone bridge
 
 	# Farming tiles
-	"∷": Color(0.55, 0.35, 0.2),       # Brown - Tilled soil
+	"▤": Color(0.55, 0.35, 0.2),       # Brown - Tilled soil (U+25A4)
 }
 
 var visible_tiles: Array[Vector2i] = []

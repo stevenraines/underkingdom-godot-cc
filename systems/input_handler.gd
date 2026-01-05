@@ -986,6 +986,8 @@ func _try_till(direction: Vector2i) -> bool:
 	if result.success and game:
 		if game.has_method("_render_map"):
 			game._render_map()
+		if game.has_method("_render_all_entities"):
+			game._render_all_entities()
 		if game.has_method("_update_visibility"):
 			game._update_visibility()
 

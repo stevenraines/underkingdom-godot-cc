@@ -99,6 +99,23 @@
       },
       "biomes": ["mountains", "snow_mountains", "tundra"],
       "tier": 4
+    },
+    "nettles": {
+      "name_prefix": "",
+      "name_override": "Nettles",
+      "description_modifier": "a stinging plant with many medicinal uses when prepared properly",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 0.8}
+      },
+      "overrides": {
+        "ascii_color": "#228B22"
+      },
+      "effects": {
+        "hunger": 2,
+        "health": -1
+      },
+      "biomes": ["woodland", "forest", "marsh", "grassland"],
+      "tier": 1
     }
   }
 }

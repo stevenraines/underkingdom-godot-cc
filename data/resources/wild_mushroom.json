@@ -12,7 +12,7 @@
   ],
   "replacement_tile": "floor",
   "harvest_message": "Gathered %yield%",
-  "ascii_char": "%",
+  "ascii_char": ",",
   "walkable": true,
   "transparent": true
 }

@@ -1,10 +1,85 @@
 {
   "variant_type": "herb_species",
   "variants": {
+    "anise": {
+      "name_prefix": "",
+      "name_override": "Anise",
+      "description_modifier": "a licorice-scented herb used to combat flatulence",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#C8E6C9"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 1
+    },
+    "angelica": {
+      "name_prefix": "",
+      "name_override": "Angelica",
+      "description_modifier": "a tall herb used to aid digestion",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.2}
+      },
+      "overrides": {
+        "ascii_color": "#E8F5E9"
+      },
+      "effects": {
+        "hunger": 2
+      },
+      "biomes": ["woodland", "marsh"],
+      "tier": 1
+    },
+    "betony": {
+      "name_prefix": "",
+      "name_override": "Betony",
+      "description_modifier": "a purple-flowered herb used to alleviate migraine",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.3}
+      },
+      "overrides": {
+        "ascii_color": "#CE93D8"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 2
+    },
+    "borage": {
+      "name_prefix": "",
+      "name_override": "Borage",
+      "description_modifier": "a blue-flowered herb for respiratory and stomach ailments",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#64B5F6"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 1
+    },
+    "catnip": {
+      "name_prefix": "",
+      "name_override": "Catnip",
+      "description_modifier": "a minty herb used to alleviate respiratory inflammation",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#A5D6A7"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["woodland", "grassland"],
+      "tier": 1
+    },
     "chamomile": {
       "name_prefix": "",
       "name_override": "Chamomile",
-      "description_modifier": "a calming herb with small white flowers",
+      "description_modifier": "a calming herb used to combat headaches",
       "modifiers": {},
       "overrides": {
         "ascii_color": "#FFFFD0"
@@ -15,10 +90,89 @@
       "biomes": ["grassland", "woodland"],
       "tier": 1
     },
+    "coriander": {
+      "name_prefix": "",
+      "name_override": "Coriander",
+      "description_modifier": "a pungent herb used to combat fever",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#81C784"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 1
+    },
+    "dittany": {
+      "name_prefix": "",
+      "name_override": "Dittany",
+      "description_modifier": "a rare herb used for digestive ailments and poultices",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.0}
+      },
+      "overrides": {
+        "ascii_color": "#F48FB1"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 2
+      },
+      "biomes": ["rocky_hills", "mountains"],
+      "tier": 3
+    },
+    "feverfew": {
+      "name_prefix": "",
+      "name_override": "Feverfew",
+      "description_modifier": "a daisy-like herb used to stop migraines",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.4}
+      },
+      "overrides": {
+        "ascii_color": "#FFF9C4"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 2
+    },
+    "flax": {
+      "name_prefix": "",
+      "name_override": "Flax",
+      "description_modifier": "a blue-flowered plant used to stimulate appetite",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#90CAF9"
+      },
+      "effects": {
+        "hunger": 3
+      },
+      "biomes": ["grassland"],
+      "tier": 1
+    },
+    "hemlock": {
+      "name_prefix": "",
+      "name_override": "Hemlock",
+      "description_modifier": "a deadly poison that can be used as an anaesthetic - DANGEROUS",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5}
+      },
+      "overrides": {
+        "ascii_color": "#C5E1A5"
+      },
+      "effects": {
+        "health": -5
+      },
+      "biomes": ["marsh", "swamp", "woodland"],
+      "tier": 3
+    },
     "lavender": {
       "name_prefix": "",
       "name_override": "Lavender",
-      "description_modifier": "a fragrant purple herb",
+      "description_modifier": "a fragrant purple herb used as a disinfectant and insect repellant",
       "modifiers": {
         "value": {"type": "multiply", "value": 1.2}
       },
@@ -31,10 +185,27 @@
       "biomes": ["grassland", "rocky_hills"],
       "tier": 1
     },
+    "lesser_periwinkle": {
+      "name_prefix": "",
+      "name_override": "Lesser Periwinkle",
+      "description_modifier": "a trailing vine used to relieve inflammation",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.3}
+      },
+      "overrides": {
+        "ascii_color": "#7986CB"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["woodland", "forest"],
+      "tier": 2
+    },
     "mint": {
       "name_prefix": "",
       "name_override": "Mint",
-      "description_modifier": "a refreshing herb with a cool scent",
+      "description_modifier": "a refreshing herb used for stomach problems",
       "modifiers": {},
       "overrides": {
         "ascii_color": "#90EE90"
@@ -46,10 +217,57 @@
       "biomes": ["woodland", "forest", "marsh"],
       "tier": 1
     },
+    "mugwort": {
+      "name_prefix": "",
+      "name_override": "Mugwort",
+      "description_modifier": "a bitter herb used for problems with feet",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#A1887F"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["grassland", "woodland", "marsh"],
+      "tier": 1
+    },
+    "musk_mallow": {
+      "name_prefix": "",
+      "name_override": "Musk Mallow",
+      "description_modifier": "a pink-flowered anti-inflammatory herb",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.3}
+      },
+      "overrides": {
+        "ascii_color": "#F8BBD9"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 2
+    },
+    "rosemary": {
+      "name_prefix": "",
+      "name_override": "Rosemary",
+      "description_modifier": "a fragrant herb said to ward off nightmares",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.2}
+      },
+      "overrides": {
+        "ascii_color": "#4DB6AC"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["rocky_hills", "grassland"],
+      "tier": 1
+    },
     "sage": {
       "name_prefix": "",
       "name_override": "Sage",
-      "description_modifier": "a silvery-green herb used in healing",
+      "description_modifier": "a silvery-green herb used to treat colds, coughs and digestive disorders",
       "modifiers": {
         "value": {"type": "multiply", "value": 1.3}
       },
@@ -62,6 +280,54 @@
       },
       "biomes": ["grassland", "rocky_hills", "woodland"],
       "tier": 2
+    },
+    "shepherds_purse": {
+      "name_prefix": "",
+      "name_override": "Shepherd's Purse",
+      "description_modifier": "a common herb used in poultices to treat bruises",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#DCEDC8"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 1
+    },
+    "st_johns_wort": {
+      "name_prefix": "",
+      "name_override": "St. John's Wort",
+      "description_modifier": "a yellow-flowered herb used to ease bruises, burns and depression",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#FFD54F"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 2
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 2
+    },
+    "thyme": {
+      "name_prefix": "",
+      "name_override": "Thyme",
+      "description_modifier": "a pungent herb used to fumigate rooms against infection",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.2}
+      },
+      "overrides": {
+        "ascii_color": "#C5CAE9"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["rocky_hills", "grassland"],
+      "tier": 1
     },
     "yarrow": {
       "name_prefix": "",

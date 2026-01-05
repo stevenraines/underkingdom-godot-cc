@@ -5,7 +5,7 @@
   "category": "consumable",
   "subtype": "herb",
   "base_properties": {
-    "ascii_char": "\"",
+    "ascii_char": "⚜",
     "flags": {
       "equippable": false,
       "consumable": true,

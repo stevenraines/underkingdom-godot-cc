@@ -114,6 +114,22 @@
       },
       "biomes": ["marsh", "swamp"],
       "tier": 4
+    },
+    "cave": {
+      "name_prefix": "",
+      "name_override": "Cave Mushroom",
+      "description_modifier": "a fleshy mushroom found in dark caves",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.0}
+      },
+      "overrides": {
+        "ascii_color": "#A52A2A"
+      },
+      "effects": {
+        "hunger": 5
+      },
+      "biomes": ["cave", "dungeon"],
+      "tier": 1
     }
   }
 }

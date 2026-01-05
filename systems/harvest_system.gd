@@ -368,7 +368,6 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 
 	# Handle tool consumption for resources that transform the tool (e.g., waterskin_empty -> waterskin_full)
 	# For these resources, the yield IS the transformed tool, so consume the original tool
-	var tool_consumed = false
 	if tool_used_item and not resource.required_tools.is_empty():
 		# Check if the tool used is one of the required tools (for transformation check)
 		var tool_is_required = false
@@ -381,7 +380,6 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 			for item_id in total_yields:
 				# If we're producing the tool back (transformation), consume the original tool
 				player.inventory.remove_item(tool_used_item)
-				tool_consumed = true
 				break
 
 	# Create items - add directly to inventory if tool was consumed, otherwise drop at harvest position
@@ -403,17 +401,8 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 			item = ItemManager.create_item(yield_info.item_id, count)
 
 		if item:
-			if tool_consumed:
-				# Add directly to inventory (tool transformation case)
-				player.inventory.add_item(item)
-			else:
-				# Drop at harvest position (normal harvesting)
-				var ground_item = GroundItem.new()
-				ground_item.item = item
-				ground_item.position = target_pos
-				ground_item.ascii_char = item.ascii_char
-				ground_item.color = item.get_color()
-				MapManager.current_map.entities.append(ground_item)
+			# Add harvested items directly to inventory
+			player.inventory.add_item(item)
 			yield_messages.append("%d %s" % [count, item.name])
 
 	# Handle tile changes based on behavior

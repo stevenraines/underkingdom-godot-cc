@@ -5,6 +5,8 @@ extends RefCounted
 ##
 ## Defines ingredients, requirements (tools, fire), and result of crafting.
 ## Supports seeded_ingredients for world-seed-based dynamic recipes.
+## seeded_ingredients can be a single config or an array of configs, allowing
+## recipes to require multiple ingredient types (e.g., 1 mushroom + 2 herbs).
 
 var id: String = ""                         # Unique identifier (e.g., "leather_armor")
 var result_item_id: String = ""             # Item ID to create
@@ -16,7 +18,10 @@ var difficulty: int = 1                     # Base difficulty (1-5)
 var discovery_hint: String = ""             # INT-based hint text
 
 # Seeded ingredients - dynamically determined by world seed
-var seeded_ingredients: Dictionary = {}     # {count, template, variant_type, seed_offset}
+# Can be a single config dict or an array of configs:
+# Single: {count, template, variant_type, seed_offset}
+# Array: [{count, template, variant_type, seed_offset}, ...]
+var seeded_ingredients = null               # Dictionary or Array
 
 ## Create recipe from JSON data
 static func create_from_data(data: Dictionary) -> Recipe:
@@ -39,26 +44,52 @@ static func create_from_data(data: Dictionary) -> Recipe:
 		})
 
 	# Parse seeded ingredients (for dynamic recipes)
-	recipe.seeded_ingredients = data.get("seeded_ingredients", {})
+	# Can be a single dict or an array of dicts
+	var raw_seeded = data.get("seeded_ingredients", null)
+	if raw_seeded != null:
+		if raw_seeded is Array:
+			recipe.seeded_ingredients = raw_seeded
+		elif raw_seeded is Dictionary and not raw_seeded.is_empty():
+			# Convert single config to array for uniform handling
+			recipe.seeded_ingredients = [raw_seeded]
 
 	return recipe
 
 
 ## Check if this recipe has seeded (dynamic) ingredients
 func has_seeded_ingredients() -> bool:
-	return not seeded_ingredients.is_empty()
+	return seeded_ingredients != null and seeded_ingredients is Array and not seeded_ingredients.is_empty()
+
+
+## Get normalized seeded ingredient configs as array
+func _get_seeded_configs() -> Array:
+	if seeded_ingredients == null:
+		return []
+	if seeded_ingredients is Array:
+		return seeded_ingredients
+	return []
 
 
 ## Get the specific variant item IDs required based on world seed
-## Returns array of item IDs like ["chamomile_herb", "mint_herb", "sage_herb"]
+## Returns array of item IDs like ["chamomile_herb", "mint_herb", "button_mushroom"]
 func get_seeded_ingredient_ids(world_seed: int) -> Array[String]:
-	if seeded_ingredients.is_empty():
-		return []
+	var result: Array[String] = []
+	var configs = _get_seeded_configs()
 
-	var count = seeded_ingredients.get("count", 3)
-	var template = seeded_ingredients.get("template", "herb")
-	var variant_type = seeded_ingredients.get("variant_type", "herb_species")
-	var seed_offset = seeded_ingredients.get("seed_offset", 0)
+	for config in configs:
+		var ids = _get_seeded_ids_for_config(config, world_seed)
+		for item_id in ids:
+			result.append(item_id)
+
+	return result
+
+
+## Get item IDs for a single seeded config
+func _get_seeded_ids_for_config(config: Dictionary, world_seed: int) -> Array[String]:
+	var count = config.get("count", 3)
+	var template = config.get("template", "herb")
+	var variant_type = config.get("variant_type", "herb_species")
+	var seed_offset = config.get("seed_offset", 0)
 
 	# Get all variants of this type
 	var all_variants = VariantManager.get_variants_of_type(variant_type)
@@ -85,11 +116,21 @@ func get_seeded_ingredient_ids(world_seed: int) -> Array[String]:
 
 ## Get the display names of seeded ingredients
 func get_seeded_ingredient_names(world_seed: int) -> Array[String]:
-	if seeded_ingredients.is_empty():
-		return []
+	var names: Array[String] = []
+	var configs = _get_seeded_configs()
 
-	var variant_type = seeded_ingredients.get("variant_type", "herb_species")
-	var item_ids = get_seeded_ingredient_ids(world_seed)
+	for config in configs:
+		var config_names = _get_seeded_names_for_config(config, world_seed)
+		for name in config_names:
+			names.append(name)
+
+	return names
+
+
+## Get display names for a single seeded config
+func _get_seeded_names_for_config(config: Dictionary, world_seed: int) -> Array[String]:
+	var variant_type = config.get("variant_type", "herb_species")
+	var item_ids = _get_seeded_ids_for_config(config, world_seed)
 	var names: Array[String] = []
 
 	for item_id in item_ids:

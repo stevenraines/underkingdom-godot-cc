@@ -11,6 +11,7 @@ const FishingSystemClass = preload("res://systems/fishing_system.gd")
 const FarmingSystemClass = preload("res://systems/farming_system.gd")
 const CropEntityClass = preload("res://entities/crop_entity.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+const HarvestSystemClass = preload("res://systems/harvest_system.gd")
 
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
@@ -1711,8 +1712,36 @@ func _get_visible_objects() -> Array:
 					"description": _get_hazard_description(hazard)
 				})
 
-	# Add visible tilled soil (without crops)
+	# Add visible harvestable resources (herbs, flowers, mushrooms, etc.)
 	var map = MapManager.current_map
+	if map:
+		# Scan nearby positions for harvestable resources
+		for dx in range(-player.perception_range, player.perception_range + 1):
+			for dy in range(-player.perception_range, player.perception_range + 1):
+				var pos = player.position + Vector2i(dx, dy)
+				var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
+				if distance > player.perception_range:
+					continue
+				if not FogOfWarSystemClass.is_visible(pos):
+					continue
+
+				# Check if this tile has a harvestable resource
+				var tile = map.get_tile(pos)
+				if tile and tile.harvestable_resource_id != "":
+					# Skip trees and rocks (they're already handled as terrain features)
+					if tile.harvestable_resource_id in ["tree", "rock"]:
+						continue
+					var resource = HarvestSystemClass.get_resource(tile.harvestable_resource_id)
+					if resource:
+						objects.append({
+							"object": null,
+							"position": pos,
+							"type": "resource",
+							"name": resource.name,
+							"description": _get_resource_description(resource)
+						})
+
+	# Add visible tilled soil (without crops)
 	if map:
 		var map_id = map.map_id
 		# Scan nearby positions for tilled soil
@@ -1841,6 +1870,17 @@ func _get_hazard_description(hazard: Dictionary) -> String:
 	var definition = hazard.get("definition", {})
 	var desc = definition.get("description", "A dangerous hazard.")
 	return str(desc) if desc != null else "A dangerous hazard."
+
+
+## Get description for a harvestable resource
+func _get_resource_description(resource: HarvestSystemClass.HarvestableResource) -> String:
+	if resource.required_tools.size() > 0:
+		var tool_names: Array[String] = []
+		for tool_req in resource.required_tools:
+			tool_names.append(tool_req.tool_id)
+		return "Requires: %s" % ", ".join(tool_names)
+	else:
+		return "Can be harvested by hand."
 
 
 ## Check if look mode is active

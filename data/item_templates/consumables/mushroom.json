@@ -5,7 +5,7 @@
   "category": "consumable",
   "subtype": "mushroom",
   "base_properties": {
-    "ascii_char": "%",
+    "ascii_char": ",",
     "flags": {
       "equippable": false,
       "consumable": true,

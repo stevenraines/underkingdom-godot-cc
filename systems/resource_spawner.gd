@@ -94,7 +94,8 @@ static func spawn_resources(map: GameMap, seed_value: int) -> void:
 				resources.append(ResourceInstance.new("wild_herb", pos, chunk_coords))
 
 				# Herbs are walkable but harvestable
-				tile.ascii_char = "\""
+				tile.ascii_char = "⚜"
+				tile.color = Color(0.4, 0.8, 0.4)  # Light green
 				tile.harvestable_resource_id = "wild_herb"
 				continue  # Don't spawn other flora in same spot
 
@@ -106,6 +107,7 @@ static func spawn_resources(map: GameMap, seed_value: int) -> void:
 
 				# Flowers are walkable but harvestable
 				tile.ascii_char = "*"
+				tile.color = Color(1.0, 0.8, 0.3)  # Yellow/orange
 				tile.harvestable_resource_id = "wild_flower"
 				continue  # Don't spawn other flora in same spot
 
@@ -116,7 +118,8 @@ static func spawn_resources(map: GameMap, seed_value: int) -> void:
 				resources.append(ResourceInstance.new("wild_mushroom", pos, chunk_coords))
 
 				# Mushrooms are walkable but harvestable
-				tile.ascii_char = "%"
+				tile.ascii_char = ","
+				tile.color = Color(0.65, 0.4, 0.2)  # Brown
 				tile.harvestable_resource_id = "wild_mushroom"
 
 	# Store resources in map metadata
@@ -186,11 +189,14 @@ static func process_respawns(map: GameMap) -> void:
 						tile.ascii_char = "◆"
 					# Flora doesn't block movement
 					elif resource.resource_id == "wild_herb":
-						tile.ascii_char = "\""
+						tile.ascii_char = "⚜"
+						tile.color = Color(0.4, 0.8, 0.4)  # Light green
 					elif resource.resource_id == "wild_flower":
 						tile.ascii_char = "*"
+						tile.color = Color(1.0, 0.8, 0.3)  # Yellow/orange
 					elif resource.resource_id == "wild_mushroom":
-						tile.ascii_char = "%"
+						tile.ascii_char = ","
+						tile.color = Color(0.65, 0.4, 0.2)  # Brown
 					tile.harvestable_resource_id = resource.resource_id
 
 				print("[ResourceSpawner] Respawned %s at %v" % [resource.resource_id, resource.position])

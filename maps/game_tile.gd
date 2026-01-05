@@ -140,7 +140,7 @@ static func create(type: String) -> GameTile:
 			tile.tile_type = "tilled_soil"
 			tile.walkable = true
 			tile.transparent = true
-			tile.ascii_char = "≈"
+			tile.ascii_char = "∷"  # Proportion symbol - looks like tilled rows
 			tile.can_plant = true
 		"grass", "dirt":
 			tile.tile_type = type

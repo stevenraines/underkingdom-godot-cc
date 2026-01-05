@@ -85,6 +85,39 @@ static func spawn_resources(map: GameMap, seed_value: int) -> void:
 				tile.transparent = false
 				tile.ascii_char = "◆"
 				tile.harvestable_resource_id = "rock"
+				continue  # Don't spawn flora in same spot
+
+			# Try to spawn herb based on biome density
+			var herb_density = biome.get("herb_density", 0.0)
+			if herb_density > 0 and rng.randf() < herb_density:
+				var chunk_coords = Vector2i(x / 32, y / 32)
+				resources.append(ResourceInstance.new("wild_herb", pos, chunk_coords))
+
+				# Herbs are walkable but harvestable
+				tile.ascii_char = "\""
+				tile.harvestable_resource_id = "wild_herb"
+				continue  # Don't spawn other flora in same spot
+
+			# Try to spawn flower based on biome density
+			var flower_density = biome.get("flower_density", 0.0)
+			if flower_density > 0 and rng.randf() < flower_density:
+				var chunk_coords = Vector2i(x / 32, y / 32)
+				resources.append(ResourceInstance.new("wild_flower", pos, chunk_coords))
+
+				# Flowers are walkable but harvestable
+				tile.ascii_char = "*"
+				tile.harvestable_resource_id = "wild_flower"
+				continue  # Don't spawn other flora in same spot
+
+			# Try to spawn mushroom based on biome density
+			var mushroom_density = biome.get("mushroom_density", 0.0)
+			if mushroom_density > 0 and rng.randf() < mushroom_density:
+				var chunk_coords = Vector2i(x / 32, y / 32)
+				resources.append(ResourceInstance.new("wild_mushroom", pos, chunk_coords))
+
+				# Mushrooms are walkable but harvestable
+				tile.ascii_char = "%"
+				tile.harvestable_resource_id = "wild_mushroom"
 
 	# Store resources in map metadata
 	map.set_meta("resources", resources)
@@ -139,15 +172,25 @@ static func process_respawns(map: GameMap) -> void:
 				# Respawn this resource
 				resource.is_active = true
 
-				# Re-mark tile as non-walkable
+				# Re-mark tile based on resource type
 				var tile = map.get_tile(resource.position)
 				if tile:
-					tile.walkable = false
-					tile.transparent = false
+					# Trees and rocks block movement
 					if resource.resource_id == "tree":
+						tile.walkable = false
+						tile.transparent = false
 						tile.ascii_char = "T"
 					elif resource.resource_id == "rock":
+						tile.walkable = false
+						tile.transparent = false
 						tile.ascii_char = "◆"
+					# Flora doesn't block movement
+					elif resource.resource_id == "wild_herb":
+						tile.ascii_char = "\""
+					elif resource.resource_id == "wild_flower":
+						tile.ascii_char = "*"
+					elif resource.resource_id == "wild_mushroom":
+						tile.ascii_char = "%"
 					tile.harvestable_resource_id = resource.resource_id
 
 				print("[ResourceSpawner] Respawned %s at %v" % [resource.resource_id, resource.position])

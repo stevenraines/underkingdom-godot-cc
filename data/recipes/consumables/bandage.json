@@ -4,10 +4,10 @@
   "result_count": 1,
   "ingredients": [
     {"item": "cloth", "count": 1},
-    {"item": "herb", "count": 1}
+    {"item": "healing_salve", "count": 1}
   ],
   "tool_required": "",
   "fire_required": false,
   "difficulty": 1,
-  "discovery_hint": "Medicinal plants and fabric make effective wound dressing"
+  "discovery_hint": "Medicinal salve and fabric make effective wound dressing"
 }

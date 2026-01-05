@@ -3,11 +3,11 @@
   "result": "healing_potion",
   "result_count": 1,
   "ingredients": [
-    {"item": "herb", "count": 3},
+    {"item": "herbal_infusion", "count": 1},
     {"item": "fresh_water", "count": 1}
   ],
   "tool_required": "",
   "fire_required": true,
   "difficulty": 3,
-  "discovery_hint": "Boiling medicinal herbs creates a potent healing draught"
+  "discovery_hint": "Combining herbal infusion with water over heat creates a potent healing draught"
 }

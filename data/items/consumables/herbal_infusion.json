@@ -1,0 +1,22 @@
+{
+  "id": "herbal_infusion",
+  "name": "Herbal Infusion",
+  "description": "A concentrated herbal extract used in potion-making.",
+  "category": "material",
+  "subtype": "alchemy",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.2,
+  "value": 20,
+  "max_stack": 10,
+  "ascii_char": "!",
+  "ascii_color": "#32CD32",
+  "effects": {
+    "health": 5
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "variant_type": "herb_species",
+  "variants": {
+    "chamomile": {
+      "name_prefix": "",
+      "name_override": "Chamomile",
+      "description_modifier": "a calming herb with small white flowers",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#FFFFD0"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["grassland", "woodland"],
+      "tier": 1
+    },
+    "lavender": {
+      "name_prefix": "",
+      "name_override": "Lavender",
+      "description_modifier": "a fragrant purple herb",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.2}
+      },
+      "overrides": {
+        "ascii_color": "#9370DB"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["grassland", "rocky_hills"],
+      "tier": 1
+    },
+    "mint": {
+      "name_prefix": "",
+      "name_override": "Mint",
+      "description_modifier": "a refreshing herb with a cool scent",
+      "modifiers": {},
+      "overrides": {
+        "ascii_color": "#90EE90"
+      },
+      "effects": {
+        "hunger": 2,
+        "thirst": 1
+      },
+      "biomes": ["woodland", "forest", "marsh"],
+      "tier": 1
+    },
+    "sage": {
+      "name_prefix": "",
+      "name_override": "Sage",
+      "description_modifier": "a silvery-green herb used in healing",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.3}
+      },
+      "overrides": {
+        "ascii_color": "#9DC183"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 1
+      },
+      "biomes": ["grassland", "rocky_hills", "woodland"],
+      "tier": 2
+    },
+    "yarrow": {
+      "name_prefix": "",
+      "name_override": "Yarrow",
+      "description_modifier": "a medicinal herb known for staunching wounds",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#F0E68C"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 2
+      },
+      "biomes": ["grassland", "woodland", "tundra"],
+      "tier": 2
+    },
+    "ginseng": {
+      "name_prefix": "",
+      "name_override": "Ginseng",
+      "description_modifier": "a rare root prized for its restorative properties",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 3.0},
+        "weight": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#DAA520"
+      },
+      "effects": {
+        "hunger": 3,
+        "health": 3
+      },
+      "biomes": ["forest", "woodland"],
+      "tier": 3
+    },
+    "mandrake": {
+      "name_prefix": "",
+      "name_override": "Mandrake",
+      "description_modifier": "a potent and mysterious root",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 5.0},
+        "weight": {"type": "multiply", "value": 2.0}
+      },
+      "overrides": {
+        "ascii_color": "#8B4513"
+      },
+      "effects": {
+        "hunger": 2,
+        "health": 5
+      },
+      "biomes": ["marsh", "swamp"],
+      "tier": 4
+    }
+  }
+}

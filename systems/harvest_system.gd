@@ -1,6 +1,9 @@
 extends Node
 class_name HarvestSystem
 
+# Preload ItemFactory for variant-based item creation
+const ItemFactoryClass = preload("res://items/item_factory.gd")
+
 # Harvest behaviors
 enum HarvestBehavior {
 	DESTROY_PERMANENT,  # Resource destroyed, never respawns (trees, rocks)
@@ -334,7 +337,7 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 		tool_used_item = tool_check.tool_item
 
 	# Generate yields
-	var total_yields: Dictionary = {}  # item_id -> count
+	var total_yields: Dictionary = {}  # unique_key -> {item_id, count, use_variant, variant_type}
 	var yield_messages: Array[String] = []
 	var yield_bonus = tool_check.yield_bonus  # Bonus from preferred tool
 
@@ -343,6 +346,8 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 		var min_count = int(yield_data.get("min_count", 1))
 		var max_count = int(yield_data.get("max_count", 1))
 		var chance = yield_data.get("chance", 1.0)
+		var use_variant = yield_data.get("use_variant", false)
+		var variant_type = yield_data.get("variant_type", "")
 
 		# Check if we get this yield (probability)
 		if randf() > chance:
@@ -352,10 +357,14 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 		var range_size = max_count - min_count + 1
 		var count = min_count + (randi() % range_size) + yield_bonus
 		if count > 0:
-			if item_id in total_yields:
-				total_yields[item_id] += count
-			else:
-				total_yields[item_id] = count
+			# Use a unique key for each yield entry
+			var yield_key = item_id + "_" + str(total_yields.size())
+			total_yields[yield_key] = {
+				"item_id": item_id,
+				"count": count,
+				"use_variant": use_variant,
+				"variant_type": variant_type
+			}
 
 	# Handle tool consumption for resources that transform the tool (e.g., waterskin_empty -> waterskin_full)
 	# For these resources, the yield IS the transformed tool, so consume the original tool
@@ -376,9 +385,23 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 				break
 
 	# Create items - add directly to inventory if tool was consumed, otherwise drop at harvest position
-	for item_id in total_yields:
-		var count = total_yields[item_id]
-		var item = ItemManager.create_item(item_id, count)
+	for yield_key in total_yields:
+		var count = total_yields[yield_key].count
+		var yield_info = total_yields[yield_key]
+		var item: Item = null
+
+		# Check if this yield uses a variant
+		if yield_info.get("use_variant", false) and yield_info.has("variant_type"):
+			var variant_type = yield_info.variant_type
+			var variant_name = _select_biome_variant(variant_type, target_pos)
+			if variant_name != "":
+				item = ItemFactoryClass.create_item(yield_info.item_id, {variant_type: variant_name}, count)
+			else:
+				# Fallback to default variant
+				item = ItemFactoryClass.create_default_item(yield_info.item_id, count)
+		else:
+			item = ItemManager.create_item(yield_info.item_id, count)
+
 		if item:
 			if tool_consumed:
 				# Add directly to inventory (tool transformation case)
@@ -525,3 +548,35 @@ static func clear_harvest_progress() -> void:
 static func clear() -> void:
 	_harvest_progress.clear()
 	_renewable_resources.clear()
+
+
+## Select a biome-appropriate variant for a given position
+## Returns the variant name or empty string if none found
+static func _select_biome_variant(variant_type: String, position: Vector2i) -> String:
+	# Get biome at this position
+	var seed_value = GameManager.world_seed if GameManager else 0
+	var biome = BiomeGenerator.get_biome_at(position.x, position.y, seed_value)
+	var biome_id = biome.get("id", "") if biome else ""
+
+	# Get all variants of this type
+	var all_variants = VariantManager.get_variants_of_type(variant_type)
+	if all_variants.is_empty():
+		return ""
+
+	# Filter to variants that spawn in this biome
+	var valid_variants: Array[String] = []
+	for variant_name in all_variants:
+		var variant_data = VariantManager.get_variant(variant_type, variant_name)
+		var biomes = variant_data.get("biomes", [])
+		if biome_id in biomes or biomes.is_empty():
+			valid_variants.append(variant_name)
+
+	if valid_variants.is_empty():
+		# Fallback: return any variant
+		return all_variants.keys()[0] if not all_variants.is_empty() else ""
+
+	# Use seeded random for deterministic selection based on position
+	var pos_seed = seed_value + position.x * 1000 + position.y
+	var rng = SeededRandom.new(pos_seed)
+	var index = rng.randi() % valid_variants.size()
+	return valid_variants[index]

@@ -17,10 +17,10 @@ static var _item_cache: Dictionary = {}
 const MAX_CACHE_SIZE: int = 500
 
 # Variant application order (for consistent modifier stacking)
-const VARIANT_ORDER: Array[String] = ["material", "quality", "origin", "fish_species"]
+const VARIANT_ORDER: Array[String] = ["material", "quality", "origin", "fish_species", "herb_species", "flower_species", "mushroom_species"]
 
 # Display order for name generation (differs from application order)
-const NAME_ORDER: Array[String] = ["origin", "quality", "material", "fish_species"]
+const NAME_ORDER: Array[String] = ["origin", "quality", "material", "fish_species", "herb_species", "flower_species", "mushroom_species"]
 
 
 ## Create an item from template + variants
@@ -200,6 +200,19 @@ static func _compose_item_data(template: Dictionary, variants: Dictionary) -> Di
 		var overrides = variant.get("overrides", {})
 		for key in overrides:
 			data[key] = overrides[key]
+
+	# Handle effects: start with base_effects, then apply variant effects
+	var effects = template.get("base_effects", {}).duplicate()
+	for variant in applied_variants:
+		var variant_effects = variant.get("effects", {})
+		for effect_key in variant_effects:
+			# Variant effects add to or override base effects
+			if effect_key in effects:
+				effects[effect_key] = effects[effect_key] + variant_effects[effect_key]
+			else:
+				effects[effect_key] = variant_effects[effect_key]
+	if not effects.is_empty():
+		data["effects"] = effects
 
 	# Generate name and description
 	data["name"] = _generate_name(template, applied_variants)

@@ -1,0 +1,30 @@
+{
+  "template_id": "flower",
+  "display_name": "Flower",
+  "description_base": "A wild flower with various uses.",
+  "category": "consumable",
+  "subtype": "flower",
+  "base_properties": {
+    "ascii_char": "*",
+    "flags": {
+      "equippable": false,
+      "consumable": true,
+      "craftable": false,
+      "tool": false,
+      "flower": true
+    },
+    "max_stack": 20
+  },
+  "base_stats": {
+    "weight": 0.03,
+    "value": 4
+  },
+  "base_effects": {
+    "hunger": 1
+  },
+  "applicable_variants": ["flower_species"],
+  "default_variants": {
+    "flower_species": "dandelion"
+  },
+  "required_variants": ["flower_species"]
+}

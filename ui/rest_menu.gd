@@ -80,17 +80,34 @@ func _input(event: InputEvent) -> void:
 				turns_input.call_deferred("grab_focus")
 				viewport.set_input_as_handled()
 			KEY_UP:
-				_navigate(-1)
+				selected_index = max(0, selected_index - 1)
+				_update_selection()
+				if selected_index == 2:
+					turns_input.call_deferred("grab_focus")
+				else:
+					turns_input.release_focus()
 				viewport.set_input_as_handled()
 			KEY_DOWN:
-				_navigate(1)
+				selected_index = min(2, selected_index + 1)
+				_update_selection()
+				if selected_index == 2:
+					turns_input.call_deferred("grab_focus")
+				else:
+					turns_input.release_focus()
 				viewport.set_input_as_handled()
 			KEY_TAB:
 				# Tab wraps around, Shift+Tab goes backwards
 				if event.shift_pressed:
-					_navigate_wrap(-1)
+					selected_index = (selected_index - 1) % 3
+					if selected_index < 0:
+						selected_index = 2
 				else:
-					_navigate_wrap(1)
+					selected_index = (selected_index + 1) % 3
+				_update_selection()
+				if selected_index == 2:
+					turns_input.call_deferred("grab_focus")
+				else:
+					turns_input.release_focus()
 				viewport.set_input_as_handled()
 			KEY_ENTER:
 				_select_option(selected_index)
@@ -126,8 +143,8 @@ func _navigate_wrap(direction: int) -> void:
 func _update_focus() -> void:
 	# If selecting option 3, focus on input
 	if selected_index == 2:
-		# Use a timer to ensure input handling is complete before grabbing focus
-		get_tree().create_timer(0.01).timeout.connect(func(): turns_input.grab_focus())
+		# Grab focus immediately - the issue was likely something else
+		turns_input.grab_focus()
 	else:
 		turns_input.release_focus()
 

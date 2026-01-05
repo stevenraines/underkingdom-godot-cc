@@ -124,9 +124,10 @@ func _navigate_wrap(direction: int) -> void:
 	_update_focus()
 
 func _update_focus() -> void:
-	# If selecting option 3, focus on input (deferred to ensure UI is ready)
+	# If selecting option 3, focus on input
 	if selected_index == 2:
-		turns_input.call_deferred("grab_focus")
+		# Use a timer to ensure input handling is complete before grabbing focus
+		get_tree().create_timer(0.01).timeout.connect(func(): turns_input.grab_focus())
 	else:
 		turns_input.release_focus()
 

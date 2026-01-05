@@ -1,0 +1,24 @@
+{
+  "id": "light_rain",
+  "name": "Light Rain",
+  "ascii_char": "\u2591",
+  "color": "#87CEEB",
+  "category": "precipitation",
+  "temp_modifier": -8,
+  "visibility_modifier": -1,
+  "stamina_drain_modifier": 1.1,
+  "thirst_drain_modifier": 0.7,
+  "fire_prevention": true,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.0,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["cloudy", "rain", "partly_cloudy"],
+  "messages": {
+    "start": "A light drizzle begins to fall.",
+    "ongoing": "Light rain patters down around you.",
+    "end": "The drizzle tapers off."
+  },
+  "seasonal_availability": ["spring", "summer", "autumn"]
+}

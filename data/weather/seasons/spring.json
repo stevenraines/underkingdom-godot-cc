@@ -1,0 +1,28 @@
+{
+  "season": "spring",
+  "base_weather_weights": {
+    "clear": 20,
+    "partly_cloudy": 25,
+    "cloudy": 20,
+    "fog": 10,
+    "light_rain": 15,
+    "rain": 7,
+    "thunderstorm": 3
+  },
+  "rain_to_snow_temp_threshold": 32,
+  "storm_frequency_modifier": 1.0,
+  "special_events": {
+    "late_frost": {
+      "chance": 0.03,
+      "duration_days": 2,
+      "temp_modifier": -15,
+      "message": "An unexpected late frost settles over the land."
+    },
+    "spring_flood": {
+      "chance": 0.02,
+      "duration_days": 3,
+      "temp_modifier": 0,
+      "message": "Spring rains have caused flooding in low-lying areas."
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "season": "winter",
+  "base_weather_weights": {
+    "clear": 15,
+    "partly_cloudy": 10,
+    "cloudy": 20,
+    "light_snow": 20,
+    "snow": 15,
+    "blizzard": 5,
+    "sleet": 8,
+    "wind": 7
+  },
+  "rain_to_snow_temp_threshold": 38,
+  "storm_frequency_modifier": 0.8,
+  "special_events": {
+    "cold_snap": {
+      "chance": 0.05,
+      "duration_days": 3,
+      "temp_modifier": -20,
+      "message": "A bitter cold snap settles over the land."
+    },
+    "thaw": {
+      "chance": 0.03,
+      "duration_days": 2,
+      "temp_modifier": 15,
+      "message": "A sudden thaw brings unseasonably warm temperatures."
+    }
+  }
+}

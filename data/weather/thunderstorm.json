@@ -1,0 +1,25 @@
+{
+  "id": "thunderstorm",
+  "name": "Thunderstorm",
+  "ascii_char": "\u26a1",
+  "color": "#FFD700",
+  "category": "storm",
+  "temp_modifier": -15,
+  "visibility_modifier": -3,
+  "stamina_drain_modifier": 1.3,
+  "thirst_drain_modifier": 0.3,
+  "fire_prevention": true,
+  "shelter_required": true,
+  "exposure_damage_interval": 50,
+  "movement_cost_modifier": 1.2,
+  "lightning_chance": 0.05,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["rain", "heavy_rain", "cloudy"],
+  "messages": {
+    "start": "Thunder rumbles as a storm rolls in.",
+    "ongoing": "Lightning flashes across the sky.",
+    "end": "The storm begins to subside."
+  },
+  "seasonal_availability": ["spring", "summer", "autumn"]
+}

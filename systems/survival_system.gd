@@ -301,17 +301,26 @@ func regenerate_stamina(regen_modifier: float = 1.0) -> void:
 
 ## Update temperature based on environment
 ## Now uses CalendarManager for seasonal temperature variations
+## Also integrates weather and biome altitude modifiers
 func update_temperature(map_id: String, time_of_day: String, player_pos: Vector2i) -> void:
 	var old_temp = temperature
 
 	# Determine base temperature
 	var base_temp: float
-	if map_id.begins_with("dungeon_"):
-		# Dungeons have constant temperature, unaffected by seasons
+	if map_id.begins_with("dungeon_") or (map_id != "overworld" and not map_id.begins_with("town_")):
+		# Dungeons have constant temperature, unaffected by seasons and weather
 		base_temp = TEMP_DUNGEON_BASE
 	else:
 		# Overworld uses seasonal temperature from CalendarManager
 		base_temp = CalendarManager.get_ambient_temperature(time_of_day)
+
+		# Apply biome altitude modifier
+		var biome_modifier = _calculate_biome_altitude_modifier(player_pos)
+		base_temp += biome_modifier
+
+		# Apply weather modifier
+		var weather_modifier = _calculate_weather_modifier()
+		base_temp += weather_modifier
 
 	# Check if player is inside a building (interior tile)
 	var interior_bonus: float = 0.0
@@ -327,6 +336,32 @@ func update_temperature(map_id: String, time_of_day: String, player_pos: Vector2
 
 	if temperature != old_temp:
 		EventBus.survival_stat_changed.emit("temperature", old_temp, temperature)
+
+## Calculate temperature modifier from biome altitude
+func _calculate_biome_altitude_modifier(player_pos: Vector2i) -> float:
+	if not MapManager.current_map:
+		return 0.0
+
+	# Get biome at player position
+	var biome = BiomeGenerator.get_biome_at(player_pos.x, player_pos.y, MapManager.current_map.seed)
+	if biome.is_empty():
+		return 0.0
+
+	# Return the base temperature modifier from biome (based on altitude tier)
+	return biome.get("base_temp_modifier", 0.0)
+
+
+## Calculate temperature modifier from current weather
+func _calculate_weather_modifier() -> float:
+	if not WeatherManager:
+		return 0.0
+
+	# Only apply weather effects on overworld
+	if not WeatherManager.should_apply_weather_effects():
+		return 0.0
+
+	return WeatherManager.get_weather_temp_modifier()
+
 
 ## Calculate temperature bonus from nearby structures
 func _calculate_structure_temperature_bonus(player_pos: Vector2i, map_id: String) -> float:

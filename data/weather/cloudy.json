@@ -1,0 +1,24 @@
+{
+  "id": "cloudy",
+  "name": "Cloudy",
+  "ascii_char": "\u2601",
+  "color": "#A9A9A9",
+  "category": "fair",
+  "temp_modifier": -3,
+  "visibility_modifier": 0,
+  "stamina_drain_modifier": 1.0,
+  "thirst_drain_modifier": 1.0,
+  "fire_prevention": false,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.0,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["partly_cloudy", "light_rain", "fog"],
+  "messages": {
+    "start": "Clouds gather overhead.",
+    "ongoing": "The sky is overcast.",
+    "end": "The clouds begin to break up."
+  },
+  "seasonal_availability": ["spring", "summer", "autumn", "winter"]
+}

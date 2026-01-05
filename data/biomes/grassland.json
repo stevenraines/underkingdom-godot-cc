@@ -1,10 +1,16 @@
 {
-	"id": "grassland",
-	"name": "Grassland",
-	"base_tile": "floor",
-	"grass_char": "\"",
-	"tree_density": 0.05,
-	"rock_density": 0.01,
-	"color_floor": [0.25, 0.35, 0.2],
-	"color_grass": [0.3, 0.4, 0.25]
+  "id": "grassland",
+  "name": "Grassland",
+  "base_tile": "floor",
+  "grass_char": "\"",
+  "tree_density": 0.05,
+  "rock_density": 0.01,
+  "color_floor": [0.25, 0.35, 0.2],
+  "color_grass": [0.3, 0.4, 0.25],
+  "altitude_tier": 1,
+  "base_temp_modifier": 0,
+  "weather_modifiers": {
+    "wind_chance_bonus": 0.05,
+    "rain_to_snow_threshold": 34
+  }
 }

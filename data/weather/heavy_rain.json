@@ -1,0 +1,24 @@
+{
+  "id": "heavy_rain",
+  "name": "Heavy Rain",
+  "ascii_char": "\u2593",
+  "color": "#2F4F4F",
+  "category": "storm",
+  "temp_modifier": -18,
+  "visibility_modifier": -3,
+  "stamina_drain_modifier": 1.5,
+  "thirst_drain_modifier": 0.3,
+  "fire_prevention": true,
+  "shelter_required": true,
+  "exposure_damage_interval": 100,
+  "movement_cost_modifier": 1.2,
+  "min_duration_days": 1,
+  "max_duration_days": 2,
+  "transitions_to": ["rain", "thunderstorm", "cloudy"],
+  "messages": {
+    "start": "Heavy rain begins to fall.",
+    "ongoing": "Rain pounds down relentlessly.",
+    "end": "The downpour begins to ease."
+  },
+  "seasonal_availability": ["spring", "summer", "autumn"]
+}

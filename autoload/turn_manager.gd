@@ -83,10 +83,33 @@ func _update_time_of_day() -> void:
 		# Check if we're transitioning to a new day (night -> dawn)
 		if time_of_day == "night" and new_time == "dawn":
 			CalendarManager.advance_day(GameManager.world_seed)
+			_generate_daily_weather()
 			print("[TurnManager] %s" % CalendarManager.get_full_date_string())
 		time_of_day = new_time
 		EventBus.time_of_day_changed.emit(time_of_day)
 		print("Time of day changed to: ", time_of_day)
+
+
+## Generate weather for the new day
+func _generate_daily_weather() -> void:
+	if not WeatherManager:
+		return
+
+	# Get season name from CalendarManager
+	var season = CalendarManager.get_season_name()
+
+	# Get biome ID at player position (if available)
+	var biome_id = ""
+	if EntityManager.player and MapManager.current_map:
+		var player_pos = EntityManager.player.position
+		var biome = BiomeGenerator.get_biome_at(player_pos.x, player_pos.y, MapManager.current_map.seed)
+		biome_id = biome.get("id", "")
+
+	# Calculate day number for seed
+	var day_number = CalendarManager.get_total_days_elapsed()
+
+	# Generate weather
+	WeatherManager.generate_daily_weather(GameManager.world_seed, day_number, season, biome_id)
 
 ## Block until player takes action (for future enemy AI turns)
 func wait_for_player() -> void:

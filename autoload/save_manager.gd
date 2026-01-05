@@ -192,7 +192,8 @@ func _serialize_world() -> Dictionary:
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
 		"current_dungeon_floor": MapManager.current_dungeon_floor,
 		"visited_locations": GameManager.visited_locations.duplicate(true),
-		"calendar": CalendarManager.serialize()
+		"calendar": CalendarManager.serialize(),
+		"weather": WeatherManager.serialize()
 	}
 
 ## Serialize player state
@@ -436,6 +437,13 @@ func _deserialize_world(world_data: Dictionary):
 	else:
 		# Initialize calendar fresh if no saved state (backwards compatibility)
 		CalendarManager.initialize_with_seed(GameManager.world_seed)
+
+	# Restore weather state
+	if world_data.has("weather"):
+		WeatherManager.deserialize(world_data.weather)
+	else:
+		# Initialize weather fresh if no saved state (backwards compatibility)
+		WeatherManager.initialize_with_seed(GameManager.world_seed)
 
 ## Deserialize player state
 func _deserialize_player(player_data: Dictionary):

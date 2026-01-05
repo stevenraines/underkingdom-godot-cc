@@ -1,0 +1,24 @@
+{
+  "id": "fog",
+  "name": "Fog",
+  "ascii_char": "\u224b",
+  "color": "#C0C0C0",
+  "category": "fair",
+  "temp_modifier": -5,
+  "visibility_modifier": -3,
+  "stamina_drain_modifier": 1.0,
+  "thirst_drain_modifier": 0.9,
+  "fire_prevention": false,
+  "shelter_required": false,
+  "exposure_damage_interval": 0,
+  "movement_cost_modifier": 1.0,
+  "min_duration_days": 1,
+  "max_duration_days": 1,
+  "transitions_to": ["cloudy", "partly_cloudy", "light_rain"],
+  "messages": {
+    "start": "A thick fog rolls in.",
+    "ongoing": "Dense fog limits your vision.",
+    "end": "The fog begins to lift."
+  },
+  "seasonal_availability": ["spring", "autumn", "winter"]
+}

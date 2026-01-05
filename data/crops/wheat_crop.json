@@ -5,9 +5,9 @@
   "growth_stages": [
     {
       "name": "Seedling",
-      "ascii_char": ".",
+      "ascii_char": "♈",
       "color": "#90EE90",
-      "duration_turns": 500,
+      "duration_turns": 50,
       "harvestable": false,
       "trample_vulnerable": true
     },
@@ -15,7 +15,7 @@
       "name": "Sprout",
       "ascii_char": "\"",
       "color": "#32CD32",
-      "duration_turns": 750,
+      "duration_turns": 50,
       "harvestable": false,
       "trample_vulnerable": true
     },
@@ -23,7 +23,7 @@
       "name": "Growing",
       "ascii_char": "t",
       "color": "#228B22",
-      "duration_turns": 1000,
+      "duration_turns": 50,
       "harvestable": false,
       "trample_vulnerable": false
     },

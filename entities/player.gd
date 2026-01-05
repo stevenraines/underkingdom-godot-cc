@@ -11,6 +11,7 @@ const _SurvivalSystem = preload("res://systems/survival_system.gd")
 const _Inventory = preload("res://systems/inventory_system.gd")
 const _CraftingSystem = preload("res://systems/crafting_system.gd")
 const _HarvestSystem = preload("res://systems/harvest_system.gd")
+const _FarmingSystem = preload("res://systems/farming_system.gd")
 const _FOVSystem = preload("res://systems/fov_system.gd")
 const _LockSystem = preload("res://systems/lock_system.gd")
 
@@ -90,6 +91,9 @@ func move(direction: Vector2i) -> bool:
 
 	# Check for hazards at new position
 	_check_hazards_at_position(new_pos)
+
+	# Check for crop trampling at new position
+	_FarmingSystem.check_trample(self, new_pos)
 
 	# Check for non-blocking interactable features at new position (like inscriptions)
 	if FeatureManager.has_interactable_feature(new_pos):
@@ -398,11 +402,23 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 	EventBus.player_moved.emit(old_pos, position)
 
 ## Harvest a resource in a given direction (generic method)
+## Also handles harvesting crops from the farming system
 func harvest_resource(direction: Vector2i) -> Dictionary:
 	if not MapManager.current_map:
 		return {"success": false, "message": "No map loaded"}
 
 	var target_pos = position + direction
+	var map_id = MapManager.current_map.map_id
+
+	# First check for crops at the target position
+	var crop = _FarmingSystem.get_crop_at(map_id, target_pos)
+	if crop:
+		var result = _FarmingSystem.harvest_crop(self, target_pos)
+		# Add harvest_complete flag for compatibility with input handler
+		result["harvest_complete"] = result.get("success", false)
+		return result
+
+	# Otherwise check for harvestable tiles
 	var tile = MapManager.current_map.get_tile(target_pos)
 
 	if not tile or tile.harvestable_resource_id.is_empty():

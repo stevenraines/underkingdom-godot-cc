@@ -9,6 +9,8 @@ const TargetingSystemClass = preload("res://systems/targeting_system.gd")
 const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
 const FishingSystemClass = preload("res://systems/fishing_system.gd")
 const FarmingSystemClass = preload("res://systems/farming_system.gd")
+const CropEntityClass = preload("res://entities/crop_entity.gd")
+const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
@@ -40,6 +42,8 @@ var _fishing_timer: float = 0.0  # Timer for continuous fishing
 var _awaiting_till_direction: bool = false  # Waiting for player to specify direction to till
 var _awaiting_plant_direction: bool = false  # Waiting for player to specify direction to plant
 var _selected_seed_for_planting: Item = null  # The seed selected for planting
+var _available_seeds: Array = []  # All plantable seeds available
+var _current_seed_index: int = 0  # Index into _available_seeds for cycling
 
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
@@ -469,7 +473,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# If awaiting plant direction, handle directional input
 	if _awaiting_plant_direction and event is InputEventKey and event.pressed and not event.echo:
-		print("[DEBUG] Plant direction input received, keycode: ", event.keycode)
 		var direction = Vector2i.ZERO
 
 		match event.keycode:
@@ -491,7 +494,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 		if direction != Vector2i.ZERO:
-			print("[DEBUG] Plant direction recognized: ", direction)
 			get_viewport().set_input_as_handled()
 
 			# Reset movement timer to prevent immediate movement after planting
@@ -500,13 +502,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 			# Try to plant BEFORE exiting plant mode (which clears the selected seed)
 			var success = _try_plant(direction)
-			print("[DEBUG] Plant result: ", success)
 			_exit_plant_mode()
 			if success:
 				TurnManager.advance_turn()
 			return
-		else:
-			print("[DEBUG] Plant direction NOT recognized, direction is still ZERO")
 
 	# Stairs navigation - check for specific key presses
 	# Note: Wait action (. key) is handled in _process() for proper timing with held keys
@@ -996,47 +995,75 @@ func _try_till(direction: Vector2i) -> bool:
 			game._render_all_entities()
 		if game.has_method("_update_visibility"):
 			game._update_visibility()
+		# Re-render player (must be after visibility update)
+		if game.renderer:
+			game.renderer.render_entity(player.position, "@", Color.YELLOW)
 
 	return result.success
 
 ## Start plant mode - prompts for seed selection and direction
+## If already in plant mode, cycles to the next seed type
 func _start_plant_mode() -> void:
 	var game = get_parent()
 
+	# If already in plant mode, cycle to next seed
+	if _awaiting_plant_direction and _available_seeds.size() > 1:
+		_cycle_seed_selection()
+		return
+
 	# Get available seeds
-	var seeds = FarmingSystemClass.get_plantable_seeds(player)
-	if seeds.is_empty():
+	_available_seeds = FarmingSystemClass.get_plantable_seeds(player)
+	if _available_seeds.is_empty():
 		if game and game.has_method("_add_message"):
 			game._add_message("You have no seeds to plant.", Color(0.9, 0.6, 0.4))
 		return
 
-	# For simplicity, use the first seed type found
-	# TODO: Could add a seed selection UI later
-	_selected_seed_for_planting = seeds[0]
+	# Start with the first seed type
+	_current_seed_index = 0
+	_selected_seed_for_planting = _available_seeds[0]
 	_awaiting_plant_direction = true
 	ui_blocking_input = true
-	print("[DEBUG] Plant mode started, awaiting direction. Seed: ", _selected_seed_for_planting.name)
 
-	if game and game.has_method("_add_message"):
-		game._add_message("Plant %s in which direction? (Arrow keys/WASD, ESC to cancel)" % _selected_seed_for_planting.name, Color(0.8, 0.9, 1.0))
+	_show_plant_mode_message()
+
+## Cycle to the next seed type in the list
+func _cycle_seed_selection() -> void:
+	if _available_seeds.is_empty():
+		return
+
+	_current_seed_index = (_current_seed_index + 1) % _available_seeds.size()
+	_selected_seed_for_planting = _available_seeds[_current_seed_index]
+
+	_show_plant_mode_message()
+
+## Show the plant mode message with current seed and cycling hint
+func _show_plant_mode_message() -> void:
+	var game = get_parent()
+	if not game or not game.has_method("_add_message"):
+		return
+
+	var seed_count = player.inventory.get_item_count(_selected_seed_for_planting.id) if player and player.inventory else 0
+	var cycle_hint = ""
+	if _available_seeds.size() > 1:
+		cycle_hint = " [Shift+P to cycle seeds, %d/%d]" % [_current_seed_index + 1, _available_seeds.size()]
+
+	game._add_message("Plant %s (x%d) in which direction? (Arrow keys/WASD, ESC to cancel)%s" % [_selected_seed_for_planting.name, seed_count, cycle_hint], Color(0.8, 0.9, 1.0))
 
 ## Exit plant mode
 func _exit_plant_mode() -> void:
 	_awaiting_plant_direction = false
 	_selected_seed_for_planting = null
+	_available_seeds.clear()
+	_current_seed_index = 0
 	ui_blocking_input = false
 
 ## Try to plant a seed in the given direction
 func _try_plant(direction: Vector2i) -> bool:
-	print("[DEBUG] _try_plant called with direction: ", direction)
 	if not _selected_seed_for_planting:
-		print("[DEBUG] No seed selected!")
 		return false
 
 	var target_pos = player.position + direction
-	print("[DEBUG] Target position for planting: ", target_pos)
 	var result = FarmingSystemClass.plant_seed(player, target_pos, _selected_seed_for_planting)
-	print("[DEBUG] plant_seed result: ", result)
 
 	var game = get_parent()
 	if game and game.has_method("_add_message"):
@@ -1051,6 +1078,9 @@ func _try_plant(direction: Vector2i) -> bool:
 			game._render_all_entities()
 		if game.has_method("_update_visibility"):
 			game._update_visibility()
+		# Re-render player (must be after visibility update)
+		if game.renderer:
+			game.renderer.render_entity(player.position, "@", Color.YELLOW)
 
 	return result.success
 
@@ -1600,7 +1630,7 @@ func _get_visible_objects() -> Array:
 			continue
 
 		# Check if entity is currently visible (in FOV and illuminated)
-		if not FogOfWarSystem.is_visible(entity.position):
+		if not FogOfWarSystemClass.is_visible(entity.position):
 			continue
 
 		# Handle different entity types
@@ -1611,6 +1641,14 @@ func _get_visible_objects() -> Array:
 				"type": "item",
 				"name": entity.item.name if entity.item else "Unknown Item",
 				"description": _get_item_description(entity)
+			})
+		elif entity is CropEntityClass:
+			objects.append({
+				"object": entity,
+				"position": entity.position,
+				"type": "crop",
+				"name": entity.name,
+				"description": entity.get_tooltip()
 			})
 		elif entity is Enemy:
 			objects.append({
@@ -1643,7 +1681,7 @@ func _get_visible_objects() -> Array:
 		var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
 		if distance <= player.perception_range:
 			# Check if feature is currently visible (in FOV and illuminated)
-			if not FogOfWarSystem.is_visible(pos):
+			if not FogOfWarSystemClass.is_visible(pos):
 				continue
 			var feature = FeatureManager.active_features[pos]
 			var definition = feature.get("definition", {})
@@ -1661,7 +1699,7 @@ func _get_visible_objects() -> Array:
 			var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
 			if distance <= player.perception_range:
 				# Check if hazard is currently visible (in FOV and illuminated)
-				if not FogOfWarSystem.is_visible(pos):
+				if not FogOfWarSystemClass.is_visible(pos):
 					continue
 				var hazard = HazardManager.active_hazards[pos]
 				var definition = hazard.get("definition", {})
@@ -1672,6 +1710,34 @@ func _get_visible_objects() -> Array:
 					"name": definition.get("name", "Unknown Hazard"),
 					"description": _get_hazard_description(hazard)
 				})
+
+	# Add visible tilled soil (without crops)
+	var map = MapManager.current_map
+	if map:
+		var map_id = map.map_id
+		# Scan nearby positions for tilled soil
+		for dx in range(-player.perception_range, player.perception_range + 1):
+			for dy in range(-player.perception_range, player.perception_range + 1):
+				var pos = player.position + Vector2i(dx, dy)
+				var distance = RangedCombatSystemClass.get_tile_distance(player.position, pos)
+				if distance > player.perception_range:
+					continue
+				if not FogOfWarSystemClass.is_visible(pos):
+					continue
+
+				# Check if this position has tilled soil (no crop)
+				var soil_info: Dictionary = FarmingSystemClass.get_tilled_soil_info(map_id, pos)
+				if not soil_info.is_empty():
+					var description = "Tilled soil ready for planting"
+					if soil_info.turns_until_decay > 0:
+						description += " (%d turns until it returns to %s)" % [soil_info.turns_until_decay, soil_info.original_tile]
+					objects.append({
+						"object": null,
+						"position": pos,
+						"type": "terrain",
+						"name": "Tilled Soil",
+						"description": description
+					})
 
 	# Sort by distance (closest first)
 	objects.sort_custom(func(a, b):

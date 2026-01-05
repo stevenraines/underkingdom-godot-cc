@@ -19,20 +19,60 @@ static var _crop_definitions: Dictionary = {}
 static var _active_crops: Dictionary = {}
 
 # Tilled soil decay tracking - stores turn when soil was tilled
-# Will revert to original tile type if no crop planted within TILLED_SOIL_DECAY_TURNS
 static var _tilled_soil: Dictionary = {}  # key is "map_id:x,y", value is {original_tile, tilled_turn}
 
-# Constants
+# Configuration values (loaded from JSON)
+static var _config: Dictionary = {}
+
+# Paths
 const CROP_DATA_PATH: String = "res://data/crops"
-const TILLED_SOIL_DECAY_TURNS: int = 1000  # Tilled soil reverts after this many turns without planting
-const TILL_STAMINA_COST: int = 8
-const PLANT_STAMINA_COST: int = 3
+const CONFIG_PATH: String = "res://data/configuration/farming.json"
+
+# Default values (used if config file not found)
+const DEFAULT_TILLED_SOIL_DECAY_TURNS: int = 1000
+const DEFAULT_TILL_STAMINA_COST: int = 8
+const DEFAULT_PLANT_STAMINA_COST: int = 3
 
 # Tillable tile types
 const TILLABLE_TILES: Array[String] = ["grass", "dirt", "floor"]
 
+## Get tilled soil decay turns from config
+static func get_tilled_soil_decay_turns() -> int:
+	return _config.get("tilled_soil_decay_turns", DEFAULT_TILLED_SOIL_DECAY_TURNS)
+
+## Get till stamina cost from config
+static func get_till_stamina_cost() -> int:
+	return _config.get("till_stamina_cost", DEFAULT_TILL_STAMINA_COST)
+
+## Get plant stamina cost from config
+static func get_plant_stamina_cost() -> int:
+	return _config.get("plant_stamina_cost", DEFAULT_PLANT_STAMINA_COST)
+
+## Load configuration from JSON
+static func _load_config() -> void:
+	if not FileAccess.file_exists(CONFIG_PATH):
+		push_warning("[FarmingSystem] Config file not found, using defaults: %s" % CONFIG_PATH)
+		return
+
+	var file = FileAccess.open(CONFIG_PATH, FileAccess.READ)
+	if not file:
+		push_error("[FarmingSystem] Could not open config file: %s" % CONFIG_PATH)
+		return
+
+	var json_text = file.get_as_text()
+	file.close()
+
+	var json = JSON.new()
+	var error = json.parse(json_text)
+	if error != OK:
+		push_error("[FarmingSystem] JSON parse error in config: %s" % json.get_error_message())
+		return
+
+	_config = json.data
+
 ## Load crop definitions from JSON files
 static func load_crops() -> void:
+	_load_config()
 	_crop_definitions.clear()
 	_load_crops_from_folder(CROP_DATA_PATH)
 	print("[FarmingSystem] Loaded %d crop definitions" % _crop_definitions.size())
@@ -149,14 +189,15 @@ static func till_soil(player: Player, target_pos: Vector2i) -> Dictionary:
 		return {"success": false, "message": "Soil is already tilled"}
 
 	# Check stamina
-	if player.survival and not player.survival.consume_stamina(TILL_STAMINA_COST):
+	if player.survival and not player.survival.consume_stamina(get_till_stamina_cost()):
 		return {"success": false, "message": "Too tired to till"}
 
-	# Store original tile type for decay
+	# Store original tile type and color for decay
 	var map_id = map.map_id
 	var key = _get_position_key(map_id, target_pos)
 	_tilled_soil[key] = {
 		"original_tile": tile.tile_type,
+		"original_color": tile.color.to_html(),  # Store color as hex string for serialization
 		"tilled_turn": TurnManager.current_turn
 	}
 
@@ -219,7 +260,7 @@ static func plant_seed(player: Player, target_pos: Vector2i, seed_item: Item) ->
 		return {"success": false, "message": "Unknown crop type"}
 
 	# Check stamina
-	if player.survival and not player.survival.consume_stamina(PLANT_STAMINA_COST):
+	if player.survival and not player.survival.consume_stamina(get_plant_stamina_cost()):
 		return {"success": false, "message": "Too tired to plant"}
 
 	# Consume seed from inventory
@@ -232,7 +273,8 @@ static func plant_seed(player: Player, target_pos: Vector2i, seed_item: Item) ->
 	var key = _get_position_key(map_id, target_pos)
 	_active_crops[key] = crop
 
-	# Add to map entities for rendering
+	# Add to EntityManager for rendering and map entities for persistence
+	EntityManager.entities.append(crop)
 	map.entities.append(crop)
 
 	# Remove tilled soil decay tracking (now has a crop)
@@ -255,9 +297,12 @@ static func process_crop_growth() -> void:
 		if key.begins_with(map_id + ":"):
 			var crop = _active_crops[key]
 			var stage_changed = crop.advance_growth()
-			if stage_changed and crop.is_harvestable():
-				# Emit signal when crop becomes harvestable
-				EventBus.message_logged.emit("Your %s has matured!" % crop.crop_data.get("name", "crop"))
+			if stage_changed:
+				# Emit signal to update rendering when crop visual changes
+				EventBus.entity_visual_changed.emit(crop.position)
+				if crop.is_harvestable():
+					# Emit message when crop becomes harvestable
+					EventBus.message_logged.emit("Your %s has matured!" % crop.crop_data.get("name", "crop"))
 
 ## Process tilled soil decay (called each turn)
 static func process_tilled_soil_decay() -> void:
@@ -276,7 +321,7 @@ static func process_tilled_soil_decay() -> void:
 		var soil_data = _tilled_soil[key]
 		var tilled_turn = soil_data.get("tilled_turn", 0)
 
-		if current_turn - tilled_turn >= TILLED_SOIL_DECAY_TURNS:
+		if current_turn - tilled_turn >= get_tilled_soil_decay_turns():
 			# Parse position from key
 			var parts = key.split(":")
 			if parts.size() < 2:
@@ -286,10 +331,19 @@ static func process_tilled_soil_decay() -> void:
 				continue
 			var pos = Vector2i(int(pos_parts[0]), int(pos_parts[1]))
 
-			# Revert to original tile
+			# Revert to original tile with original color
 			var original_tile = soil_data.get("original_tile", "grass")
 			var new_tile = GameTile.create(original_tile)
+
+			# Restore original color if stored
+			var original_color_hex = soil_data.get("original_color", "")
+			if original_color_hex != "":
+				new_tile.color = Color.from_string(original_color_hex, Color.WHITE)
+
 			map.set_tile(pos, new_tile)
+
+			# Emit tile_changed signal to update rendering
+			EventBus.tile_changed.emit(pos)
 
 			to_remove.append(key)
 
@@ -336,13 +390,17 @@ static func harvest_crop(player: Player, target_pos: Vector2i) -> Dictionary:
 			ground_item.position = target_pos
 			ground_item.ascii_char = item.ascii_char
 			ground_item.color = item.get_color()
+			EntityManager.entities.append(ground_item)
 			map.entities.append(ground_item)
 			yield_messages.append("%d %s" % [count, item.name])
 
 	# Remove crop from tracking
 	_active_crops.erase(key)
 
-	# Remove crop entity from map
+	# Remove crop entity from EntityManager and map
+	var em_idx = EntityManager.entities.find(crop)
+	if em_idx >= 0:
+		EntityManager.entities.remove_at(em_idx)
 	var idx = map.entities.find(crop)
 	if idx >= 0:
 		map.entities.remove_at(idx)
@@ -350,8 +408,12 @@ static func harvest_crop(player: Player, target_pos: Vector2i) -> Dictionary:
 	# Tilled soil remains - add back to decay tracking
 	_tilled_soil[key] = {
 		"original_tile": "grass",  # Default to grass after harvest
+		"original_color": "",  # No preserved color for post-harvest
 		"tilled_turn": TurnManager.current_turn
 	}
+
+	# Emit signal to re-render the position (crop removed, tilled soil visible again)
+	EventBus.entity_visual_changed.emit(target_pos)
 
 	var message = crop.get_harvest_message()
 	if not yield_messages.is_empty():
@@ -375,6 +437,11 @@ static func check_trample(entity: Entity, pos: Vector2i) -> void:
 	if crop.is_trample_vulnerable():
 		# Destroy the crop
 		_active_crops.erase(key)
+
+		# Remove from EntityManager
+		var em_idx = EntityManager.entities.find(crop)
+		if em_idx >= 0:
+			EntityManager.entities.remove_at(em_idx)
 
 		# Remove from map entities
 		var idx = map.entities.find(crop)
@@ -419,6 +486,7 @@ static func serialize() -> Dictionary:
 			"map_id": map_id,
 			"position": {"x": int(pos_parts[0]), "y": int(pos_parts[1])},
 			"original_tile": soil_info.get("original_tile", "grass"),
+			"original_color": soil_info.get("original_color", ""),
 			"tilled_turn": soil_info.get("tilled_turn", 0)
 		})
 
@@ -446,6 +514,9 @@ static func deserialize(data: Dictionary) -> void:
 		var key = _get_position_key(map_id, crop.position)
 		_active_crops[key] = crop
 
+		# Add to EntityManager for rendering
+		EntityManager.entities.append(crop)
+
 		# Add to current map if it's the right one
 		if MapManager.current_map and MapManager.current_map.map_id == map_id:
 			MapManager.current_map.entities.append(crop)
@@ -461,6 +532,7 @@ static func deserialize(data: Dictionary) -> void:
 		var key = _get_position_key(map_id, pos)
 		_tilled_soil[key] = {
 			"original_tile": soil_data.get("original_tile", "grass"),
+			"original_color": soil_data.get("original_color", ""),
 			"tilled_turn": soil_data.get("tilled_turn", 0)
 		}
 
@@ -469,11 +541,38 @@ static func clear() -> void:
 	_active_crops.clear()
 	_tilled_soil.clear()
 
+## Get tilled soil info for a position (for look mode)
+## Returns Dictionary with info about the tilled soil, or empty dict if not tilled
+static func get_tilled_soil_info(map_id: String, pos: Vector2i) -> Dictionary:
+	var key = _get_position_key(map_id, pos)
+	if key not in _tilled_soil:
+		return {}
+
+	var soil_data = _tilled_soil[key]
+	var tilled_turn = soil_data.get("tilled_turn", 0)
+	var turns_since_tilled = TurnManager.current_turn - tilled_turn
+	var turns_until_decay = get_tilled_soil_decay_turns() - turns_since_tilled
+
+	return {
+		"tilled_turn": tilled_turn,
+		"turns_since_tilled": turns_since_tilled,
+		"turns_until_decay": max(0, turns_until_decay),
+		"original_tile": soil_data.get("original_tile", "grass")
+	}
+
+## Check if a position has tilled soil (no crop)
+static func is_tilled_soil(map_id: String, pos: Vector2i) -> bool:
+	var key = _get_position_key(map_id, pos)
+	return key in _tilled_soil
+
 ## Add crops to a map when it's loaded (called by MapManager)
 static func add_crops_to_map(map) -> void:
 	var map_id = map.map_id
 	for key in _active_crops:
 		if key.begins_with(map_id + ":"):
 			var crop = _active_crops[key]
+			# Add to EntityManager if not already there
+			if not crop in EntityManager.entities:
+				EntityManager.entities.append(crop)
 			if not crop in map.entities:
 				map.entities.append(crop)

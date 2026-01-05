@@ -32,6 +32,8 @@ signal chunk_unloaded(chunk_coords: Vector2i)
 signal entity_died(entity: Entity)
 @warning_ignore("unused_signal")
 signal entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i)
+@warning_ignore("unused_signal")
+signal entity_visual_changed(position: Vector2i)  # Entity's visual (char/color) changed
 
 # Combat signals
 @warning_ignore("unused_signal")

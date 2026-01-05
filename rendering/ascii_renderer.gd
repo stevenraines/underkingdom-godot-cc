@@ -311,7 +311,7 @@ func _draw_triangle(image: Image, x_offset: int, y_offset: int, color: Color) ->
 				image.set_pixel(x_offset + x, y_offset + y, color)
 
 ## Render a tile
-func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> void:
+func render_tile(position: Vector2i, tile_type: String, variant: int = 0, color: Color = Color(-1, -1, -1, -1)) -> void:
 	if not terrain_layer:
 		return
 
@@ -325,7 +325,12 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> voi
 	terrain_layer.set_cell(position, 0, Vector2i(col, row))
 
 	# Set color modulation for this tile
-	var tile_color = default_terrain_colors.get(tile_type, Color.WHITE)
+	# Use provided color if valid, otherwise fall back to default
+	var tile_color: Color
+	if color.r >= 0:  # Check if a valid color was provided
+		tile_color = color
+	else:
+		tile_color = default_terrain_colors.get(tile_type, Color.WHITE)
 	terrain_modulated_cells[position] = tile_color
 	terrain_layer.notify_runtime_tile_data_update()
 
@@ -371,7 +376,8 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 	# Hide ground tiles underneath entity (floor/grass characters)
 	if terrain_layer and terrain_layer.get_cell_source_id(position) != -1:
 		# Ground tile characters that should be hidden under entities
-		var ground_chars = [".", "\"", ","]
+		# Includes: floor (.), grass (", ,), tilled soil (▤ U+25A4)
+		var ground_chars = [".", "\"", ",", "▤"]
 		var current_atlas = terrain_layer.get_cell_atlas_coords(position)
 
 		# Check if current tile is a ground tile
@@ -404,7 +410,9 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 	entity_layer.set_cell(position, 0, Vector2i(col, row))
 
 	# Set color modulation for this entity
+	# Also update the original color cache so FOV doesn't restore a stale color
 	entity_modulated_cells[position] = color
+	entity_original_colors[position] = color
 	entity_layer.notify_runtime_tile_data_update()
 
 ## Clear entity at position

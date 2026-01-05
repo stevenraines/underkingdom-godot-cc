@@ -5,7 +5,7 @@
   "growth_stages": [
     {
       "name": "Seedling",
-      "ascii_char": ".",
+      "ascii_char": "♈",
       "color": "#90EE90",
       "duration_turns": 350,
       "harvestable": false,

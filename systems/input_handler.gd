@@ -533,7 +533,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_TAB:  # Tab key - cycle targets
 			_cycle_target()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_R:  # R key - ranged attack / fire at current target
+		elif event.keycode == KEY_R and event.shift_pressed:  # Shift+R - open rest menu
+			_open_rest_menu()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_R and not event.shift_pressed:  # R key - ranged attack / fire at current target
 			_fire_at_target()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_L:  # L key - enter look mode
@@ -553,9 +556,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_Q:  # Q key - toggle light source (light/extinguish)
 			_try_toggle_light()
-			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_R and event.shift_pressed:  # Shift+R - open rest menu
-			_open_rest_menu()
 			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken

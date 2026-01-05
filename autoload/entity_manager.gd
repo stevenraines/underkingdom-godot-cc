@@ -337,12 +337,21 @@ func get_blocking_entity_at(pos: Vector2i) -> Entity:
 
 	return null
 
+## Maximum distance from player to process enemy AI (performance optimization)
+## Enemies beyond this range don't take turns - they're effectively "frozen"
+const ENEMY_PROCESS_RANGE: int = 20
+
 ## Process all entity turns (called after player turn)
 func process_entity_turns() -> void:
+	var player_pos = player.position if player else Vector2i.ZERO
+
 	for entity in entities:
 		if entity.is_alive:
 			if entity is Enemy:
-				(entity as Enemy).take_turn()
+				# Only process enemies within range of player (performance optimization)
+				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+				if dist <= ENEMY_PROCESS_RANGE:
+					(entity as Enemy).take_turn()
 			elif entity.has_method("process_turn"):
 				# NPC or other entity with turn processing
 				entity.process_turn()

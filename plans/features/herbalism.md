@@ -7,6 +7,8 @@ Players currently can use a "healing herb" to make bandages and potions. Lets ad
 
 The player should be able to collect these and they should respawn after a certain number of turns.
 
-Then modify the healing_herb using the bandage and healing potion to use a mixture of 3 herbs. Which herbs they are should be determined randomly (based on the seed) for each game so the player doesn't know what they will be from one seed to the next. 
+Then modify the healing_herb used by the bandage to be a healing salve" and have healing potion made of water and herbal infusion. 
+
+Both the salve and the infusion will each be a mixture of 3 herbs. Which herbs are included in each should be determined randomly (based on the seed) for each game so the player doesn't know what they will be from one seed to the next. 
 
 In the future, we will create additional receipes for these herbs, flowers, and mushrooms.

@@ -515,8 +515,13 @@ func _apply_fog_of_war_to_terrain() -> void:
 	if not terrain_layer:
 		return
 
-	# Collect all rendered terrain positions
-	var all_positions: Array = terrain_modulated_cells.keys()
+	# For chunk-based maps, only process positions within active chunks
+	# This prevents performance degradation as the player explores (O(active_tiles) instead of O(all_explored_tiles))
+	var all_positions: Array
+	if is_chunk_based:
+		all_positions = _get_active_chunk_positions()
+	else:
+		all_positions = terrain_modulated_cells.keys()
 
 	# Check if we're in daytime outdoors mode (can skip many checks)
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
@@ -554,6 +559,28 @@ func _apply_fog_of_war_to_terrain() -> void:
 					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 
 	_mark_terrain_dirty()
+
+## Get all terrain positions within active chunks (for chunk-based maps)
+## Returns positions that are currently in terrain_modulated_cells AND within active chunks
+func _get_active_chunk_positions() -> Array:
+	var result: Array = []
+	var active_chunks = ChunkManager.get_active_chunk_coords()
+	var chunk_size = 32  # WorldChunk.CHUNK_SIZE
+
+	# Build a set of active chunk coords for O(1) lookup
+	var active_chunk_set: Dictionary = {}
+	for coords in active_chunks:
+		active_chunk_set[coords] = true
+
+	# Filter terrain_modulated_cells to only include positions in active chunks
+	for pos in terrain_modulated_cells:
+		var chunk_x = floori(float(pos.x) / chunk_size)
+		var chunk_y = floori(float(pos.y) / chunk_size)
+		var chunk_coords = Vector2i(chunk_x, chunk_y)
+		if chunk_coords in active_chunk_set:
+			result.append(pos)
+
+	return result
 
 ## Apply fog of war to entities (hide entities not in visible tiles)
 ## Entities (NPCs, enemies, items) require LOS to be visible - completely hidden otherwise

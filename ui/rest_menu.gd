@@ -70,9 +70,9 @@ func _input(event: InputEvent) -> void:
 				viewport.set_input_as_handled()
 			KEY_3:
 				# Focus on turns input
-				turns_input.grab_focus()
 				selected_index = 2
 				_update_selection()
+				turns_input.call_deferred("grab_focus")
 				viewport.set_input_as_handled()
 			KEY_UP:
 				_navigate(-1)
@@ -105,9 +105,9 @@ func _navigate(direction: int) -> void:
 	selected_index = clamp(selected_index + direction, 0, 2)
 	_update_selection()
 
-	# If selecting option 3, focus on input
+	# If selecting option 3, focus on input (deferred to ensure UI is ready)
 	if selected_index == 2:
-		turns_input.grab_focus()
+		turns_input.call_deferred("grab_focus")
 	else:
 		turns_input.release_focus()
 

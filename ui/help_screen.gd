@@ -36,7 +36,8 @@ func _build_help_content() -> void:
 	# Movement & Actions
 	_add_section_header("== MOVEMENT & ACTIONS ==")
 	_add_keybind("Arrow Keys / WASD", "Move & attack enemies")
-	_add_keybind(". (period)", "Wait / rest (bonus stamina)")
+	_add_keybind(". (period)", "Wait one turn (bonus stamina)")
+	_add_keybind("Shift + R", "Rest menu (rest multiple turns)")
 	_add_keybind("> (Shift + .)", "Descend stairs")
 	_add_keybind("< (Shift + ,)", "Ascend stairs")
 	_add_keybind(", (comma)", "Manually pick up item")
@@ -95,6 +96,8 @@ func _build_help_content() -> void:
 	_add_help_text("Temperature affects your stats")
 	_add_help_text("Stamina is used for movement and combat")
 	_add_help_text("Encumbrance slows you down")
+	_add_help_text("Use Shift+R to rest until stamina is full")
+	_add_help_text("Resting stops if any event occurs")
 	_add_spacer()
 
 	# Combat

@@ -29,7 +29,13 @@ var character_sheet: Control = null
 var help_screen: Control = null
 var world_map_screen: Control = null
 var fast_travel_screen: Control = null
+var rest_menu: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
+
+# Rest system state
+var is_resting: bool = false
+var rest_turns_remaining: int = 0
+var rest_type: String = ""  # "stamina", "time", or "custom"
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
 var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for placement cursor
@@ -94,6 +100,9 @@ func _ready() -> void:
 
 	# Create fast travel screen
 	_setup_fast_travel_screen()
+
+	# Create rest menu
+	_setup_rest_menu()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -307,6 +316,22 @@ func _setup_fast_travel_screen() -> void:
 		print("[Game] Fast travel screen scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load fast_travel_screen.tscn scene")
+
+## Setup rest menu
+func _setup_rest_menu() -> void:
+	print("[Game] Setting up rest menu from scene...")
+	var RestMenuScene = load("res://ui/rest_menu.tscn")
+	if RestMenuScene:
+		rest_menu = RestMenuScene.instantiate()
+		rest_menu.name = "RestMenu"
+		hud.add_child(rest_menu)
+		if rest_menu.has_signal("closed"):
+			rest_menu.closed.connect(_on_rest_menu_closed)
+		if rest_menu.has_signal("rest_requested"):
+			rest_menu.rest_requested.connect(_on_rest_requested)
+		print("[Game] Rest menu scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load rest_menu.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -1876,3 +1901,115 @@ func _update_visibility() -> void:
 
 	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer
 	renderer.update_fov(visible_tiles, player.position)
+
+
+## Open rest menu (called from input handler)
+func open_rest_menu() -> void:
+	if rest_menu and player:
+		rest_menu.open(player)
+		input_handler.ui_blocking_input = true
+
+## Called when rest menu is closed
+func _on_rest_menu_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when player requests rest from menu
+func _on_rest_requested(type: String, turns: int) -> void:
+	rest_type = type
+	rest_turns_remaining = turns
+	is_resting = true
+
+	# Connect to message_logged to detect interruptions
+	if not EventBus.message_logged.is_connected(_on_rest_interrupted_by_message):
+		EventBus.message_logged.connect(_on_rest_interrupted_by_message)
+
+	EventBus.rest_started.emit(turns)
+	_add_message("You begin resting...", Color(0.6, 0.8, 0.9))
+
+	# Start the rest loop
+	_process_rest_turn()
+
+## Process a single rest turn
+func _process_rest_turn() -> void:
+	if not is_resting or rest_turns_remaining <= 0:
+		_end_rest()
+		return
+
+	# Check if rest condition is already met
+	if rest_type == "stamina" and player and player.survival:
+		if player.survival.stamina >= player.survival.get_max_stamina():
+			_end_rest("You are fully rested.")
+			return
+
+	# Perform wait action (bonus stamina regen)
+	if player.survival:
+		player.regenerate_stamina()
+		player.regenerate_stamina()
+
+	rest_turns_remaining -= 1
+	TurnManager.advance_turn()
+
+	# Update HUD during rest
+	_update_hud()
+
+	# Schedule next rest turn (using call_deferred to allow event processing)
+	if is_resting and rest_turns_remaining > 0:
+		call_deferred("_process_rest_turn")
+	else:
+		_end_rest()
+
+## Called when a message is logged during rest - interrupts resting
+func _on_rest_interrupted_by_message(message: String) -> void:
+	if not is_resting:
+		return
+
+	# Ignore certain messages that shouldn't interrupt rest
+	var ignore_patterns = [
+		"You begin resting",
+		"Resting complete",
+		"You are fully rested"
+	]
+
+	for pattern in ignore_patterns:
+		if message.begins_with(pattern):
+			return
+
+	# Interrupt rest
+	_interrupt_rest(message)
+
+## Interrupt rest due to an event
+func _interrupt_rest(reason: String) -> void:
+	if not is_resting:
+		return
+
+	is_resting = false
+	rest_turns_remaining = 0
+	rest_type = ""
+
+	# Disconnect message listener
+	if EventBus.message_logged.is_connected(_on_rest_interrupted_by_message):
+		EventBus.message_logged.disconnect(_on_rest_interrupted_by_message)
+
+	EventBus.rest_interrupted.emit(reason)
+	_add_message("Rest interrupted: %s" % reason, Color(1.0, 0.7, 0.4))
+
+## End rest normally
+func _end_rest(message: String = "") -> void:
+	if not is_resting:
+		return
+
+	is_resting = false
+	var final_turns = rest_turns_remaining
+	rest_turns_remaining = 0
+	rest_type = ""
+
+	# Disconnect message listener
+	if EventBus.message_logged.is_connected(_on_rest_interrupted_by_message):
+		EventBus.message_logged.disconnect(_on_rest_interrupted_by_message)
+
+	EventBus.rest_completed.emit(final_turns)
+
+	if message != "":
+		_add_message(message, Color(0.6, 0.9, 0.6))
+	else:
+		_add_message("Resting complete.", Color(0.6, 0.9, 0.6))

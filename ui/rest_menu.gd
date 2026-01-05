@@ -105,9 +105,11 @@ func _navigate(direction: int) -> void:
 	selected_index = clamp(selected_index + direction, 0, 2)
 	_update_selection()
 
-	# If selecting option 3, focus on input (deferred to ensure UI is ready)
+	# If selecting option 3, focus on input
 	if selected_index == 2:
-		turns_input.call_deferred("grab_focus")
+		# Use a small delay to ensure the input is ready
+		await get_tree().process_frame
+		turns_input.grab_focus()
 	else:
 		turns_input.release_focus()
 
@@ -150,20 +152,21 @@ func _get_next_time_period() -> String:
 			current_period_idx = i
 			break
 
-	# Find the next DIFFERENT period (skip any periods with same ID)
+	# Find the next DIFFERENT period that is valid for rest menu
 	if current_period_idx >= 0:
 		var current_id = periods[current_period_idx].get("id", "")
 		var next_idx = current_period_idx + 1
 
-		# Keep advancing until we find a different period ID
+		# Keep advancing until we find a different period ID that shows in rest menu
 		while next_idx < periods.size():
-			if periods[next_idx].get("id", "") != current_id:
-				return periods[next_idx].get("id", "dawn")
+			var period = periods[next_idx]
+			if period.get("id", "") != current_id and period.get("show_in_rest_menu", true):
+				return period.get("id", "dawn")
 			next_idx += 1
 
-		# Wrapped around to start of next day - find first different period
+		# Wrapped around to start of next day - find first valid period
 		for period in periods:
-			if period.get("id", "") != current_id:
+			if period.get("id", "") != current_id and period.get("show_in_rest_menu", true):
 				return period.get("id", "dawn")
 
 	return "dawn"  # Default fallback
@@ -189,17 +192,18 @@ func _get_turns_until_next_period() -> int:
 
 	var current_id = periods[current_period_idx].get("id", "")
 
-	# Find the next DIFFERENT period and calculate turns until it starts
+	# Find the next DIFFERENT period that shows in rest menu
 	var next_idx = current_period_idx + 1
 	while next_idx < periods.size():
-		if periods[next_idx].get("id", "") != current_id:
-			var next_start = periods[next_idx].get("start", 0)
+		var period = periods[next_idx]
+		if period.get("id", "") != current_id and period.get("show_in_rest_menu", true):
+			var next_start = period.get("start", 0)
 			return next_start - turn_in_day
 		next_idx += 1
 
-	# Wrapped around to start of next day - find first different period
+	# Wrapped around to start of next day - find first valid period
 	for period in periods:
-		if period.get("id", "") != current_id:
+		if period.get("id", "") != current_id and period.get("show_in_rest_menu", true):
 			var next_start = period.get("start", 0)
 			return (turns_per_day - turn_in_day) + next_start
 

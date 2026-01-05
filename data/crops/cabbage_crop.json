@@ -1,0 +1,45 @@
+{
+  "id": "cabbage_crop",
+  "name": "Cabbage",
+  "seed_item_id": "cabbage_seeds",
+  "growth_stages": [
+    {
+      "name": "Seedling",
+      "ascii_char": "♈",
+      "color": "#90EE90",
+      "duration_turns": 400,
+      "harvestable": false,
+      "trample_vulnerable": true
+    },
+    {
+      "name": "Sprout",
+      "ascii_char": "\"",
+      "color": "#32CD32",
+      "duration_turns": 600,
+      "harvestable": false,
+      "trample_vulnerable": true
+    },
+    {
+      "name": "Growing",
+      "ascii_char": "o",
+      "color": "#228B22",
+      "duration_turns": 800,
+      "harvestable": false,
+      "trample_vulnerable": false
+    },
+    {
+      "name": "Mature",
+      "ascii_char": "O",
+      "color": "#90EE90",
+      "duration_turns": -1,
+      "harvestable": true,
+      "trample_vulnerable": false
+    }
+  ],
+  "yields": [
+    {"item_id": "cabbage", "min_count": 1, "max_count": 2},
+    {"item_id": "cabbage_seeds", "min_count": 1, "max_count": 1, "chance": 0.6}
+  ],
+  "harvest_stamina_cost": 4,
+  "harvest_message": "You harvest a cabbage"
+}

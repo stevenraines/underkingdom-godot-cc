@@ -7,7 +7,7 @@ extends Node2D
 ## allowing easy swapping between ASCII, sprites, or other rendering methods.
 
 ## Render a tile at the given position
-func render_tile(position: Vector2i, tile_type: String, variant: int = 0) -> void:
+func render_tile(position: Vector2i, tile_type: String, variant: int = 0, color: Color = Color(-1, -1, -1, -1)) -> void:
 	push_error("render_tile must be overridden in subclass")
 
 ## Render an entity at the given position

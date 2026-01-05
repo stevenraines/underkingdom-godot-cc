@@ -1,0 +1,31 @@
+{
+  "template_id": "hoe",
+  "display_name": "Hoe",
+  "description_base": "A hoe for tilling soil and farming.",
+  "category": "tool",
+  "subtype": "hoe",
+  "base_properties": {
+    "ascii_char": "L",
+    "tool_type": "hoe",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": true
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 1.5,
+    "value": 20,
+    "durability": 100,
+    "damage_bonus": 2
+  },
+  "applicable_variants": ["material", "quality"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

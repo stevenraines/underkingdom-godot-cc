@@ -3,6 +3,7 @@
     {"id": "waterskin_full", "count": 1},
     {"template_id": "knife", "variants": {"material": "flint"}, "count": 1},
     {"template_id": "hatchet", "variants": {"material": "iron"}, "count": 1},
+    {"template_id": "hoe", "variants": {"material": "iron"}, "count": 1},
     {"id": "flint", "count": 1},
     {"id": "cord", "count": 3},
     {"id": "iron_ore", "count": 10},
@@ -11,5 +12,8 @@
     {"id": "arrow", "count": 10},
     {"id": "sling_stone", "count": 5},
     {"id": "lockpick", "count": 5},
-    {"id": "torch", "count": 3}
+    {"id": "torch", "count": 3},
+    {"id": "wheat_seeds", "count": 5},
+    {"id": "carrot_seeds", "count": 3},
+    {"id": "potato_seeds", "count": 3}
 ]

@@ -14,6 +14,7 @@ const StructurePlacement = preload("res://systems/structure_placement.gd")
 const LightingSystemClass = preload("res://systems/lighting_system.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
+const FarmingSystemClass = preload("res://systems/farming_system.gd")
 
 var player: Player
 var renderer: ASCIIRenderer
@@ -205,6 +206,7 @@ func _ready() -> void:
 	EventBus.item_equipped.connect(_on_item_equipped)
 	EventBus.item_unequipped.connect(_on_item_unequipped)
 	EventBus.weather_changed.connect(_on_weather_changed)
+	EventBus.entity_visual_changed.connect(_on_entity_visual_changed)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -458,6 +460,9 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
 
+	# Re-render any entity at old position that was hidden under player
+	_render_entity_at(old_pos)
+
 	# Re-render any ground item at old position that was hidden under player
 	_render_ground_item_at(old_pos)
 
@@ -491,6 +496,19 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Check if standing on stairs and update message
 	_update_message()
+
+## Render any non-blocking entity at a specific position (crops, etc.)
+## Skips rendering if player is at the position (player renders on top)
+func _render_entity_at(pos: Vector2i) -> void:
+	# Don't render entities under the player - player renders on top
+	if player and player.position == pos:
+		return
+
+	for entity in EntityManager.entities:
+		if entity.is_alive and entity.position == pos and not entity.blocks_movement:
+			renderer.render_entity(pos, entity.ascii_char, entity.color)
+			return  # Only render the first entity at this position
+
 
 ## Render a ground item or structure at a specific position if one exists
 func _render_ground_item_at(pos: Vector2i) -> void:
@@ -623,7 +641,11 @@ func _on_tile_changed(pos: Vector2i) -> void:
 	# Re-render the changed tile (e.g., door opened/closed)
 	var tile = MapManager.current_map.get_tile(pos)
 	if tile:
-		renderer.render_tile(pos, tile.ascii_char)
+		# Pass tile's color if it has one set (e.g., from biome data)
+		if tile.color != Color.WHITE:
+			renderer.render_tile(pos, tile.ascii_char, 0, tile.color)
+		else:
+			renderer.render_tile(pos, tile.ascii_char)
 
 	# Recalculate visibility when tiles change (doors open/close affects LOS)
 	_update_visibility()
@@ -662,6 +684,32 @@ func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> v
 		var current_target = input_handler.get_current_target()
 		if current_target and entity == current_target:
 			update_target_highlight(current_target)
+
+## Called when an entity's visual (char/color) changes (e.g., crop growth stage)
+func _on_entity_visual_changed(pos: Vector2i) -> void:
+	# Clear existing entity rendering at position
+	renderer.clear_entity(pos)
+
+	# Re-render the terrain tile first (e.g., tilled soil after harvest)
+	if MapManager.current_map:
+		var tile = MapManager.current_map.get_tile(pos)
+		if tile:
+			if tile.color != Color.WHITE:
+				renderer.render_tile(pos, tile.ascii_char, 0, tile.color)
+			else:
+				renderer.render_tile(pos, tile.ascii_char)
+
+	# If player is at this position, render player on top (not the entity)
+	if player and player.position == pos:
+		renderer.render_entity(pos, "@", Color.YELLOW)
+		return
+
+	# Re-render any entity at this position (will hide terrain underneath)
+	_render_entity_at(pos)
+
+	# Also handle ground items that might be at this position
+	_render_ground_item_at(pos)
+
 
 ## Called when an entity dies
 func _on_entity_died(entity: Entity) -> void:
@@ -1284,8 +1332,14 @@ func _render_all_entities() -> void:
 	# Get current target for highlighting
 	var current_target = input_handler.get_current_target() if input_handler else null
 
+	# Get player position to skip rendering entities at player's tile
+	var player_pos = player.position if player else Vector2i(-1, -1)
+
 	for entity in EntityManager.entities:
 		if entity.is_alive:
+			# Skip entities at player's position - player renders on top
+			if entity.position == player_pos:
+				continue
 			var render_color = entity.color
 			# Highlight targeted enemy with a distinct color
 			if entity == current_target:
@@ -1293,22 +1347,26 @@ func _render_all_entities() -> void:
 				render_color = Color(1.0, 0.4, 0.4)  # Red tint for targeted enemy
 			renderer.render_entity(entity.position, entity.ascii_char, render_color)
 
-	# Render structures
+	# Render structures (skip player position)
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
 	var structures = StructureManager.get_structures_on_map(map_id)
 	for structure in structures:
-		renderer.render_entity(structure.position, structure.ascii_char, structure.color)
+		if structure.position != player_pos:
+			renderer.render_entity(structure.position, structure.ascii_char, structure.color)
 
-	# Render dungeon features
-	_render_features()
+	# Render dungeon features (skip player position)
+	_render_features(player_pos)
 
-	# Render dungeon hazards (visible ones only)
-	_render_hazards()
+	# Render dungeon hazards (visible ones only, skip player position)
+	_render_hazards(player_pos)
 
 
 ## Render dungeon features (chests, altars, etc.)
-func _render_features() -> void:
+func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 	for pos in FeatureManager.active_features:
+		# Skip rendering at player position
+		if pos == skip_pos:
+			continue
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
@@ -1317,8 +1375,11 @@ func _render_features() -> void:
 
 
 ## Render dungeon hazards (only visible/detected ones)
-func _render_hazards() -> void:
+func _render_hazards(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 	for pos in HazardManager.active_hazards:
+		# Skip rendering at player position
+		if pos == skip_pos:
+			continue
 		# Only render if hazard is visible (detected or not hidden)
 		if HazardManager.has_visible_hazard(pos):
 			var hazard: Dictionary = HazardManager.active_hazards[pos]

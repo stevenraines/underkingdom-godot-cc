@@ -1,0 +1,45 @@
+{
+  "id": "potato_crop",
+  "name": "Potato",
+  "seed_item_id": "potato_seeds",
+  "growth_stages": [
+    {
+      "name": "Seedling",
+      "ascii_char": "♈",
+      "color": "#90EE90",
+      "duration_turns": 450,
+      "harvestable": false,
+      "trample_vulnerable": true
+    },
+    {
+      "name": "Sprout",
+      "ascii_char": "\"",
+      "color": "#32CD32",
+      "duration_turns": 650,
+      "harvestable": false,
+      "trample_vulnerable": true
+    },
+    {
+      "name": "Growing",
+      "ascii_char": "t",
+      "color": "#228B22",
+      "duration_turns": 900,
+      "harvestable": false,
+      "trample_vulnerable": false
+    },
+    {
+      "name": "Mature",
+      "ascii_char": "Y",
+      "color": "#D2B48C",
+      "duration_turns": -1,
+      "harvestable": true,
+      "trample_vulnerable": false
+    }
+  ],
+  "yields": [
+    {"item_id": "potato", "min_count": 3, "max_count": 6},
+    {"item_id": "potato_seeds", "min_count": 1, "max_count": 2, "chance": 0.75}
+  ],
+  "harvest_stamina_cost": 5,
+  "harvest_message": "You dig up some potatoes"
+}

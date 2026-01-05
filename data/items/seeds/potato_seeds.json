@@ -1,0 +1,12 @@
+{
+  "id": "potato_seeds",
+  "name": "Potato Seeds",
+  "description": "Seed potatoes for planting potato crops",
+  "type": "seed",
+  "crop_id": "potato_crop",
+  "ascii_char": ".",
+  "color": "#D2B48C",
+  "weight": 0.2,
+  "value": 3,
+  "max_stack": 50
+}

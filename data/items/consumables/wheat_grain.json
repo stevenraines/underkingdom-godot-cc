@@ -1,0 +1,18 @@
+{
+  "id": "wheat_grain",
+  "name": "Wheat Grain",
+  "description": "Raw wheat grain. Can be milled into flour for baking.",
+  "category": "material",
+  "subtype": "food_ingredient",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.1,
+  "value": 1,
+  "max_stack": 50,
+  "ascii_char": ".",
+  "ascii_color": "#DEB887"
+}

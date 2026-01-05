@@ -83,21 +83,8 @@ func _input(event: InputEvent) -> void:
 				_update_selection()
 				turns_input.call_deferred("grab_focus")
 				viewport.set_input_as_handled()
-			KEY_UP:
-				selected_index = max(0, selected_index - 1)
-				_update_selection()
-				if selected_index == 2:
-					turns_input.call_deferred("grab_focus")
-				else:
-					turns_input.release_focus()
-				viewport.set_input_as_handled()
-			KEY_DOWN:
-				selected_index = min(2, selected_index + 1)
-				_update_selection()
-				if selected_index == 2:
-					turns_input.call_deferred("grab_focus")
-				else:
-					turns_input.release_focus()
+			KEY_UP, KEY_DOWN:
+				# Consume arrow keys to prevent them from doing anything
 				viewport.set_input_as_handled()
 			KEY_TAB:
 				# Tab wraps around, Shift+Tab goes backwards

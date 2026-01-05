@@ -26,6 +26,10 @@ const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Ensure LineEdit can receive focus when game is paused
+	# Note: @onready vars are set before _ready is called
+	turns_input.process_mode = Node.PROCESS_MODE_ALWAYS
+	turns_input.focus_mode = Control.FOCUS_ALL
 
 func _input(event: InputEvent) -> void:
 	if not visible:

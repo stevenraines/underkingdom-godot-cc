@@ -520,3 +520,8 @@ static func deserialize_harvest_progress(data: Array) -> void:
 # Clear all harvest progress (called on new game)
 static func clear_harvest_progress() -> void:
 	_harvest_progress.clear()
+
+## Clear all harvest system state (for new game)
+static func clear() -> void:
+	_harvest_progress.clear()
+	_renewable_resources.clear()

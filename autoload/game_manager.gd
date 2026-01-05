@@ -7,6 +7,7 @@ extends Node
 
 const _HarvestSystem = preload("res://systems/harvest_system.gd")
 const _FarmingSystem = preload("res://systems/farming_system.gd")
+const _FogOfWarSystem = preload("res://systems/fog_of_war_system.gd")
 
 # Game state
 var world_seed: int = 0
@@ -60,6 +61,15 @@ func start_new_game(world_name_input: String = "") -> void:
 
 	# Clear chunk cache to ensure fresh chunk generation with new colors
 	ChunkManager.clear_chunks()
+
+	# Clear farming system data (crops and tilled soil)
+	_FarmingSystem.clear()
+
+	# Clear harvest system data (renewable resources)
+	_HarvestSystem.clear()
+
+	# Clear fog of war data (explored tiles)
+	_FogOfWarSystem.clear_all()
 
 	# Reset last overworld position
 	last_overworld_position = Vector2i.ZERO

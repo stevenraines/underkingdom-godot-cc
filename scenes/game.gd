@@ -498,7 +498,12 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	_update_message()
 
 ## Render any non-blocking entity at a specific position (crops, etc.)
+## Skips rendering if player is at the position (player renders on top)
 func _render_entity_at(pos: Vector2i) -> void:
+	# Don't render entities under the player - player renders on top
+	if player and player.position == pos:
+		return
+
 	for entity in EntityManager.entities:
 		if entity.is_alive and entity.position == pos and not entity.blocks_movement:
 			renderer.render_entity(pos, entity.ascii_char, entity.color)
@@ -693,6 +698,11 @@ func _on_entity_visual_changed(pos: Vector2i) -> void:
 				renderer.render_tile(pos, tile.ascii_char, 0, tile.color)
 			else:
 				renderer.render_tile(pos, tile.ascii_char)
+
+	# If player is at this position, render player on top (not the entity)
+	if player and player.position == pos:
+		renderer.render_entity(pos, "@", Color.YELLOW)
+		return
 
 	# Re-render any entity at this position (will hide terrain underneath)
 	_render_entity_at(pos)

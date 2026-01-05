@@ -374,7 +374,7 @@ static func harvest_crop(player: Player, target_pos: Vector2i) -> Dictionary:
 	if player.survival and not player.survival.consume_stamina(stamina_cost):
 		return {"success": false, "message": "Too tired to harvest"}
 
-	# Generate yields
+	# Generate yields and add directly to player inventory
 	var yields = crop.get_harvest_yields()
 	var yield_messages: Array[String] = []
 
@@ -384,15 +384,19 @@ static func harvest_crop(player: Player, target_pos: Vector2i) -> Dictionary:
 
 		var item = ItemManager.create_item(item_id, count)
 		if item:
-			# Drop at harvest position
-			var ground_item = GroundItem.new()
-			ground_item.item = item
-			ground_item.position = target_pos
-			ground_item.ascii_char = item.ascii_char
-			ground_item.color = item.get_color()
-			EntityManager.entities.append(ground_item)
-			map.entities.append(ground_item)
-			yield_messages.append("%d %s" % [count, item.name])
+			# Try to add to player inventory
+			if player.inventory and player.inventory.add_item(item):
+				yield_messages.append("%d %s" % [count, item.name])
+			else:
+				# Inventory full - drop at harvest position as fallback
+				var ground_item = GroundItem.new()
+				ground_item.item = item
+				ground_item.position = target_pos
+				ground_item.ascii_char = item.ascii_char
+				ground_item.color = item.get_color()
+				EntityManager.entities.append(ground_item)
+				map.entities.append(ground_item)
+				yield_messages.append("%d %s (dropped)" % [count, item.name])
 
 	# Remove crop from tracking
 	_active_crops.erase(key)

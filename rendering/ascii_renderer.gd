@@ -51,7 +51,8 @@ func _ready() -> void:
 
 # Build lookup table for ground tiles that should be hidden under entities
 func _build_ground_tile_lookup() -> void:
-	var ground_chars = [".", "\"", ",", "▤"]
+	# Include floor tiles, grass variants, tilled soil, and road tiles
+	var ground_chars = [".", "\"", ",", "▤", "▪", "·", "░", "=", "≡"]
 	for ground_char in ground_chars:
 		var ground_index = _char_to_index(ground_char)
 		var ground_col = ground_index % TILES_PER_ROW

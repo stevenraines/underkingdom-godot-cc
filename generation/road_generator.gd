@@ -62,8 +62,8 @@ static func _pave_town_square(tiles_dict: Dictionary, town_center: Vector2i, tow
 			var pos = town_center + Vector2i(x, y)
 			if pos in tiles_dict:
 				var existing = tiles_dict[pos]
-				# Only replace floor tiles, not buildings/doors/special tiles
-				if existing.tile_type == "floor" and existing.walkable:
+				# Only replace floor tiles, not buildings/doors/special tiles or interior floors
+				if existing.tile_type == "floor" and existing.walkable and not existing.is_interior:
 					var road_tile = GameTile.create("road_cobblestone")
 					tiles_dict[pos] = road_tile
 
@@ -142,8 +142,8 @@ static func _place_road_tile(tiles_dict: Dictionary, pos: Vector2i, road_type: S
 		tiles_dict[pos] = GameTile.create(bridge_type)
 		return
 
-	# Only replace floor/grass tiles
-	if existing.walkable and existing.tile_type == "floor":
+	# Only replace floor/grass tiles that are NOT interior (inside buildings)
+	if existing.walkable and existing.tile_type == "floor" and not existing.is_interior:
 		tiles_dict[pos] = GameTile.create(road_type)
 
 

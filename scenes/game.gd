@@ -1931,11 +1931,16 @@ func _on_rest_requested(type: String, turns: int) -> void:
 
 ## Process a single rest turn
 func _process_rest_turn() -> void:
-	if not is_resting or rest_turns_remaining <= 0:
+	if not is_resting:
 		_end_rest()
 		return
 
-	# Check if rest condition is already met
+	# For non-stamina rest types, check if we've run out of turns
+	if rest_type != "stamina" and rest_turns_remaining <= 0:
+		_end_rest()
+		return
+
+	# Check if stamina rest condition is already met (before resting)
 	if rest_type == "stamina" and player and player.survival:
 		if player.survival.stamina >= player.survival.get_max_stamina():
 			_end_rest("You are fully rested.")
@@ -1952,11 +1957,21 @@ func _process_rest_turn() -> void:
 	# Update HUD during rest
 	_update_hud()
 
+	# Check if stamina rest condition is now met (after resting)
+	if rest_type == "stamina" and player and player.survival:
+		if player.survival.stamina >= player.survival.get_max_stamina():
+			_end_rest("You are fully rested.")
+			return
+
 	# Schedule next rest turn (using call_deferred to allow event processing)
-	if is_resting and rest_turns_remaining > 0:
-		call_deferred("_process_rest_turn")
-	else:
-		_end_rest()
+	if is_resting:
+		if rest_type == "stamina":
+			# For stamina rest, keep going until full (checked above)
+			call_deferred("_process_rest_turn")
+		elif rest_turns_remaining > 0:
+			call_deferred("_process_rest_turn")
+		else:
+			_end_rest()
 
 ## Called when a message is logged during rest - interrupts resting
 func _on_rest_interrupted_by_message(message: String) -> void:

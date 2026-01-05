@@ -36,6 +36,28 @@ func _input(event: InputEvent) -> void:
 		if not viewport:
 			return
 
+		# If the turns input has focus, let it handle digit keys and most input
+		if turns_input.has_focus():
+			match event.keycode:
+				KEY_ESCAPE:
+					turns_input.release_focus()
+					viewport.set_input_as_handled()
+				KEY_ENTER:
+					_confirm_turns_input()
+					viewport.set_input_as_handled()
+				KEY_UP:
+					turns_input.release_focus()
+					_navigate(-1)
+					viewport.set_input_as_handled()
+				KEY_TAB:
+					turns_input.release_focus()
+					_navigate(-1)
+					viewport.set_input_as_handled()
+				_:
+					# Let other keys (digits, backspace, etc.) pass through to LineEdit
+					pass
+			return
+
 		match event.keycode:
 			KEY_ESCAPE:
 				_close()
@@ -58,11 +80,11 @@ func _input(event: InputEvent) -> void:
 			KEY_DOWN:
 				_navigate(1)
 				viewport.set_input_as_handled()
+			KEY_TAB:
+				_navigate(1)
+				viewport.set_input_as_handled()
 			KEY_ENTER:
-				if turns_input.has_focus():
-					_confirm_turns_input()
-				else:
-					_select_option(selected_index)
+				_select_option(selected_index)
 				viewport.set_input_as_handled()
 
 func open(p: Player) -> void:
@@ -113,21 +135,36 @@ func _update_status() -> void:
 		status_label.text = ""
 
 func _get_next_time_period() -> String:
-	var current_time = TurnManager.time_of_day
+	var turns_per_day = CalendarManager.get_turns_per_day()
+	var current_turn = TurnManager.current_turn
+	var turn_in_day = current_turn % turns_per_day
 
-	# Get time periods from calendar manager
+	# Get time periods from calendar manager (these have start/end times)
 	var periods = CalendarManager.get_time_periods()
-	var period_ids: Array[String] = []
-	for p in periods:
-		var pid = p.get("id", "")
-		if pid != "" and pid not in period_ids:
-			period_ids.append(pid)
 
-	# Find current period index and return next one
-	var current_idx = period_ids.find(current_time)
-	if current_idx >= 0:
-		var next_idx = (current_idx + 1) % period_ids.size()
-		return period_ids[next_idx]
+	# Find current period by turn position
+	var current_period_idx = -1
+	for i in range(periods.size()):
+		var period = periods[i]
+		if turn_in_day >= period.get("start", 0) and turn_in_day < period.get("end", 0):
+			current_period_idx = i
+			break
+
+	# Find the next DIFFERENT period (skip any periods with same ID)
+	if current_period_idx >= 0:
+		var current_id = periods[current_period_idx].get("id", "")
+		var next_idx = current_period_idx + 1
+
+		# Keep advancing until we find a different period ID
+		while next_idx < periods.size():
+			if periods[next_idx].get("id", "") != current_id:
+				return periods[next_idx].get("id", "dawn")
+			next_idx += 1
+
+		# Wrapped around to start of next day - find first different period
+		for period in periods:
+			if period.get("id", "") != current_id:
+				return period.get("id", "dawn")
 
 	return "dawn"  # Default fallback
 
@@ -136,25 +173,35 @@ func _get_turns_until_next_period() -> int:
 	var current_turn = TurnManager.current_turn
 	var turn_in_day = current_turn % turns_per_day
 
-	# Get time periods and find the next one
+	# Get time periods from calendar manager
 	var periods = CalendarManager.get_time_periods()
-	var current_time = TurnManager.time_of_day
 
-	# Find current period and get next period's start
-	var found_current = false
+	# Find current period by turn position
+	var current_period_idx = -1
+	for i in range(periods.size()):
+		var period = periods[i]
+		if turn_in_day >= period.get("start", 0) and turn_in_day < period.get("end", 0):
+			current_period_idx = i
+			break
+
+	if current_period_idx < 0:
+		return 10  # Fallback
+
+	var current_id = periods[current_period_idx].get("id", "")
+
+	# Find the next DIFFERENT period and calculate turns until it starts
+	var next_idx = current_period_idx + 1
+	while next_idx < periods.size():
+		if periods[next_idx].get("id", "") != current_id:
+			var next_start = periods[next_idx].get("start", 0)
+			return next_start - turn_in_day
+		next_idx += 1
+
+	# Wrapped around to start of next day - find first different period
 	for period in periods:
-		if found_current:
-			# This is the next period
+		if period.get("id", "") != current_id:
 			var next_start = period.get("start", 0)
-			if next_start > turn_in_day:
-				return next_start - turn_in_day
-		if period.get("id", "") == current_time:
-			found_current = true
-
-	# If we didn't find next in remaining periods, it's the first period tomorrow
-	if periods.size() > 0:
-		var first_period_start = periods[0].get("start", 0)
-		return (turns_per_day - turn_in_day) + first_period_start
+			return (turns_per_day - turn_in_day) + next_start
 
 	return 10  # Fallback
 

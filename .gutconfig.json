@@ -1,0 +1,15 @@
+{
+    "dirs": ["res://test/unit"],
+    "include_subdirs": true,
+    "prefix": "test_",
+    "suffix": ".gd",
+    "font_name": "CourierPrime",
+    "font_size": 16,
+    "should_maximize": false,
+    "should_exit": false,
+    "should_exit_on_success": false,
+    "log_level": 1,
+    "double_strategy": "SCRIPT_ONLY",
+    "pre_run_script": "",
+    "post_run_script": ""
+}

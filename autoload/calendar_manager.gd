@@ -71,6 +71,7 @@ func _load_time_periods() -> void:
 			"id": period.get("id", "unknown"),
 			"duration": duration,
 			"temp_modifier": period.get("temp_modifier", 0),
+			"show_in_rest_menu": period.get("show_in_rest_menu", true),
 			"start": current_turn,
 			"end": current_turn + duration
 		}

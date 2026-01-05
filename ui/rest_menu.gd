@@ -51,7 +51,9 @@ func _input(event: InputEvent) -> void:
 					viewport.set_input_as_handled()
 				KEY_TAB:
 					turns_input.release_focus()
-					_navigate(-1)
+					# Tab from option 3 wraps to option 1
+					selected_index = 0
+					_update_selection()
 					viewport.set_input_as_handled()
 				_:
 					# Let other keys (digits, backspace, etc.) pass through to LineEdit
@@ -81,7 +83,8 @@ func _input(event: InputEvent) -> void:
 				_navigate(1)
 				viewport.set_input_as_handled()
 			KEY_TAB:
-				_navigate(1)
+				# Tab wraps around
+				_navigate_wrap(1)
 				viewport.set_input_as_handled()
 			KEY_ENTER:
 				_select_option(selected_index)
@@ -103,6 +106,21 @@ func _close() -> void:
 
 func _navigate(direction: int) -> void:
 	selected_index = clamp(selected_index + direction, 0, 2)
+	_update_selection()
+
+	# If selecting option 3, focus on input
+	if selected_index == 2:
+		# Use a small delay to ensure the input is ready
+		await get_tree().process_frame
+		turns_input.grab_focus()
+	else:
+		turns_input.release_focus()
+
+func _navigate_wrap(direction: int) -> void:
+	# Navigate with wrapping (for Tab key)
+	selected_index = (selected_index + direction) % 3
+	if selected_index < 0:
+		selected_index = 2
 	_update_selection()
 
 	# If selecting option 3, focus on input

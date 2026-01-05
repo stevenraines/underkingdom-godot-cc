@@ -37,6 +37,7 @@ var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 var is_resting: bool = false
 var rest_turns_remaining: int = 0
 var rest_type: String = ""  # "stamina", "time", or "custom"
+var rest_turns_elapsed: int = 0  # Track turns for shelter HP restoration
 var build_mode_active: bool = false
 var selected_structure_id: String = ""
 var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for placement cursor
@@ -2012,6 +2013,7 @@ func _on_rest_menu_closed() -> void:
 func _on_rest_requested(type: String, turns: int) -> void:
 	rest_type = type
 	rest_turns_remaining = turns
+	rest_turns_elapsed = 0  # Reset HP restoration counter
 	is_resting = true
 
 	# Connect to message_logged to detect interruptions
@@ -2047,7 +2049,11 @@ func _process_rest_turn() -> void:
 		player.regenerate_stamina()
 
 	rest_turns_remaining -= 1
+	rest_turns_elapsed += 1
 	TurnManager.advance_turn()
+
+	# Check for shelter HP restoration
+	_check_shelter_hp_restoration()
 
 	# Update HUD during rest
 	_update_hud()
@@ -2068,6 +2074,28 @@ func _process_rest_turn() -> void:
 		else:
 			_end_rest()
 
+## Check if player is in a shelter and restore HP based on shelter settings
+func _check_shelter_hp_restoration() -> void:
+	if not player or not MapManager.current_map:
+		return
+
+	var map_id = MapManager.current_map.map_id
+	var structures = StructureManager.get_structures_on_map(map_id)
+
+	for structure in structures:
+		if structure.has_component("shelter"):
+			var shelter = structure.get_component("shelter")
+			if shelter.is_sheltered(structure.position, player.position):
+				# Check if enough turns have passed for HP restoration
+				if shelter.hp_restore_turns > 0 and rest_turns_elapsed % shelter.hp_restore_turns == 0:
+					var hp_to_restore = shelter.hp_restore_amount
+					if player.current_health < player.max_health:
+						var old_hp = player.current_health
+						player.current_health = min(player.max_health, player.current_health + hp_to_restore)
+						if player.current_health > old_hp:
+							_add_message("The shelter's rest restores %d HP." % (player.current_health - old_hp), Color(0.4, 0.9, 0.4))
+				return  # Only check first shelter player is in
+
 ## Called when a message is logged during rest - interrupts resting
 func _on_rest_interrupted_by_message(message: String) -> void:
 	if not is_resting:
@@ -2077,7 +2105,8 @@ func _on_rest_interrupted_by_message(message: String) -> void:
 	var ignore_patterns = [
 		"You begin resting",
 		"Resting complete",
-		"You are fully rested"
+		"You are fully rested",
+		"The shelter's rest restores"
 	]
 
 	for pattern in ignore_patterns:

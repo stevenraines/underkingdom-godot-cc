@@ -1,7 +1,7 @@
 {
   "id": "lean_to",
   "name": "Lean-to Shelter",
-  "description": "A simple shelter providing protection from the elements. Provides warmth within 2 tiles.",
+  "description": "A simple shelter providing protection from the elements. Rest here to slowly recover health.",
   "ascii_char": "A",
   "ascii_color": "#8B4513",
   "blocks_movement": false,
@@ -11,7 +11,9 @@
     "shelter": {
       "shelter_radius": 2,
       "temperature_bonus": 5.0,
-      "blocks_rain": true
+      "blocks_rain": true,
+      "hp_restore_turns": 10,
+      "hp_restore_amount": 1
     }
   },
   "build_requirements": [

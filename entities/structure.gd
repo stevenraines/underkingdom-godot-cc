@@ -73,6 +73,8 @@ static func create_from_data(data: Dictionary, pos: Vector2i) -> Structure:
 			shelter_comp.shelter_radius = shelter_data.get("shelter_radius", 2)
 			shelter_comp.temperature_bonus = shelter_data.get("temperature_bonus", 5.0)
 			shelter_comp.blocks_rain = shelter_data.get("blocks_rain", true)
+			shelter_comp.hp_restore_turns = shelter_data.get("hp_restore_turns", 10)
+			shelter_comp.hp_restore_amount = shelter_data.get("hp_restore_amount", 1)
 			structure.add_component("shelter", shelter_comp)
 
 		# Container component

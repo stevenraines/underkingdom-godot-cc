@@ -170,6 +170,12 @@ func _move_toward_target(target: Vector2i) -> void:
 		# Player is blocking - attack handled in _attempt_attack_if_adjacent
 		return
 
+	# Check if moving would put enemy inside a feared area (e.g., campfire light)
+	# Only block if enemy is not already inside the feared area
+	if not feared_components.is_empty() and _is_position_in_feared_area(new_pos) and not _is_position_in_feared_area(position):
+		# Don't enter the feared area - stand ground instead
+		return
+
 	# Check for closed door - INT 5+ can open doors
 	if MapManager.current_map:
 		var tile = MapManager.current_map.get_tile(new_pos)
@@ -227,6 +233,9 @@ func _wander() -> void:
 
 	for dir in directions:
 		var new_pos = position + dir
+		# Don't wander into feared areas
+		if not feared_components.is_empty() and _is_position_in_feared_area(new_pos) and not _is_position_in_feared_area(position):
+			continue
 		if MapManager.current_map and MapManager.current_map.is_walkable(new_pos):
 			_move_to(new_pos)
 			return
@@ -268,6 +277,36 @@ func _is_near_feared_component() -> bool:
 				var distance = _distance_to(structure.position)
 				if distance <= fear_distance:
 					return true
+
+	return false
+
+## Check if moving to a position would put enemy inside a feared component's radius
+## Returns true if the position is inside a feared area (should avoid)
+func _is_position_in_feared_area(check_pos: Vector2i) -> bool:
+	if feared_components.is_empty() or not MapManager.current_map:
+		return false
+
+	var map_id = MapManager.current_map.map_id
+	var structures = StructureManager.get_structures_on_map(map_id)
+
+	for structure in structures:
+		for feared_comp in feared_components:
+			var comp = structure.get_component(feared_comp)
+			if comp:
+				# Special handling for fire component - check if lit and use light_radius
+				if feared_comp == "fire":
+					if "is_lit" in comp and not comp.is_lit:
+						continue
+					# Use light_radius for fire avoidance (enemies won't enter the lit area)
+					var avoidance_radius = comp.light_radius if "light_radius" in comp else fear_distance
+					var distance = abs(check_pos.x - structure.position.x) + abs(check_pos.y - structure.position.y)
+					if distance <= avoidance_radius:
+						return true
+				else:
+					# For other feared components, use fear_distance
+					var distance = abs(check_pos.x - structure.position.x) + abs(check_pos.y - structure.position.y)
+					if distance <= fear_distance:
+						return true
 
 	return false
 

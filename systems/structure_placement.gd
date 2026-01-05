@@ -25,6 +25,11 @@ static func can_place_structure(structure_id: String, pos: Vector2i, player: Pla
 		result.reason = "Cannot build structures in dungeons"
 		return result
 
+	# Cannot build while enemies are nearby
+	if _are_enemies_nearby(player.position):
+		result.reason = "Cannot build while enemies are nearby"
+		return result
+
 	# Player must be adjacent to placement position (within 1 tile, including diagonals)
 	var dx = abs(pos.x - player.position.x)
 	var dy = abs(pos.y - player.position.y)
@@ -149,3 +154,13 @@ static func place_structure(structure_id: String, pos: Vector2i, player: Player,
 static func remove_structure(structure: Structure, current_map: GameMap) -> bool:
 	StructureManager.remove_structure(current_map.map_id, structure)
 	return true
+
+## Check if there are enemies nearby (within specified range)
+## Returns true if enemies are too close to build safely
+static func _are_enemies_nearby(player_pos: Vector2i, danger_range: int = 5) -> bool:
+	for entity in EntityManager.entities:
+		if entity is Enemy and entity.is_alive:
+			var distance = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+			if distance <= danger_range:
+				return true
+	return false

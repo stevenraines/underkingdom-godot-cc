@@ -41,6 +41,11 @@ var build_mode_active: bool = false
 var selected_structure_id: String = ""
 var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for placement cursor
 
+# Performance optimization: Cache enemy light source positions
+# Updated when enemies move, avoids scanning all entities every frame
+var _enemy_light_cache: Array[Vector2i] = []
+var _enemy_light_cache_dirty: bool = true
+
 @onready var hud: CanvasLayer = $HUD
 @onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
 @onready var status_line: Label = $HUD/TopBar/StatusLine
@@ -591,6 +596,9 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] 1/8 Invalidating FOV cache")
 	FOVSystemClass.invalidate_cache()
 
+	# Mark enemy light cache as dirty (new map has different enemies)
+	_enemy_light_cache_dirty = true
+
 	# Clear existing entities from EntityManager
 	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
@@ -678,6 +686,10 @@ func _on_stamina_depleted() -> void:
 func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> void:
 	renderer.clear_entity(old_pos)
 	renderer.render_entity(new_pos, entity.ascii_char, entity.color)
+
+	# Mark enemy light cache as dirty if an enemy moved (performance optimization)
+	if entity is Enemy:
+		_enemy_light_cache_dirty = true
 
 	# Update target highlight if this entity is the current target
 	if input_handler:
@@ -1894,21 +1906,38 @@ func _register_light_sources() -> void:
 	if map_id == "overworld":
 		_register_town_lights()
 
-	# Register light sources from enemies with INT > 5 (they carry torches at night)
-	if TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk":
-		for entity in EntityManager.entities:
-			if entity is Enemy and entity.is_alive:
-				# Check if enemy is intelligent enough to carry a light
-				var enemy_int = entity.attributes.get("INT", 1)
-				if enemy_int >= 5:
-					LightingSystemClass.add_light_source(entity.position, LightingSystemClass.LightType.TORCH)
+	# Only scan entities for light sources during night/dusk (performance optimization)
+	# During day, enemies don't need torches and lit ground items are rare
+	var is_dark = TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk"
+	if is_dark:
+		# Rebuild enemy light cache only when dirty (enemies moved or map changed)
+		if _enemy_light_cache_dirty:
+			_rebuild_enemy_light_cache()
 
-	# Register light sources from lit ground items (dropped torches, lanterns)
+		# Register light sources from cached enemy positions
+		for enemy_pos in _enemy_light_cache:
+			LightingSystemClass.add_light_source(enemy_pos, LightingSystemClass.LightType.TORCH)
+
+		# Register light sources from lit ground items (dropped torches, lanterns)
+		# Only scan GroundItems, not all entities
+		for entity in EntityManager.entities:
+			if entity is GroundItem:
+				var item = entity.item
+				if item and item.provides_light and item.is_lit:
+					LightingSystemClass.add_light_source(entity.position, LightingSystemClass.LightType.TORCH, item.light_radius)
+
+
+## Rebuild the enemy light source cache (only intelligent enemies carry torches)
+## Called only when cache is dirty (enemy moved or map changed)
+func _rebuild_enemy_light_cache() -> void:
+	_enemy_light_cache.clear()
 	for entity in EntityManager.entities:
-		if entity is GroundItem:
-			var item = entity.item
-			if item and item.provides_light and item.is_lit:
-				LightingSystemClass.add_light_source(entity.position, LightingSystemClass.LightType.TORCH, item.light_radius)
+		if entity is Enemy and entity.is_alive:
+			# Only intelligent enemies (INT >= 5) carry torches
+			var enemy_int = entity.attributes.get("INT", 1)
+			if enemy_int >= 5:
+				_enemy_light_cache.append(entity.position)
+	_enemy_light_cache_dirty = false
 
 
 ## Register town lights (lampposts) at night

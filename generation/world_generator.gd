@@ -84,46 +84,108 @@ static func _find_valid_location(map: GameMap, rng: SeededRandom) -> Vector2i:
 	push_warning("Could not find valid dungeon entrance location, using center")
 	return Vector2i(map.width / 2, map.height / 2)
 
-## Spawn enemies on the overworld
+## Spawn enemies on the overworld based on biome and town distance
 static func _spawn_overworld_enemies(map: GameMap, rng: SeededRandom) -> void:
 	# Calculate total map tiles
 	var total_tiles = map.width * map.height
 
-	# Get wolf enemy data to read spawn density
-	var wolf_data = EntityManager.get_enemy_definition("woodland_wolf")
-	if wolf_data.is_empty():
-		push_warning("WorldGenerator: woodland_wolf enemy data not found")
-		return
+	# Get town positions for distance checking
+	var town_positions: Array[Vector2i] = []
+	var towns = TownManager.get_placed_towns()
+	for town in towns:
+		var pos = town.get("position", Vector2i(-1, -1))
+		if pos is Array:
+			pos = Vector2i(pos[0], pos[1])
+		if pos != Vector2i(-1, -1):
+			town_positions.append(pos)
 
-	# Calculate number of enemies based on overworld spawn density
-	# spawn_density_overworld is tiles per enemy (e.g., 100 = 1 enemy per 100 tiles)
-	# If 0, this enemy doesn't spawn in overworld
-	var spawn_density = wolf_data.get("spawn_density_overworld", 0)
-	if spawn_density == 0:
-		return  # Don't spawn this enemy in overworld
+	# Calculate base enemy count (roughly 1 enemy per 150 tiles)
+	var base_enemy_count = int(total_tiles / 150.0)
+	var variance = int(base_enemy_count * 0.25)
+	var num_enemies = rng.randi_range(max(1, base_enemy_count - variance), base_enemy_count + variance)
 
-	var num_enemies = int(total_tiles / spawn_density)
+	var spawned_count = 0
+	var max_attempts = num_enemies * 10
 
-	# Add some randomness (±25%)
-	var variance = int(num_enemies * 0.25)
-	num_enemies = rng.randi_range(max(1, num_enemies - variance), num_enemies + variance)
+	for _attempt in range(max_attempts):
+		if spawned_count >= num_enemies:
+			break
 
-	for i in range(num_enemies):
 		var spawn_pos = _find_enemy_spawn_location(map, rng)
-		if spawn_pos != Vector2i(-1, -1):
-			# Store enemy spawn data in map metadata
-			if not map.has_meta("enemy_spawns"):
-				map.set_meta("enemy_spawns", [])
+		if spawn_pos == Vector2i(-1, -1):
+			continue
 
-			var spawns = map.get_meta("enemy_spawns")
-			spawns.append({"enemy_id": "woodland_wolf", "position": spawn_pos})
-			map.set_meta("enemy_spawns", spawns)
+		# Get biome at spawn position
+		var biome = BiomeGenerator.get_biome_at(spawn_pos.x, spawn_pos.y, map.seed)
+		var biome_id = biome.get("id", "grassland")
+
+		# Get valid enemies for this biome
+		var weighted_enemies = EntityManager.get_weighted_enemies_for_biome(biome_id)
+		if weighted_enemies.is_empty():
+			continue
+
+		# Calculate distance to nearest town
+		var min_town_dist = _get_min_town_distance(spawn_pos, town_positions)
+
+		# Filter enemies by min_distance_from_town
+		var valid_enemies: Array = []
+		for enemy_data in weighted_enemies:
+			var min_dist_required = enemy_data.get("min_distance_from_town", 0)
+			if min_town_dist >= min_dist_required:
+				valid_enemies.append(enemy_data)
+
+		if valid_enemies.is_empty():
+			continue
+
+		# Pick weighted random enemy from valid list
+		var chosen_enemy_id = _pick_weighted_enemy(valid_enemies, rng)
+		if chosen_enemy_id.is_empty():
+			continue
+
+		# Store enemy spawn data in map metadata
+		if not map.has_meta("enemy_spawns"):
+			map.set_meta("enemy_spawns", [])
+
+		var spawns = map.get_meta("enemy_spawns")
+		spawns.append({"enemy_id": chosen_enemy_id, "position": spawn_pos})
+		map.set_meta("enemy_spawns", spawns)
+		spawned_count += 1
+
+	print("[WorldGenerator] Spawned %d overworld enemies" % spawned_count)
+
+## Calculate minimum distance from a position to any town
+static func _get_min_town_distance(pos: Vector2i, town_positions: Array[Vector2i]) -> float:
+	if town_positions.is_empty():
+		return 999.0
+
+	var min_dist = 999.0
+	for town_pos in town_positions:
+		var dist = (pos - town_pos).length()
+		if dist < min_dist:
+			min_dist = dist
+	return min_dist
+
+## Pick a random enemy from weighted list
+static func _pick_weighted_enemy(weighted_enemies: Array, rng: SeededRandom) -> String:
+	var total_weight = 0.0
+	for enemy_data in weighted_enemies:
+		total_weight += enemy_data.get("weight", 1.0)
+
+	var roll = rng.randf() * total_weight
+	var cumulative = 0.0
+
+	for enemy_data in weighted_enemies:
+		cumulative += enemy_data.get("weight", 1.0)
+		if roll <= cumulative:
+			return enemy_data.get("enemy_id", "")
+
+	return ""
 
 ## Find a valid enemy spawn location (walkable, not on dungeon entrance)
 static func _find_enemy_spawn_location(map: GameMap, rng: SeededRandom) -> Vector2i:
 	var max_attempts = 50
 
-	for attempt in range(max_attempts):
+	for _attempt in range(max_attempts):
 		var x = rng.randi_range(0, map.width - 1)
 		var y = rng.randi_range(0, map.height - 1)
 		var pos = Vector2i(x, y)

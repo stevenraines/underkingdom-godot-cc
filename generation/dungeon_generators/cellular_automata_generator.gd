@@ -253,8 +253,24 @@ func _add_stairs(map: GameMap, _floor_number: int) -> void:
 	map.metadata["stairs_down"] = down_pos
 
 
-## Spawn enemies from dungeon definition enemy pools
+## Spawn enemies using data-driven system (spawn_dungeons + CR filtering)
+## Falls back to legacy enemy_pools if no data-driven enemies found
 func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rng: SeededRandom) -> void:
+	# Get floor positions for spawning
+	var floor_positions: Array = _get_spawn_positions(map)
+
+	# Try data-driven spawning first
+	var spawned = _spawn_enemies_data_driven(map, dungeon_def, floor_number, floor_positions, rng)
+	if spawned > 0:
+		print("[CellularAutomataGenerator] Spawned %d enemies on floor %d" % [spawned, floor_number])
+		return
+
+	# Fallback to legacy enemy_pools
+	_spawn_enemies_legacy(map, dungeon_def, floor_number, floor_positions, rng)
+
+
+## Legacy enemy spawning using enemy_pools from dungeon JSON (backwards compatibility)
+func _spawn_enemies_legacy(map: GameMap, dungeon_def: Dictionary, floor_number: int, floor_positions: Array, rng: SeededRandom) -> void:
 	var enemy_pools: Array = dungeon_def.get("enemy_pools", [])
 	if enemy_pools.is_empty():
 		return
@@ -275,18 +291,10 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 	var per_floor: float = difficulty.get("enemy_count_per_floor", 1.0)
 	var spawn_count: int = int(base_count + floor_number * per_floor)
 
-	# Collect walkable positions
-	var floor_positions: Array[Vector2i] = []
-	for y in range(map.height):
-		for x in range(map.width):
-			var pos := Vector2i(x, y)
-			if map.tiles[pos].walkable and map.tiles[pos].tile_type not in ["stairs_up", "stairs_down"]:
-				floor_positions.append(pos)
-
-	floor_positions.shuffle()
+	var shuffled_positions = _seeded_shuffle(floor_positions, rng)
 	var spawned: int = 0
 
-	for pos in floor_positions:
+	for pos in shuffled_positions:
 		if spawned >= spawn_count:
 			break
 
@@ -308,7 +316,6 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 		if chosen_enemy_id.is_empty():
 			continue
 
-		# Check if enemy is defined in EntityManager
 		if not EntityManager.has_enemy_definition(chosen_enemy_id):
 			continue
 
@@ -317,6 +324,8 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rn
 		var enemy_level: int = max(1, int(floor_number * level_multiplier))
 
 		# Store spawn data in metadata
+		if not map.metadata.has("enemy_spawns"):
+			map.metadata["enemy_spawns"] = []
 		map.metadata.enemy_spawns.append({
 			"enemy_id": chosen_enemy_id,
 			"position": pos,

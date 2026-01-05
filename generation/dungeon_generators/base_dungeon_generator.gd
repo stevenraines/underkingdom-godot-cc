@@ -148,3 +148,92 @@ func _store_hazard_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom
 					"config": hazard_config
 				})
 				placed += 1
+
+
+## Spawn enemies using data-driven spawn_dungeons and CR-based floor filtering
+## Enemies are selected based on:
+## 1. spawn_dungeons array matching current dungeon type
+## 2. min_spawn_level/max_spawn_level matching current floor
+## 3. spawn_density_dungeon for weighted selection
+## Call from child generators: _spawn_enemies_data_driven(map, dungeon_def, floor_number, floor_positions, rng)
+func _spawn_enemies_data_driven(map: GameMap, dungeon_def: Dictionary, floor_number: int, floor_positions: Array, rng: SeededRandom) -> int:
+	var dungeon_type: String = dungeon_def.get("id", "unknown")
+
+	# Get enemies valid for this dungeon type AND floor level
+	var weighted_enemies = EntityManager.get_weighted_enemies_for_dungeon_floor(dungeon_type, floor_number)
+
+	if weighted_enemies.is_empty():
+		return 0  # No data-driven enemies found
+
+	# Calculate spawn count based on difficulty curve
+	var difficulty: Dictionary = dungeon_def.get("difficulty_curve", {})
+	var base_count: int = difficulty.get("enemy_count_base", 5)
+	var per_floor: float = difficulty.get("enemy_count_per_floor", 1.0)
+	var spawn_count: int = int(base_count + floor_number * per_floor)
+
+	# Limit spawns to available floor positions
+	spawn_count = min(spawn_count, floor_positions.size() / 3)
+
+	# Initialize enemy_spawns if not present
+	if not map.metadata.has("enemy_spawns"):
+		map.metadata["enemy_spawns"] = []
+
+	# Shuffle positions for random placement
+	var shuffled_positions = _seeded_shuffle(floor_positions, rng)
+
+	var spawned: int = 0
+	var position_index: int = 0
+
+	while spawned < spawn_count and position_index < shuffled_positions.size():
+		var spawn_pos = shuffled_positions[position_index]
+		position_index += 1
+
+		# Pick weighted random enemy from data-driven list
+		var chosen_enemy_id = _pick_weighted_enemy(weighted_enemies, rng)
+		if chosen_enemy_id.is_empty():
+			continue
+
+		# Calculate enemy level with floor scaling
+		var level_multiplier: float = difficulty.get("enemy_level_multiplier", 1.0)
+		var enemy_level: int = max(1, int(floor_number * level_multiplier))
+
+		# Store spawn data in metadata
+		map.metadata.enemy_spawns.append({
+			"enemy_id": chosen_enemy_id,
+			"position": spawn_pos,
+			"level": enemy_level
+		})
+
+		spawned += 1
+
+	return spawned
+
+
+## Pick a random enemy from weighted list (helper for data-driven spawning)
+func _pick_weighted_enemy(weighted_enemies: Array, rng: SeededRandom) -> String:
+	var total_weight: float = 0.0
+	for enemy_data in weighted_enemies:
+		total_weight += enemy_data.get("weight", 1.0)
+
+	if total_weight <= 0:
+		return ""
+
+	var roll: float = rng.randf() * total_weight
+	var cumulative: float = 0.0
+
+	for enemy_data in weighted_enemies:
+		cumulative += enemy_data.get("weight", 1.0)
+		if roll <= cumulative:
+			return enemy_data.get("enemy_id", "")
+
+	return ""
+
+
+## Get valid spawn positions from map (floor tiles, not stairs)
+func _get_spawn_positions(map: GameMap) -> Array:
+	var floor_positions: Array = []
+	for pos in map.tiles:
+		var tile = map.tiles[pos]
+		if tile != null and tile.walkable and tile.tile_type not in ["stairs_up", "stairs_down"]:
+			floor_positions.append(pos)
+	return floor_positions

@@ -267,8 +267,90 @@ func _is_wall_at(map: GameMap, pos: Vector2i) -> bool:
 	return tile.tile_type == "wall" or tile.tile_type == "stone_wall"
 
 
-## Spawn enemies from dungeon definition enemy pools
+## Spawn enemies using data-driven spawn_dungeons and CR-based floor filtering
+## Enemies are selected based on:
+## 1. spawn_dungeons array matching current dungeon type
+## 2. min_spawn_level/max_spawn_level matching current floor
+## 3. spawn_density_dungeon for weighted selection
 func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, rooms: Array[Room], rng: SeededRandom) -> void:
+	var dungeon_type: String = dungeon_def.get("id", "unknown")
+
+	# Get enemies valid for this dungeon type AND floor level
+	var weighted_enemies = EntityManager.get_weighted_enemies_for_dungeon_floor(dungeon_type, floor_number)
+
+	# Fallback to legacy enemy_pools if no data-driven enemies found
+	if weighted_enemies.is_empty():
+		_spawn_enemies_legacy(map, dungeon_def, floor_number, rooms, rng)
+		return
+
+	# Calculate spawn count based on difficulty curve
+	var difficulty: Dictionary = dungeon_def.get("difficulty_curve", {})
+	var base_count: int = difficulty.get("enemy_count_base", 5)
+	var per_floor: float = difficulty.get("enemy_count_per_floor", 1.0)
+	var spawn_count: int = int(base_count + floor_number * per_floor)
+
+	# Limit spawns to available rooms
+	spawn_count = min(spawn_count, rooms.size() * 3)
+
+	var spawned: int = 0
+	var max_attempts: int = 100
+	var attempts: int = 0
+
+	while spawned < spawn_count and attempts < max_attempts:
+		attempts += 1
+
+		# Pick random room
+		var room: Room = rooms[rng.randi_range(0, rooms.size() - 1)]
+		var spawn_x: int = rng.randi_range(room.x, room.x + room.width - 1)
+		var spawn_y: int = rng.randi_range(room.y, room.y + room.height - 1)
+
+		# Check if position is walkable and not stairs
+		var spawn_pos := Vector2i(spawn_x, spawn_y)
+		if not map.tiles.has(spawn_pos) or not map.tiles[spawn_pos].walkable:
+			continue
+		if map.tiles[spawn_pos].tile_type in ["stairs_up", "stairs_down"]:
+			continue
+
+		# Pick weighted random enemy from data-driven list
+		var chosen_enemy_id = _pick_weighted_enemy(weighted_enemies, rng)
+		if chosen_enemy_id.is_empty():
+			continue
+
+		# Calculate enemy level with floor scaling
+		var level_multiplier: float = difficulty.get("enemy_level_multiplier", 1.0)
+		var enemy_level: int = max(1, int(floor_number * level_multiplier))
+
+		# Store spawn data in metadata
+		map.metadata.enemy_spawns.append({
+			"enemy_id": chosen_enemy_id,
+			"position": Vector2i(spawn_x, spawn_y),
+			"level": enemy_level
+		})
+
+		spawned += 1
+
+	print("[RectangularRoomsGenerator] Spawned %d enemies on floor %d of %s" % [spawned, floor_number, dungeon_type])
+
+
+## Pick a random enemy from weighted list
+func _pick_weighted_enemy(weighted_enemies: Array, rng: SeededRandom) -> String:
+	var total_weight: float = 0.0
+	for enemy_data in weighted_enemies:
+		total_weight += enemy_data.get("weight", 1.0)
+
+	var roll: float = rng.randf() * total_weight
+	var cumulative: float = 0.0
+
+	for enemy_data in weighted_enemies:
+		cumulative += enemy_data.get("weight", 1.0)
+		if roll <= cumulative:
+			return enemy_data.get("enemy_id", "")
+
+	return ""
+
+
+## Legacy enemy spawning using enemy_pools from dungeon JSON (backwards compatibility)
+func _spawn_enemies_legacy(map: GameMap, dungeon_def: Dictionary, floor_number: int, rooms: Array[Room], rng: SeededRandom) -> void:
 	var enemy_pools: Array = dungeon_def.get("enemy_pools", [])
 	if enemy_pools.is_empty():
 		return
@@ -306,12 +388,12 @@ func _spawn_enemies(map: GameMap, dungeon_def: Dictionary, floor_number: int, ro
 
 		# Check if position is walkable and not stairs
 		var spawn_pos := Vector2i(spawn_x, spawn_y)
-		if not map.tiles[spawn_pos].walkable:
+		if not map.tiles.has(spawn_pos) or not map.tiles[spawn_pos].walkable:
 			continue
 		if map.tiles[spawn_pos].tile_type in ["stairs_up", "stairs_down"]:
 			continue
 
-		# Pick weighted random enemy
+		# Pick weighted random enemy from pools
 		var total_weight: float = 0.0
 		for pool in valid_pools:
 			total_weight += pool.get("weight", 1.0)

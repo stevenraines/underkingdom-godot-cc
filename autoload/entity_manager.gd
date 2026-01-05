@@ -114,6 +114,85 @@ func get_enemies_by_behavior(behavior: String) -> Array[String]:
 			result.append(enemy_id)
 	return result
 
+## Get all enemy IDs that can spawn in a specific biome
+## Only returns enemies with non-zero spawn_density_overworld
+func get_enemies_for_biome(biome_id: String) -> Array[String]:
+	var result: Array[String] = []
+	for enemy_id in enemy_definitions:
+		var def = enemy_definitions[enemy_id]
+		var spawn_biomes: Array = def.get("spawn_biomes", [])
+		var spawn_density = def.get("spawn_density_overworld", 0)
+		# Enemy can spawn if biome is in its spawn_biomes list and it has overworld spawn density
+		if spawn_density > 0 and biome_id in spawn_biomes:
+			result.append(enemy_id)
+	return result
+
+## Get all enemy IDs that can spawn in a specific dungeon type
+## Only returns enemies with non-zero spawn_density_dungeon
+func get_enemies_for_dungeon(dungeon_type: String) -> Array[String]:
+	var result: Array[String] = []
+	for enemy_id in enemy_definitions:
+		var def = enemy_definitions[enemy_id]
+		var spawn_dungeons: Array = def.get("spawn_dungeons", [])
+		var spawn_density = def.get("spawn_density_dungeon", 0)
+		# Enemy can spawn if dungeon is in its spawn_dungeons list and it has dungeon spawn density
+		if spawn_density > 0 and dungeon_type in spawn_dungeons:
+			result.append(enemy_id)
+	return result
+
+## Get enemies valid for a specific dungeon type AND floor level (CR filtering)
+## Uses min_spawn_level and max_spawn_level to filter by floor depth
+func get_enemies_for_dungeon_floor(dungeon_type: String, floor_number: int) -> Array[String]:
+	var result: Array[String] = []
+	for enemy_id in enemy_definitions:
+		var def = enemy_definitions[enemy_id]
+		var spawn_dungeons: Array = def.get("spawn_dungeons", [])
+		var spawn_density = def.get("spawn_density_dungeon", 0)
+		var min_level = def.get("min_spawn_level", 1)
+		var max_level = def.get("max_spawn_level", 999)
+
+		# Check dungeon type, spawn density, and floor level range
+		if spawn_density > 0 and dungeon_type in spawn_dungeons:
+			if floor_number >= min_level and floor_number <= max_level:
+				result.append(enemy_id)
+	return result
+
+## Get weighted enemy selection for spawning (considers spawn_density)
+## Returns array of {enemy_id, weight} dictionaries
+func get_weighted_enemies_for_dungeon_floor(dungeon_type: String, floor_number: int) -> Array:
+	var result: Array = []
+	var valid_enemies = get_enemies_for_dungeon_floor(dungeon_type, floor_number)
+
+	for enemy_id in valid_enemies:
+		var def = enemy_definitions[enemy_id]
+		var spawn_density = def.get("spawn_density_dungeon", 100)
+		# Lower density = more common (density is tiles per enemy)
+		# So we invert it: weight = 1000 / density
+		var weight = 1000.0 / max(spawn_density, 1)
+		result.append({"enemy_id": enemy_id, "weight": weight})
+
+	return result
+
+## Get weighted enemy selection for overworld biome spawning
+## Returns array of {enemy_id, weight, min_distance_from_town} dictionaries
+func get_weighted_enemies_for_biome(biome_id: String) -> Array:
+	var result: Array = []
+	var valid_enemies = get_enemies_for_biome(biome_id)
+
+	for enemy_id in valid_enemies:
+		var def = enemy_definitions[enemy_id]
+		var spawn_density = def.get("spawn_density_overworld", 100)
+		var min_distance = def.get("min_distance_from_town", 0)
+		# Lower density = more common
+		var weight = 1000.0 / max(spawn_density, 1)
+		result.append({
+			"enemy_id": enemy_id,
+			"weight": weight,
+			"min_distance_from_town": min_distance
+		})
+
+	return result
+
 ## Spawn an enemy at a position
 func spawn_enemy(enemy_id: String, pos: Vector2i) -> Enemy:
 	if not enemy_id in enemy_definitions:

@@ -1,0 +1,30 @@
+{
+  "id": "farmer",
+  "name": "Greta the Farmer",
+  "npc_type": "shop",
+  "ascii_char": "@",
+  "ascii_color": "#8B4513",
+  "faction": "neutral",
+  "gold": 200,
+  "restock_interval": 500,
+  "dialogue": {
+    "greeting": "Welcome to Greenfield Farm! Fresh produce and farming supplies.",
+    "farewell": "May your harvests be bountiful!",
+    "no_gold": "Sorry, I can't afford that right now."
+  },
+  "trade_inventory": [
+    {"item_id": "egg", "count": 12, "base_price": 3},
+    {"item_id": "jar_of_milk", "count": 6, "base_price": 5},
+    {"item_id": "carrot", "count": 20, "base_price": 2},
+    {"item_id": "wheat_grain", "count": 15, "base_price": 2},
+    {"item_id": "cabbage", "count": 10, "base_price": 3},
+    {"item_id": "potato", "count": 15, "base_price": 2},
+    {"item_id": "wheat_seeds", "count": 20, "base_price": 3},
+    {"item_id": "carrot_seeds", "count": 15, "base_price": 3},
+    {"item_id": "cabbage_seeds", "count": 10, "base_price": 4},
+    {"item_id": "potato_seeds", "count": 10, "base_price": 4},
+    {"item_id": "hoe", "count": 2, "base_price": 15},
+    {"item_id": "sickle", "count": 2, "base_price": 12},
+    {"item_id": "scythe", "count": 1, "base_price": 20}
+  ]
+}

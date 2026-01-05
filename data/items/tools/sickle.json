@@ -1,0 +1,23 @@
+{
+  "id": "sickle",
+  "name": "Sickle",
+  "description": "A curved blade for harvesting crops.",
+  "category": "tool",
+  "subtype": "sickle",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "two_handed": false
+  },
+  "weight": 0.8,
+  "value": 12,
+  "max_stack": 1,
+  "ascii_char": ")",
+  "ascii_color": "#C0C0C0",
+  "durability": 80,
+  "tool_type": "sickle",
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 1
+}

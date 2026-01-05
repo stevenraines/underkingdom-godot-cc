@@ -1,0 +1,23 @@
+{
+  "id": "jar_of_milk",
+  "name": "Jar of Milk",
+  "description": "A jar of fresh milk. Nutritious and refreshing.",
+  "category": "consumable",
+  "subtype": "drink",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false,
+    "cookable": false
+  },
+  "weight": 0.5,
+  "value": 5,
+  "max_stack": 10,
+  "ascii_char": "!",
+  "ascii_color": "#FFFFF0",
+  "effects": {
+    "hunger": 8,
+    "thirst": 10
+  }
+}

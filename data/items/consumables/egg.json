@@ -1,0 +1,22 @@
+{
+  "id": "egg",
+  "name": "Egg",
+  "description": "A fresh chicken egg. Can be eaten raw or cooked.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": false,
+    "tool": false,
+    "cookable": true
+  },
+  "weight": 0.1,
+  "value": 3,
+  "max_stack": 20,
+  "ascii_char": "o",
+  "ascii_color": "#FFFAF0",
+  "effects": {
+    "hunger": 5
+  }
+}

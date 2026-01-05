@@ -1,0 +1,51 @@
+{
+  "id": "farm",
+  "name": "Greenfield Farm",
+  "description": "A working farm with fields of wheat and carrots.",
+  "size": [18, 18],
+  "biome_preferences": ["grassland", "woodland"],
+  "placement": "near_starter_town",
+  "placement_distance_min": 25,
+  "placement_distance_max": 45,
+  "is_safe_zone": true,
+  "known_at_start": false,
+  "buildings": [
+    {
+      "building_id": "farmhouse",
+      "position_offset": [0, -4],
+      "npc_id": "farmer",
+      "door_facing": "south"
+    },
+    {
+      "building_id": "well",
+      "position_offset": [5, -4]
+    }
+  ],
+  "decorations": {
+    "perimeter_trees": false,
+    "max_trees": 0
+  },
+  "roads": {
+    "internal_roads": false,
+    "town_square": false,
+    "connected_to_other_towns": true
+  },
+  "features": {
+    "crop_fields": [
+      {
+        "crop_id": "wheat_crop",
+        "position_offset": [-5, 2],
+        "width": 4,
+        "height": 5,
+        "mature": true
+      },
+      {
+        "crop_id": "carrot_crop",
+        "position_offset": [3, 2],
+        "width": 2,
+        "height": 5,
+        "mature": true
+      }
+    ]
+  }
+}

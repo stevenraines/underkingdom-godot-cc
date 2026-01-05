@@ -745,10 +745,14 @@ func _update_slot_selection_display() -> void:
 func _use_selected() -> void:
 	if not player or not selected_item:
 		return
-	
+
 	if selected_item.item_type == "consumable":
-		player.use_item(selected_item)
+		var result = player.use_item(selected_item)
+		if result.has("message") and result.message != "":
+			EventBus.message_logged.emit(result.message)
 		refresh()
+	else:
+		EventBus.message_logged.emit("You can't use that.")
 
 func _drop_selected() -> void:
 	if not player or not selected_item:

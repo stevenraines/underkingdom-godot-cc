@@ -200,6 +200,7 @@ func _ready() -> void:
 	EventBus.survival_warning.connect(_on_survival_warning)
 	EventBus.stamina_depleted.connect(_on_stamina_depleted)
 	EventBus.inventory_changed.connect(_on_inventory_changed)
+	EventBus.item_used.connect(_on_item_used)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.item_dropped.connect(_on_item_dropped)
 	EventBus.message_logged.connect(_on_message_logged)
@@ -1538,6 +1539,10 @@ func _render_ground_items() -> void:
 func _on_inventory_changed() -> void:
 	if inventory_screen and inventory_screen.visible:
 		inventory_screen.refresh()
+
+## Called when an item is used (consumed) - update HUD immediately
+func _on_item_used(_item, _result: Dictionary) -> void:
+	_update_hud()
 
 ## Toggle inventory screen visibility (called from input handler)
 func toggle_inventory_screen() -> void:

@@ -362,6 +362,13 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 	if road_paths.is_empty():
 		return
 
+	# Get towns data for boundary checking
+	var map = MapManager.current_map
+	var towns_data: Array = map.metadata.get("towns", []) if map else []
+
+	# Get building footprints to avoid placing roads inside buildings
+	var building_positions: Dictionary = _get_all_building_positions()
+
 	var bounds = get_world_bounds()
 	var chunk_rect = Rect2i(bounds.min, Vector2i(CHUNK_SIZE, CHUNK_SIZE))
 
@@ -399,6 +406,14 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 			if existing_tile.is_interior:
 				continue
 
+			# Don't place roads inside building footprints (handles cross-chunk buildings)
+			if world_pos in building_positions:
+				continue
+
+			# Don't place roads inside town boundaries at all
+			if _is_in_any_town(world_pos, towns_data):
+				continue
+
 			# Handle water - check for features (wells) vs natural water
 			if existing_tile.tile_type == "water":
 				if existing_tile.ascii_char != "~":
@@ -412,6 +427,114 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 			# Replace floor/grass tiles and resources (trees/rocks) with road
 			if existing_tile.tile_type in ["floor", "tree", "rock"]:
 				tiles[local_pos] = GameTile.create(road_type)
+
+
+## Get all building positions from towns that overlap with this chunk
+## Returns a Dictionary of world positions that are inside any building footprint
+## For custom layouts, only includes non-space tiles to allow roads in irregular building shapes
+func _get_all_building_positions() -> Dictionary:
+	var positions: Dictionary = {}
+	var map = MapManager.current_map
+	if not map:
+		return positions
+
+	var towns_data: Array = map.metadata.get("towns", []) if map else []
+
+	# Get TownManager for building definitions
+	var town_manager = _get_autoload("TownManager")
+	if not town_manager:
+		return positions
+
+	for town in towns_data:
+		var town_id = town.get("town_id", "starter_town")
+		var town_pos = _get_town_position(town)
+		var town_def = town_manager.get_town(town_id)
+		if town_def.is_empty():
+			continue
+
+		var buildings = town_def.get("buildings", [])
+		for building_entry in buildings:
+			var building_id = building_entry.get("building_id", "")
+			var building_def = town_manager.building_definitions.get(building_id, {})
+			if building_def.is_empty():
+				continue
+
+			# Get building position
+			var offset_array = building_entry.get("position_offset", [0, 0])
+			var offset = Vector2i(offset_array[0], offset_array[1])
+			var building_pos = town_pos + offset
+
+			# Get building size and handle rotation
+			var size_array = building_def.get("size", [5, 5])
+			var size = Vector2i(size_array[0], size_array[1])
+			var door_facing = building_entry.get("door_facing", "south")
+			var rotated_size = size if door_facing in ["south", "north"] else Vector2i(size.y, size.x)
+			var half_size = rotated_size / 2
+			var start = building_pos - half_size
+
+			# Check if this is a custom layout building
+			var template_type = building_def.get("template_type", "building")
+			var layout = building_def.get("layout", null)
+
+			if template_type == "custom" and layout != null:
+				# For custom layouts, only add non-space positions
+				var rotated_layout = _rotate_layout(layout, door_facing)
+				for y in range(min(rotated_layout.size(), rotated_size.y)):
+					var row = rotated_layout[y]
+					for x in range(min(row.length(), rotated_size.x)):
+						var tile_char = row[x]
+						if tile_char != " ":
+							var world_pos = start + Vector2i(x, y)
+							positions[world_pos] = true
+			else:
+				# Standard buildings use full rectangular footprint
+				for x in range(rotated_size.x):
+					for y in range(rotated_size.y):
+						var world_pos = start + Vector2i(x, y)
+						positions[world_pos] = true
+
+	return positions
+
+## Rotate a layout array based on door facing direction (for building position calculation)
+## Mirrors the rotation logic from TownGenerator
+static func _rotate_layout(layout: Array, door_facing: String) -> Array:
+	if door_facing == "south":
+		return layout  # No rotation needed
+
+	var height = layout.size()
+	if height == 0:
+		return layout
+	var width = layout[0].length()
+
+	var rotated: Array = []
+
+	match door_facing:
+		"north":
+			# 180 degree rotation
+			for y in range(height - 1, -1, -1):
+				var new_row = ""
+				var row = layout[y]
+				for x in range(width - 1, -1, -1):
+					new_row += row[x] if x < row.length() else " "
+				rotated.append(new_row)
+		"east":
+			# 90 degrees clockwise
+			for x in range(width):
+				var new_row = ""
+				for y in range(height - 1, -1, -1):
+					var row = layout[y]
+					new_row += row[x] if x < row.length() else " "
+				rotated.append(new_row)
+		"west":
+			# 90 degrees counter-clockwise
+			for x in range(width - 1, -1, -1):
+				var new_row = ""
+				for y in range(height):
+					var row = layout[y]
+					new_row += row[x] if x < row.length() else " "
+				rotated.append(new_row)
+
+	return rotated
 
 
 ## Spawn overworld enemies using data-driven biome and town distance filtering

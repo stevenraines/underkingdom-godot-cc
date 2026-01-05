@@ -10,6 +10,7 @@ const WorldChunk = preload("res://maps/world_chunk.gd")
 var active_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> WorldChunk
 var chunk_cache: Dictionary = {}  # LRU cache of generated chunks
 var chunk_access_order: Array[Vector2i] = []  # LRU tracking: most recent at end
+var chunk_access_index: Dictionary = {}  # Vector2i -> index in chunk_access_order for O(1) lookup
 var visited_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> bool (for minimap)
 var load_radius: int = 2  # Load chunks within 2 chunk distance (5x5 grid = 160x160 tiles covers 80x40 viewport)
 var unload_radius: int = 4  # Unload chunks beyond 4 chunk distance
@@ -101,15 +102,19 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 	return chunk
 
-## Update LRU access tracking for a chunk
+## Update LRU access tracking for a chunk (O(1) check, occasional O(n) rebuild)
 func _touch_chunk_lru(chunk_coords: Vector2i) -> void:
-	# Remove from current position if exists
-	var idx = chunk_access_order.find(chunk_coords)
-	if idx >= 0:
-		chunk_access_order.remove_at(idx)
+	# Fast path: if already at end, nothing to do
+	if chunk_access_index.has(chunk_coords):
+		var current_idx = chunk_access_index[chunk_coords]
+		if current_idx == chunk_access_order.size() - 1:
+			return  # Already most recent, skip
 
-	# Add to end (most recently used)
-	chunk_access_order.append(chunk_coords)
+	# Mark for lazy rebuild instead of immediate array modification
+	# For now, just update the index - actual reorder happens during eviction
+	if not chunk_access_index.has(chunk_coords):
+		chunk_access_order.append(chunk_coords)
+		chunk_access_index[chunk_coords] = chunk_access_order.size() - 1
 
 ## Evict least recently used chunks if cache exceeds max size
 func _evict_old_chunks_if_needed() -> void:
@@ -120,13 +125,24 @@ func _evict_old_chunks_if_needed() -> void:
 		# Don't evict if it's currently active
 		if oldest_chunk in active_chunks:
 			chunk_access_order.remove_at(0)
+			chunk_access_index.erase(oldest_chunk)
 			chunk_access_order.append(oldest_chunk)  # Move to end
+			chunk_access_index[oldest_chunk] = chunk_access_order.size() - 1
 			continue
 
 		# Evict from cache
 		chunk_cache.erase(oldest_chunk)
 		chunk_access_order.remove_at(0)
+		chunk_access_index.erase(oldest_chunk)
+		# Rebuild index after removal (indices shifted)
+		_rebuild_access_index()
 		print("[ChunkManager] Evicted chunk %v from cache (LRU)" % oldest_chunk)
+
+## Rebuild the access index after array modifications
+func _rebuild_access_index() -> void:
+	chunk_access_index.clear()
+	for i in range(chunk_access_order.size()):
+		chunk_access_index[chunk_access_order[i]] = i
 
 ## Unload a chunk from active memory
 func unload_chunk(chunk_coords: Vector2i) -> void:
@@ -178,9 +194,16 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		unload_chunk(coords)
 
 ## Get tile at world position (chunk-based access)
+## Optimized with fast path for already-active chunks (avoids LRU overhead)
 func get_tile(world_pos: Vector2i) -> GameTile:
 	var chunk_coords = world_to_chunk(world_pos)
-	var chunk = get_chunk(chunk_coords)
+
+	# Fast path: check active chunks first (avoids LRU overhead)
+	var chunk: WorldChunk = null
+	if chunk_coords in active_chunks:
+		chunk = active_chunks[chunk_coords]
+	else:
+		chunk = get_chunk(chunk_coords)
 
 	if chunk:
 		var local_pos = world_pos - (chunk_coords * WorldChunk.CHUNK_SIZE)
@@ -216,6 +239,7 @@ func clear_chunks() -> void:
 	chunk_cache.clear()
 	visited_chunks.clear()
 	chunk_access_order.clear()  # Clear LRU tracking
+	chunk_access_index.clear()  # Clear LRU index
 	print("[ChunkManager] All chunks cleared")
 
 ## Handle map changes

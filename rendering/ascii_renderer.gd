@@ -40,10 +40,23 @@ const TILES_PER_ROW = 32
 # This must match the exact order from generate_tilesets.py
 var unicode_char_map: Dictionary = {}
 
+# Pre-computed ground tile atlas coords for fast lookup in render_entity
+var ground_tile_atlas_coords: Dictionary = {}  # Vector2i -> true
+
 func _ready() -> void:
 	_setup_tilemap_layers()
 	_build_unicode_map()
+	_build_ground_tile_lookup()
 	print("ASCIIRenderer initialized")
+
+# Build lookup table for ground tiles that should be hidden under entities
+func _build_ground_tile_lookup() -> void:
+	var ground_chars = [".", "\"", ",", "▤"]
+	for ground_char in ground_chars:
+		var ground_index = _char_to_index(ground_char)
+		var ground_col = ground_index % TILES_PER_ROW
+		var ground_row = ground_index / TILES_PER_ROW
+		ground_tile_atlas_coords[Vector2i(ground_col, ground_row)] = true
 
 # Build Unicode character index mapping
 # IMPORTANT: This must match the exact order from generate_tilesets.py
@@ -416,22 +429,10 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 
 	# Hide ground tiles underneath entity (floor/grass characters)
 	if terrain_layer and terrain_layer.get_cell_source_id(position) != -1:
-		# Ground tile characters that should be hidden under entities
-		# Includes: floor (.), grass (", ,), tilled soil (▤ U+25A4)
-		var ground_chars = [".", "\"", ",", "▤"]
 		var current_atlas = terrain_layer.get_cell_atlas_coords(position)
 
-		# Check if current tile is a ground tile
-		var is_ground_tile = false
-		for ground_char in ground_chars:
-			var ground_index = _char_to_index(ground_char)
-			var ground_col = ground_index % TILES_PER_ROW
-			var ground_row = ground_index / TILES_PER_ROW
-			if current_atlas == Vector2i(ground_col, ground_row):
-				is_ground_tile = true
-				break
-
-		if is_ground_tile:
+		# O(1) lookup using pre-computed ground tile atlas coords
+		if current_atlas in ground_tile_atlas_coords:
 			# Store the ground tile data and hide it
 			hidden_floor_positions[position] = {
 				"atlas": current_atlas,

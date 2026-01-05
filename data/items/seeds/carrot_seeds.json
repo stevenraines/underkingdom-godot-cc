@@ -8,5 +8,5 @@
   "color": "#FF8C00",
   "weight": 0.1,
   "value": 3,
-  "stack_size": 50
+  "max_stack": 50
 }

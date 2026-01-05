@@ -584,7 +584,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_pickup_item()
 			action_taken = true
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_T:  # T - talk/interact with NPC
+		elif event.keycode == KEY_T and event.shift_pressed:  # Shift+T - till soil
+			_start_till_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_T and not event.shift_pressed:  # T - talk/interact with NPC
 			_try_interact_npc()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_M:  # M - toggle world map
@@ -600,7 +603,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				action_taken = _try_interact_feature()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_P:  # P key - character sheet
+		elif event.keycode == KEY_P and event.shift_pressed:  # Shift+P - plant seeds
+			_start_plant_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_P and not event.shift_pressed:  # P key - character sheet
 			_open_character_sheet()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed) or event.unicode == 63:  # F1 or ? (Shift+/ or unicode 63) - help screen
@@ -632,12 +638,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_Q:  # Q key - toggle light source (light/extinguish)
 			_try_toggle_light()
-			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_T and event.shift_pressed:  # Shift+T - till soil
-			_start_till_mode()
-			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_P and event.shift_pressed:  # Shift+P - plant seeds
-			_start_plant_mode()
 			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken

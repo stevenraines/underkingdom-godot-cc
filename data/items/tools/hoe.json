@@ -1,0 +1,23 @@
+{
+  "id": "hoe",
+  "name": "Hoe",
+  "description": "A farming hoe for tilling soil.",
+  "category": "tool",
+  "subtype": "hoe",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "two_handed": true
+  },
+  "weight": 1.5,
+  "value": 15,
+  "max_stack": 1,
+  "ascii_char": "T",
+  "ascii_color": "#8B4513",
+  "durability": 100,
+  "tool_type": "hoe",
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 1
+}

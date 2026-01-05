@@ -264,10 +264,14 @@ func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 			if local_pos.x >= 0 and local_pos.x < CHUNK_SIZE and local_pos.y >= 0 and local_pos.y < CHUNK_SIZE:
 				tiles[local_pos] = world_tiles[world_pos_tile]
 
-		# Only spawn NPCs and register town from the primary chunk to avoid duplicates
+		# Only spawn NPCs, crops, and register town from the primary chunk to avoid duplicates
 		if is_primary_chunk:
 			if result.has("npc_spawns") and result.npc_spawns.size() > 0:
 				_spawn_town_npcs(result.npc_spawns, town_id)
+
+			# Spawn crops if the town has crop fields
+			if result.has("crop_spawns") and result.crop_spawns.size() > 0:
+				_spawn_town_crops(result.crop_spawns, town_id)
 
 			# Register town with TownManager
 			if town_manager:
@@ -494,6 +498,52 @@ func _spawn_town_npcs(npc_spawns: Array, town_id: String) -> void:
 		entity_manager.spawn_npc(spawn)
 
 	print("[WorldChunk] Spawned %d NPCs for %s" % [npc_spawns.size(), town_id])
+
+## Spawn crops for farm fields
+func _spawn_town_crops(crop_spawns: Array, town_id: String) -> void:
+	var entity_manager = _get_autoload("EntityManager")
+	if not entity_manager:
+		push_warning("[WorldChunk] EntityManager not available for crop spawning")
+		return
+
+	# Load FarmingSystem to get crop definitions
+	var crop_count = 0
+	for spawn in crop_spawns:
+		var crop_id = spawn.get("crop_id", "")
+		var pos = spawn.get("position", Vector2i.ZERO)
+		var mature = spawn.get("mature", false)
+
+		if crop_id.is_empty():
+			continue
+
+		# Get crop definition from FarmingSystem
+		var crop_data = FarmingSystem.get_crop_definition(crop_id)
+		if crop_data.is_empty():
+			push_warning("[WorldChunk] Unknown crop type: %s" % crop_id)
+			continue
+
+		# Create the crop entity
+		var CropEntityClass = preload("res://entities/crop_entity.gd")
+		var crop = CropEntityClass.create(crop_id, pos, crop_data)
+
+		# If mature, advance to final growth stage
+		if mature:
+			var stages = crop_data.get("growth_stages", [])
+			if stages.size() > 0:
+				crop.current_stage = stages.size() - 1
+				crop.turns_in_stage = 0
+				crop._update_visual()
+
+		# Register with FarmingSystem
+		var map_id = "overworld"  # Farm is on overworld
+		var key = "%s:%d,%d" % [map_id, pos.x, pos.y]
+		FarmingSystem._active_crops[key] = crop
+
+		# Add to EntityManager
+		entity_manager.entities.append(crop)
+		crop_count += 1
+
+	print("[WorldChunk] Spawned %d crops for %s" % [crop_count, town_id])
 
 ## Get tile at local coordinates (0-31)
 func get_tile(local_pos: Vector2i) -> GameTile:

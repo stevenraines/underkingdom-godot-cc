@@ -45,6 +45,19 @@ static func place_all_towns(world_seed: int, town_definitions: Dictionary) -> Ar
 			# First town uses original placement logic (coastal preferred)
 			print("[SpecialFeaturePlacer] Using primary town placement for %s" % town_id)
 			town_pos = _place_primary_town(world_seed, biome_prefs, placement)
+		elif placement == "near_starter_town":
+			# Place near the starter town (for farms, etc.)
+			var starter_pos = Vector2i(-1, -1)
+			for t in towns:
+				if t.town_id == "starter_town":
+					starter_pos = t.position
+					break
+			if starter_pos == Vector2i(-1, -1) and not placed_positions.is_empty():
+				starter_pos = placed_positions[0]
+			print("[SpecialFeaturePlacer] Using near_starter_town placement for %s (starter at %v)" % [town_id, starter_pos])
+			var min_dist = town_def.get("placement_distance_min", 25)
+			var max_dist = town_def.get("placement_distance_max", 45)
+			town_pos = _place_near_starter_town(world_seed, starter_pos, placed_positions, biome_prefs, min_dist, max_dist, rng)
 		else:
 			# Additional towns placed with spacing from existing towns
 			print("[SpecialFeaturePlacer] Using additional town placement for %s (existing positions: %s)" % [town_id, placed_positions])
@@ -406,6 +419,57 @@ static func place_all_dungeon_entrances(world_seed: int, primary_town_pos: Vecto
 			push_warning("[SpecialFeaturePlacer] Could not place %s" % dungeon_type)
 
 	return entrances
+
+
+## Place a town near the starter town (for farms, outposts, etc.)
+static func _place_near_starter_town(world_seed: int, starter_pos: Vector2i, existing_positions: Array, biome_prefs: Array, min_distance: int, max_distance: int, rng: SeededRandom) -> Vector2i:
+	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var min_distance_from_others = 15
+
+	for _attempt in range(100):
+		var angle = rng.randf() * 2 * PI
+		var distance = rng.randf_range(min_distance, max_distance)
+		var offset = Vector2(cos(angle), sin(angle)) * distance
+		var candidate_pos = starter_pos + Vector2i(int(offset.x), int(offset.y))
+
+		# Check biome
+		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
+		if biome.biome_name in excluded_biomes:
+			continue
+
+		# Check biome preference
+		if not biome_prefs.is_empty() and not (biome.biome_name in biome_prefs):
+			continue
+
+		# Check distance from other placed positions
+		var too_close = false
+		for pos in existing_positions:
+			if (candidate_pos - pos).length() < min_distance_from_others:
+				too_close = true
+				break
+		if too_close:
+			continue
+
+		print("[SpecialFeaturePlacer] Found near_starter_town position at %v (biome=%s)" % [candidate_pos, biome.biome_name])
+		return candidate_pos
+
+	# Fallback: accept any non-water biome near starter town
+	for _attempt in range(50):
+		var angle = rng.randf() * 2 * PI
+		var distance = rng.randf_range(min_distance, max_distance)
+		var offset = Vector2(cos(angle), sin(angle)) * distance
+		var candidate_pos = starter_pos + Vector2i(int(offset.x), int(offset.y))
+
+		var biome = BiomeGenerator.get_biome_at(candidate_pos.x, candidate_pos.y, world_seed)
+		if biome.biome_name in excluded_biomes:
+			continue
+
+		print("[SpecialFeaturePlacer] Fallback near_starter_town position at %v (biome=%s)" % [candidate_pos, biome.biome_name])
+		return candidate_pos
+
+	# Ultimate fallback
+	push_warning("[SpecialFeaturePlacer] Could not place near starter town, using offset")
+	return starter_pos + Vector2i(min_distance, 0)
 
 
 ## Place a dungeon entrance near but outside town (20-60 tiles away)

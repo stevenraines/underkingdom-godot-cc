@@ -1,0 +1,23 @@
+{
+  "id": "scythe",
+  "name": "Scythe",
+  "description": "A long-handled tool with a curved blade for harvesting grain.",
+  "category": "tool",
+  "subtype": "scythe",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": true,
+    "two_handed": true
+  },
+  "weight": 2.5,
+  "value": 20,
+  "max_stack": 1,
+  "ascii_char": "7",
+  "ascii_color": "#C0C0C0",
+  "durability": 100,
+  "tool_type": "scythe",
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 2
+}

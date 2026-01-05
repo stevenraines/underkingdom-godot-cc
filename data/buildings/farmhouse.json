@@ -1,0 +1,14 @@
+{
+  "id": "farmhouse",
+  "name": "Farmhouse",
+  "description": "A rustic farmhouse where the farmer lives and trades goods.",
+  "size": [7, 5],
+  "template_type": "custom",
+  "layout": [
+    "#######",
+    "#..@..#",
+    "#.....#",
+    "#.....#",
+    "###+###"
+  ]
+}

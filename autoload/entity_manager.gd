@@ -21,6 +21,9 @@ func _ready() -> void:
 	print("EntityManager initialized")
 	_load_enemy_definitions()
 
+	# Connect to chunk unload signal to clean up entities from unloaded chunks
+	EventBus.chunk_unloaded.connect(_on_chunk_unloaded)
+
 ## Load all enemy definitions by recursively scanning folders
 func _load_enemy_definitions() -> void:
 	_load_enemies_from_folder(ENEMY_DATA_BASE_PATH)
@@ -194,13 +197,15 @@ func get_weighted_enemies_for_biome(biome_id: String) -> Array:
 	return result
 
 ## Spawn an enemy at a position
-func spawn_enemy(enemy_id: String, pos: Vector2i) -> Enemy:
+## Optional source_chunk parameter tracks which chunk spawned this enemy for cleanup
+func spawn_enemy(enemy_id: String, pos: Vector2i, source_chunk: Vector2i = Vector2i(-999, -999)) -> Enemy:
 	if not enemy_id in enemy_definitions:
 		push_error("Unknown enemy ID: " + enemy_id)
 		return null
 
 	var enemy = Enemy.create(enemy_definitions[enemy_id])
 	enemy.position = pos
+	enemy.source_chunk = source_chunk  # Track which chunk spawned this enemy
 
 	entities.append(enemy)
 
@@ -337,12 +342,21 @@ func get_blocking_entity_at(pos: Vector2i) -> Entity:
 
 	return null
 
+## Maximum distance from player to process enemy AI (performance optimization)
+## Enemies beyond this range don't take turns - they're effectively "frozen"
+const ENEMY_PROCESS_RANGE: int = 20
+
 ## Process all entity turns (called after player turn)
 func process_entity_turns() -> void:
+	var player_pos = player.position if player else Vector2i.ZERO
+
 	for entity in entities:
 		if entity.is_alive:
 			if entity is Enemy:
-				(entity as Enemy).take_turn()
+				# Only process enemies within range of player (performance optimization)
+				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+				if dist <= ENEMY_PROCESS_RANGE:
+					(entity as Enemy).take_turn()
 			elif entity.has_method("process_turn"):
 				# NPC or other entity with turn processing
 				entity.process_turn()
@@ -443,3 +457,22 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 
 	print("EntityManager: Restored %d enemies, %d items, %d NPCs from map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 	return true
+
+## Called when a chunk is unloaded - removes entities that were spawned by that chunk
+## This prevents entity accumulation as player explores the overworld
+func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
+	var removed_count = 0
+	# Iterate backwards to safely remove while iterating
+	for i in range(entities.size() - 1, -1, -1):
+		var entity = entities[i]
+		# Only remove entities that belong to this chunk
+		# NPCs are persistent (source_chunk stays at default -999)
+		# Dead enemies can be cleaned up
+		if entity.source_chunk == chunk_coords:
+			entities.remove_at(i)
+			if MapManager.current_map:
+				MapManager.current_map.entities.erase(entity)
+			removed_count += 1
+
+	if removed_count > 0:
+		print("[EntityManager] Cleaned up %d entities from unloaded chunk %v" % [removed_count, chunk_coords])

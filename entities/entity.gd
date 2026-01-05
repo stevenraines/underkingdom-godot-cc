@@ -13,6 +13,7 @@ var name: String = ""
 # Spatial
 var position: Vector2i = Vector2i.ZERO
 var blocks_movement: bool = true
+var source_chunk: Vector2i = Vector2i(-999, -999)  # Chunk that spawned this entity (-999 = not chunk-spawned)
 
 # Visual
 var ascii_char: String = "?"

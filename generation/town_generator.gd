@@ -61,6 +61,14 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		var has_town_square = roads_config.get("town_square", false)
 		RoadGeneratorClass.generate_town_roads(tiles_dict, center_pos, town_size, buildings, building_defs, has_town_square)
 
+	# Generate crop fields if defined
+	var features = town_def.get("features", {})
+	var crop_fields = features.get("crop_fields", [])
+	var crop_spawns: Array = []
+	for field in crop_fields:
+		var field_crops = _generate_crop_field(tiles_dict, center_pos, field, rng)
+		crop_spawns.append_array(field_crops)
+
 	# Build result data
 	var town_data = {
 		"town_id": town_id,
@@ -69,6 +77,7 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		"size": town_size,
 		"is_safe_zone": town_def.get("is_safe_zone", true),
 		"npc_spawns": npc_spawns,
+		"crop_spawns": crop_spawns,
 		"roads_connected": roads_config.get("connected_to_other_towns", false)
 	}
 
@@ -388,3 +397,38 @@ static func _get_default_town_definition() -> Dictionary:
 		],
 		"decorations": {"perimeter_trees": true, "max_trees": 12}
 	}
+
+## Generate a crop field and return array of crop spawn data
+## Each spawn has: crop_id, position, mature (bool)
+static func _generate_crop_field(tiles_dict: Dictionary, center_pos: Vector2i, field_def: Dictionary, _rng: SeededRandom) -> Array:
+	var crop_spawns: Array = []
+
+	var crop_id = field_def.get("crop_id", "")
+	if crop_id.is_empty():
+		return crop_spawns
+
+	var offset_array = field_def.get("position_offset", [0, 0])
+	var offset = Vector2i(offset_array[0], offset_array[1])
+	var width = field_def.get("width", 3)
+	var height = field_def.get("height", 3)
+	var mature = field_def.get("mature", false)
+
+	var field_start = center_pos + offset
+
+	for x in range(width):
+		for y in range(height):
+			var pos = field_start + Vector2i(x, y)
+
+			# Place tilled soil tile at this position
+			var soil_tile = GameTile.create("tilled_soil")
+			tiles_dict[pos] = soil_tile
+
+			# Add crop spawn data (crops will be spawned by the chunk/map system)
+			crop_spawns.append({
+				"crop_id": crop_id,
+				"position": pos,
+				"mature": mature
+			})
+
+	print("[TownGenerator] Generated %dx%d crop field of %s at %v (mature=%s)" % [width, height, crop_id, field_start, mature])
+	return crop_spawns

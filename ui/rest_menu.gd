@@ -51,8 +51,11 @@ func _input(event: InputEvent) -> void:
 					viewport.set_input_as_handled()
 				KEY_TAB:
 					turns_input.release_focus()
-					# Tab from option 3 wraps to option 1
-					selected_index = 0
+					# Tab from option 3 wraps, Shift+Tab goes to option 2
+					if event.shift_pressed:
+						selected_index = 1
+					else:
+						selected_index = 0
 					_update_selection()
 					viewport.set_input_as_handled()
 				_:
@@ -83,8 +86,11 @@ func _input(event: InputEvent) -> void:
 				_navigate(1)
 				viewport.set_input_as_handled()
 			KEY_TAB:
-				# Tab wraps around
-				_navigate_wrap(1)
+				# Tab wraps around, Shift+Tab goes backwards
+				if event.shift_pressed:
+					_navigate_wrap(-1)
+				else:
+					_navigate_wrap(1)
 				viewport.set_input_as_handled()
 			KEY_ENTER:
 				_select_option(selected_index)
@@ -107,14 +113,7 @@ func _close() -> void:
 func _navigate(direction: int) -> void:
 	selected_index = clamp(selected_index + direction, 0, 2)
 	_update_selection()
-
-	# If selecting option 3, focus on input
-	if selected_index == 2:
-		# Use a small delay to ensure the input is ready
-		await get_tree().process_frame
-		turns_input.grab_focus()
-	else:
-		turns_input.release_focus()
+	_update_focus()
 
 func _navigate_wrap(direction: int) -> void:
 	# Navigate with wrapping (for Tab key)
@@ -122,12 +121,12 @@ func _navigate_wrap(direction: int) -> void:
 	if selected_index < 0:
 		selected_index = 2
 	_update_selection()
+	_update_focus()
 
-	# If selecting option 3, focus on input
+func _update_focus() -> void:
+	# If selecting option 3, focus on input (deferred to ensure UI is ready)
 	if selected_index == 2:
-		# Use a small delay to ensure the input is ready
-		await get_tree().process_frame
-		turns_input.grab_focus()
+		turns_input.call_deferred("grab_focus")
 	else:
 		turns_input.release_focus()
 

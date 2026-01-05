@@ -256,6 +256,12 @@ func spawn_npc(spawn_data: Dictionary):
 	var npc_id = spawn_data.get("npc_id", "npc")
 	var position = spawn_data.get("position", Vector2i.ZERO)
 
+	# Check for duplicate NPC by ID - prevent double spawning
+	for entity in entities:
+		if entity is NPC and entity.entity_id == npc_id:
+			# NPC already exists with this ID, skip spawning
+			return entity
+
 	# Try to get NPC definition from NPCManager
 	var npc_def = NPCManager.get_npc_definition(npc_id)
 

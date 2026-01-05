@@ -1,0 +1,18 @@
+{
+  "id": "wild_mushroom",
+  "name": "Wild Mushroom",
+  "description": "A wild mushroom that can be harvested.",
+  "required_tools": [],
+  "tool_must_be_equipped": false,
+  "harvest_behavior": "destroy_renewable",
+  "stamina_cost": 1,
+  "respawn_turns": 4000,
+  "yields": [
+    {"item_id": "mushroom", "min_count": 1, "max_count": 2, "use_variant": true, "variant_type": "mushroom_species"}
+  ],
+  "replacement_tile": "floor",
+  "harvest_message": "Gathered %yield%",
+  "ascii_char": ",",
+  "walkable": true,
+  "transparent": true
+}

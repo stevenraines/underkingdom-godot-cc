@@ -1,0 +1,121 @@
+{
+  "variant_type": "flower_species",
+  "variants": {
+    "dandelion": {
+      "name_prefix": "",
+      "name_override": "Dandelion",
+      "description_modifier": "a common yellow flower with medicinal roots",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 0.5}
+      },
+      "overrides": {
+        "ascii_color": "#FFD700"
+      },
+      "effects": {
+        "hunger": 2
+      },
+      "biomes": ["grassland", "woodland", "forest"],
+      "tier": 1
+    },
+    "poppy": {
+      "name_prefix": "",
+      "name_override": "Poppy",
+      "description_modifier": "a bright red flower with sedative properties",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#FF4500"
+      },
+      "effects": {
+        "hunger": 1
+      },
+      "biomes": ["grassland", "rocky_hills"],
+      "tier": 2
+    },
+    "nightshade": {
+      "name_prefix": "",
+      "name_override": "Nightshade",
+      "description_modifier": "a poisonous flower with dark berries - handle with care",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.0}
+      },
+      "overrides": {
+        "ascii_color": "#4B0082"
+      },
+      "effects": {
+        "health": -5
+      },
+      "biomes": ["forest", "woodland", "marsh"],
+      "tier": 2
+    },
+    "orchid": {
+      "name_prefix": "",
+      "name_override": "Orchid",
+      "description_modifier": "a rare and beautiful flower",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 4.0}
+      },
+      "overrides": {
+        "ascii_color": "#DA70D6"
+      },
+      "effects": {
+        "hunger": 1,
+        "thirst": 1
+      },
+      "biomes": ["marsh", "swamp", "rainforest"],
+      "tier": 3
+    },
+    "lotus": {
+      "name_prefix": "",
+      "name_override": "Lotus",
+      "description_modifier": "a sacred flower that grows in water",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 5.0}
+      },
+      "overrides": {
+        "ascii_color": "#FFB6C1"
+      },
+      "effects": {
+        "hunger": 2,
+        "health": 2
+      },
+      "biomes": ["marsh", "swamp"],
+      "tier": 4
+    },
+    "edelweiss": {
+      "name_prefix": "",
+      "name_override": "Edelweiss",
+      "description_modifier": "a rare alpine flower with fuzzy white petals",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 6.0}
+      },
+      "overrides": {
+        "ascii_color": "#FFFAFA"
+      },
+      "effects": {
+        "hunger": 1,
+        "health": 3
+      },
+      "biomes": ["mountains", "snow_mountains", "tundra"],
+      "tier": 4
+    },
+    "nettles": {
+      "name_prefix": "",
+      "name_override": "Nettles",
+      "description_modifier": "a stinging plant with many medicinal uses when prepared properly",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 0.8}
+      },
+      "overrides": {
+        "ascii_color": "#228B22"
+      },
+      "effects": {
+        "hunger": 2,
+        "health": -1
+      },
+      "biomes": ["woodland", "forest", "marsh", "grassland"],
+      "tier": 1
+    }
+  }
+}

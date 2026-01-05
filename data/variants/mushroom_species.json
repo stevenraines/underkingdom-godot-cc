@@ -1,0 +1,135 @@
+{
+  "variant_type": "mushroom_species",
+  "variants": {
+    "button": {
+      "name_prefix": "",
+      "name_override": "Button Mushroom",
+      "description_modifier": "a common edible mushroom",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 0.5}
+      },
+      "overrides": {
+        "ascii_color": "#F5DEB3"
+      },
+      "effects": {
+        "hunger": 3
+      },
+      "biomes": ["woodland", "forest"],
+      "tier": 1
+    },
+    "chanterelle": {
+      "name_prefix": "",
+      "name_override": "Chanterelle",
+      "description_modifier": "a golden-colored culinary mushroom",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#FFD700"
+      },
+      "effects": {
+        "hunger": 5
+      },
+      "biomes": ["woodland", "forest"],
+      "tier": 2
+    },
+    "shiitake": {
+      "name_prefix": "",
+      "name_override": "Shiitake",
+      "description_modifier": "a flavorful brown mushroom",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.3}
+      },
+      "overrides": {
+        "ascii_color": "#8B4513"
+      },
+      "effects": {
+        "hunger": 4,
+        "health": 1
+      },
+      "biomes": ["forest", "rainforest"],
+      "tier": 2
+    },
+    "morel": {
+      "name_prefix": "",
+      "name_override": "Morel",
+      "description_modifier": "a prized honeycomb-shaped mushroom",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 3.0}
+      },
+      "overrides": {
+        "ascii_color": "#D2691E"
+      },
+      "effects": {
+        "hunger": 6
+      },
+      "biomes": ["forest", "woodland"],
+      "tier": 3
+    },
+    "puffball": {
+      "name_prefix": "",
+      "name_override": "Puffball",
+      "description_modifier": "a round white mushroom",
+      "modifiers": {
+        "weight": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#FFEFD5"
+      },
+      "effects": {
+        "hunger": 4
+      },
+      "biomes": ["grassland", "woodland", "marsh"],
+      "tier": 1
+    },
+    "deathcap": {
+      "name_prefix": "",
+      "name_override": "Death Cap",
+      "description_modifier": "a deadly poisonous mushroom - DO NOT EAT",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5}
+      },
+      "overrides": {
+        "ascii_color": "#98FB98"
+      },
+      "effects": {
+        "health": -15
+      },
+      "biomes": ["forest", "woodland", "marsh"],
+      "tier": 3
+    },
+    "glowcap": {
+      "name_prefix": "",
+      "name_override": "Glowcap",
+      "description_modifier": "a bioluminescent mushroom that glows faintly",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 4.0}
+      },
+      "overrides": {
+        "ascii_color": "#00FFFF"
+      },
+      "effects": {
+        "hunger": 3,
+        "health": 2
+      },
+      "biomes": ["marsh", "swamp"],
+      "tier": 4
+    },
+    "cave": {
+      "name_prefix": "",
+      "name_override": "Cave Mushroom",
+      "description_modifier": "a fleshy mushroom found in dark caves",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.0}
+      },
+      "overrides": {
+        "ascii_color": "#A52A2A"
+      },
+      "effects": {
+        "hunger": 5
+      },
+      "biomes": ["cave", "dungeon"],
+      "tier": 1
+    }
+  }
+}

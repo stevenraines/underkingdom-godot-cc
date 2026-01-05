@@ -1,0 +1,21 @@
+{
+  "id": "healing_salve",
+  "name": "Healing Salve",
+  "description": "A medicinal salve made from herbs. Can be applied to wounds or used in crafting.",
+  "category": "consumable",
+  "subtype": "medical",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.15,
+  "value": 12,
+  "max_stack": 10,
+  "ascii_char": "~",
+  "ascii_color": "#90EE90",
+  "effects": {
+    "health": 8
+  }
+}

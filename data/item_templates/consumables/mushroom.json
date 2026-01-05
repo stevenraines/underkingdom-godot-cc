@@ -1,0 +1,30 @@
+{
+  "template_id": "mushroom",
+  "display_name": "Mushroom",
+  "description_base": "A wild mushroom with various uses.",
+  "category": "consumable",
+  "subtype": "mushroom",
+  "base_properties": {
+    "ascii_char": ",",
+    "flags": {
+      "equippable": false,
+      "consumable": true,
+      "craftable": false,
+      "tool": false,
+      "mushroom": true
+    },
+    "max_stack": 20
+  },
+  "base_stats": {
+    "weight": 0.08,
+    "value": 3
+  },
+  "base_effects": {
+    "hunger": 5
+  },
+  "applicable_variants": ["mushroom_species"],
+  "default_variants": {
+    "mushroom_species": "button"
+  },
+  "required_variants": ["mushroom_species"]
+}

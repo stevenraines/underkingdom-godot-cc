@@ -149,6 +149,42 @@ func generate(world_seed: int) -> void:
 					tile.ascii_char = "◆"
 					tile.harvestable_resource_id = "rock"
 					tile.color = Color.WHITE
+					continue  # Don't spawn flora in same spot
+
+				# Try to spawn herb
+				var herb_density = biome.get("herb_density", 0.0)
+				if herb_density > 0 and rng.randf() < herb_density:
+					var resource_instance = ResourceSpawner.ResourceInstance.new("wild_herb", world_pos, chunk_coords)
+					resources.append(resource_instance)
+
+					# Herbs are walkable but harvestable
+					tile.ascii_char = "⚜"
+					tile.harvestable_resource_id = "wild_herb"
+					tile.color = Color(0.4, 0.8, 0.4)  # Light green
+					continue  # Don't spawn other flora in same spot
+
+				# Try to spawn flower
+				var flower_density = biome.get("flower_density", 0.0)
+				if flower_density > 0 and rng.randf() < flower_density:
+					var resource_instance = ResourceSpawner.ResourceInstance.new("wild_flower", world_pos, chunk_coords)
+					resources.append(resource_instance)
+
+					# Flowers are walkable but harvestable
+					tile.ascii_char = "*"
+					tile.harvestable_resource_id = "wild_flower"
+					tile.color = Color(1.0, 0.8, 0.2)  # Yellow/gold
+					continue  # Don't spawn other flora in same spot
+
+				# Try to spawn mushroom
+				var mushroom_density = biome.get("mushroom_density", 0.0)
+				if mushroom_density > 0 and rng.randf() < mushroom_density:
+					var resource_instance = ResourceSpawner.ResourceInstance.new("wild_mushroom", world_pos, chunk_coords)
+					resources.append(resource_instance)
+
+					# Mushrooms are walkable but harvestable
+					tile.ascii_char = ","
+					tile.harvestable_resource_id = "wild_mushroom"
+					tile.color = Color(0.65, 0.4, 0.2)  # Brown
 
 	# Generate town structures for any towns whose center is in this chunk
 	_generate_towns_in_chunk(towns_data, world_seed)
@@ -400,8 +436,14 @@ func _spawn_overworld_enemies(towns_data: Array, rng: SeededRandom) -> void:
 	if floor_positions.is_empty():
 		return
 
-	# Calculate spawn count based on chunk size (roughly 1-3 enemies per chunk outside towns)
-	var spawn_count: int = rng.randi_range(1, 3)
+	# Calculate spawn count based on chunk size
+	# 50% chance of no enemies, 30% chance of 1, 20% chance of 2
+	var spawn_roll = rng.randf()
+	var spawn_count: int = 0
+	if spawn_roll > 0.5:
+		spawn_count = 1
+		if spawn_roll > 0.8:
+			spawn_count = 2
 	var spawned: int = 0
 
 	# Shuffle positions for random placement

@@ -1,0 +1,18 @@
+{
+  "id": "wild_flower",
+  "name": "Wild Flower",
+  "description": "A wild flower that can be picked.",
+  "required_tools": [],
+  "tool_must_be_equipped": false,
+  "harvest_behavior": "destroy_renewable",
+  "stamina_cost": 1,
+  "respawn_turns": 3000,
+  "yields": [
+    {"item_id": "flower", "min_count": 1, "max_count": 1, "use_variant": true, "variant_type": "flower_species"}
+  ],
+  "replacement_tile": "floor",
+  "harvest_message": "Picked %yield%",
+  "ascii_char": "*",
+  "walkable": true,
+  "transparent": true
+}

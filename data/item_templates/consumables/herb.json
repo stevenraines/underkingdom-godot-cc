@@ -1,0 +1,30 @@
+{
+  "template_id": "herb",
+  "display_name": "Herb",
+  "description_base": "A wild herb with various uses.",
+  "category": "consumable",
+  "subtype": "herb",
+  "base_properties": {
+    "ascii_char": "⚜",
+    "flags": {
+      "equippable": false,
+      "consumable": true,
+      "craftable": false,
+      "tool": false,
+      "herb": true
+    },
+    "max_stack": 20
+  },
+  "base_stats": {
+    "weight": 0.05,
+    "value": 3
+  },
+  "base_effects": {
+    "hunger": 2
+  },
+  "applicable_variants": ["herb_species"],
+  "default_variants": {
+    "herb_species": "chamomile"
+  },
+  "required_variants": ["herb_species"]
+}

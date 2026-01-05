@@ -1,0 +1,18 @@
+{
+  "id": "herbal_infusion",
+  "result": "herbal_infusion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "fresh_water", "count": 1}
+  ],
+  "seeded_ingredients": {
+    "count": 3,
+    "template": "herb",
+    "variant_type": "herb_species",
+    "seed_offset": 2000
+  },
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 3,
+  "discovery_hint": "Steeping specific herbs in hot water creates a concentrated infusion for potion brewing."
+}

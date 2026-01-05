@@ -159,11 +159,15 @@ static func get_biome_at(x: int, y: int, seed_value: int) -> Dictionary:
 	var grass_color_array = biome_data.get("color_grass", [0.5, 0.7, 0.4])
 
 	return {
+		"id": biome_data.get("id", "grassland"),
 		"biome_name": biome_data.get("id", "grassland"),
 		"base_tile": biome_data.get("base_tile", "floor"),
 		"grass_char": biome_data.get("grass_char", "\""),
 		"tree_density": biome_data.get("tree_density", 0.05),
 		"rock_density": biome_data.get("rock_density", 0.01),
+		"herb_density": biome_data.get("herb_density", 0.0),
+		"flower_density": biome_data.get("flower_density", 0.0),
+		"mushroom_density": biome_data.get("mushroom_density", 0.0),
 		"color_floor": Color(floor_color_array[0], floor_color_array[1], floor_color_array[2]),
 		"color_grass": Color(grass_color_array[0], grass_color_array[1], grass_color_array[2])
 	}

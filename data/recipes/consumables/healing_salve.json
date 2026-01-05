@@ -1,0 +1,16 @@
+{
+  "id": "healing_salve",
+  "result": "healing_salve",
+  "result_count": 1,
+  "ingredients": [],
+  "seeded_ingredients": {
+    "count": 3,
+    "template": "herb",
+    "variant_type": "herb_species",
+    "seed_offset": 1000
+  },
+  "tool_required": "",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Combining the right herbs creates a medicinal salve. The exact combination varies by region."
+}

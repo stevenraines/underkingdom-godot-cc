@@ -492,15 +492,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		if direction != Vector2i.ZERO:
 			print("[DEBUG] Plant direction recognized: ", direction)
-			_exit_plant_mode()
 			get_viewport().set_input_as_handled()
 
 			# Reset movement timer to prevent immediate movement after planting
 			move_timer = initial_delay
 			is_initial_press = true
 
+			# Try to plant BEFORE exiting plant mode (which clears the selected seed)
 			var success = _try_plant(direction)
 			print("[DEBUG] Plant result: ", success)
+			_exit_plant_mode()
 			if success:
 				TurnManager.advance_turn()
 			return

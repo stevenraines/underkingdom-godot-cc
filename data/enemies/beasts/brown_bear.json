@@ -1,0 +1,33 @@
+{
+  "id": "brown_bear",
+  "name": "Brown Bear",
+  "description": "A large forest bear that can be aggressive when surprised or protecting cubs.",
+  "cr": 1,
+  "ascii_char": "B",
+  "ascii_color": "#8B4513",
+  "stats": {
+    "health": 34,
+    "str": 19,
+    "dex": 10,
+    "con": 16,
+    "int": 2,
+    "wis": 13,
+    "cha": 7
+  },
+  "yields": [
+    {"item_id": "bear_pelt", "min_count": 1, "max_count": 1, "chance": 0.8},
+    {"item_id": "raw_meat", "min_count": 3, "max_count": 5, "chance": 1.0}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 9,
+  "armor": 2,
+  "loot_table": "beast_common",
+  "xp_value": 50,
+  "spawn_biomes": ["woodland", "forest", "mountains"],
+  "spawn_dungeons": [],
+  "spawn_density_overworld": 200,
+  "spawn_density_dungeon": 0,
+  "min_spawn_level": 0,
+  "max_spawn_level": 0,
+  "min_distance_from_town": 40
+}

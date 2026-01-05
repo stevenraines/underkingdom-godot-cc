@@ -1,0 +1,31 @@
+{
+  "id": "homunculus",
+  "name": "Homunculus",
+  "description": "A small artificial creature created by a wizard as a servant and spy.",
+  "cr": 0,
+  "ascii_char": "h",
+  "ascii_color": "#DEB887",
+  "stats": {
+    "health": 5,
+    "str": 4,
+    "dex": 15,
+    "con": 11,
+    "int": 10,
+    "wis": 10,
+    "cha": 7
+  },
+  "yields": [
+    {"item_id": "arcane_dust", "min_count": 1, "max_count": 1, "chance": 0.5}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 2,
+  "armor": 0,
+  "loot_table": "magic_common",
+  "xp_value": 10,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 60,
+  "min_spawn_level": 1,
+  "max_spawn_level": 5
+}

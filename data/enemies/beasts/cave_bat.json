@@ -1,0 +1,31 @@
+{
+  "id": "cave_bat",
+  "name": "Cave Bat",
+  "description": "A large bat that nests in dark underground caverns.",
+  "cr": 0,
+  "ascii_char": "B",
+  "ascii_color": "#4A4A4A",
+  "stats": {
+    "health": 6,
+    "str": 4,
+    "dex": 16,
+    "con": 6,
+    "int": 2,
+    "wis": 12,
+    "cha": 4
+  },
+  "yields": [
+    {"item_id": "bat_wing", "min_count": 1, "max_count": 2, "chance": 0.6}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 2,
+  "armor": 0,
+  "loot_table": "bat_common",
+  "xp_value": 5,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["natural_cave", "burial_barrow", "abandoned_mine"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 60,
+  "min_spawn_level": 1,
+  "max_spawn_level": 30
+}

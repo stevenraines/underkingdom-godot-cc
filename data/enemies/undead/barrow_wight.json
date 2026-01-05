@@ -1,0 +1,28 @@
+{
+  "id": "barrow_wight",
+  "name": "Barrow Wight",
+  "description": "A powerful undead guardian bound to protect ancient tombs.",
+  "cr": 4,
+  "ascii_char": "W",
+  "ascii_color": "#44FF44",
+  "stats": {
+    "health": 25,
+    "str": 12,
+    "dex": 8,
+    "con": 14,
+    "int": 5,
+    "wis": 6,
+    "cha": 4
+  },
+  "behavior": "guardian",
+  "base_damage": 5,
+  "armor": 2,
+  "loot_table": "undead_common",
+  "xp_value": 50,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["burial_barrow"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 200,
+  "min_spawn_level": 5,
+  "max_spawn_level": 50
+}

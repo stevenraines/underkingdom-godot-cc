@@ -1,0 +1,34 @@
+{
+  "id": "arcane_eye",
+  "name": "Arcane Eye",
+  "description": "A floating magical eye created to watch over wizard domains, capable of firing beams of energy.",
+  "cr": 2,
+  "ascii_char": "e",
+  "ascii_color": "#00CED1",
+  "stats": {
+    "health": 20,
+    "str": 4,
+    "dex": 16,
+    "con": 10,
+    "int": 14,
+    "wis": 16,
+    "cha": 8
+  },
+  "yields": [
+    {"item_id": "mana_crystal", "min_count": 1, "max_count": 2, "chance": 0.6},
+    {"item_id": "arcane_dust", "min_count": 1, "max_count": 3, "chance": 0.8}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 7,
+  "armor": 1,
+  "attack_type": "ranged",
+  "attack_range": 5,
+  "loot_table": "magic_common",
+  "xp_value": 50,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 100,
+  "min_spawn_level": 3,
+  "max_spawn_level": 20
+}

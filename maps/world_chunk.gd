@@ -157,6 +157,9 @@ func generate(world_seed: int) -> void:
 	var road_paths: Array = map.metadata.get("road_paths", []) if map else []
 	_place_road_tiles_in_chunk(road_paths, world_seed)
 
+	# Spawn overworld enemies using data-driven biome and town distance filtering
+	_spawn_overworld_enemies(towns_data, rng)
+
 	is_loaded = true
 	is_dirty = true
 
@@ -369,6 +372,114 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 			# Replace floor/grass tiles and resources (trees/rocks) with road
 			if existing_tile.tile_type in ["floor", "tree", "rock"]:
 				tiles[local_pos] = GameTile.create(road_type)
+
+
+## Spawn overworld enemies using data-driven biome and town distance filtering
+func _spawn_overworld_enemies(towns_data: Array, rng: SeededRandom) -> void:
+	var entity_manager = _get_autoload("EntityManager")
+	if not entity_manager:
+		return
+
+	# Get current map for storing enemy spawns
+	var map = MapManager.current_map
+	if not map:
+		return
+
+	# Collect floor tile positions in this chunk
+	var floor_positions: Array[Vector2i] = []
+	for local_pos in tiles:
+		var tile = tiles[local_pos]
+		if tile.walkable and tile.tile_type == "floor":
+			var world_pos = chunk_to_world_position(local_pos)
+			floor_positions.append(world_pos)
+
+	if floor_positions.is_empty():
+		return
+
+	# Calculate spawn count based on chunk size (roughly 1-3 enemies per chunk outside towns)
+	var spawn_count: int = rng.randi_range(1, 3)
+	var spawned: int = 0
+
+	# Shuffle positions for random placement
+	var shuffled_positions: Array[Vector2i] = floor_positions.duplicate()
+	for i in range(shuffled_positions.size() - 1, 0, -1):
+		var j = rng.randi_range(0, i)
+		var temp = shuffled_positions[i]
+		shuffled_positions[i] = shuffled_positions[j]
+		shuffled_positions[j] = temp
+
+	for spawn_pos in shuffled_positions:
+		if spawned >= spawn_count:
+			break
+
+		# Get minimum distance to any town
+		var min_town_dist = _get_min_distance_to_towns(spawn_pos, towns_data)
+
+		# Skip positions too close to towns (safe zone)
+		if min_town_dist < 15:
+			continue
+
+		# Get biome at this position
+		var biome = BiomeGenerator.get_biome_at(spawn_pos.x, spawn_pos.y, seed)
+		var biome_id = biome.get("id", "grassland")
+
+		# Get weighted enemies for this biome
+		var weighted_enemies = entity_manager.get_weighted_enemies_for_biome(biome_id)
+		if weighted_enemies.is_empty():
+			continue
+
+		# Filter by min_distance_from_town
+		var valid_enemies: Array = []
+		for enemy_data in weighted_enemies:
+			var min_dist_required = enemy_data.get("min_distance_from_town", 0)
+			if min_town_dist >= min_dist_required:
+				valid_enemies.append(enemy_data)
+
+		if valid_enemies.is_empty():
+			continue
+
+		# Pick weighted random enemy
+		var chosen_enemy_id = _pick_weighted_enemy(valid_enemies, rng)
+		if chosen_enemy_id.is_empty():
+			continue
+
+		# Store spawn data in map metadata
+		if not map.metadata.has("enemy_spawns"):
+			map.metadata["enemy_spawns"] = []
+		map.metadata.enemy_spawns.append({
+			"enemy_id": chosen_enemy_id,
+			"position": spawn_pos,
+			"level": 1,  # Overworld enemies are level 1
+			"chunk": chunk_coords
+		})
+
+		spawned += 1
+
+	if spawned > 0:
+		print("[WorldChunk] Spawned %d enemies in chunk %v" % [spawned, chunk_coords])
+
+
+## Pick a weighted random enemy from a list of {enemy_id, weight} entries
+func _pick_weighted_enemy(weighted_enemies: Array, rng: SeededRandom) -> String:
+	if weighted_enemies.is_empty():
+		return ""
+
+	var total_weight: float = 0.0
+	for entry in weighted_enemies:
+		total_weight += entry.get("weight", 1.0)
+
+	if total_weight <= 0:
+		return ""
+
+	var roll: float = rng.randf() * total_weight
+	var cumulative: float = 0.0
+
+	for entry in weighted_enemies:
+		cumulative += entry.get("weight", 1.0)
+		if roll <= cumulative:
+			return entry.get("enemy_id", "")
+
+	return weighted_enemies[weighted_enemies.size() - 1].get("enemy_id", "")
 
 
 ## Spawn NPCs directly via EntityManager

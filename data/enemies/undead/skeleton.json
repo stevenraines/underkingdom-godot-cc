@@ -1,0 +1,31 @@
+{
+  "id": "skeleton",
+  "name": "Skeleton",
+  "description": "Animated bones of the dead, mindlessly attacking the living.",
+  "cr": 0.25,
+  "ascii_char": "s",
+  "ascii_color": "#EEEEEE",
+  "stats": {
+    "health": 15,
+    "str": 10,
+    "dex": 10,
+    "con": 10,
+    "int": 3,
+    "wis": 5,
+    "cha": 3
+  },
+  "yields": [
+    {"item_id": "bone", "min_count": 1, "max_count": 3, "chance": 0.8}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 4,
+  "armor": 1,
+  "loot_table": "undead_common",
+  "xp_value": 15,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["burial_barrow", "temple_ruins"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 80,
+  "min_spawn_level": 1,
+  "max_spawn_level": 20
+}

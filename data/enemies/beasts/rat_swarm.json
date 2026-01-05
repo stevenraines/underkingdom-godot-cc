@@ -1,0 +1,33 @@
+{
+  "id": "rat_swarm",
+  "name": "Rat Swarm",
+  "description": "A writhing mass of rats that attacks as one.",
+  "cr": 0.25,
+  "ascii_char": "R",
+  "ascii_color": "#8B4513",
+  "stats": {
+    "health": 20,
+    "str": 6,
+    "dex": 16,
+    "con": 10,
+    "int": 2,
+    "wis": 10,
+    "cha": 2
+  },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 1, "max_count": 3, "chance": 0.6}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 4,
+  "armor": 0,
+  "feared_components": ["fire"],
+  "fear_distance": 4,
+  "loot_table": "rat_common",
+  "xp_value": 15,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["sewers"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 80,
+  "min_spawn_level": 1,
+  "max_spawn_level": 20
+}

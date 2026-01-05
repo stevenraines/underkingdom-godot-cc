@@ -11,4 +11,6 @@ Also update any existing enemies with appropriate CR levels.
 
 Ask any clarifying questions you have before impementing this feature.
 
+Begin by extending the enemies based on monsters from AD&D.
+
 

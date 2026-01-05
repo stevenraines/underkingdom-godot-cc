@@ -1,0 +1,32 @@
+{
+  "id": "acolyte",
+  "name": "Acolyte",
+  "description": "A devoted servant of a deity who can channel minor divine magic.",
+  "cr": 0.25,
+  "ascii_char": "a",
+  "ascii_color": "#FFD700",
+  "stats": {
+    "health": 9,
+    "str": 10,
+    "dex": 10,
+    "con": 10,
+    "int": 10,
+    "wis": 14,
+    "cha": 11
+  },
+  "yields": [
+    {"item_id": "holy_symbol", "min_count": 1, "max_count": 1, "chance": 0.4},
+    {"item_id": "gold_coins", "min_count": 2, "max_count": 8, "chance": 0.5}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 3,
+  "armor": 0,
+  "loot_table": "priest_common",
+  "xp_value": 15,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["temple_ruins"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 60,
+  "min_spawn_level": 1,
+  "max_spawn_level": 12
+}

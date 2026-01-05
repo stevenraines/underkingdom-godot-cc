@@ -6,6 +6,7 @@ extends Node
 ## between major systems like TurnManager and MapManager.
 
 const _HarvestSystem = preload("res://systems/harvest_system.gd")
+const _FarmingSystem = preload("res://systems/farming_system.gd")
 
 # Game state
 var world_seed: int = 0
@@ -25,6 +26,8 @@ var auto_open_doors: bool = true  # Automatically open doors when walking into t
 func _ready() -> void:
 	# Load harvestable resources
 	_HarvestSystem.load_resources()
+	# Load crop definitions for farming
+	_FarmingSystem.load_crops()
 	print("GameManager initialized")
 
 ## Start a new game with world name (used as seed)

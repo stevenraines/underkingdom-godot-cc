@@ -1,0 +1,12 @@
+{
+  "id": "cabbage_seeds",
+  "name": "Cabbage Seeds",
+  "description": "Seeds for planting cabbage crops",
+  "type": "seed",
+  "crop_id": "cabbage_crop",
+  "ascii_char": ".",
+  "color": "#90EE90",
+  "weight": 0.1,
+  "value": 4,
+  "stack_size": 50
+}

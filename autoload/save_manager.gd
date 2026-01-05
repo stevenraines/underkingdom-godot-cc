@@ -7,6 +7,7 @@ extends Node
 # Preload ItemFactory for template-based item deserialization
 const ItemFactoryClass = preload("res://items/item_factory.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+const FarmingSystemClass = preload("res://systems/farming_system.gd")
 
 const SAVE_DIR = "user://saves/"
 const SAVE_FILE_PATTERN = "save_slot_%d.json"
@@ -169,6 +170,7 @@ func _serialize_game_state() -> Dictionary:
 		"maps": _serialize_maps(),
 		"entities": _serialize_entities(),
 		"harvest": _serialize_harvest(),
+		"farming": _serialize_farming(),
 		"fog_of_war": FogOfWarSystemClass.serialize()
 	}
 
@@ -326,6 +328,10 @@ func _serialize_harvest() -> Dictionary:
 		"harvest_progress": HarvestSystem.serialize_harvest_progress()
 	}
 
+## Serialize farming system state (crops and tilled soil)
+func _serialize_farming() -> Dictionary:
+	return FarmingSystemClass.serialize()
+
 ## Serialize entities (NPCs, enemies, persistent state)
 func _serialize_entities() -> Dictionary:
 	var npcs = []
@@ -409,6 +415,10 @@ func _deserialize_game_state(save_data: Dictionary):
 	# Restore harvest system state
 	if save_data.has("harvest"):
 		_deserialize_harvest(save_data.harvest)
+
+	# Restore farming system state
+	if save_data.has("farming"):
+		_deserialize_farming(save_data.farming)
 
 	# Restore fog of war (explored tiles)
 	if save_data.has("fog_of_war"):
@@ -674,6 +684,11 @@ func _deserialize_harvest(harvest_data: Dictionary):
 		HarvestSystem.deserialize_harvest_progress(harvest_data.harvest_progress)
 
 	print("SaveManager: Harvest state deserialized")
+
+## Deserialize farming system state
+func _deserialize_farming(farming_data: Dictionary):
+	FarmingSystemClass.deserialize(farming_data)
+	print("SaveManager: Farming state deserialized")
 
 # ===== HELPER CLASSES =====
 

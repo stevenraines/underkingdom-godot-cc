@@ -7,6 +7,7 @@ extends Node
 ## Uses CalendarManager for calendar-based time tracking.
 
 const HarvestSystem = preload("res://systems/harvest_system.gd")
+const FarmingSystem = preload("res://systems/farming_system.gd")
 
 # Turn tracking
 var current_turn: int = 0
@@ -42,6 +43,10 @@ func advance_turn() -> void:
 
 	# Process renewable resource respawns
 	HarvestSystem.process_renewable_resources()
+
+	# Process crop growth and tilled soil decay
+	FarmingSystem.process_crop_growth()
+	FarmingSystem.process_tilled_soil_decay()
 
 	EventBus.turn_advanced.emit(current_turn)
 

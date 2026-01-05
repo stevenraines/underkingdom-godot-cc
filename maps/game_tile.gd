@@ -14,6 +14,8 @@ var harvestable_resource_id: String = ""  # ID of harvestable resource (if any)
 var color: Color = Color.WHITE  # Tile color (set by biome for floor/grass tiles)
 var is_open: bool = false  # For doors: true = open (walkable/transparent), false = closed
 var is_interior: bool = false  # True for tiles inside buildings (provides temperature bonus)
+var can_plant: bool = false  # True for tilled soil that can have crops planted
+var tilled_turn: int = -1  # Turn when soil was tilled (for decay tracking), -1 if not tilled
 
 # Lock properties (for doors)
 var is_locked: bool = false      # Whether the door is locked
@@ -134,6 +136,17 @@ static func create(type: String) -> GameTile:
 			tile.walkable = true
 			tile.transparent = true
 			tile.ascii_char = "≡"  # Triple horizontal line for stone bridge
+		"tilled_soil":
+			tile.tile_type = "tilled_soil"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "≈"
+			tile.can_plant = true
+		"grass", "dirt":
+			tile.tile_type = type
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "."
 		_:
 			push_warning("Unknown tile type: " + type + ", defaulting to floor")
 			tile.tile_type = "floor"

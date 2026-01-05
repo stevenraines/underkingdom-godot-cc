@@ -8,6 +8,7 @@ extends Node
 const TargetingSystemClass = preload("res://systems/targeting_system.gd")
 const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
 const FishingSystemClass = preload("res://systems/fishing_system.gd")
+const FarmingSystemClass = preload("res://systems/farming_system.gd")
 
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
@@ -34,6 +35,11 @@ var _awaiting_fishing_direction: bool = false  # Waiting for player to specify d
 var _fishing_active: bool = false  # Currently in continuous fishing mode
 var _fishing_direction: Vector2i = Vector2i.ZERO  # Direction being fished
 var _fishing_timer: float = 0.0  # Timer for continuous fishing
+
+# Farming modes
+var _awaiting_till_direction: bool = false  # Waiting for player to specify direction to till
+var _awaiting_plant_direction: bool = false  # Waiting for player to specify direction to plant
+var _selected_seed_for_planting: Item = null  # The seed selected for planting
 
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
@@ -426,6 +432,76 @@ func _unhandled_input(event: InputEvent) -> void:
 				_exit_fishing_mode()
 				# Don't return - let normal input processing handle the movement
 
+	# If awaiting till direction, handle directional input
+	if _awaiting_till_direction and event is InputEventKey and event.pressed and not event.echo:
+		var direction = Vector2i.ZERO
+
+		match event.keycode:
+			KEY_UP, KEY_W:
+				direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel till
+				_exit_till_mode()
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Cancelled tilling", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if direction != Vector2i.ZERO:
+			_exit_till_mode()
+			get_viewport().set_input_as_handled()
+
+			# Reset movement timer to prevent immediate movement after tilling
+			move_timer = initial_delay
+			is_initial_press = true
+
+			var success = _try_till(direction)
+			if success:
+				TurnManager.advance_turn()
+			return
+
+	# If awaiting plant direction, handle directional input
+	if _awaiting_plant_direction and event is InputEventKey and event.pressed and not event.echo:
+		var direction = Vector2i.ZERO
+
+		match event.keycode:
+			KEY_UP, KEY_W:
+				direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				# Cancel plant
+				_exit_plant_mode()
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Cancelled planting", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if direction != Vector2i.ZERO:
+			_exit_plant_mode()
+			get_viewport().set_input_as_handled()
+
+			# Reset movement timer to prevent immediate movement after planting
+			move_timer = initial_delay
+			is_initial_press = true
+
+			var success = _try_plant(direction)
+			if success:
+				TurnManager.advance_turn()
+			return
+
 	# Stairs navigation - check for specific key presses
 	# Note: Wait action (. key) is handled in _process() for proper timing with held keys
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -556,6 +632,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_Q:  # Q key - toggle light source (light/extinguish)
 			_try_toggle_light()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_T and event.shift_pressed:  # Shift+T - till soil
+			_start_till_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_P and event.shift_pressed:  # Shift+P - plant seeds
+			_start_plant_mode()
 			get_viewport().set_input_as_handled()
 
 		# Advance turn if action was taken
@@ -868,6 +950,96 @@ func _open_rest_menu() -> void:
 	var game = get_parent()
 	if game and game.has_method("open_rest_menu"):
 		game.open_rest_menu()
+
+## Start till mode - prompts for direction to till
+func _start_till_mode() -> void:
+	var game = get_parent()
+
+	# Check if player has a hoe equipped
+	var tool_check = FarmingSystemClass.has_hoe_equipped(player)
+	if not tool_check.has_tool:
+		if game and game.has_method("_add_message"):
+			game._add_message("Need a hoe equipped to till soil.", Color(0.9, 0.6, 0.4))
+		return
+
+	_awaiting_till_direction = true
+	ui_blocking_input = true
+	if game and game.has_method("_add_message"):
+		game._add_message("Till which direction? (Arrow keys/WASD, ESC to cancel)", Color(0.8, 0.9, 1.0))
+
+## Exit till mode
+func _exit_till_mode() -> void:
+	_awaiting_till_direction = false
+	ui_blocking_input = false
+
+## Try to till soil in the given direction
+func _try_till(direction: Vector2i) -> bool:
+	var target_pos = player.position + direction
+	var result = FarmingSystemClass.till_soil(player, target_pos)
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
+		game._add_message(result.message, color)
+
+	# Re-render map if successful
+	if result.success and game:
+		if game.has_method("_render_map"):
+			game._render_map()
+		if game.has_method("_update_visibility"):
+			game._update_visibility()
+
+	return result.success
+
+## Start plant mode - prompts for seed selection and direction
+func _start_plant_mode() -> void:
+	var game = get_parent()
+
+	# Get available seeds
+	var seeds = FarmingSystemClass.get_plantable_seeds(player)
+	if seeds.is_empty():
+		if game and game.has_method("_add_message"):
+			game._add_message("You have no seeds to plant.", Color(0.9, 0.6, 0.4))
+		return
+
+	# For simplicity, use the first seed type found
+	# TODO: Could add a seed selection UI later
+	_selected_seed_for_planting = seeds[0]
+	_awaiting_plant_direction = true
+	ui_blocking_input = true
+
+	if game and game.has_method("_add_message"):
+		game._add_message("Plant %s in which direction? (Arrow keys/WASD, ESC to cancel)" % _selected_seed_for_planting.name, Color(0.8, 0.9, 1.0))
+
+## Exit plant mode
+func _exit_plant_mode() -> void:
+	_awaiting_plant_direction = false
+	_selected_seed_for_planting = null
+	ui_blocking_input = false
+
+## Try to plant a seed in the given direction
+func _try_plant(direction: Vector2i) -> bool:
+	if not _selected_seed_for_planting:
+		return false
+
+	var target_pos = player.position + direction
+	var result = FarmingSystemClass.plant_seed(player, target_pos, _selected_seed_for_planting)
+
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.5, 0.5)
+		game._add_message(result.message, color)
+
+	# Re-render map if successful
+	if result.success and game:
+		if game.has_method("_render_map"):
+			game._render_map()
+		if game.has_method("_render_all_entities"):
+			game._render_all_entities()
+		if game.has_method("_update_visibility"):
+			game._update_visibility()
+
+	return result.success
 
 ## Try to interact with a dungeon feature at player position
 func _try_interact_feature() -> bool:

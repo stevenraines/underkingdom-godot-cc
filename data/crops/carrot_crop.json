@@ -1,0 +1,45 @@
+{
+  "id": "carrot_crop",
+  "name": "Carrot",
+  "seed_item_id": "carrot_seeds",
+  "growth_stages": [
+    {
+      "name": "Seedling",
+      "ascii_char": ".",
+      "color": "#90EE90",
+      "duration_turns": 350,
+      "harvestable": false,
+      "trample_vulnerable": true
+    },
+    {
+      "name": "Sprout",
+      "ascii_char": "\"",
+      "color": "#32CD32",
+      "duration_turns": 500,
+      "harvestable": false,
+      "trample_vulnerable": true
+    },
+    {
+      "name": "Growing",
+      "ascii_char": "t",
+      "color": "#228B22",
+      "duration_turns": 650,
+      "harvestable": false,
+      "trample_vulnerable": false
+    },
+    {
+      "name": "Mature",
+      "ascii_char": "Y",
+      "color": "#FF8C00",
+      "duration_turns": -1,
+      "harvestable": true,
+      "trample_vulnerable": false
+    }
+  ],
+  "yields": [
+    {"item_id": "carrot", "min_count": 2, "max_count": 4},
+    {"item_id": "carrot_seeds", "min_count": 1, "max_count": 2, "chance": 0.7}
+  ],
+  "harvest_stamina_cost": 4,
+  "harvest_message": "You pull up some carrots"
+}

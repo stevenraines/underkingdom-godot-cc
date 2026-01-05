@@ -1,0 +1,12 @@
+{
+  "id": "wheat_seeds",
+  "name": "Wheat Seeds",
+  "description": "Seeds for planting wheat crops",
+  "type": "seed",
+  "crop_id": "wheat_crop",
+  "ascii_char": ".",
+  "color": "#DEB887",
+  "weight": 0.1,
+  "value": 2,
+  "stack_size": 50
+}

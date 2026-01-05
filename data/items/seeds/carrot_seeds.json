@@ -1,0 +1,12 @@
+{
+  "id": "carrot_seeds",
+  "name": "Carrot Seeds",
+  "description": "Seeds for planting carrot crops",
+  "type": "seed",
+  "crop_id": "carrot_crop",
+  "ascii_char": ".",
+  "color": "#FF8C00",
+  "weight": 0.1,
+  "value": 3,
+  "stack_size": 50
+}

@@ -14,6 +14,7 @@ const StructurePlacement = preload("res://systems/structure_placement.gd")
 const LightingSystemClass = preload("res://systems/lighting_system.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
+const FarmingSystemClass = preload("res://systems/farming_system.gd")
 
 var player: Player
 var renderer: ASCIIRenderer

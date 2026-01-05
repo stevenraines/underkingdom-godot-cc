@@ -72,6 +72,16 @@ func _build_help_content() -> void:
 	_add_help_text("Must be adjacent to 8+ contiguous water tiles")
 	_add_spacer()
 
+	# Farming
+	_add_section_header("== FARMING ==")
+	_add_keybind("Shift + T", "Till soil (requires hoe)")
+	_add_keybind("Shift + P", "Plant seeds (then direction)")
+	_add_keybind("H", "Harvest mature crops")
+	_add_help_text("Till grass/dirt to create farmland")
+	_add_help_text("Plant seeds on tilled soil")
+	_add_help_text("Crops grow over time and can be harvested when mature")
+	_add_spacer()
+
 	# NPCs & Shopping
 	_add_section_header("== NPCs & SHOPPING ==")
 	_add_keybind("T", "Talk to adjacent NPC")

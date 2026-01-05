@@ -1,0 +1,13 @@
+{
+  "id": "steel_ingot",
+  "result": "steel_ingot",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 1},
+    {"item": "charcoal", "count": 2}
+  ],
+  "tool_required": "hammer",
+  "fire_required": true,
+  "difficulty": 3,
+  "discovery_hint": "Iron refined with carbon creates stronger steel"
+}

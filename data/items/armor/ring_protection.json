@@ -1,0 +1,22 @@
+{
+  "id": "ring_protection",
+  "name": "Ring of Protection",
+  "description": "A magical ring that provides minor protection.",
+  "category": "armor",
+  "subtype": "accessory",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.05,
+  "value": 100,
+  "max_stack": 1,
+  "ascii_char": "°",
+  "ascii_color": "#FFD700",
+  "durability": 200,
+  "equip_slots": ["accessory"],
+  "armor_value": 2,
+  "warmth": 0
+}

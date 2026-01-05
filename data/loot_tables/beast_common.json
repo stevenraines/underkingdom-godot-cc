@@ -6,6 +6,7 @@
 		{"item_id": "raw_meat", "min_count": 1, "max_count": 2, "chance": 0.7},
 		{"item_id": "leather", "min_count": 1, "max_count": 2, "chance": 0.5},
 		{"item_id": "bone", "min_count": 1, "max_count": 2, "chance": 0.4},
-		{"item_id": "wolf_pelt", "min_count": 1, "max_count": 1, "chance": 0.3}
+		{"item_id": "wolf_pelt", "min_count": 1, "max_count": 1, "chance": 0.3},
+		{"item_id": "feather", "min_count": 1, "max_count": 3, "chance": 0.2}
 	]
 }

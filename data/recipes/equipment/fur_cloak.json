@@ -1,0 +1,13 @@
+{
+  "id": "fur_cloak",
+  "result": "fur_cloak",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "wolf_pelt", "count": 2},
+    {"item": "cord", "count": 2}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Animal pelts stitched together provide excellent warmth"
+}

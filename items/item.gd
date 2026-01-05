@@ -62,6 +62,9 @@ var is_lit: bool = false            # True if the light source is currently lit 
 var key_id: String = ""             # For specific keys - matches a lock's lock_id
 var skeleton_key_level: int = 0     # For skeleton keys - can open locks at or below this level
 
+# Temperature properties (for armor/clothing)
+var warmth: float = 0.0             # Temperature modifier when equipped (positive = warmer, negative = cooler)
+
 # Inscription (player-added label)
 var inscription: String = ""        # Player-written inscription displayed in {curly braces}
 
@@ -147,6 +150,9 @@ static func create_from_data(data: Dictionary) -> Item:
 	item.key_id = data.get("key_id", "")
 	item.skeleton_key_level = data.get("skeleton_key_level", 0)
 
+	# Temperature properties
+	item.warmth = data.get("warmth", 0.0)
+
 	# Consumable effects
 	item.effects = data.get("effects", {})
 	
@@ -195,6 +201,7 @@ func duplicate_item() -> Item:
 	copy.is_lit = is_lit
 	copy.key_id = key_id
 	copy.skeleton_key_level = skeleton_key_level
+	copy.warmth = warmth
 	copy.inscription = inscription
 	copy.effects = effects.duplicate()
 	copy.transforms_into = transforms_into
@@ -397,6 +404,9 @@ func get_tooltip() -> String:
 			lines.append("Damage: +%d" % damage_bonus)
 		if armor_value > 0:
 			lines.append("Armor: %d" % armor_value)
+		if warmth != 0.0:
+			var warmth_text = "%+.0f°F" % warmth
+			lines.append("Warmth: %s" % warmth_text)
 	
 	if tool_type != "":
 		lines.append("Tool type: %s" % tool_type.capitalize())

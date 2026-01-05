@@ -1,0 +1,13 @@
+{
+  "id": "leather_boots",
+  "result": "leather_boots",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "leather", "count": 2},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Leather shaped and stitched together protects the feet"
+}

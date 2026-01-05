@@ -1,0 +1,34 @@
+{
+  "template_id": "spear",
+  "display_name": "Spear",
+  "description_base": "A long-shafted weapon with a pointed tip.",
+  "category": "weapon",
+  "subtype": "spear",
+  "base_properties": {
+    "ascii_char": "/",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false,
+      "two_handed": false,
+      "throwable": true
+    },
+    "attack_type": "melee",
+    "attack_range": 2,
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 1.5,
+    "value": 25,
+    "durability": 80,
+    "damage_bonus": 5,
+    "recovery_chance": 0.7
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

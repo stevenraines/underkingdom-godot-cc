@@ -1,0 +1,12 @@
+{
+  "id": "charcoal",
+  "result": "charcoal",
+  "result_count": 3,
+  "ingredients": [
+    {"item": "wood", "count": 2}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 1,
+  "discovery_hint": "Wood burned slowly becomes useful fuel for smithing"
+}

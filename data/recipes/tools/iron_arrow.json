@@ -1,0 +1,14 @@
+{
+  "id": "iron_arrow",
+  "result": "iron_arrow",
+  "result_count": 5,
+  "ingredients": [
+    {"item": "wood", "count": 1},
+    {"item": "feather", "count": 2},
+    {"item": "iron_ingot", "count": 1}
+  ],
+  "tool_required": "hammer",
+  "fire_required": true,
+  "difficulty": 2,
+  "discovery_hint": "Iron arrowheads are deadlier than stone"
+}

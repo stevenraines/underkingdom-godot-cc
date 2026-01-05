@@ -1,0 +1,18 @@
+{
+  "id": "steel_ingot",
+  "name": "Steel Ingot",
+  "description": "A refined bar of steel. Used for high-quality metalworking.",
+  "category": "material",
+  "subtype": "metal",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 1.5,
+  "value": 25,
+  "max_stack": 10,
+  "ascii_char": "■",
+  "ascii_color": "#708090"
+}

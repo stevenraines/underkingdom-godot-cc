@@ -1,0 +1,22 @@
+{
+	"id": "shop_blacksmith",
+	"name": "Blacksmith Stock",
+	"description": "Weapons and armor sold at blacksmiths",
+	"drops": [
+		{"item_id": "iron_sword", "min_count": 1, "max_count": 2, "chance": 0.8},
+		{"item_id": "iron_knife", "min_count": 1, "max_count": 3, "chance": 0.9},
+		{"item_id": "leather_armor", "min_count": 1, "max_count": 2, "chance": 0.7},
+		{"item_id": "leather_boots", "min_count": 1, "max_count": 2, "chance": 0.7},
+		{"item_id": "leather_cap", "min_count": 1, "max_count": 2, "chance": 0.6},
+		{"item_id": "leather_gloves", "min_count": 1, "max_count": 2, "chance": 0.6},
+		{"item_id": "leather_pants", "min_count": 1, "max_count": 2, "chance": 0.5},
+		{"item_id": "wooden_shield", "min_count": 1, "max_count": 2, "chance": 0.6},
+		{"item_id": "short_bow", "min_count": 1, "max_count": 1, "chance": 0.5},
+		{"item_id": "crossbow", "min_count": 1, "max_count": 1, "chance": 0.4},
+		{"item_id": "iron_arrow", "min_count": 15, "max_count": 30, "chance": 0.7},
+		{"item_id": "bolt", "min_count": 10, "max_count": 20, "chance": 0.6},
+		{"item_id": "iron_ingot", "min_count": 2, "max_count": 5, "chance": 0.4},
+		{"item_id": "steel_ingot", "min_count": 1, "max_count": 2, "chance": 0.2},
+		{"item_id": "hammer", "min_count": 1, "max_count": 1, "chance": 0.5}
+	]
+}

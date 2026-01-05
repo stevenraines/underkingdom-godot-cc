@@ -1,0 +1,13 @@
+{
+  "id": "leather_gloves",
+  "result": "leather_gloves",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "leather", "count": 1},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 2,
+  "discovery_hint": "Leather gloves protect hands during work and combat"
+}

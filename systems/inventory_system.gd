@@ -362,6 +362,16 @@ func get_total_armor() -> int:
 			total += item.armor_value
 	return total
 
+## Get total warmth bonus from all equipped items
+## Returns the sum of warmth values (positive = warmer, negative = cooler)
+func get_total_warmth() -> float:
+	var total: float = 0.0
+	for slot in equipment:
+		var item = equipment[slot]
+		if item:
+			total += item.warmth
+	return total
+
 ## Get light radius from equipped light sources
 ## Returns 0 if no light source equipped or if the light source is not lit
 func get_equipped_light_radius() -> int:

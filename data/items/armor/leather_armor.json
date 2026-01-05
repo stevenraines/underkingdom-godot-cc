@@ -17,5 +17,6 @@
   "ascii_color": "#8B4513",
   "durability": 100,
   "equip_slots": ["torso"],
-  "armor_value": 3
+  "armor_value": 3,
+  "warmth": 8
 }

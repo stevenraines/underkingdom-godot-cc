@@ -1,0 +1,18 @@
+{
+  "id": "iron_ingot",
+  "name": "Iron Ingot",
+  "description": "A refined bar of iron. Used for metalworking.",
+  "category": "material",
+  "subtype": "metal",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 1.0,
+  "value": 15,
+  "max_stack": 10,
+  "ascii_char": "■",
+  "ascii_color": "#A19D94"
+}

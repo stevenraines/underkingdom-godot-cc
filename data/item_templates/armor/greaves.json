@@ -1,12 +1,12 @@
 {
-  "template_id": "chest_armor",
-  "display_name": "Armor",
-  "description_base": "Body armor that provides protection.",
+  "template_id": "greaves",
+  "display_name": "Greaves",
+  "description_base": "Leg armor providing protection.",
   "category": "armor",
-  "subtype": "body",
+  "subtype": "greaves",
   "base_properties": {
     "ascii_char": "[",
-    "equip_slots": ["torso"],
+    "equip_slots": ["legs"],
     "flags": {
       "equippable": true,
       "consumable": false,
@@ -16,11 +16,11 @@
     "max_stack": 1
   },
   "base_stats": {
-    "weight": 5.0,
-    "value": 50,
-    "durability": 100,
-    "armor_value": 4,
-    "warmth": 8
+    "weight": 2.0,
+    "value": 30,
+    "durability": 80,
+    "armor_value": 2,
+    "warmth": 4
   },
   "applicable_variants": ["material_armor", "quality", "origin"],
   "default_variants": {

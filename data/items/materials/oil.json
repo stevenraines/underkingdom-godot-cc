@@ -1,0 +1,18 @@
+{
+  "id": "oil",
+  "name": "Oil",
+  "description": "A flask of lamp oil. Used for lanterns and fire.",
+  "category": "material",
+  "subtype": "fuel",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.5,
+  "value": 5,
+  "max_stack": 10,
+  "ascii_char": "o",
+  "ascii_color": "#4A4A00"
+}

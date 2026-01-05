@@ -1,0 +1,21 @@
+{
+  "id": "healing_potion",
+  "name": "Healing Potion",
+  "description": "A red potion that restores health when consumed.",
+  "category": "consumable",
+  "subtype": "potion",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.3,
+  "value": 50,
+  "max_stack": 5,
+  "ascii_char": "!",
+  "ascii_color": "#FF4444",
+  "effects": {
+    "health": 30
+  }
+}

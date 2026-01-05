@@ -1,0 +1,23 @@
+{
+	"id": "shop_general",
+	"name": "General Store Stock",
+	"description": "Common items sold at general stores",
+	"drops": [
+		{"item_id": "torch", "min_count": 3, "max_count": 5, "chance": 1.0},
+		{"item_id": "ration", "min_count": 5, "max_count": 10, "chance": 1.0},
+		{"item_id": "waterskin_full", "min_count": 2, "max_count": 4, "chance": 0.9},
+		{"item_id": "bandage", "min_count": 3, "max_count": 6, "chance": 0.9},
+		{"item_id": "rope", "min_count": 1, "max_count": 3, "chance": 0.7},
+		{"item_id": "lantern", "min_count": 1, "max_count": 2, "chance": 0.5},
+		{"item_id": "oil", "min_count": 3, "max_count": 6, "chance": 0.7},
+		{"item_id": "healing_potion", "min_count": 1, "max_count": 3, "chance": 0.4},
+		{"item_id": "antidote", "min_count": 1, "max_count": 2, "chance": 0.3},
+		{"item_id": "stamina_potion", "min_count": 1, "max_count": 2, "chance": 0.35},
+		{"item_id": "bread", "min_count": 3, "max_count": 8, "chance": 0.8},
+		{"item_id": "cheese", "min_count": 2, "max_count": 5, "chance": 0.6},
+		{"item_id": "ale", "min_count": 2, "max_count": 6, "chance": 0.5},
+		{"item_id": "arrow", "min_count": 10, "max_count": 20, "chance": 0.6},
+		{"item_id": "bolt", "min_count": 10, "max_count": 15, "chance": 0.5},
+		{"item_id": "cloak", "min_count": 1, "max_count": 2, "chance": 0.4}
+	]
+}

@@ -1,0 +1,30 @@
+{
+  "template_id": "mace",
+  "display_name": "Mace",
+  "description_base": "A heavy bludgeoning weapon effective against armored foes.",
+  "category": "weapon",
+  "subtype": "mace",
+  "base_properties": {
+    "ascii_char": "!",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 2.0,
+    "value": 35,
+    "durability": 120,
+    "damage_bonus": 5
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

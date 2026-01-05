@@ -1,0 +1,18 @@
+{
+  "id": "charcoal",
+  "name": "Charcoal",
+  "description": "Burned wood used as fuel for smithing and crafting.",
+  "category": "material",
+  "subtype": "fuel",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.2,
+  "value": 2,
+  "max_stack": 20,
+  "ascii_char": "•",
+  "ascii_color": "#333333"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "leather_cap",
+  "result": "leather_cap",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "leather", "count": 1},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "knife",
+  "fire_required": false,
+  "difficulty": 1,
+  "discovery_hint": "A leather cap provides basic head protection"
+}

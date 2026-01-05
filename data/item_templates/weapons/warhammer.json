@@ -1,0 +1,31 @@
+{
+  "template_id": "warhammer",
+  "display_name": "Warhammer",
+  "description_base": "A massive two-handed hammer for devastating blows.",
+  "category": "weapon",
+  "subtype": "warhammer",
+  "base_properties": {
+    "ascii_char": "T",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false,
+      "two_handed": true
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 4.5,
+    "value": 60,
+    "durability": 150,
+    "damage_bonus": 9
+  },
+  "applicable_variants": ["material", "quality", "origin"],
+  "default_variants": {
+    "material": "iron"
+  },
+  "required_variants": ["material"]
+}

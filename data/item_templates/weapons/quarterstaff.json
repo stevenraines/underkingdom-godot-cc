@@ -1,0 +1,29 @@
+{
+  "template_id": "quarterstaff",
+  "display_name": "Quarterstaff",
+  "description_base": "A simple but effective wooden staff.",
+  "category": "weapon",
+  "subtype": "staff",
+  "base_properties": {
+    "ascii_char": "|",
+    "equip_slots": ["main_hand"],
+    "flags": {
+      "equippable": true,
+      "consumable": false,
+      "craftable": true,
+      "tool": false,
+      "two_handed": true
+    },
+    "attack_type": "melee",
+    "max_stack": 1
+  },
+  "base_stats": {
+    "weight": 1.8,
+    "value": 5,
+    "durability": 60,
+    "damage_bonus": 4
+  },
+  "applicable_variants": ["quality"],
+  "default_variants": {},
+  "required_variants": []
+}

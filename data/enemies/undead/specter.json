@@ -1,0 +1,31 @@
+{
+  "id": "specter",
+  "name": "Specter",
+  "description": "A hateful spirit bound to the place of its death, draining life essence.",
+  "cr": 1,
+  "ascii_char": "p",
+  "ascii_color": "#4682B4",
+  "stats": {
+    "health": 22,
+    "str": 1,
+    "dex": 14,
+    "con": 11,
+    "int": 10,
+    "wis": 10,
+    "cha": 11
+  },
+  "yields": [
+    {"item_id": "ectoplasm", "min_count": 1, "max_count": 2, "chance": 0.7}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 5,
+  "armor": 0,
+  "loot_table": "undead_common",
+  "xp_value": 40,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["burial_barrow", "temple_ruins", "wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 90,
+  "min_spawn_level": 4,
+  "max_spawn_level": 20
+}

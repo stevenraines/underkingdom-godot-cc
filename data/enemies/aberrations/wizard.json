@@ -1,0 +1,33 @@
+{
+  "id": "wizard",
+  "name": "Wizard",
+  "description": "A spellcaster of formidable power who wields arcane magic.",
+  "cr": 6,
+  "ascii_char": "W",
+  "ascii_color": "#8A2BE2",
+  "stats": {
+    "health": 35,
+    "str": 8,
+    "dex": 12,
+    "con": 10,
+    "int": 20,
+    "wis": 16,
+    "cha": 14
+  },
+  "yields": [
+    {"item_id": "spell_scroll", "min_count": 1, "max_count": 2, "chance": 0.7},
+    {"item_id": "wizard_staff", "min_count": 1, "max_count": 1, "chance": 0.3},
+    {"item_id": "magic_robe", "min_count": 1, "max_count": 1, "chance": 0.4}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 8,
+  "armor": 1,
+  "loot_table": "wizard_rare",
+  "xp_value": 100,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 200,
+  "min_spawn_level": 10,
+  "max_spawn_level": 30
+}

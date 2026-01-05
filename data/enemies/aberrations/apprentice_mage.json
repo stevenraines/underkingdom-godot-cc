@@ -1,0 +1,34 @@
+{
+  "id": "apprentice_mage",
+  "name": "Apprentice Mage",
+  "description": "A young spellcaster still learning the arcane arts, but dangerous nonetheless.",
+  "cr": 0.5,
+  "ascii_char": "m",
+  "ascii_color": "#9932CC",
+  "stats": {
+    "health": 15,
+    "str": 8,
+    "dex": 12,
+    "con": 10,
+    "int": 14,
+    "wis": 12,
+    "cha": 10
+  },
+  "yields": [
+    {"item_id": "spell_scroll", "min_count": 1, "max_count": 1, "chance": 0.4},
+    {"item_id": "arcane_dust", "min_count": 1, "max_count": 2, "chance": 0.7}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 4,
+  "armor": 0,
+  "attack_type": "ranged",
+  "attack_range": 4,
+  "loot_table": "magic_common",
+  "xp_value": 25,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 90,
+  "min_spawn_level": 1,
+  "max_spawn_level": 10
+}

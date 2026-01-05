@@ -1,0 +1,33 @@
+{
+  "id": "cult_fanatic",
+  "name": "Cult Fanatic",
+  "description": "A zealous follower who has gained dark magical powers through devotion.",
+  "cr": 2,
+  "ascii_char": "C",
+  "ascii_color": "#800000",
+  "stats": {
+    "health": 33,
+    "str": 11,
+    "dex": 14,
+    "con": 12,
+    "int": 10,
+    "wis": 13,
+    "cha": 14
+  },
+  "yields": [
+    {"item_id": "cultist_robe", "min_count": 1, "max_count": 1, "chance": 0.5},
+    {"item_id": "dark_tome", "min_count": 1, "max_count": 1, "chance": 0.2},
+    {"item_id": "gold_coins", "min_count": 10, "max_count": 30, "chance": 0.6}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 6,
+  "armor": 1,
+  "loot_table": "cultist_rare",
+  "xp_value": 60,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["temple_ruins"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 130,
+  "min_spawn_level": 5,
+  "max_spawn_level": 20
+}

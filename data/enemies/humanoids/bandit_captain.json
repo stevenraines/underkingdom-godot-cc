@@ -1,0 +1,33 @@
+{
+  "id": "bandit_captain",
+  "name": "Bandit Captain",
+  "description": "A cunning leader of outlaws, skilled in combat and command.",
+  "cr": 2,
+  "ascii_char": "H",
+  "ascii_color": "#8B0000",
+  "stats": {
+    "health": 65,
+    "str": 15,
+    "dex": 16,
+    "con": 14,
+    "int": 14,
+    "wis": 11,
+    "cha": 14
+  },
+  "yields": [
+    {"item_id": "gold_coins", "min_count": 20, "max_count": 60, "chance": 0.9},
+    {"item_id": "steel_sword", "min_count": 1, "max_count": 1, "chance": 0.4},
+    {"item_id": "leather_armor", "min_count": 1, "max_count": 1, "chance": 0.3}
+  ],
+  "behavior": "pack",
+  "base_damage": 8,
+  "armor": 3,
+  "loot_table": "bandit_rare",
+  "xp_value": 75,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["ancient_fort"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 160,
+  "min_spawn_level": 5,
+  "max_spawn_level": 20
+}

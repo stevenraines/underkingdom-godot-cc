@@ -1,0 +1,32 @@
+{
+  "id": "rogue_spell",
+  "name": "Rogue Spell",
+  "description": "A spell that has broken free from its caster's control.",
+  "cr": 1,
+  "ascii_char": "*",
+  "ascii_color": "#00BFFF",
+  "stats": {
+    "health": 15,
+    "str": 4,
+    "dex": 18,
+    "con": 8,
+    "int": 16,
+    "wis": 12,
+    "cha": 8
+  },
+  "yields": [
+    {"item_id": "spell_fragment", "min_count": 1, "max_count": 2, "chance": 0.7},
+    {"item_id": "mana_crystal", "min_count": 1, "max_count": 1, "chance": 0.4}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 6,
+  "armor": 0,
+  "loot_table": "magic_common",
+  "xp_value": 30,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 90,
+  "min_spawn_level": 1,
+  "max_spawn_level": 25
+}

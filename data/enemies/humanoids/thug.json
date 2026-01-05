@@ -1,0 +1,32 @@
+{
+  "id": "thug",
+  "name": "Thug",
+  "description": "A common street tough who relies on intimidation and brute force.",
+  "cr": 0.5,
+  "ascii_char": "h",
+  "ascii_color": "#696969",
+  "stats": {
+    "health": 32,
+    "str": 15,
+    "dex": 11,
+    "con": 14,
+    "int": 10,
+    "wis": 10,
+    "cha": 11
+  },
+  "yields": [
+    {"item_id": "gold_coins", "min_count": 3, "max_count": 12, "chance": 0.7},
+    {"item_id": "club", "min_count": 1, "max_count": 1, "chance": 0.4}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 5,
+  "armor": 1,
+  "loot_table": "thief_common",
+  "xp_value": 25,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["sewers"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 80,
+  "min_spawn_level": 1,
+  "max_spawn_level": 10
+}

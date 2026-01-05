@@ -1,0 +1,31 @@
+{
+  "id": "flying_sword",
+  "name": "Flying Sword",
+  "description": "A sword enchanted to fight on its own, darting through the air with deadly precision.",
+  "cr": 0.25,
+  "ascii_char": "/",
+  "ascii_color": "#C0C0C0",
+  "stats": {
+    "health": 17,
+    "str": 12,
+    "dex": 15,
+    "con": 11,
+    "int": 1,
+    "wis": 5,
+    "cha": 1
+  },
+  "yields": [
+    {"item_id": "iron_ore", "min_count": 1, "max_count": 2, "chance": 0.8}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 5,
+  "armor": 3,
+  "loot_table": "construct_common",
+  "xp_value": 20,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 80,
+  "min_spawn_level": 1,
+  "max_spawn_level": 10
+}

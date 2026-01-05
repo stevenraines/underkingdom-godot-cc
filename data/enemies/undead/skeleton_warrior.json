@@ -1,0 +1,32 @@
+{
+  "id": "skeleton_warrior",
+  "name": "Skeleton Warrior",
+  "description": "A heavily armored skeleton that retains combat training from its former life.",
+  "cr": 0.5,
+  "ascii_char": "S",
+  "ascii_color": "#C0C0C0",
+  "stats": {
+    "health": 20,
+    "str": 14,
+    "dex": 12,
+    "con": 12,
+    "int": 4,
+    "wis": 8,
+    "cha": 4
+  },
+  "yields": [
+    {"item_id": "bone", "min_count": 2, "max_count": 4, "chance": 0.9},
+    {"item_id": "rusty_sword", "min_count": 1, "max_count": 1, "chance": 0.3}
+  ],
+  "behavior": "guardian",
+  "base_damage": 6,
+  "armor": 3,
+  "loot_table": "undead_common",
+  "xp_value": 35,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["burial_barrow", "military_compound"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 110,
+  "min_spawn_level": 3,
+  "max_spawn_level": 20
+}

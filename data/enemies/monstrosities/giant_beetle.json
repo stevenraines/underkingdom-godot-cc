@@ -1,0 +1,31 @@
+{
+  "id": "giant_beetle",
+  "name": "Giant Beetle",
+  "description": "An oversized beetle with a tough carapace.",
+  "cr": 0.5,
+  "ascii_char": "b",
+  "ascii_color": "#2F4F4F",
+  "stats": {
+    "health": 22,
+    "str": 12,
+    "dex": 10,
+    "con": 14,
+    "int": 1,
+    "wis": 6,
+    "cha": 2
+  },
+  "yields": [
+    {"item_id": "chitin", "min_count": 1, "max_count": 3, "chance": 0.7}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 5,
+  "armor": 4,
+  "loot_table": "insect_common",
+  "xp_value": 30,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["natural_cave", "abandoned_mine", "sewers"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 120,
+  "min_spawn_level": 5,
+  "max_spawn_level": 40
+}

@@ -1,0 +1,33 @@
+{
+  "id": "grave_rat",
+  "name": "Grave Rat",
+  "description": "A foul rat that feeds on corpses in burial sites.",
+  "cr": 0.125,
+  "ascii_char": "r",
+  "ascii_color": "#8B4513",
+  "stats": {
+    "health": 8,
+    "str": 4,
+    "dex": 12,
+    "con": 6,
+    "int": 2,
+    "wis": 8,
+    "cha": 3
+  },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 0, "max_count": 1}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 2,
+  "armor": 0,
+  "feared_components": ["fire"],
+  "fear_distance": 3,
+  "loot_table": "rat_common",
+  "xp_value": 5,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["burial_barrow"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 50,
+  "min_spawn_level": 1,
+  "max_spawn_level": 15
+}

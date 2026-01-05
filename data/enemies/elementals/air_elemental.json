@@ -1,0 +1,31 @@
+{
+  "id": "air_elemental",
+  "name": "Air Elemental",
+  "description": "A whirling vortex of wind given form, summoned from the elemental plane of air.",
+  "cr": 5,
+  "ascii_char": "A",
+  "ascii_color": "#87CEEB",
+  "stats": {
+    "health": 32,
+    "str": 14,
+    "dex": 20,
+    "con": 14,
+    "int": 6,
+    "wis": 10,
+    "cha": 6
+  },
+  "yields": [
+    {"item_id": "air_essence", "min_count": 1, "max_count": 2, "chance": 0.7}
+  ],
+  "behavior": "aggressive",
+  "base_damage": 9,
+  "armor": 1,
+  "loot_table": "elemental_common",
+  "xp_value": 90,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["wizard_tower"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 160,
+  "min_spawn_level": 8,
+  "max_spawn_level": 50
+}

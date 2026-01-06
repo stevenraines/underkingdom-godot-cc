@@ -291,12 +291,17 @@ func spawn_npc(spawn_data: Dictionary):
 		# Load dialogue from definition
 		npc.dialogue = npc_def.get("dialogue", {}).duplicate()
 
-		# Load trade inventory from definition for shop NPCs
-		if npc.npc_type == "shop":
-			var trade_inv = npc_def.get("trade_inventory", [])
-			npc.trade_inventory = []
-			for item_data in trade_inv:
-				npc.trade_inventory.append(item_data.duplicate())
+		# Load trade inventory from definition (for any NPC that can trade)
+		var trade_inv = npc_def.get("trade_inventory", [])
+		npc.trade_inventory = []
+		for item_data in trade_inv:
+			npc.trade_inventory.append(item_data.duplicate())
+
+		# Load recipes for sale from definition (for trainer NPCs)
+		var recipes = npc_def.get("recipes_for_sale", [])
+		npc.recipes_for_sale = []
+		for recipe_data in recipes:
+			npc.recipes_for_sale.append(recipe_data.duplicate())
 
 		print("[EntityManager] Spawned data-driven NPC: %s (%s) at %v" % [npc.name, npc_id, position])
 	else:

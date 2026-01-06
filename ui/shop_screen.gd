@@ -8,6 +8,7 @@ extends Control
 const ShopSystem = preload("res://systems/shop_system.gd")
 
 signal closed()
+signal switch_to_training(npc, player)  # Signal to switch to training screen
 
 @onready var shop_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/ShopPanel/ScrollContainer
 @onready var shop_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/ShopPanel/ScrollContainer/ShopList
@@ -18,6 +19,7 @@ signal closed()
 @onready var gold_label: Label = $Panel/MarginContainer/VBoxContainer/TitleContainer/GoldLabel
 @onready var buy_button: Button = $Panel/MarginContainer/VBoxContainer/ActionsContainer/BuyButton
 @onready var sell_button: Button = $Panel/MarginContainer/VBoxContainer/ActionsContainer/SellButton
+@onready var help_label: Label = $Panel/MarginContainer/VBoxContainer/HelpLabel
 
 var player: Player = null
 var shop_npc: NPC = null
@@ -76,6 +78,19 @@ func _input(event: InputEvent) -> void:
 			KEY_MINUS, KEY_KP_SUBTRACT:
 				_adjust_quantity(-1)
 				get_viewport().set_input_as_handled()
+			KEY_L:
+				# Switch to Learn Recipes if NPC has training
+				_switch_to_training()
+				get_viewport().set_input_as_handled()
+
+func _switch_to_training() -> void:
+	if shop_npc and shop_npc.recipes_for_sale.size() > 0:
+		hide()
+		get_tree().paused = false
+		switch_to_training.emit(shop_npc, player)
+
+func has_training_available() -> bool:
+	return shop_npc and shop_npc.recipes_for_sale.size() > 0
 
 func open(p_player: Player, p_shop_npc: NPC) -> void:
 	player = p_player
@@ -287,6 +302,12 @@ func _refresh_display() -> void:
 	# Update button states
 	buy_button.disabled = not is_shop_focused or shop_npc.trade_inventory.size() == 0
 	sell_button.disabled = is_shop_focused or player.inventory.items.size() == 0
+
+	# Update help label to show [L] Learn if training available
+	if has_training_available():
+		help_label.text = "[Tab] Switch  |  [+/-] Qty  |  [Enter] Buy  |  [S] Sell  |  [L] Learn  |  [Esc] Close"
+	else:
+		help_label.text = "[Tab] Switch  |  [+/-] Quantity  |  [Enter] Buy  |  [S] Sell  |  [Esc] Close"
 
 	# Scroll to selected item after the frame updates
 	_scroll_to_selected.call_deferred()

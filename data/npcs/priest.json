@@ -1,14 +1,27 @@
 {
   "id": "priest",
   "name": "Father Aldric",
-  "npc_type": "priest",
+  "npc_type": "trainer",
   "ascii_char": "@",
   "ascii_color": "#FFFFFF",
   "faction": "neutral",
   "gold": 100,
   "dialogue": {
     "greeting": "Blessings upon you, traveler. The light watches over all who seek refuge here.",
+    "training": "I can teach you the sacred art of healing. What would you like to learn?",
     "farewell": "May your path be lit with hope.",
     "no_gold": "The temple accepts all, rich or poor."
-  }
+  },
+  "trade_inventory": [
+    {"item_id": "herb", "count": 10, "base_price": 3},
+    {"item_id": "healing_herb", "count": 5, "base_price": 8},
+    {"item_id": "healing_salve", "count": 3, "base_price": 15},
+    {"item_id": "bandage", "count": 5, "base_price": 10}
+  ],
+  "recipes_for_sale": [
+    {"recipe_id": "healing_potion", "base_price": 100},
+    {"recipe_id": "healing_salve", "base_price": 20},
+    {"recipe_id": "herbal_infusion", "base_price": 30},
+    {"recipe_id": "bandage", "base_price": 1}
+  ]
 }

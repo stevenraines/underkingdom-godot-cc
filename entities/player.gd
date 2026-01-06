@@ -273,7 +273,7 @@ func _collect_feature_loot(items: Array) -> void:
 		var item_id = item_data.get("item_id", "")
 		var count = item_data.get("count", 1)
 
-		if item_id == "gold_coins":
+		if item_id == "gold_coin":
 			gold += count
 			EventBus.message_logged.emit("Found %d gold!" % count)
 		else:

@@ -15,7 +15,7 @@
     "cha": 14
   },
   "yields": [
-    {"item_id": "gold_coins", "min_count": 20, "max_count": 60, "chance": 0.9},
+    {"item_id": "gold_coin", "min_count": 20, "max_count": 60, "chance": 0.9},
     {"item_id": "steel_sword", "min_count": 1, "max_count": 1, "chance": 0.4},
     {"item_id": "leather_armor", "min_count": 1, "max_count": 1, "chance": 0.3}
   ],

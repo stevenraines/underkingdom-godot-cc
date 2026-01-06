@@ -187,13 +187,13 @@ func _generate_feature_loot(config: Dictionary, rng: SeededRandom) -> Array:
 	# Simple loot generation (can be expanded later)
 	if loot_table == "ancient_treasure":
 		# Ancient treasure always has gold
-		loot.append({"item_id": "gold_coins", "count": rng.randi_range(15, 60)})
+		loot.append({"item_id": "gold_coin", "count": rng.randi_range(15, 60)})
 		# Chance for additional rare items
 		if rng.randf() < 0.3:
 			loot.append({"item_id": "ancient_artifact", "count": 1})
 	else:
 		# Default loot - always give something
-		loot.append({"item_id": "gold_coins", "count": rng.randi_range(5, 25)})
+		loot.append({"item_id": "gold_coin", "count": rng.randi_range(5, 25)})
 
 	return loot
 

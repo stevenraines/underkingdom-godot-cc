@@ -15,7 +15,7 @@
     "cha": 8
   },
   "yields": [
-    {"item_id": "gold_coins", "min_count": 5, "max_count": 20, "chance": 0.8},
+    {"item_id": "gold_coin", "min_count": 5, "max_count": 20, "chance": 0.8},
     {"item_id": "torch", "min_count": 1, "max_count": 2, "chance": 0.5},
     {"item_id": "lockpick", "min_count": 1, "max_count": 1, "chance": 0.3}
   ],

@@ -14,6 +14,7 @@ const InscriptionDialogScene = preload("res://ui/inscription_dialog.tscn")
 @onready var inventory_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer/InventoryList
 @onready var inventory_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer
 @onready var weight_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/WeightLabel
+@onready var warmth_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/WarmthLabel
 @onready var encumbrance_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/EncumbranceLabel
 @onready var equipment_title: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentTitle
 @onready var inventory_title: Label = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/InventoryTitle
@@ -167,13 +168,24 @@ func refresh() -> void:
 func _update_weight_display() -> void:
 	if not player or not player.inventory:
 		return
-	
+
 	var inv = player.inventory
 	var current_weight = inv.get_total_weight()
 	var max_weight = inv.max_weight
-	
+
 	weight_label.text = "Weight: %.1f / %.1f kg" % [current_weight, max_weight]
-	
+
+	# Update warmth display
+	var total_warmth = inv.get_total_warmth()
+	if warmth_label:
+		warmth_label.text = "Warmth: %+.0f°F" % total_warmth
+		if total_warmth > 0:
+			warmth_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4))  # Warm orange
+		elif total_warmth < 0:
+			warmth_label.add_theme_color_override("font_color", Color(0.5, 0.7, 1.0))  # Cool blue
+		else:
+			warmth_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))  # Neutral gray
+
 	var penalty = inv.get_encumbrance_penalty()
 	match penalty.state:
 		"normal":
@@ -446,7 +458,10 @@ func _populate_item_tooltip(item: Item) -> void:
 			if item.is_two_handed():
 				stats.append("◊ Two-Handed")
 		"armor":
-			stats.append("◈ Armor: %d" % item.armor_value)
+			if item.armor_value > 0:
+				stats.append("◈ Armor: %d" % item.armor_value)
+			if item.warmth != 0.0:
+				stats.append("☀ Warmth: %+.0f°F" % item.warmth)
 		"tool":
 			if item.tool_type != "":
 				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
@@ -481,6 +496,17 @@ func _populate_item_tooltip(item: Item) -> void:
 	stat_line_1.add_theme_color_override("font_color", stat_color)
 	stat_line_2.add_theme_color_override("font_color", stat_color)
 	stat_line_3.add_theme_color_override("font_color", stat_color)
+
+	# Apply warmth-specific coloring (orange for positive, blue for negative)
+	if item.item_type == "armor" and item.warmth != 0.0:
+		var warmth_color = Color(1.0, 0.7, 0.4) if item.warmth > 0 else Color(0.5, 0.7, 1.0)
+		# Find which stat line has the warmth text and recolor it
+		if stat_line_1.text.contains("Warmth"):
+			stat_line_1.add_theme_color_override("font_color", warmth_color)
+		elif stat_line_2.text.contains("Warmth"):
+			stat_line_2.add_theme_color_override("font_color", warmth_color)
+		elif stat_line_3.text.contains("Warmth"):
+			stat_line_3.add_theme_color_override("font_color", warmth_color)
 
 	# Value column
 	weight_line.text = "%.1f kg" % item.weight

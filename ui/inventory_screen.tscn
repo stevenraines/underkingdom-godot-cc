@@ -86,6 +86,14 @@ theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 14
 text = "Weight: 0.0 / 45.0 kg"
 
+[node name="WarmthLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/HeaderPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Warmth: +0°F"
+horizontal_alignment = 1
+
 [node name="EncumbranceLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/HeaderPanel"]
 layout_mode = 2
 size_flags_horizontal = 3

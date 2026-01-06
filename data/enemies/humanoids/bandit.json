@@ -15,8 +15,8 @@
     "cha": 8
   },
   "yields": [
-    {"item_id": "gold_coins", "min_count": 5, "max_count": 15, "chance": 0.8},
-    {"item_id": "leather_armor", "min_count": 1, "max_count": 1, "chance": 0.2}
+    {"item_id": "gold_coins", "min_count": 5, "max_count": 15, "chance": 1.0},
+    {"item_id": "leather_armor", "min_count": 1, "max_count": 1, "chance": 0.7}
   ],
   "behavior": "aggressive",
   "base_damage": 5,

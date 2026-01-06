@@ -1,0 +1,22 @@
+{
+  "id": "breeches",
+  "name": "Breeches",
+  "description": "Simple cloth pants.",
+  "category": "armor",
+  "subtype": "legs",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.3,
+  "value": 2,
+  "max_stack": 1,
+  "ascii_char": ")",
+  "ascii_color": "#8B7355",
+  "durability": 30,
+  "equip_slots": ["legs"],
+  "armor_value": 0,
+  "warmth": 0
+}

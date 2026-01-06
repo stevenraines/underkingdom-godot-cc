@@ -19,3 +19,7 @@ var hp_restore_amount: int = 1  # Amount of HP restored per interval
 func is_sheltered(shelter_pos: Vector2i, target_pos: Vector2i) -> bool:
 	var distance = abs(target_pos.x - shelter_pos.x) + abs(target_pos.y - shelter_pos.y)
 	return distance <= shelter_radius
+
+## Check if player is on the same tile as the shelter (required for HP restoration)
+func is_inside_shelter(shelter_pos: Vector2i, target_pos: Vector2i) -> bool:
+	return shelter_pos == target_pos

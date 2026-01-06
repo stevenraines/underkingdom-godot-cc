@@ -1,0 +1,22 @@
+{
+  "id": "cloth_boots",
+  "name": "Cloth Boots",
+  "description": "Simple cloth foot wrappings.",
+  "category": "armor",
+  "subtype": "feet",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": false,
+    "tool": false
+  },
+  "weight": 0.2,
+  "value": 1,
+  "max_stack": 1,
+  "ascii_char": "b",
+  "ascii_color": "#8B7355",
+  "durability": 20,
+  "equip_slots": ["feet"],
+  "armor_value": 0,
+  "warmth": 0
+}

@@ -1768,6 +1768,24 @@ func _get_visible_objects() -> Array:
 						"description": description
 					})
 
+	# Add visible structures (forge, anvil, campfire, etc.)
+	var current_map_id = map.map_id if map else ""
+	if current_map_id != "":
+		var structures = StructureManager.get_structures_on_map(current_map_id)
+		for structure in structures:
+			var distance = RangedCombatSystemClass.get_tile_distance(player.position, structure.position)
+			if distance > player.perception_range:
+				continue
+			if not FogOfWarSystemClass.is_visible(structure.position):
+				continue
+			objects.append({
+				"object": structure,
+				"position": structure.position,
+				"type": "structure",
+				"name": structure.name,
+				"description": _get_structure_description(structure)
+			})
+
 	# Sort by distance (closest first)
 	objects.sort_custom(func(a, b):
 		var dist_a = RangedCombatSystemClass.get_tile_distance(player.position, a.position)
@@ -1881,6 +1899,38 @@ func _get_resource_description(resource: HarvestSystemClass.HarvestableResource)
 		return "Requires: %s" % ", ".join(tool_names)
 	else:
 		return "Can be harvested by hand."
+
+
+## Get description for a structure
+func _get_structure_description(structure) -> String:
+	var parts: Array[String] = []
+
+	# Check for workstation component
+	if structure.has_component("workstation"):
+		var ws = structure.get_component("workstation")
+		if ws.required_tool != "":
+			parts.append("Workstation (requires %s)" % ws.required_tool)
+		else:
+			parts.append("Workstation")
+
+	# Check for fire component
+	if structure.has_component("fire"):
+		var fire = structure.get_component("fire")
+		parts.append("Provides heat (radius %d)" % fire.heat_radius)
+
+	# Check for shelter component
+	if structure.has_component("shelter"):
+		parts.append("Provides shelter from weather")
+
+	# Check for container component
+	if structure.has_component("container"):
+		var container = structure.get_component("container")
+		parts.append("Storage (%d slots)" % container.max_slots)
+
+	if parts.is_empty():
+		return "A placed structure."
+
+	return ". ".join(parts) + "."
 
 
 ## Check if look mode is active

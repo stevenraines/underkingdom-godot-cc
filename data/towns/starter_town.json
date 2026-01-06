@@ -2,7 +2,7 @@
   "id": "starter_town",
   "name": "Thornhaven",
   "description": "A small trading settlement where travelers rest before venturing into the wilds.",
-  "size": [20, 20],
+  "size": [25, 25],
   "biome_preferences": ["grassland", "woodland"],
   "placement": "coastal",
   "is_safe_zone": true,
@@ -10,24 +10,30 @@
   "buildings": [
     {
       "building_id": "shop",
-      "position_offset": [-5, -5],
+      "position_offset": [-7, -7],
       "npc_id": "shop_keeper",
       "door_facing": "south"
     },
     {
+      "building_id": "blacksmith",
+      "position_offset": [5, -5],
+      "npc_id": "blacksmith",
+      "door_facing": "south"
+    },
+    {
       "building_id": "temple",
-      "position_offset": [5, 4],
+      "position_offset": [5, 6],
       "npc_id": "priest",
       "door_facing": "west"
     },
     {
       "building_id": "well",
-      "position_offset": [0, 6]
+      "position_offset": [0, 8]
     }
   ],
   "decorations": {
     "perimeter_trees": true,
-    "max_trees": 12
+    "max_trees": 16
   },
   "roads": {
     "internal_roads": true,

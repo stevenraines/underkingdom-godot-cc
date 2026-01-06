@@ -13,7 +13,8 @@ var result_item_id: String = ""             # Item ID to create
 var result_count: int = 1                   # How many items produced
 var ingredients: Array[Dictionary] = []     # [{item: String, count: int}]
 var tool_required: String = ""              # Tool type needed ("knife", "hammer", "")
-var fire_required: bool = false             # Must be near fire?
+var fire_required: bool = false             # Must be near fire? (legacy, use workstation_required: "forge" instead)
+var workstation_required: String = ""       # Workstation needed ("forge", "anvil", "")
 var difficulty: int = 1                     # Base difficulty (1-5)
 var discovery_hint: String = ""             # INT-based hint text
 
@@ -32,6 +33,7 @@ static func create_from_data(data: Dictionary) -> Recipe:
 	recipe.result_count = data.get("result_count", 1)
 	recipe.tool_required = data.get("tool_required", "")
 	recipe.fire_required = data.get("fire_required", false)
+	recipe.workstation_required = data.get("workstation_required", "")
 	recipe.difficulty = data.get("difficulty", 1)
 	recipe.discovery_hint = data.get("discovery_hint", "")
 
@@ -146,7 +148,8 @@ func _get_seeded_names_for_config(config: Dictionary, world_seed: int) -> Array[
 
 ## Check if player has all requirements to craft this recipe
 ## For seeded recipes, uses GameManager.world_seed
-func has_requirements(inventory: Inventory, near_fire: bool) -> bool:
+## workstation_info: Dictionary with "near_forge" and "near_anvil" bools, or null to skip workstation check
+func has_requirements(inventory: Inventory, near_fire: bool, workstation_info: Dictionary = {}) -> bool:
 	# Check regular ingredients
 	for ingredient in ingredients:
 		if not inventory.has_item(ingredient["item"], ingredient["count"]):
@@ -164,14 +167,26 @@ func has_requirements(inventory: Inventory, near_fire: bool) -> bool:
 	if tool_required != "" and not inventory.has_tool(tool_required):
 		return false
 
-	# Check fire requirement
+	# Check fire requirement (legacy - forge also provides fire)
 	if fire_required and not near_fire:
-		return false
+		# If we require fire and there's a forge nearby, that counts as fire
+		if not workstation_info.get("near_forge", false):
+			return false
+
+	# Check workstation requirement
+	if workstation_required != "":
+		match workstation_required:
+			"forge":
+				if not workstation_info.get("near_forge", false):
+					return false
+			"anvil":
+				if not workstation_info.get("near_anvil", false):
+					return false
 
 	return true
 
 ## Get list of missing requirements (for UI display)
-func get_missing_requirements(inventory: Inventory, near_fire: bool) -> Array[String]:
+func get_missing_requirements(inventory: Inventory, near_fire: bool, workstation_info: Dictionary = {}) -> Array[String]:
 	var missing: Array[String] = []
 
 	# Check regular ingredients
@@ -198,9 +213,20 @@ func get_missing_requirements(inventory: Inventory, near_fire: bool) -> Array[St
 	if tool_required != "" and not inventory.has_tool(tool_required):
 		missing.append("Tool: %s" % tool_required.capitalize())
 
-	# Check fire
+	# Check fire (legacy - forge also provides fire)
 	if fire_required and not near_fire:
-		missing.append("Fire source (within 3 tiles)")
+		if not workstation_info.get("near_forge", false):
+			missing.append("Fire source (within 3 tiles)")
+
+	# Check workstation
+	if workstation_required != "":
+		match workstation_required:
+			"forge":
+				if not workstation_info.get("near_forge", false):
+					missing.append("Forge (within 3 tiles)")
+			"anvil":
+				if not workstation_info.get("near_anvil", false):
+					missing.append("Anvil (within 3 tiles)")
 
 	return missing
 

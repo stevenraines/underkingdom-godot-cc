@@ -7,7 +7,7 @@ extends RefCounted
 
 ## Attempt to craft a recipe
 ## Returns: {success: bool, result_item: Item, message: String, recipe_learned: bool}
-static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool) -> Dictionary:
+static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, workstation_info: Dictionary = {}) -> Dictionary:
 	var result = {
 		"success": false,
 		"result_item": null,
@@ -20,9 +20,22 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool) -> Di
 		result.message = "You can't craft while enemies are nearby!"
 		return result
 
+	# Get workstation info if not provided
+	if workstation_info.is_empty() and MapManager.current_map:
+		workstation_info = StructureManager.get_workstation_info(
+			player.position, MapManager.current_map.map_id, player.inventory
+		)
+
+	# Check workstation tool requirements
+	if recipe.workstation_required != "":
+		var tool_check = _check_workstation_tool(recipe.workstation_required, workstation_info, player.inventory)
+		if not tool_check.ok:
+			result.message = tool_check.message
+			return result
+
 	# Check if has all ingredients
-	if not recipe.has_requirements(player.inventory, near_fire):
-		var missing = recipe.get_missing_requirements(player.inventory, near_fire)
+	if not recipe.has_requirements(player.inventory, near_fire, workstation_info):
+		var missing = recipe.get_missing_requirements(player.inventory, near_fire, workstation_info)
 		result.message = "Missing requirements: " + ", ".join(missing)
 		return result
 
@@ -49,6 +62,10 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool) -> Di
 			# Add to player inventory
 			player.inventory.add_item(result.result_item)
 
+			# Consume workstation tool durability
+			if recipe.workstation_required != "":
+				_consume_workstation_tool_durability(recipe.workstation_required, player.inventory)
+
 			# Learn recipe if not already known
 			if not player.knows_recipe(recipe.id):
 				player.learn_recipe(recipe.id)
@@ -73,7 +90,7 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool) -> Di
 
 ## Attempt to craft from ingredient selection (experimentation)
 ## Returns same dictionary as attempt_craft()
-static func attempt_experiment(player: Player, ingredient_ids: Array[String], near_fire: bool) -> Dictionary:
+static func attempt_experiment(player: Player, ingredient_ids: Array[String], near_fire: bool, workstation_info: Dictionary = {}) -> Dictionary:
 	var result = {
 		"success": false,
 		"result_item": null,
@@ -90,12 +107,18 @@ static func attempt_experiment(player: Player, ingredient_ids: Array[String], ne
 		result.message = "Select 2-4 ingredients to experiment"
 		return result
 
+	# Get workstation info if not provided
+	if workstation_info.is_empty() and MapManager.current_map:
+		workstation_info = StructureManager.get_workstation_info(
+			player.position, MapManager.current_map.map_id, player.inventory
+		)
+
 	# Find matching recipe
 	var recipe = RecipeManager.find_recipe_by_ingredients(ingredient_ids)
 
 	if recipe:
 		# Found a recipe! Attempt to craft it
-		var craft_result = attempt_craft(player, recipe, near_fire)
+		var craft_result = attempt_craft(player, recipe, near_fire, workstation_info)
 
 		# Add experiment-specific messaging
 		if craft_result.success:
@@ -201,3 +224,61 @@ static func is_near_fire(player_pos: Vector2i) -> bool:
 static func get_success_chance_string(difficulty: int, intelligence: int) -> String:
 	var chance = calculate_success_chance(difficulty, intelligence)
 	return "%d%%" % int(chance * 100)
+
+## Check if player has required tool for workstation
+## Returns: {ok: bool, message: String}
+static func _check_workstation_tool(workstation_type: String, workstation_info: Dictionary, _inventory: Inventory) -> Dictionary:
+	var result = {"ok": true, "message": ""}
+
+	match workstation_type:
+		"forge":
+			if not workstation_info.get("near_forge", false):
+				result.ok = false
+				result.message = "You need to be near a forge."
+			elif not workstation_info.get("forge_tool_ok", false):
+				var tool_name = workstation_info.get("forge_tool_required", "tongs")
+				result.ok = false
+				result.message = "You need %s to use the forge." % tool_name
+		"anvil":
+			if not workstation_info.get("near_anvil", false):
+				result.ok = false
+				result.message = "You need to be near an anvil."
+			elif not workstation_info.get("anvil_tool_ok", false):
+				var tool_name = workstation_info.get("anvil_tool_required", "hammer")
+				result.ok = false
+				result.message = "You need a %s to use the anvil." % tool_name
+
+	return result
+
+## Get workstation info for a position (convenience method)
+static func get_workstation_info(player_pos: Vector2i) -> Dictionary:
+	if not MapManager.current_map:
+		return {}
+	# Note: This requires player inventory which we don't have here
+	# Use StructureManager.get_workstation_info directly when you have the inventory
+	return StructureManager.get_workstation_info(player_pos, MapManager.current_map.map_id, null)
+
+## Consume workstation tool durability after successful craft
+static func _consume_workstation_tool_durability(workstation_type: String, inventory: Inventory) -> void:
+	var tool_type = ""
+	match workstation_type:
+		"forge":
+			tool_type = "tongs"
+		"anvil":
+			tool_type = "hammer"
+
+	if tool_type == "":
+		return
+
+	# Find the tool and reduce durability
+	for item in inventory.items:
+		if item.tool_type == tool_type:
+			if "durability" in item and item.durability > 0:
+				item.durability -= 1
+				if item.durability <= 0:
+					EventBus.message_log.emit("Your %s broke!" % item.name)
+					inventory.remove_item(item)
+				return
+			elif item.durability == -1:
+				# Infinite durability
+				return

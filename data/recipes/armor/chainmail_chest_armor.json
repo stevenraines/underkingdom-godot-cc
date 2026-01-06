@@ -1,0 +1,13 @@
+{
+  "id": "chainmail_chest_armor",
+  "result": "chainmail_chest_armor",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 4},
+    {"item": "cord", "count": 2}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 3,
+  "discovery_hint": "Linking iron rings at an anvil creates chainmail armor"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "iron_shield",
+  "name": "Iron Shield",
+  "description": "A sturdy shield reinforced with iron for better protection.",
+  "category": "armor",
+  "subtype": "shield",
+  "flags": {
+    "equippable": true,
+    "consumable": false,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 4.0,
+  "value": 45,
+  "max_stack": 1,
+  "ascii_char": ")",
+  "ascii_color": "#AAAAAA",
+  "durability": 120,
+  "equip_slots": ["off_hand"],
+  "armor_value": 4
+}

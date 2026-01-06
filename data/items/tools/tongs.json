@@ -1,0 +1,20 @@
+{
+  "id": "tongs",
+  "name": "Tongs",
+  "description": "Metal tongs for handling hot materials at the forge.",
+  "category": "tool",
+  "subtype": "tongs",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "tool": true
+  },
+  "weight": 0.5,
+  "value": 15,
+  "max_stack": 1,
+  "ascii_char": "(",
+  "ascii_color": "#8B8B8B",
+  "durability": 100,
+  "tool_type": "tongs"
+}

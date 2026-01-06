@@ -1,0 +1,13 @@
+{
+  "id": "iron_mace",
+  "result": "iron_mace",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 2},
+    {"item": "wood", "count": 1}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 2,
+  "discovery_hint": "A heavy head on a handle forged at an anvil makes a mace"
+}

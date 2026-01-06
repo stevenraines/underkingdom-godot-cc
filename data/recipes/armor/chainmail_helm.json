@@ -1,0 +1,13 @@
+{
+  "id": "chainmail_helm",
+  "result": "chainmail_helm",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 2},
+    {"item": "cord", "count": 1}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 3,
+  "discovery_hint": "A chainmail coif forged at an anvil protects the head"
+}

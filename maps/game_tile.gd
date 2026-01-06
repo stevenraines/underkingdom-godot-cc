@@ -5,6 +5,10 @@ class_name GameTile
 ## Stores all data needed for a tile: type, movement/visibility properties,
 ## and visual representation.
 
+# Static cache for tile definitions (loaded once from TileTypeManager)
+static var _tile_definitions_cache: Dictionary = {}
+static var _cache_initialized: bool = false
+
 var tile_type: String  # "floor", "wall", "tree", "water", "stairs_down", etc.
 var walkable: bool
 var transparent: bool  # For FOV calculations
@@ -28,6 +32,20 @@ func _init(type: String = "floor", is_walkable: bool = true, is_transparent: boo
 	transparent = is_transparent
 	ascii_char = character
 	is_fire_source = fire
+
+## Initialize the tile definitions cache from TileTypeManager
+static func _initialize_cache() -> void:
+	if _cache_initialized:
+		return
+
+	# Get TileTypeManager from scene tree
+	var tree = Engine.get_main_loop()
+	if tree and tree.root:
+		var tile_type_mgr = tree.root.get_node_or_null("TileTypeManager")
+		if tile_type_mgr:
+			_tile_definitions_cache = tile_type_mgr.tile_definitions.duplicate()
+
+	_cache_initialized = true
 
 ## Factory method to create tiles by type
 ## Uses TileTypeManager for data-driven tile definitions
@@ -62,17 +80,11 @@ static func create(type: String) -> GameTile:
 			tile.ascii_char = "+"
 			return tile
 
-	# Try to load tile definition from TileTypeManager
-	var tile_type_mgr = Engine.get_singleton("TileTypeManager")
-	if tile_type_mgr == null:
-		# Fallback: try to get from scene tree (autoload)
-		var tree = Engine.get_main_loop()
-		if tree and tree.root:
-			tile_type_mgr = tree.root.get_node_or_null("TileTypeManager")
+	# Use cached tile definitions for performance
+	if not _cache_initialized:
+		_initialize_cache()
 
-	var definition = {}
-	if tile_type_mgr:
-		definition = tile_type_mgr.get_tile_definition(type)
+	var definition = _tile_definitions_cache.get(type, {})
 	if not definition.is_empty():
 		tile.tile_type = type
 		tile.walkable = definition.get("walkable", true)

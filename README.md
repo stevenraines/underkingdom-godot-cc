@@ -1,10 +1,9 @@
 # Underkingdom
 
 ## Demo at
-https://underkingdom-cvehewegb5htb4hq.eastus-01.azurewebsites.net/
+https://stevenraines.github.io/underkingdom-godot-cc/
 
 ## Controls / Keybindings
-
 Grouped by screen/context. Many screens also accept the arrow keys for navigation and `Enter`/`Space` to confirm.
 
 - **Global / Map**

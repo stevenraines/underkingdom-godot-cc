@@ -49,6 +49,10 @@ jobs:
       - name: Rename HTML to index.html for web server
         run: mv build/underkingdom.html build/index.html
 
+      # Uncomment and set your custom domain if using one:
+      - name: Create CNAME file
+        run: echo "underkingdom.stevenraines.org" > build/CNAME
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

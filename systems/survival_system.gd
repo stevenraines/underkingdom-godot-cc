@@ -52,6 +52,9 @@ var _last_health_drain_turn: int = 0
 # Track previous states for change-only warnings
 var _last_temperature_state: String = "comfortable"
 
+# Track environmental temp separately from player temp (for UI display)
+var environmental_temperature: float = 68.0  # Outside temp before warmth bonuses
+
 # Owner reference
 var _owner: Entity = null
 
@@ -339,7 +342,10 @@ func update_temperature(map_id: String, time_of_day: String, player_pos: Vector2
 	# Apply equipment warmth bonus
 	var equipment_warmth = _calculate_equipment_warmth()
 
-	temperature = base_temp + interior_bonus + structure_bonus + equipment_warmth
+	# Store environmental temperature (before equipment warmth) for UI display
+	environmental_temperature = base_temp + interior_bonus + structure_bonus
+
+	temperature = environmental_temperature + equipment_warmth
 
 	if temperature != old_temp:
 		EventBus.survival_stat_changed.emit("temperature", old_temp, temperature)
@@ -440,6 +446,15 @@ func get_temperature_state() -> String:
 		return "hot"
 	else:
 		return "overheating"
+
+## Get the environmental temperature (before equipment warmth bonuses)
+## Calculated as current temp minus current warmth bonus for accuracy
+func get_environmental_temperature() -> float:
+	return temperature - _calculate_equipment_warmth()
+
+## Get the equipment warmth bonus being applied
+func get_equipment_warmth() -> float:
+	return _calculate_equipment_warmth()
 
 ## Get current fatigue state as string
 func get_fatigue_state() -> String:

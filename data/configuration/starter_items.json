@@ -6,7 +6,7 @@
     {"id": "ration", "count": 3},
     {"id": "waterskin_full", "count": 1},
     {"template_id": "knife", "variants": {"material": "flint"}, "count": 1},
-    {"template_id": "hatchet", "variants": {"material": "iron"}, "count": 1},
+    {"template_id": "hatchet", "variants": {"material": "iron"}, "count": 1,  "equip": true},
     {"template_id": "hoe", "variants": {"material": "iron"}, "count": 1},
     {"id": "flint", "count": 1},
     {"id": "cord", "count": 3},

@@ -465,6 +465,8 @@ func clear_entity(position: Vector2i) -> void:
 
 	entity_layer.erase_cell(position)
 	entity_modulated_cells.erase(position)
+	entity_original_colors.erase(position)  # Clear cached original color
+	hidden_entity_positions.erase(position)  # Clear from hidden cache (prevents ghost entities)
 	_mark_entity_dirty()
 
 	# Restore hidden floor tile if there was one

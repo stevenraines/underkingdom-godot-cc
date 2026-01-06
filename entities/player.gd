@@ -19,7 +19,7 @@ var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
-var gold: int = 0  # Player's gold currency
+var gold: int = 25  # Player's gold currency
 
 # Experience
 var experience: int = 0
@@ -273,7 +273,7 @@ func _collect_feature_loot(items: Array) -> void:
 		var item_id = item_data.get("item_id", "")
 		var count = item_data.get("count", 1)
 
-		if item_id == "gold_coins":
+		if item_id == "gold_coin":
 			gold += count
 			EventBus.message_logged.emit("Found %d gold!" % count)
 		else:

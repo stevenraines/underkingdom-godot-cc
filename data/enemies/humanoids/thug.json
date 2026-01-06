@@ -15,7 +15,7 @@
     "cha": 11
   },
   "yields": [
-    {"item_id": "gold_coins", "min_count": 3, "max_count": 12, "chance": 0.7},
+    {"item_id": "gold_coin", "min_count": 3, "max_count": 12, "chance": 0.7},
     {"item_id": "club", "min_count": 1, "max_count": 1, "chance": 0.4}
   ],
   "behavior": "aggressive",

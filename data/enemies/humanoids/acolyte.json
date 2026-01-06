@@ -16,7 +16,7 @@
   },
   "yields": [
     {"item_id": "holy_symbol", "min_count": 1, "max_count": 1, "chance": 0.4},
-    {"item_id": "gold_coins", "min_count": 2, "max_count": 8, "chance": 0.5}
+    {"item_id": "gold_coin", "min_count": 2, "max_count": 8, "chance": 0.5}
   ],
   "behavior": "aggressive",
   "base_damage": 3,

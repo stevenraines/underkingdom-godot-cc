@@ -56,14 +56,14 @@
     }
   ],
   "time_periods": [
-    { "id": "dawn", "duration": 45, "temp_modifier": -5, "show_in_rest_menu": true },
-    { "id": "day", "duration": 50, "temp_modifier": 0, "show_in_rest_menu": true },
-    { "id": "mid_day", "duration": 1, "temp_modifier": 2, "show_in_rest_menu": true },
-    { "id": "day", "duration": 50, "temp_modifier": 0, "show_in_rest_menu": false },
-    { "id": "dusk", "duration": 45, "temp_modifier": -4, "show_in_rest_menu": true },
-    { "id": "night", "duration": 20, "temp_modifier": -14, "show_in_rest_menu": true },
-    { "id": "midnight", "duration": 1, "temp_modifier": -18, "show_in_rest_menu": true },
-    { "id": "night", "duration": 20, "temp_modifier": -14, "show_in_rest_menu": false }
+    { "id": "dawn", "duration": 45, "temp_modifier": 0, "show_in_rest_menu": true },
+    { "id": "day", "duration": 50, "temp_modifier": 5, "show_in_rest_menu": true },
+    { "id": "mid_day", "duration": 1, "temp_modifier": 5, "show_in_rest_menu": true },
+    { "id": "day", "duration": 50, "temp_modifier": 10, "show_in_rest_menu": false },
+    { "id": "dusk", "duration": 45, "temp_modifier": 0, "show_in_rest_menu": true },
+    { "id": "night", "duration": 20, "temp_modifier": -8, "show_in_rest_menu": true },
+    { "id": "midnight", "duration": 1, "temp_modifier": -12, "show_in_rest_menu": true },
+    { "id": "night", "duration": 20, "temp_modifier": -8, "show_in_rest_menu": false }
   ],
   "daily_temp_variation": {
     "min": -3,

@@ -154,13 +154,25 @@ func _add_survival_section() -> void:
 	# Thirst
 	_add_stat_line("Thirst", "%d / 100" % int(s.thirst), _get_survival_color(s.thirst))
 
-	# Temperature (survival system uses Fahrenheit)
+	# Temperature - show both outside temp and player's adjusted temp
+	var env_temp = s.get_environmental_temperature()
+	var player_temp = s.temperature
+	var warmth_bonus = s.get_equipment_warmth()
+
+	# Outside temperature line
+	_add_stat_line("Outside Temp", "%.0f°F" % env_temp, _get_temp_color_f(env_temp))
+
+	# Player temperature with warmth adjustment
 	var temp_status = "Comfortable"
-	if s.temperature < s.TEMP_COOL:
+	if player_temp < s.TEMP_COOL:
 		temp_status = "Cold"
-	elif s.temperature > s.TEMP_WARM:
+	elif player_temp > s.TEMP_WARM:
 		temp_status = "Hot"
-	_add_stat_line("Temperature", "%s (%.0f°F)" % [temp_status, s.temperature], _get_temp_color_f(s.temperature))
+
+	var warmth_text = ""
+	if warmth_bonus != 0:
+		warmth_text = " (%+.0f°F)" % warmth_bonus
+	_add_stat_line("Your Temp", "%s (%.0f°F)%s" % [temp_status, player_temp, warmth_text], _get_temp_color_f(player_temp))
 
 	# Encumbrance
 	if player.inventory:

@@ -4,9 +4,6 @@
 name: Build and deploy Godot web export to Azure Web App - underkingdom
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:

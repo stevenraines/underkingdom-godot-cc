@@ -1,0 +1,8 @@
+{
+  "id": "stairs_up",
+  "display_name": "stairs leading up",
+  "ascii_char": "<",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

@@ -1,0 +1,8 @@
+{
+  "id": "shrine",
+  "display_name": "a shrine",
+  "ascii_char": "☥",
+  "walkable": false,
+  "transparent": true,
+  "is_fire_source": false
+}

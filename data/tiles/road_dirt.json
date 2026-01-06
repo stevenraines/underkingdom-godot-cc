@@ -1,0 +1,8 @@
+{
+  "id": "road_dirt",
+  "display_name": "a dirt road",
+  "ascii_char": "░",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

@@ -5,6 +5,10 @@ class_name GameTile
 ## Stores all data needed for a tile: type, movement/visibility properties,
 ## and visual representation.
 
+# Static cache for tile definitions (loaded once from TileTypeManager)
+static var _tile_definitions_cache: Dictionary = {}
+static var _cache_initialized: bool = false
+
 var tile_type: String  # "floor", "wall", "tree", "water", "stairs_down", etc.
 var walkable: bool
 var transparent: bool  # For FOV calculations
@@ -29,48 +33,27 @@ func _init(type: String = "floor", is_walkable: bool = true, is_transparent: boo
 	ascii_char = character
 	is_fire_source = fire
 
+## Initialize the tile definitions cache from TileTypeManager
+static func _initialize_cache() -> void:
+	if _cache_initialized:
+		return
+
+	# Get TileTypeManager from scene tree
+	var tree = Engine.get_main_loop()
+	if tree and tree.root:
+		var tile_type_mgr = tree.root.get_node_or_null("TileTypeManager")
+		if tile_type_mgr:
+			_tile_definitions_cache = tile_type_mgr.tile_definitions.duplicate()
+
+	_cache_initialized = true
+
 ## Factory method to create tiles by type
+## Uses TileTypeManager for data-driven tile definitions
 static func create(type: String) -> GameTile:
 	var tile = GameTile.new()
 
+	# Handle special door variants that map to "door" tile type with state
 	match type:
-		"floor", "stone_floor":
-			tile.tile_type = type
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
-		"wall", "stone_wall":
-			tile.tile_type = type
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "#"
-		"tree":
-			tile.tile_type = "tree"
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "T"
-			tile.harvestable_resource_id = "tree"
-		"water":
-			tile.tile_type = "water"
-			tile.walkable = false
-			tile.transparent = true
-			tile.ascii_char = "~"
-			tile.harvestable_resource_id = "water"
-		"stairs_down":
-			tile.tile_type = "stairs_down"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = ">"
-		"stairs_up":
-			tile.tile_type = "stairs_up"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "<"
-		"dungeon_entrance":
-			tile.tile_type = "dungeon_entrance"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = ">"  # Default, will be overridden
 		"door", "wooden_door", "door_open":
 			# Open door: walkable and transparent
 			tile.tile_type = "door"
@@ -78,6 +61,7 @@ static func create(type: String) -> GameTile:
 			tile.walkable = true
 			tile.transparent = true
 			tile.ascii_char = "/"
+			return tile
 		"door_closed":
 			# Closed door: blocks movement and vision
 			tile.tile_type = "door"
@@ -85,6 +69,7 @@ static func create(type: String) -> GameTile:
 			tile.walkable = false
 			tile.transparent = false
 			tile.ascii_char = "+"
+			return tile
 		"door_locked":
 			# Locked closed door: blocks movement and vision, requires key/lockpick
 			tile.tile_type = "door"
@@ -93,67 +78,29 @@ static func create(type: String) -> GameTile:
 			tile.walkable = false
 			tile.transparent = false
 			tile.ascii_char = "+"
-		"rock":
-			tile.tile_type = "rock"
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "◆"
-			tile.harvestable_resource_id = "rock"
-		"wheat":
-			tile.tile_type = "wheat"
-			tile.walkable = false
-			tile.transparent = true
-			tile.ascii_char = "\""
-			tile.harvestable_resource_id = "wheat"
-		"iron_ore":
-			tile.tile_type = "iron_ore"
-			tile.walkable = false
-			tile.transparent = false
-			tile.ascii_char = "◊"
-			tile.harvestable_resource_id = "iron_ore"
-		"road_cobblestone":
-			tile.tile_type = "road_cobblestone"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "▪"  # Small filled square
-		"road_gravel":
-			tile.tile_type = "road_gravel"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "·"  # Middle dot
-		"road_dirt":
-			tile.tile_type = "road_dirt"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "░"  # Light shade
-		"bridge_wood":
-			tile.tile_type = "bridge_wood"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "="  # Double horizontal line for wooden planks
-		"bridge_stone":
-			tile.tile_type = "bridge_stone"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "≡"  # Triple horizontal line for stone bridge
-		"tilled_soil":
-			tile.tile_type = "tilled_soil"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "▤"  # Square with horizontal fill (U+25A4) - looks like tilled rows
-			tile.can_plant = true
-		"grass", "dirt":
-			tile.tile_type = type
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
-		_:
-			push_warning("Unknown tile type: " + type + ", defaulting to floor")
-			tile.tile_type = "floor"
-			tile.walkable = true
-			tile.transparent = true
-			tile.ascii_char = "."
+			return tile
 
+	# Use cached tile definitions for performance
+	if not _cache_initialized:
+		_initialize_cache()
+
+	var definition = _tile_definitions_cache.get(type, {})
+	if not definition.is_empty():
+		tile.tile_type = type
+		tile.walkable = definition.get("walkable", true)
+		tile.transparent = definition.get("transparent", true)
+		tile.ascii_char = definition.get("ascii_char", ".")
+		tile.is_fire_source = definition.get("is_fire_source", false)
+		tile.harvestable_resource_id = definition.get("harvestable_resource_id", "")
+		tile.can_plant = definition.get("can_plant", false)
+		return tile
+
+	# Fallback for unknown types
+	push_warning("Unknown tile type: " + type + ", defaulting to floor")
+	tile.tile_type = "floor"
+	tile.walkable = true
+	tile.transparent = true
+	tile.ascii_char = "."
 	return tile
 
 ## Toggle door open/closed state

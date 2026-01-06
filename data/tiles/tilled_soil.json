@@ -1,0 +1,9 @@
+{
+  "id": "tilled_soil",
+  "display_name": "tilled soil",
+  "ascii_char": "▤",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false,
+  "can_plant": true
+}

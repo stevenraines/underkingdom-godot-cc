@@ -1,0 +1,9 @@
+{
+  "id": "iron_ore",
+  "display_name": "iron ore",
+  "ascii_char": "◊",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false,
+  "harvestable_resource_id": "iron_ore"
+}

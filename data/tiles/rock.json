@@ -1,0 +1,9 @@
+{
+  "id": "rock",
+  "display_name": "a rock",
+  "ascii_char": "◆",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false,
+  "harvestable_resource_id": "rock"
+}

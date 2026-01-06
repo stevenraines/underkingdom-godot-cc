@@ -1,0 +1,8 @@
+{
+  "id": "road_gravel",
+  "display_name": "a gravel road",
+  "ascii_char": "·",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

@@ -116,47 +116,31 @@ func _notify_blocked_by_tile(pos: Vector2i) -> void:
 
 
 ## Get a human-readable display name for a tile type
+## Uses TileTypeManager for data-driven display names
 func _get_tile_display_name(tile) -> String:
 	# First check by ascii character for special structures/features
 	# This catches wells, shrines, and resources on floor tiles
-	match tile.ascii_char:
-		"☥":
-			return "a shrine"
-		"○":
-			return "a well"
-		"◆":
-			return "a rock"
-		"◊":
-			return "iron ore"
+	var char_name = TileTypeManager.get_display_name_by_ascii_char(tile.ascii_char)
+	if not char_name.is_empty():
+		return char_name
 
-	# Then check by tile type for standard tiles
-	match tile.tile_type:
-		"wall":
-			return "a wall"
-		"tree":
-			return "a tree"
-		"rock":
-			return "a rock"
-		"water":
-			return "water"
-		"door":
-			if tile.is_locked:
-				return "a locked door"
-			return "a closed door"
-		"iron_ore":
-			return "iron ore"
-		"wheat":
-			return "wheat"
+	# Handle doors with state-specific display names
+	if tile.tile_type == "door":
+		if tile.is_locked:
+			return TileTypeManager.get_display_name("door", "locked")
+		elif not tile.is_open:
+			return TileTypeManager.get_display_name("door", "closed")
+		else:
+			return TileTypeManager.get_display_name("door", "open")
+
+	# Try to get display name from TileTypeManager
+	var display_name = TileTypeManager.get_display_name(tile.tile_type)
+	if display_name != "an obstacle":
+		return display_name
 
 	# For floor tiles that are blocking, check remaining ascii characters
 	if tile.tile_type == "floor" and not tile.walkable:
-		match tile.ascii_char:
-			"T":
-				return "a tree"
-			"#":
-				return "a wall"
-			_:
-				return "an obstacle"
+		return "an obstacle"
 
 	# Fallback for unknown types
 	if tile.tile_type != "" and tile.tile_type != "floor":

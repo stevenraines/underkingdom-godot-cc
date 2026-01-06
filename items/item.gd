@@ -79,6 +79,9 @@ var template_id: String = ""        # Original template ID (e.g., "knife")
 var applied_variants: Dictionary = {} # {variant_type: variant_name}
 var is_templated: bool = false      # True if created from template + variants
 
+# Book properties
+var teaches_recipe: String = ""     # Recipe ID this book teaches when read
+
 ## Create an item from a data dictionary (loaded from JSON)
 static func create_from_data(data: Dictionary) -> Item:
 	var item = Item.new()
@@ -165,6 +168,9 @@ static func create_from_data(data: Dictionary) -> Item:
 		item.applied_variants = data.get("_variants", {}).duplicate()
 		item.is_templated = true
 
+	# Book properties
+	item.teaches_recipe = data.get("teaches_recipe", "")
+
 	return item
 
 ## Create a copy of this item
@@ -208,6 +214,7 @@ func duplicate_item() -> Item:
 	copy.template_id = template_id
 	copy.applied_variants = applied_variants.duplicate()
 	copy.is_templated = is_templated
+	copy.teaches_recipe = teaches_recipe
 	return copy
 
 ## Use this item on an entity
@@ -218,10 +225,17 @@ func use(user: Entity) -> Dictionary:
 		"consumed": false,
 		"message": ""
 	}
-	
+
+	# Handle books first (can be any item_type with book flag)
+	if flags.get("book", false) or flags.get("readable", false):
+		return _use_book(user)
+
 	match item_type:
 		"consumable":
 			result = _use_consumable(user)
+		"book":
+			# Books without flag still work
+			result = _use_book(user)
 		"tool":
 			# Tools are generally not "used" directly
 			# Waterskin is special case
@@ -231,7 +245,7 @@ func use(user: Entity) -> Dictionary:
 				result.message = "You can't use that directly."
 		_:
 			result.message = "You can't use that."
-	
+
 	return result
 
 ## Apply consumable effects to user
@@ -275,6 +289,38 @@ func _use_consumable(user: Entity) -> Dictionary:
 			user.heal(effects.health)
 			result.message = "You use the %s and feel better." % name
 	
+	return result
+
+## Read a book item - teaches recipe if applicable
+func _use_book(user: Entity) -> Dictionary:
+	var result = {
+		"success": false,
+		"consumed": false,  # Books are NOT consumed after reading
+		"message": ""
+	}
+
+	# Book without recipe to teach
+	if teaches_recipe == "":
+		result.message = "You read %s but learn nothing new." % name
+		result.success = true
+		return result
+
+	# Check if player already knows recipe
+	if user.has_method("knows_recipe") and user.knows_recipe(teaches_recipe):
+		result.message = "You already know the recipe described in this book."
+		result.success = true
+		return result
+
+	# Teach the recipe
+	if user.has_method("learn_recipe"):
+		user.learn_recipe(teaches_recipe)
+		var recipe = RecipeManager.get_recipe(teaches_recipe)
+		var recipe_name = recipe.get_display_name() if recipe else teaches_recipe
+		result.message = "You read %s and learn how to craft %s!" % [name, recipe_name]
+		result.success = true
+		if recipe:
+			EventBus.recipe_discovered.emit(recipe)
+
 	return result
 
 ## Check if this item can stack with another item
@@ -337,6 +383,14 @@ func is_consumable() -> bool:
 	if flags.get("consumable", false):
 		return true
 	return item_type == "consumable"
+
+## Check if this item is usable (consumable, book, or has readable flag)
+func is_usable() -> bool:
+	if is_consumable():
+		return true
+	if flags.get("book", false) or flags.get("readable", false):
+		return true
+	return item_type == "book"
 
 ## Check if this item is a tool
 func is_tool() -> bool:

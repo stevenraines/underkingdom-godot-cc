@@ -6,11 +6,12 @@ class_name NPC
 ## quests, or information. They block movement but are non-hostile.
 
 # NPC-specific properties
-var npc_type: String = "generic"  ## Type: "shop", "quest", "guard", etc.
+var npc_type: String = "generic"  ## Type: "shop", "quest", "guard", "trainer", etc.
 var dialogue: Dictionary = {}  ## Dialogue lines for different contexts
 var schedule: Array = []  ## Future: time-based behavior patterns
 var faction: String = "neutral"  ## Faction affiliation
 var trade_inventory: Array = []  ## Items available for purchase
+var recipes_for_sale: Array = []  ## Recipes available for training [{recipe_id, base_price}]
 var gold: int = 0  ## NPC's gold for transactions
 var last_restock_turn: int = 0  ## Last turn when shop inventory restocked
 var restock_interval: int = 500  ## Turns between restocks
@@ -34,8 +35,16 @@ func should_restock() -> bool:
 	return TurnManager.current_turn - last_restock_turn >= restock_interval
 
 func restock_shop():
-	## Restocks shop inventory from default data
-	load_shop_inventory()
+	## Restocks shop inventory from NPC definition or default data
+	# Try to reload from NPC definition first
+	var npc_def = NPCManager.get_npc_definition(entity_id)
+	if not npc_def.is_empty() and npc_def.has("trade_inventory"):
+		trade_inventory = []
+		for item_data in npc_def.get("trade_inventory", []):
+			trade_inventory.append(item_data.duplicate())
+	else:
+		# Fallback to hardcoded default inventory
+		load_shop_inventory()
 	last_restock_turn = TurnManager.current_turn
 	EventBus.emit_signal("shop_restocked", self)
 	EventBus.emit_signal("message_logged", "%s has restocked their shop." % name if name else "Shop restocked.")
@@ -44,15 +53,27 @@ func interact(player: Player):
 	## Called when player interacts with this NPC
 	EventBus.emit_signal("npc_interacted", self, player)
 
-	# Default interaction
-	if npc_type == "shop":
+	# Check what services this NPC offers
+	var has_shop = npc_type == "shop" or trade_inventory.size() > 0
+	var has_training = recipes_for_sale.size() > 0
+
+	if has_shop and has_training:
+		# Show menu to choose between services
+		EventBus.emit_signal("npc_menu_opened", self, player)
+	elif has_shop:
 		open_shop(player)
+	elif has_training:
+		open_training(player)
 	else:
 		speak_greeting()
 
 func open_shop(player: Player):
 	## Opens shop interface for trading
 	EventBus.emit_signal("shop_opened", self, player)
+
+func open_training(player: Player):
+	## Opens training interface for learning recipes
+	EventBus.emit_signal("training_opened", self, player)
 
 func speak_greeting():
 	## Displays greeting dialogue
@@ -118,6 +139,25 @@ func remove_shop_item(item_id: String, count: int) -> bool:
 
 	return true
 
+## Check if NPC has recipes available for training
+func has_recipes_for_sale() -> bool:
+	return recipes_for_sale.size() > 0
+
+## Get recipe training data by recipe ID
+func get_recipe_for_sale(recipe_id: String) -> Dictionary:
+	for recipe_data in recipes_for_sale:
+		if recipe_data.recipe_id == recipe_id:
+			return recipe_data
+	return {}
+
+## Remove a recipe from training list (after player learns it)
+func remove_recipe_for_sale(recipe_id: String) -> bool:
+	for i in range(recipes_for_sale.size()):
+		if recipes_for_sale[i].recipe_id == recipe_id:
+			recipes_for_sale.remove_at(i)
+			return true
+	return false
+
 ## Serializes NPC data for saving (future use)
 func to_dict() -> Dictionary:
 	var data = {}
@@ -136,6 +176,11 @@ func to_dict() -> Dictionary:
 	data["trade_inventory"] = []
 	for item_data in trade_inventory:
 		data["trade_inventory"].append(item_data.duplicate())
+
+	# Serialize recipes for sale
+	data["recipes_for_sale"] = []
+	for recipe_data in recipes_for_sale:
+		data["recipes_for_sale"].append(recipe_data.duplicate())
 
 	return data
 
@@ -157,3 +202,8 @@ func from_dict(data: Dictionary):
 	trade_inventory = []
 	for item_data in data.get("trade_inventory", []):
 		trade_inventory.append(item_data.duplicate())
+
+	# Deserialize recipes for sale
+	recipes_for_sale = []
+	for recipe_data in data.get("recipes_for_sale", []):
+		recipes_for_sale.append(recipe_data.duplicate())

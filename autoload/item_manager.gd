@@ -79,6 +79,9 @@ func _load_item_from_file(path: String) -> void:
 			# Convert new format to expected format (compatibility layer)
 			_normalize_item_data(data)
 			_item_data[item_id] = data
+			# Debug: log book loading
+			if item_id.begins_with("recipe_book"):
+				print("[ItemManager] Loaded book: %s from %s" % [item_id, path])
 		else:
 			push_warning("ItemManager: Item without ID in %s" % path)
 	# Handle old multi-item format for backwards compatibility

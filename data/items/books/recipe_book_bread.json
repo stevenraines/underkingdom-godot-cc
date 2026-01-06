@@ -1,0 +1,14 @@
+{
+    "id": "recipe_book_bread",
+    "name": "The Baker's Primer",
+    "description": "A well-worn manual on the fundamentals of breadmaking. Flour dust lingers between its pages.",
+    "item_type": "book",
+    "category": "book",
+    "flags": {"readable": true, "book": true},
+    "weight": 0.5,
+    "value": 50,
+    "max_stack": 1,
+    "ascii_char": "+",
+    "ascii_color": "#8B4513",
+    "teaches_recipe": "bread"
+}

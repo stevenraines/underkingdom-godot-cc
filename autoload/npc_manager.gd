@@ -109,6 +109,12 @@ func create_npc(npc_id: String, position: Vector2i) -> Variant:
 	for item_data in trade_inv:
 		npc.trade_inventory.append(item_data.duplicate())
 
+	# Load recipes for sale (training) from definition
+	var recipes = definition.get("recipes_for_sale", [])
+	npc.recipes_for_sale = []
+	for recipe_data in recipes:
+		npc.recipes_for_sale.append(recipe_data.duplicate())
+
 	active_npcs.append(npc)
 	print("[NPCManager] Created NPC: %s (%s) at %v" % [npc.name, npc_id, position])
 	return npc

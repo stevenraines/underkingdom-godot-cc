@@ -103,6 +103,14 @@ signal item_sold(item, price: int)  # Item
 @warning_ignore("unused_signal")
 signal shop_restocked(npc)  # NPC
 
+# NPC Training signals
+@warning_ignore("unused_signal")
+signal npc_menu_opened(npc, player)  # NPC, Player - for NPCs with multiple services
+@warning_ignore("unused_signal")
+signal training_opened(npc, player)  # NPC, Player
+@warning_ignore("unused_signal")
+signal recipe_trained(recipe_id: String, price: int)  # Recipe learned from NPC
+
 # Save/Load signals
 @warning_ignore("unused_signal")
 signal game_saved(slot: int)

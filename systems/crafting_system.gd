@@ -109,13 +109,23 @@ static func attempt_experiment(player: Player, ingredient_ids: Array[String], ne
 		# No matching recipe - show hint based on INT
 		var hint = get_experiment_hint(ingredient_ids, player.attributes["INT"])
 
-		# Consume ingredients anyway (failed experiment)
+		# Partially consume ingredients (50% chance each) on failed experiment
+		var consumed_count = 0
 		for item_id in ingredient_ids:
-			player.inventory.remove_item_by_id(item_id, 1)
+			if randf() < 0.5:
+				player.inventory.remove_item_by_id(item_id, 1)
+				consumed_count += 1
 
 		EventBus.inventory_changed.emit()
 
-		result.message = hint
+		# Add consumption info to hint message
+		if consumed_count == 0:
+			result.message = hint + " Luckily, no materials were lost."
+		elif consumed_count == ingredient_ids.size():
+			result.message = hint + " All materials were lost."
+		else:
+			result.message = hint + " Some materials were lost."
+
 		return result
 
 ## Get hint for failed experiment based on INT

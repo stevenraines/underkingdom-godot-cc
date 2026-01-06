@@ -24,6 +24,8 @@ var crafting_screen: Control = null
 var build_mode_screen: Control = null
 var container_screen: Control = null
 var shop_screen: Control = null
+var training_screen: Control = null
+var npc_menu_screen: Control = null
 var pause_menu: Control = null
 var death_screen: Control = null
 var character_sheet: Control = null
@@ -63,6 +65,8 @@ const CraftingScreenScene = preload("res://ui/crafting_screen.tscn")
 const BuildModeScreenScene = preload("res://ui/build_mode_screen.tscn")
 const ContainerScreenScene = preload("res://ui/container_screen.tscn")
 const ShopScreenScene = preload("res://ui/shop_screen.tscn")
+const TrainingScreenScene = preload("res://ui/training_screen.tscn")
+const NpcMenuScreenScene = preload("res://ui/npc_menu_screen.tscn")
 const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 const DeathScreenScene = preload("res://ui/death_screen.tscn")
 
@@ -90,6 +94,12 @@ func _ready() -> void:
 
 	# Create shop screen
 	_setup_shop_screen()
+
+	# Create training screen
+	_setup_training_screen()
+
+	# Create NPC menu screen
+	_setup_npc_menu_screen()
 
 	# Create pause menu
 	_setup_pause_menu()
@@ -208,6 +218,8 @@ func _ready() -> void:
 	EventBus.message_logged.connect(_on_message_logged)
 	EventBus.structure_placed.connect(_on_structure_placed)
 	EventBus.shop_opened.connect(_on_shop_opened)
+	EventBus.training_opened.connect(_on_training_opened)
+	EventBus.npc_menu_opened.connect(_on_npc_menu_opened)
 	EventBus.combat_message.connect(_on_combat_message)
 	EventBus.time_of_day_changed.connect(_on_time_of_day_changed)
 	EventBus.harvesting_mode_changed.connect(_on_harvesting_mode_changed)
@@ -257,6 +269,22 @@ func _setup_shop_screen() -> void:
 	shop_screen = ShopScreenScene.instantiate()
 	hud.add_child(shop_screen)
 	shop_screen.closed.connect(_on_shop_closed)
+	shop_screen.switch_to_training.connect(_on_shop_switch_to_training)
+
+## Setup training screen
+func _setup_training_screen() -> void:
+	training_screen = TrainingScreenScene.instantiate()
+	hud.add_child(training_screen)
+	training_screen.closed.connect(_on_training_closed)
+	training_screen.switch_to_trade.connect(_on_training_switch_to_trade)
+
+## Setup NPC menu screen
+func _setup_npc_menu_screen() -> void:
+	npc_menu_screen = NpcMenuScreenScene.instantiate()
+	hud.add_child(npc_menu_screen)
+	npc_menu_screen.closed.connect(_on_npc_menu_closed)
+	npc_menu_screen.trade_selected.connect(_on_npc_menu_trade_selected)
+	npc_menu_screen.train_selected.connect(_on_npc_menu_train_selected)
 
 ## Setup pause menu
 func _setup_pause_menu() -> void:
@@ -1677,6 +1705,52 @@ func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
 	input_handler.ui_blocking_input = false
+
+## Called when training is opened
+func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
+	if training_screen and train_player:
+		training_screen.open(train_player, trainer_npc)
+		input_handler.ui_blocking_input = true
+
+## Called when training screen is closed
+func _on_training_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when shop screen requests switch to training
+func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
+	if training_screen and switch_player:
+		training_screen.open(switch_player, npc)
+		input_handler.ui_blocking_input = true
+
+## Called when training screen requests switch to trade
+func _on_training_switch_to_trade(npc: NPC, switch_player: Player) -> void:
+	if shop_screen and switch_player:
+		shop_screen.open(switch_player, npc)
+		input_handler.ui_blocking_input = true
+
+## Called when NPC menu is opened (NPC with multiple services)
+func _on_npc_menu_opened(menu_npc: NPC, menu_player: Player) -> void:
+	if npc_menu_screen and menu_player:
+		npc_menu_screen.open(menu_player, menu_npc)
+		input_handler.ui_blocking_input = true
+
+## Called when NPC menu screen is closed
+func _on_npc_menu_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when trade is selected from NPC menu
+func _on_npc_menu_trade_selected(menu_npc: NPC, menu_player: Player) -> void:
+	# Open shop screen
+	if shop_screen and menu_player:
+		shop_screen.open(menu_player, menu_npc)
+		input_handler.ui_blocking_input = true
+
+## Called when train is selected from NPC menu
+func _on_npc_menu_train_selected(menu_npc: NPC, menu_player: Player) -> void:
+	# Open training screen
+	if training_screen and menu_player:
+		training_screen.open(menu_player, menu_npc)
+		input_handler.ui_blocking_input = true
 
 ## Called when harvesting mode changes
 func _on_harvesting_mode_changed(is_active: bool) -> void:

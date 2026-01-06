@@ -535,7 +535,7 @@ func _update_action_visibility(item: Item) -> void:
 		action_e.text = "[E] Equip"
 		action_e.visible = item.is_equippable()
 
-	action_u.visible = item.is_consumable()
+	action_u.visible = item.is_usable()
 	action_d.visible = true
 
 	# Inscription actions - always show inscribe, only show uninscribe if item has inscription
@@ -772,7 +772,7 @@ func _use_selected() -> void:
 	if not player or not selected_item:
 		return
 
-	if selected_item.item_type == "consumable":
+	if selected_item.is_usable():
 		var result = player.use_item(selected_item)
 		if result.has("message") and result.message != "":
 			EventBus.message_logged.emit(result.message)
@@ -805,12 +805,14 @@ func _action_selected() -> void:
 
 	# Default action based on item type
 	match selected_item.item_type:
-		"consumable":
+		"consumable", "book":
 			_use_selected()
 		"weapon", "armor", "tool":
 			_equip_selected()
 		_:
-			pass  # No default action for materials
+			# Check for usable flags (like readable)
+			if selected_item.is_usable():
+				_use_selected()
 
 
 ## Inscribe the selected item - open inscription dialog

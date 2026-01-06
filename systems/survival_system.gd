@@ -103,7 +103,11 @@ func process_turn(turn_number: int) -> Dictionary:
 		_last_fatigue_turn = turn_number
 		effects.fatigue_gained = true
 		EventBus.survival_stat_changed.emit("fatigue", fatigue - 1.0, fatigue)
-	
+		# Clamp stamina to new max (fatigue reduces max stamina)
+		var new_max = get_max_stamina()
+		if stamina > new_max:
+			stamina = new_max
+
 	# Calculate and apply survival effects
 	var survival_effects = _calculate_survival_effects()
 	effects.stat_modifiers = survival_effects.stat_modifiers
@@ -386,10 +390,10 @@ func _calculate_structure_temperature_bonus(player_pos: Vector2i, map_id: String
 			if fire.affects_position(structure.position, player_pos):
 				bonus += fire.get_temperature_bonus()
 
-		# Check shelter component
+		# Check shelter component - player must be inside (on same tile) for temperature bonus
 		if structure.has_component("shelter"):
 			var shelter = structure.get_component("shelter")
-			if shelter.is_sheltered(structure.position, player_pos):
+			if shelter.is_inside_shelter(structure.position, player_pos):
 				bonus += shelter.temperature_bonus
 
 	return bonus

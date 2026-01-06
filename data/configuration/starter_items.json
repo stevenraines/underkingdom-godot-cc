@@ -1,4 +1,8 @@
 [
+    {"id": "cloak", "count": 1, "equip": true},
+    {"id": "cloth_boots", "count": 1, "equip": true},
+    {"id": "breeches", "count": 1, "equip": true},
+    {"id": "tunic", "count": 1, "equip": true},
     {"id": "ration", "count": 3},
     {"id": "waterskin_full", "count": 1},
     {"template_id": "knife", "variants": {"material": "flint"}, "count": 1},

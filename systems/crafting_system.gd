@@ -15,6 +15,11 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool) -> Di
 		"recipe_learned": false
 	}
 
+	# Check if enemies are nearby - can't craft in danger
+	if are_enemies_nearby(player.position):
+		result.message = "You can't craft while enemies are nearby!"
+		return result
+
 	# Check if has all ingredients
 	if not recipe.has_requirements(player.inventory, near_fire):
 		var missing = recipe.get_missing_requirements(player.inventory, near_fire)
@@ -76,6 +81,11 @@ static func attempt_experiment(player: Player, ingredient_ids: Array[String], ne
 		"recipe_learned": false
 	}
 
+	# Check if enemies are nearby - can't experiment in danger
+	if are_enemies_nearby(player.position):
+		result.message = "You can't craft while enemies are nearby!"
+		return result
+
 	if ingredient_ids.size() < 2 or ingredient_ids.size() > 4:
 		result.message = "Select 2-4 ingredients to experiment"
 		return result
@@ -135,6 +145,16 @@ static func calculate_success_chance(difficulty: int, intelligence: int) -> floa
 	var int_bonus = (intelligence - 10) * 0.05
 	var final_success = base_success + int_bonus
 	return clampf(final_success, 0.5, 1.0)
+
+## Check if there are enemies nearby (within specified range)
+## Returns true if enemies are too close to craft safely
+static func are_enemies_nearby(player_pos: Vector2i, danger_range: int = 5) -> bool:
+	for entity in EntityManager.entities:
+		if entity is Enemy and entity.is_alive:
+			var distance = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+			if distance <= danger_range:
+				return true
+	return false
 
 ## Check if player is near a fire source (within 3 tiles)
 static func is_near_fire(player_pos: Vector2i) -> bool:

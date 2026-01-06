@@ -177,7 +177,7 @@ func _add_weather_section() -> void:
 
 	# Current date and time
 	var date_str = CalendarManager.get_short_date_string()
-	var time_str = CalendarManager.get_time_of_day_name()
+	var time_str = TurnManager.get_time_of_day()
 	_add_stat_line("Date", date_str, Color(0.8, 0.8, 0.6))
 	_add_stat_line("Time", time_str.capitalize(), _get_time_color(time_str))
 

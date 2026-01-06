@@ -1,0 +1,8 @@
+{
+  "id": "road_cobblestone",
+  "display_name": "a cobblestone road",
+  "ascii_char": "▪",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
+TileTypeManager="*res://autoload/tile_type_manager.gd"
 CalendarManager="*res://autoload/calendar_manager.gd"
 TurnManager="*res://autoload/turn_manager.gd"
 GameManager="*res://autoload/game_manager.gd"

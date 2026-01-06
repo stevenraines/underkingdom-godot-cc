@@ -1,0 +1,9 @@
+{
+  "id": "water",
+  "display_name": "water",
+  "ascii_char": "~",
+  "walkable": false,
+  "transparent": true,
+  "is_fire_source": false,
+  "harvestable_resource_id": "water"
+}

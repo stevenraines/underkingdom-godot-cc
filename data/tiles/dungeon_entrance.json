@@ -1,0 +1,8 @@
+{
+  "id": "dungeon_entrance",
+  "display_name": "a dungeon entrance",
+  "ascii_char": ">",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

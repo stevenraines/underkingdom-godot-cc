@@ -1,0 +1,14 @@
+{
+  "id": "door",
+  "display_name": "a door",
+  "display_name_open": "an open door",
+  "display_name_closed": "a closed door",
+  "display_name_locked": "a locked door",
+  "ascii_char_open": "/",
+  "ascii_char_closed": "+",
+  "walkable_open": true,
+  "walkable_closed": false,
+  "transparent_open": true,
+  "transparent_closed": false,
+  "is_fire_source": false
+}

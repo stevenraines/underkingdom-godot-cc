@@ -1,0 +1,8 @@
+{
+  "id": "bridge_stone",
+  "display_name": "a stone bridge",
+  "ascii_char": "≡",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

@@ -1,0 +1,8 @@
+{
+  "id": "floor",
+  "display_name": "the floor",
+  "ascii_char": ".",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

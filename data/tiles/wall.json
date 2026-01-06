@@ -1,0 +1,8 @@
+{
+  "id": "wall",
+  "display_name": "a wall",
+  "ascii_char": "#",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false
+}

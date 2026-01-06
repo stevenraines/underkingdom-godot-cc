@@ -1,0 +1,9 @@
+{
+  "id": "tree",
+  "display_name": "a tree",
+  "ascii_char": "T",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false,
+  "harvestable_resource_id": "tree"
+}

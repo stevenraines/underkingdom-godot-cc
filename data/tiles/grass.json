@@ -1,0 +1,8 @@
+{
+  "id": "grass",
+  "display_name": "grass",
+  "ascii_char": ".",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

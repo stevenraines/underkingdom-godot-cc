@@ -1,0 +1,8 @@
+{
+  "id": "dirt",
+  "display_name": "dirt",
+  "ascii_char": ".",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

@@ -1,0 +1,8 @@
+{
+  "id": "bridge_wood",
+  "display_name": "a wooden bridge",
+  "ascii_char": "=",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

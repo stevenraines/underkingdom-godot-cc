@@ -35,16 +35,16 @@ func should_restock() -> bool:
 	return TurnManager.current_turn - last_restock_turn >= restock_interval
 
 func restock_shop():
-	## Restocks shop inventory from NPC definition or default data
-	# Try to reload from NPC definition first
+	## Restocks shop inventory from NPC definition data
 	var npc_def = NPCManager.get_npc_definition(entity_id)
 	if not npc_def.is_empty() and npc_def.has("trade_inventory"):
 		trade_inventory = []
 		for item_data in npc_def.get("trade_inventory", []):
 			trade_inventory.append(item_data.duplicate())
 	else:
-		# Fallback to hardcoded default inventory
-		load_shop_inventory()
+		# No trade_inventory defined in JSON - NPC has no shop items
+		push_warning("[NPC] No trade_inventory found for NPC: %s" % entity_id)
+		trade_inventory = []
 	last_restock_turn = TurnManager.current_turn
 	EventBus.emit_signal("shop_restocked", self)
 	EventBus.emit_signal("message_logged", "%s has restocked their shop." % name if name else "Shop restocked.")
@@ -79,28 +79,6 @@ func speak_greeting():
 	## Displays greeting dialogue
 	var greeting = dialogue.get("greeting", "Hello, traveler.")
 	EventBus.emit_signal("message_logged", "%s: %s" % [name if name else "NPC", greeting])
-
-func load_shop_inventory():
-	## Loads default shop inventory
-	## This should be overridden when creating specific NPCs
-	## or loaded from JSON data in the future
-
-	# Phase 1 default shop inventory
-	if npc_type == "shop":
-		trade_inventory = [
-			{"item_id": "raw_meat", "count": 10, "base_price": 5},
-			{"item_id": "cooked_meat", "count": 5, "base_price": 8},
-			{"item_id": "waterskin_empty", "count": 5, "base_price": 10},
-			{"item_id": "torch", "count": 20, "base_price": 3},
-			{"item_id": "bandage", "count": 8, "base_price": 12},
-			{"item_id": "cord", "count": 15, "base_price": 2},
-			{"item_id": "cloth", "count": 10, "base_price": 3},
-			{"item_id": "flint", "count": 8, "base_price": 5},
-			{"item_id": "pickaxe", "count": 2, "base_price": 10},
-			{"item_id": "iron_ore", "count": 10, "base_price": 2},	
-			{"item_id": "hammer", "count": 2, "base_price": 2}
-
-		]
 
 func get_shop_item(item_id: String) -> Dictionary:
 	## Returns shop item data if available

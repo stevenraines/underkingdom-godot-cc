@@ -1,0 +1,13 @@
+{
+  "id": "iron_sword",
+  "result": "iron_sword",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 2},
+    {"item": "wood", "count": 1}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 2,
+  "discovery_hint": "A blade and handle forged at an anvil makes a sword"
+}

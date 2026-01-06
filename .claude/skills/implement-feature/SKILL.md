@@ -46,7 +46,7 @@ Before writing code:
 2. Use the TodoWrite tool to create a task list
 3. Identify which files need to be modified
 4. Understand the existing code patterns
-5. Ask clarifying questions, as needed
+5. Ask clarifying questions about the requirements
 6. Update the feature MD file with the plan, tasks, and answers to questions.
 
 ### 4. Implement the Feature

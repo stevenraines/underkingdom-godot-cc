@@ -6,8 +6,8 @@
     {"item": "iron_ingot", "count": 1},
     {"item": "charcoal", "count": 2}
   ],
-  "tool_required": "hammer",
-  "fire_required": true,
+  "tool_required": "",
+  "workstation_required": "forge",
   "difficulty": 3,
-  "discovery_hint": "Iron refined with carbon creates stronger steel"
+  "discovery_hint": "Iron refined with carbon at a forge creates stronger steel"
 }

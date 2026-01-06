@@ -82,9 +82,16 @@ func create_structure(structure_id: String, pos: Vector2i):
 	return Structure.create_from_data(data, pos)
 
 ## Place a structure on a map (registers for persistence)
+## Prevents duplicate structures at the same position
 func place_structure(map_id: String, structure) -> void:
 	if not placed_structures.has(map_id):
 		placed_structures[map_id] = []
+
+	# Check for duplicate structure at the same position
+	for existing in placed_structures[map_id]:
+		if existing.position == structure.position:
+			# Already have a structure at this position, skip
+			return
 
 	placed_structures[map_id].append(structure)
 	EventBus.structure_placed.emit(structure)
@@ -152,6 +159,54 @@ func get_fire_sources_in_radius(center: Vector2i, radius: int, map_id: String) -
 	for structure in nearby:
 		if structure.is_fire_source and structure.is_active:
 			result.append(structure)
+
+	return result
+
+## Get workstations of a specific type within radius
+func get_workstations_in_radius(center: Vector2i, radius: int, map_id: String, workstation_type: String) -> Array:
+	var result: Array = []
+
+	var nearby = get_structures_in_radius(center, radius, map_id)
+	for structure in nearby:
+		if structure.has_component("workstation"):
+			var ws_comp = structure.get_component("workstation")
+			if ws_comp.workstation_type == workstation_type:
+				result.append(structure)
+
+	return result
+
+## Check if player is near a specific workstation type (convenience method)
+func is_near_workstation(center: Vector2i, map_id: String, workstation_type: String, radius: int = 3) -> bool:
+	var workstations = get_workstations_in_radius(center, radius, map_id, workstation_type)
+	return workstations.size() > 0
+
+## Get workstation info dictionary for crafting system
+## Returns {"near_forge": bool, "near_anvil": bool, "forge_tool_ok": bool, "anvil_tool_ok": bool}
+func get_workstation_info(center: Vector2i, map_id: String, inventory: Inventory, radius: int = 3) -> Dictionary:
+	var result = {
+		"near_forge": false,
+		"near_anvil": false,
+		"forge_tool_ok": false,
+		"anvil_tool_ok": false,
+		"forge_tool_required": "tongs",
+		"anvil_tool_required": "hammer"
+	}
+
+	var nearby = get_structures_in_radius(center, radius, map_id)
+	for structure in nearby:
+		if structure.has_component("workstation"):
+			var ws_comp = structure.get_component("workstation")
+			match ws_comp.workstation_type:
+				"forge":
+					result.near_forge = true
+					result.forge_tool_required = ws_comp.required_tool
+					if inventory and inventory.has_tool(ws_comp.required_tool):
+						result.forge_tool_ok = true
+				"anvil":
+					result.near_anvil = true
+					result.anvil_tool_required = ws_comp.required_tool
+					if inventory and inventory.has_tool(ws_comp.required_tool):
+						result.anvil_tool_ok = true
 
 	return result
 

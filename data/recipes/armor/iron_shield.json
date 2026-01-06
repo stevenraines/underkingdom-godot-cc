@@ -1,0 +1,14 @@
+{
+  "id": "iron_shield",
+  "result": "iron_shield",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 2},
+    {"item": "wood", "count": 1},
+    {"item": "leather", "count": 1}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 2,
+  "discovery_hint": "Iron reinforcement on wood makes a sturdy shield"
+}

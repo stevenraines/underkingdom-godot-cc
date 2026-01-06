@@ -19,6 +19,7 @@ enum CraftingMode { RECIPES, EXPERIMENT }
 
 var player: Player = null
 var near_fire: bool = false
+var workstation_info: Dictionary = {}  # {near_forge, near_anvil, forge_tool_ok, anvil_tool_ok}
 var selected_recipe_index: int = 0
 var known_recipes: Array = []  # Array of Recipe objects (RecipeManager provides them)
 
@@ -45,6 +46,14 @@ func open(p: Player) -> void:
 
 	# Check if near fire
 	near_fire = CraftingSystem.is_near_fire(player.position)
+
+	# Check workstation proximity
+	if MapManager.current_map:
+		workstation_info = StructureManager.get_workstation_info(
+			player.position, MapManager.current_map.map_id, player.inventory
+		)
+	else:
+		workstation_info = {}
 
 	# Get known recipes
 	known_recipes = player.get_known_recipes()
@@ -141,12 +150,40 @@ func _update_display() -> void:
 		else:
 			title_label.text = "◆ CRAFTING - Experiment ◆  [Tab to Recipes]"
 
-	# Update fire status
-	if near_fire:
-		fire_label.text = "Near Fire: YES"
+	# Update workstation/fire status
+	var status_parts: Array[String] = []
+
+	# Fire status
+	if near_fire or workstation_info.get("near_forge", false):
+		status_parts.append("Fire: YES")
+	else:
+		status_parts.append("Fire: NO")
+
+	# Forge status
+	if workstation_info.get("near_forge", false):
+		if workstation_info.get("forge_tool_ok", false):
+			status_parts.append("Forge: YES")
+		else:
+			status_parts.append("Forge: (need tongs)")
+	else:
+		status_parts.append("Forge: NO")
+
+	# Anvil status
+	if workstation_info.get("near_anvil", false):
+		if workstation_info.get("anvil_tool_ok", false):
+			status_parts.append("Anvil: YES")
+		else:
+			status_parts.append("Anvil: (need hammer)")
+	else:
+		status_parts.append("Anvil: NO")
+
+	fire_label.text = "  |  ".join(status_parts)
+
+	# Color based on availability
+	var has_something = near_fire or workstation_info.get("near_forge", false) or workstation_info.get("near_anvil", false)
+	if has_something:
 		fire_label.add_theme_color_override("font_color", Color.ORANGE)
 	else:
-		fire_label.text = "Near Fire: NO"
 		fire_label.add_theme_color_override("font_color", Color.GRAY)
 
 	if current_mode == CraftingMode.RECIPES:
@@ -324,7 +361,7 @@ func _attempt_experiment() -> void:
 	for ing in selected_ingredients:
 		ingredients.append(ing)
 
-	var result = CraftingSystem.attempt_experiment(player, ingredients, near_fire)
+	var result = CraftingSystem.attempt_experiment(player, ingredients, near_fire, workstation_info)
 
 	# Show result message
 	message_label.text = result.message
@@ -348,8 +385,8 @@ func _attempt_experiment() -> void:
 func _create_recipe_list_item(recipe: Recipe, is_selected: bool) -> Label:
 	var label = Label.new()
 
-	# Check if can craft
-	var can_craft = recipe.has_requirements(player.inventory, near_fire)
+	# Check if can craft (pass workstation_info)
+	var can_craft = recipe.has_requirements(player.inventory, near_fire, workstation_info)
 
 	# Get the item color
 	var item_data = ItemManager.get_item_data(recipe.result_item_id)
@@ -436,16 +473,46 @@ func _update_details_panel(recipe: Recipe) -> void:
 			tool_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
 		details_container.add_child(tool_label)
 
-	# Fire requirement
+	# Fire requirement (legacy - but forge also provides fire)
 	if recipe.fire_required:
+		var has_fire_source = near_fire or workstation_info.get("near_forge", false)
 		var fire_req_label = Label.new()
-		fire_req_label.text = "Requires: Fire (within 3 tiles) %s" % ["✓" if near_fire else "✗"]
+		fire_req_label.text = "Requires: Fire (within 3 tiles) %s" % ["✓" if has_fire_source else "✗"]
 		fire_req_label.add_theme_font_size_override("font_size", 13)
-		if near_fire:
+		if has_fire_source:
 			fire_req_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
 		else:
 			fire_req_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
 		details_container.add_child(fire_req_label)
+
+	# Workstation requirement
+	if recipe.workstation_required != "":
+		var ws_label = Label.new()
+		var ws_available = false
+		var ws_tool_ok = false
+		var ws_name = recipe.workstation_required.capitalize()
+
+		match recipe.workstation_required:
+			"forge":
+				ws_available = workstation_info.get("near_forge", false)
+				ws_tool_ok = workstation_info.get("forge_tool_ok", false)
+			"anvil":
+				ws_available = workstation_info.get("near_anvil", false)
+				ws_tool_ok = workstation_info.get("anvil_tool_ok", false)
+
+		if ws_available and ws_tool_ok:
+			ws_label.text = "Requires: %s (within 3 tiles) ✓" % ws_name
+			ws_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+		elif ws_available:
+			var tool_name = workstation_info.get(recipe.workstation_required + "_tool_required", "tool")
+			ws_label.text = "Requires: %s (need %s) ✗" % [ws_name, tool_name]
+			ws_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+		else:
+			ws_label.text = "Requires: %s (within 3 tiles) ✗" % ws_name
+			ws_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+
+		ws_label.add_theme_font_size_override("font_size", 13)
+		details_container.add_child(ws_label)
 
 	# Success chance
 	var success_label = Label.new()
@@ -500,8 +567,8 @@ func _attempt_craft_selected() -> void:
 
 	var recipe = known_recipes[selected_recipe_index]
 
-	# Attempt craft
-	var result = CraftingSystem.attempt_craft(player, recipe, near_fire)
+	# Attempt craft (pass workstation_info)
+	var result = CraftingSystem.attempt_craft(player, recipe, near_fire, workstation_info)
 
 	# Show result message
 	message_label.text = result.message

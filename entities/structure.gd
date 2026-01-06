@@ -10,6 +10,7 @@ extends Entity
 const FireComponent = preload("res://systems/components/fire_component.gd")
 const ShelterComponent = preload("res://systems/components/shelter_component.gd")
 const ContainerComponent = preload("res://systems/components/container_component.gd")
+const WorkstationComponent = preload("res://systems/components/workstation_component.gd")
 
 # Structure properties
 var structure_type: String = ""  # "campfire", "lean_to", "chest"
@@ -82,6 +83,15 @@ static func create_from_data(data: Dictionary, pos: Vector2i) -> Structure:
 			var container_data = components_data.container
 			var container_comp = ContainerComponent.new(container_data.get("max_weight", 50.0))
 			structure.add_component("container", container_comp)
+
+		# Workstation component
+		if components_data.has("workstation"):
+			var ws_data = components_data.workstation
+			var ws_comp = WorkstationComponent.new()
+			ws_comp.workstation_type = ws_data.get("workstation_type", "")
+			ws_comp.required_tool = ws_data.get("required_tool", "")
+			ws_comp.tool_durability_cost = ws_data.get("tool_durability_cost", 1)
+			structure.add_component("workstation", ws_comp)
 
 	return structure
 

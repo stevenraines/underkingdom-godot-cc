@@ -117,8 +117,18 @@ func _normalize_item_data(data: Dictionary) -> void:
 			data["item_type"] = "tool"
 
 ## Get raw item data by ID
+## Supports both legacy items and template-based items (e.g., "iron_sword", "chainmail_chest_armor")
 func get_item_data(item_id: String) -> Dictionary:
-	return _item_data.get(item_id, {})
+	# First check legacy items
+	if item_id in _item_data:
+		return _item_data[item_id]
+
+	# Try parsing as template-based item
+	var parsed = ItemFactoryClass.parse_item_id(item_id)
+	if parsed.template_id != "":
+		return ItemFactoryClass.get_composed_data(parsed.template_id, parsed.variants)
+
+	return {}
 
 ## Check if an item ID exists
 func has_item(item_id: String) -> bool:

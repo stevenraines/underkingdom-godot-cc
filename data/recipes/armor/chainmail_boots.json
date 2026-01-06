@@ -1,0 +1,13 @@
+{
+  "id": "chainmail_boots",
+  "result": "chainmail_boots",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 1},
+    {"item": "leather", "count": 2}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 3,
+  "discovery_hint": "Chainmail boots forged at an anvil protect the feet"
+}

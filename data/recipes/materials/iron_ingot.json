@@ -6,8 +6,8 @@
     {"item": "iron_ore", "count": 2},
     {"item": "charcoal", "count": 1}
   ],
-  "tool_required": "hammer",
-  "fire_required": true,
+  "tool_required": "",
+  "workstation_required": "forge",
   "difficulty": 2,
-  "discovery_hint": "Smelting ore with fuel at high heat produces pure metal"
+  "discovery_hint": "Smelting ore with fuel at a forge produces pure metal"
 }

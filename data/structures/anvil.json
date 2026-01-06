@@ -1,0 +1,17 @@
+{
+  "id": "anvil",
+  "name": "Anvil",
+  "description": "A heavy anvil for shaping metal. Requires a hammer to use.",
+  "ascii_char": "n",
+  "ascii_color": "#505050",
+  "blocks_movement": true,
+  "structure_type": "anvil",
+  "durability": -1,
+  "components": {
+    "workstation": {
+      "workstation_type": "anvil",
+      "required_tool": "hammer",
+      "tool_durability_cost": 1
+    }
+  }
+}

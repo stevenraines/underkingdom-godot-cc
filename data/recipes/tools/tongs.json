@@ -1,0 +1,12 @@
+{
+  "id": "tongs",
+  "result": "tongs",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 1}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 2,
+  "discovery_hint": "Shaping iron at an anvil creates useful tools"
+}

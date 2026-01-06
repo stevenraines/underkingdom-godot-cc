@@ -10,6 +10,7 @@ const TrainingSystem = preload("res://systems/training_system.gd")
 signal closed()
 signal switch_to_trade(npc, player)  # Signal to switch to shop screen
 
+@onready var recipe_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/RecipePanel/ScrollContainer
 @onready var recipe_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/RecipePanel/ScrollContainer/RecipeList
 @onready var details_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/DetailsPanel/ScrollContainer/DetailsContainer
 @onready var trainer_label: Label = $Panel/MarginContainer/VBoxContainer/TitleContainer/TrainerLabel
@@ -220,6 +221,33 @@ func _refresh_display() -> void:
 		help_label.text = "[Enter] Learn  |  [T] Trade  |  [Esc] Close"
 	else:
 		help_label.text = "[Enter] Learn  |  [Esc] Close"
+
+	# Scroll to selected item after the frame updates
+	_scroll_to_selected.call_deferred()
+
+func _scroll_to_selected() -> void:
+	if not recipe_scroll or not recipe_list:
+		return
+
+	if selected_index < 0 or selected_index >= recipe_list.get_child_count():
+		return
+
+	var selected_label = recipe_list.get_child(selected_index) as Control
+	if not selected_label:
+		return
+
+	# Get the position and size of the selected item relative to the list
+	var item_top = selected_label.position.y
+	var item_bottom = item_top + selected_label.size.y
+	var visible_top = recipe_scroll.scroll_vertical
+	var visible_bottom = visible_top + recipe_scroll.size.y
+
+	# Scroll up if item is above visible area
+	if item_top < visible_top:
+		recipe_scroll.scroll_vertical = int(item_top)
+	# Scroll down if item is below visible area
+	elif item_bottom > visible_bottom:
+		recipe_scroll.scroll_vertical = int(item_bottom - recipe_scroll.size.y)
 
 func _update_details_panel(data: Dictionary) -> void:
 	var recipe = data.recipe

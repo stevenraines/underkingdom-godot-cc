@@ -1,0 +1,13 @@
+{
+  "id": "chainmail_gauntlets",
+  "result": "chainmail_gauntlets",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "iron_ingot", "count": 1},
+    {"item": "leather", "count": 1}
+  ],
+  "tool_required": "",
+  "workstation_required": "anvil",
+  "difficulty": 3,
+  "discovery_hint": "Chainmail gloves forged at an anvil protect the hands"
+}

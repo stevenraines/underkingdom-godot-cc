@@ -194,8 +194,10 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 			var tile: GameTile
 			if is_door:
 				tile = GameTile.create("door_closed")  # Exterior doors start closed
+				tile.is_interior = true  # Mark doors as interior for FOV
 			elif is_wall:
 				tile = GameTile.create("wall")
+				tile.is_interior = true  # Mark walls as interior for FOV
 			else:
 				tile = GameTile.create("floor")
 				tile.color = Color.WHITE  # Indoor floor uses default color
@@ -208,6 +210,7 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 
 ## Place a custom building with tile-by-tile layout
 ## Supports rotation via door_facing parameter (south=0, west=90, north=180, east=270)
+## Supports structure placement via legend dictionary in building definition
 static func _place_custom_building(tiles_dict: Dictionary, building_def: Dictionary, pos: Vector2i, door_facing: String = "south") -> Vector2i:
 	var layout = building_def.get("layout", null)
 	if layout == null:
@@ -216,6 +219,9 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 
 	var size_array = building_def.get("size", [5, 5])
 	var size = Vector2i(size_array[0], size_array[1])
+
+	# Get legend for custom structure mapping
+	var legend = building_def.get("legend", {})
 
 	# Rotate layout if needed (layouts are defined with door facing south)
 	var rotated_layout = _rotate_layout(layout, door_facing)
@@ -226,6 +232,7 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 
 	var npc_pos = Vector2i(-1, -1)
 	var door_positions: Array[Vector2i] = []
+	var structure_placements: Array = []  # [{structure_id, position}]
 
 	# First pass: place all tiles and track door positions
 	for y in range(min(rotated_layout.size(), rotated_size.y)):
@@ -235,16 +242,37 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 			if tile_char == " ":
 				continue  # Skip empty spaces
 			var world_pos = start + Vector2i(x, y)
-			var tile = _char_to_tile(tile_char)
-			tiles_dict[world_pos] = tile
 
-			# '@' marks NPC spawn position
-			if tile_char == "@":
-				npc_pos = world_pos
+			# Check legend for structure placement
+			if tile_char in legend:
+				var legend_entry = legend[tile_char]
+				if legend_entry == "npc_spawn":
+					# NPC spawn marker
+					var tile = GameTile.create("floor")
+					tile.color = Color.WHITE
+					tile.is_interior = true
+					tiles_dict[world_pos] = tile
+					npc_pos = world_pos
+				else:
+					# Structure placement - place floor tile and queue structure
+					var tile = GameTile.create("floor")
+					tile.is_interior = true
+					tiles_dict[world_pos] = tile
+					structure_placements.append({
+						"structure_id": legend_entry,
+						"position": world_pos
+					})
+			else:
+				var tile = _char_to_tile(tile_char)
+				tiles_dict[world_pos] = tile
 
-			# Track door positions for second pass
-			if tile_char == "+":
-				door_positions.append(world_pos)
+				# '@' marks NPC spawn position (default)
+				if tile_char == "@":
+					npc_pos = world_pos
+
+				# Track door positions for second pass
+				if tile_char == "+":
+					door_positions.append(world_pos)
 
 	# Second pass: lock interior doors (doors surrounded by interior tiles)
 	for door_pos in door_positions:
@@ -256,10 +284,21 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 			door_tile.ascii_char = "+"
 			door_tile.is_locked = true
 
+	# Third pass: place structures from legend
+	for placement in structure_placements:
+		var structure_id = placement.structure_id
+		var structure_pos = placement.position
+		var structure = StructureManager.create_structure(structure_id, structure_pos)
+		if structure:
+			var map_id = "overworld"  # Town structures are placed in overworld
+			StructureManager.place_structure(map_id, structure)
+			print("[TownGenerator] Placed structure '%s' at %v" % [structure_id, structure_pos])
+
 	return npc_pos
 
-## Check if a door is an interior door (has interior floor tiles on both sides)
+## Check if a door is an interior door (has walkable interior floor tiles on both sides)
 ## Interior doors connect two interior spaces, exterior doors connect interior to exterior
+## Must check for walkable floor tiles, not walls (which are also marked as interior for FOV)
 static func _is_interior_door(tiles_dict: Dictionary, door_pos: Vector2i) -> bool:
 	# Check horizontal neighbors (left and right)
 	var left_pos = door_pos + Vector2i(-1, 0)
@@ -267,9 +306,9 @@ static func _is_interior_door(tiles_dict: Dictionary, door_pos: Vector2i) -> boo
 	var left_tile = tiles_dict.get(left_pos)
 	var right_tile = tiles_dict.get(right_pos)
 
-	# If both left and right are interior floor tiles, this is a horizontal interior door
+	# If both left and right are walkable interior floor tiles, this is a horizontal interior door
 	if left_tile and right_tile:
-		if left_tile.is_interior and right_tile.is_interior:
+		if left_tile.is_interior and left_tile.walkable and right_tile.is_interior and right_tile.walkable:
 			return true
 
 	# Check vertical neighbors (up and down)
@@ -278,9 +317,9 @@ static func _is_interior_door(tiles_dict: Dictionary, door_pos: Vector2i) -> boo
 	var up_tile = tiles_dict.get(up_pos)
 	var down_tile = tiles_dict.get(down_pos)
 
-	# If both up and down are interior floor tiles, this is a vertical interior door
+	# If both up and down are walkable interior floor tiles, this is a vertical interior door
 	if up_tile and down_tile:
-		if up_tile.is_interior and down_tile.is_interior:
+		if up_tile.is_interior and up_tile.walkable and down_tile.is_interior and down_tile.walkable:
 			return true
 
 	return false
@@ -331,9 +370,13 @@ static func _rotate_layout(layout: Array, door_facing: String) -> Array:
 static func _char_to_tile(tile_char: String) -> GameTile:
 	match tile_char:
 		"#":
-			return GameTile.create("wall")
+			var tile = GameTile.create("wall")
+			tile.is_interior = true  # Mark walls as interior for FOV
+			return tile
 		"+":
-			return GameTile.create("door_closed")  # Doors start closed
+			var tile = GameTile.create("door_closed")  # Doors start closed
+			tile.is_interior = true  # Mark doors as interior for FOV
+			return tile
 		".":
 			var tile = GameTile.create("floor")
 			tile.is_interior = true  # Floor inside building
@@ -346,7 +389,9 @@ static func _char_to_tile(tile_char: String) -> GameTile:
 			tile.is_interior = true  # NPC spawn point is inside building
 			return tile
 		_:
-			return GameTile.create("floor")
+			var tile = GameTile.create("floor")
+			tile.is_interior = true  # Default to interior for unknown chars in buildings
+			return tile
 
 ## Add decorative trees around town perimeter
 static func _add_decorative_trees(tiles_dict: Dictionary, center: Vector2i, size: Vector2i, max_trees: int, rng: SeededRandom) -> void:

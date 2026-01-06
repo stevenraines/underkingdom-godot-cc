@@ -104,8 +104,16 @@ func move(direction: Vector2i) -> bool:
 	return true
 
 
-## Notify player when blocked by a non-walkable tile
+## Notify player when blocked by a non-walkable tile or structure
 func _notify_blocked_by_tile(pos: Vector2i) -> void:
+	# First check for blocking structures at this position
+	if MapManager.current_map:
+		var structures = StructureManager.get_structures_at(pos, MapManager.current_map.map_id)
+		for structure in structures:
+			if structure.blocks_movement:
+				EventBus.message_logged.emit("Your path is blocked by %s." % structure.name.to_lower())
+				return
+
 	var tile = MapManager.current_map.get_tile(pos) if MapManager.current_map else null
 	if not tile:
 		return

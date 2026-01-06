@@ -1,0 +1,22 @@
+{
+  "id": "forge",
+  "name": "Forge",
+  "description": "A hot forge for smelting metals. Requires tongs to use.",
+  "ascii_char": "&",
+  "ascii_color": "#FF4500",
+  "blocks_movement": true,
+  "structure_type": "forge",
+  "durability": -1,
+  "components": {
+    "fire": {
+      "heat_radius": 2,
+      "temperature_bonus": 25.0,
+      "light_radius": 3
+    },
+    "workstation": {
+      "workstation_type": "forge",
+      "required_tool": "tongs",
+      "tool_durability_cost": 1
+    }
+  }
+}

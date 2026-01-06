@@ -1,0 +1,21 @@
+{
+  "id": "blacksmith",
+  "name": "Blacksmith",
+  "description": "A smithy with forge and anvil for metalworking.",
+  "size": [10, 7],
+  "template_type": "custom",
+  "layout": [
+    "##########",
+    "#........#",
+    "#.&..n.@.#",
+    "#........#",
+    "#..####..#",
+    "#........#",
+    "####+#####"
+  ],
+  "legend": {
+    "&": "forge",
+    "n": "anvil",
+    "@": "npc_spawn"
+  }
+}

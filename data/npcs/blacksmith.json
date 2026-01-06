@@ -1,0 +1,46 @@
+{
+  "id": "blacksmith",
+  "name": "Brom Ironhand",
+  "npc_type": "shop",
+  "ascii_char": "@",
+  "ascii_color": "#CD853F",
+  "faction": "neutral",
+  "gold": 400,
+  "restock_interval": 500,
+  "dialogue": {
+    "greeting": "The forge runs hot today! Looking for quality metalwork?",
+    "training": "I can teach you the ways of the smith. It's honest work.",
+    "farewell": "May your blade stay sharp.",
+    "no_gold": "No coin, no steel. That's how it works."
+  },
+  "trade_inventory": [
+    {"item_id": "iron_ingot", "count": 10, "base_price": 15},
+    {"item_id": "steel_ingot", "count": 5, "base_price": 40},
+    {"item_id": "iron_sword", "count": 2, "base_price": 50},
+    {"item_id": "iron_dagger", "count": 3, "base_price": 30},
+    {"item_id": "iron_mace", "count": 2, "base_price": 45},
+    {"item_id": "iron_spear", "count": 2, "base_price": 40},
+    {"item_id": "hammer", "count": 2, "base_price": 25},
+    {"item_id": "tongs", "count": 2, "base_price": 20},
+    {"item_id": "chainmail_chest_armor", "count": 1, "base_price": 120},
+    {"item_id": "chainmail_helm", "count": 1, "base_price": 60},
+    {"item_id": "chainmail_gauntlets", "count": 1, "base_price": 50},
+    {"item_id": "chainmail_greaves", "count": 1, "base_price": 55},
+    {"item_id": "iron_shield", "count": 1, "base_price": 45}
+  ],
+  "recipes_for_sale": [
+    {"recipe_id": "iron_ingot", "base_price": 30},
+    {"recipe_id": "steel_ingot", "base_price": 75},
+    {"recipe_id": "iron_sword", "base_price": 50},
+    {"recipe_id": "iron_dagger", "base_price": 35},
+    {"recipe_id": "iron_mace", "base_price": 45},
+    {"recipe_id": "iron_spear", "base_price": 40},
+    {"recipe_id": "chainmail_chest_armor", "base_price": 100},
+    {"recipe_id": "chainmail_helm", "base_price": 60},
+    {"recipe_id": "chainmail_gauntlets", "base_price": 50},
+    {"recipe_id": "chainmail_greaves", "base_price": 55},
+    {"recipe_id": "chainmail_boots", "base_price": 45},
+    {"recipe_id": "iron_shield", "base_price": 45},
+    {"recipe_id": "tongs", "base_price": 20}
+  ]
+}

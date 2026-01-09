@@ -30,12 +30,30 @@ var quantity: int = 1  # How many to buy/sell
 # Shop system reference
 var shop_system: ShopSystem = null
 
+# Filter state (independent for each panel)
+var shop_filter: Inventory.FilterType = Inventory.FilterType.ALL
+var player_filter: Inventory.FilterType = Inventory.FilterType.ALL
+
 # Colors
 const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
 const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
 const COLOR_GOLD = Color(0.9, 0.7, 0.2, 1.0)
 const COLOR_AFFORDABLE = Color(0.6, 0.9, 0.6, 1.0)
 const COLOR_EXPENSIVE = Color(0.9, 0.5, 0.5, 1.0)
+
+# Filter hotkeys (shared with inventory screen)
+const FILTER_HOTKEYS = {
+	KEY_1: Inventory.FilterType.ALL,
+	KEY_2: Inventory.FilterType.WEAPONS,
+	KEY_3: Inventory.FilterType.ARMOR,
+	KEY_4: Inventory.FilterType.TOOLS,
+	KEY_5: Inventory.FilterType.CONSUMABLES,
+	KEY_6: Inventory.FilterType.MATERIALS,
+	KEY_7: Inventory.FilterType.AMMUNITION,
+	KEY_8: Inventory.FilterType.BOOKS,
+	KEY_9: Inventory.FilterType.SEEDS,
+	KEY_0: Inventory.FilterType.MISC
+}
 
 func _ready() -> void:
 	hide()
@@ -51,6 +69,17 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
+		# Handle filter hotkeys (number keys 1-0) - applies to focused panel
+		if FILTER_HOTKEYS.has(event.keycode):
+			if is_shop_focused:
+				shop_filter = FILTER_HOTKEYS[event.keycode]
+			else:
+				player_filter = FILTER_HOTKEYS[event.keycode]
+			selected_index = 0
+			_refresh_display()
+			get_viewport().set_input_as_handled()
+			return
+
 		match event.keycode:
 			KEY_ESCAPE:
 				_close()
@@ -159,10 +188,11 @@ func _get_max_quantity() -> int:
 		return min(available, can_afford)
 	else:
 		# Selling: limited by player inventory and shop gold
-		if player.inventory.items.size() == 0 or selected_index >= player.inventory.items.size():
+		var player_items = _get_filtered_player_items()
+		if player_items.size() == 0 or selected_index >= player_items.size():
 			return 1
 
-		var item = player.inventory.items[selected_index]
+		var item = player_items[selected_index]
 		# Player inventory stores Item instances (RefCounted). Use stack_size for quantity.
 		var available = item.stack_size if item is Item else item.count
 
@@ -176,7 +206,7 @@ func _get_current_list_size() -> int:
 	if is_shop_focused:
 		return shop_npc.trade_inventory.size() if shop_npc else 0
 	else:
-		return player.inventory.items.size() if player else 0
+		return _get_filtered_player_items().size()
 
 func _on_buy_pressed() -> void:
 	_buy_selected()
@@ -203,10 +233,11 @@ func _sell_selected() -> void:
 	if is_shop_focused or not shop_npc or not player:
 		return
 
-	if player.inventory.items.size() == 0 or selected_index >= player.inventory.items.size():
+	var player_items = _get_filtered_player_items()
+	if player_items.size() == 0 or selected_index >= player_items.size():
 		return
 
-	var item = player.inventory.items[selected_index]
+	var item = player_items[selected_index]
 	var success = shop_system.attempt_sell(shop_npc, item, quantity, player)
 
 	if success:
@@ -214,8 +245,9 @@ func _sell_selected() -> void:
 		quantity = 1
 
 		# Adjust selected_index if we're now past the end
-		if selected_index >= player.inventory.items.size():
-			selected_index = max(0, player.inventory.items.size() - 1)
+		var new_size = _get_filtered_player_items().size()
+		if selected_index >= new_size:
+			selected_index = max(0, new_size - 1)
 
 		_refresh_display()
 
@@ -267,9 +299,10 @@ func _refresh_display() -> void:
 
 		shop_list.add_child(label)
 
-	# Populate player inventory
-	for i in range(player.inventory.items.size()):
-		var item = player.inventory.items[i]
+	# Populate player inventory (filtered and sorted)
+	var player_items = player.inventory.get_items_by_filter(player_filter)
+	for i in range(player_items.size()):
+		var item = player_items[i]
 		var unit_price = shop_system.calculate_sell_price(item.value, player.attributes["CHA"])
 		var total_price = unit_price * (quantity if not is_shop_focused and i == selected_index else 1)
 
@@ -301,7 +334,7 @@ func _refresh_display() -> void:
 
 	# Update button states
 	buy_button.disabled = not is_shop_focused or shop_npc.trade_inventory.size() == 0
-	sell_button.disabled = is_shop_focused or player.inventory.items.size() == 0
+	sell_button.disabled = is_shop_focused or player_items.size() == 0
 
 	# Update help label to show [L] Learn if training available
 	if has_training_available():
@@ -345,3 +378,16 @@ func _scroll_to_selected() -> void:
 	# Scroll down if item is below visible area
 	elif item_bottom > visible_bottom:
 		scroll.scroll_vertical = int(item_bottom - scroll.size.y)
+
+## Get filtered player items for display
+func _get_filtered_player_items() -> Array[Item]:
+	if not player or not player.inventory:
+		return []
+	return player.inventory.get_items_by_filter(player_filter)
+
+## Get the unfiltered item from player inventory by filtered index
+func _get_player_item_at_filtered_index(index: int) -> Item:
+	var filtered_items = _get_filtered_player_items()
+	if index >= 0 and index < filtered_items.size():
+		return filtered_items[index]
+	return null

@@ -65,11 +65,10 @@ func _init(owner: Entity = null) -> void:
 		base_max_stamina = 50.0 + owner.attributes.get("CON", 10) * 10.0
 		stamina = base_max_stamina
 
-## Get effective max stamina (reduced by fatigue)
+## Get effective max stamina (NOT reduced by fatigue)
 func get_max_stamina() -> float:
-	# Fatigue reduces max stamina by fatigue%
-	var fatigue_reduction = base_max_stamina * (fatigue / 100.0)
-	return max(10.0, base_max_stamina - fatigue_reduction)
+	# Max stamina is always base value - fatigue only affects current stamina
+	return base_max_stamina
 
 ## Process survival effects for a turn
 func process_turn(turn_number: int) -> Dictionary:
@@ -102,14 +101,21 @@ func process_turn(turn_number: int) -> Dictionary:
 	
 	# Accumulate fatigue over time
 	if turn_number - _last_fatigue_turn >= FATIGUE_GAIN_RATE:
+		var old_fatigue = fatigue
 		fatigue = min(100.0, fatigue + 1.0)
 		_last_fatigue_turn = turn_number
 		effects.fatigue_gained = true
-		EventBus.survival_stat_changed.emit("fatigue", fatigue - 1.0, fatigue)
-		# Clamp stamina to new max (fatigue reduces max stamina)
-		var new_max = get_max_stamina()
-		if stamina > new_max:
-			stamina = new_max
+
+		# When fatigue increases, reduce current stamina proportionally
+		# Each 1% fatigue gained reduces current stamina by 1% of max
+		var fatigue_gain = fatigue - old_fatigue
+		var stamina_reduction = base_max_stamina * (fatigue_gain / 100.0)
+		var old_stamina = stamina
+		stamina = max(0.0, stamina - stamina_reduction)
+
+		EventBus.survival_stat_changed.emit("fatigue", old_fatigue, fatigue)
+		if stamina != old_stamina:
+			EventBus.survival_stat_changed.emit("stamina", old_stamina, stamina)
 
 	# Calculate and apply survival effects
 	var survival_effects = _calculate_survival_effects()
@@ -141,7 +147,6 @@ func _calculate_survival_effects() -> Dictionary:
 			"CHA": 0
 		},
 		"stamina_regen_modifier": 1.0,
-		"max_stamina_modifier": 1.0,
 		"perception_modifier": 0,
 		"health_drain_interval": 0  # 0 = no drain
 	}
@@ -166,18 +171,13 @@ func _calculate_survival_effects() -> Dictionary:
 		result.stat_modifiers["STR"] -= 2
 		result.stat_modifiers["DEX"] -= 2
 		result.stat_modifiers["WIS"] -= 3
-		result.max_stamina_modifier *= 0.5
 		result.health_drain_interval = _min_positive(result.health_drain_interval, 5)
 	elif thirst <= 25:
 		result.stat_modifiers["WIS"] -= 2
-		result.max_stamina_modifier *= 0.6
 		result.health_drain_interval = _min_positive(result.health_drain_interval, 25)
 	elif thirst <= 50:
 		result.stat_modifiers["WIS"] -= 1
-		result.max_stamina_modifier *= 0.6
 		result.perception_modifier -= 2
-	elif thirst <= 75:
-		result.max_stamina_modifier *= 0.8
 	
 	# Temperature effects
 	if temperature < TEMP_FREEZING:

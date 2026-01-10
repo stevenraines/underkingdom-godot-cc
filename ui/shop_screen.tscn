@@ -71,7 +71,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
 theme_override_font_sizes/font_size = 20
-text = "◆ SHOP ◆"
+text = "◆ TRADE ◆"
 horizontal_alignment = 1
 
 [node name="ShopKeeperLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TitleContainer"]
@@ -90,6 +90,84 @@ horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+
+[node name="FilterBarContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="FilterRow1" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="FilterAll" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "[1]All"
+
+[node name="FilterWeapons" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[2]Weapons"
+
+[node name="FilterArmor" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[3]Armor"
+
+[node name="FilterTools" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[4]Tools"
+
+[node name="FilterConsumables" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[5]Consumables"
+
+[node name="FilterRow2" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="FilterMaterials" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[6]Materials"
+
+[node name="FilterAmmo" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[7]Ammo"
+
+[node name="FilterBooks" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[8]Books"
+
+[node name="FilterSeeds" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[9]Seeds"
+
+[node name="FilterMisc" type="Label" parent="Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "[0]Misc"
+
+[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="ContentContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

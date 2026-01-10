@@ -2142,6 +2142,9 @@ func _process_rest_turn() -> void:
 	if player.survival:
 		player.regenerate_stamina()
 		player.regenerate_stamina()
+		# Reduce fatigue while resting (1 fatigue per 10 rest turns)
+		if rest_turns_elapsed % 10 == 0:
+			player.survival.rest(1.0)
 
 	rest_turns_remaining -= 1
 	rest_turns_elapsed += 1

@@ -1,0 +1,14 @@
+{
+  "id": "restorative_tonic",
+  "result": "restorative_tonic",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "healing_herb", "count": 2},
+    {"item": "cave_mushroom", "count": 1},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 4,
+  "discovery_hint": "Combining healing herbs and cave mushrooms with water over heat creates a restorative tonic that fights exhaustion"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "energizing_tea",
+  "result": "energizing_tea",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "healing_herb", "count": 1},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 2,
+  "discovery_hint": "Steeping healing herbs in hot water creates an energizing tea"
+}

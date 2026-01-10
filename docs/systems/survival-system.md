@@ -202,8 +202,18 @@ Effective Max Stamina = Base Max × (1 - Fatigue%)
 
 ### Recovering from Fatigue
 
-Resting (future sleep system) reduces fatigue:
-```
+Fatigue can be reduced through two methods:
+
+**1. Resting:**
+- Press `Z` to open rest menu and rest for multiple turns
+- Reduces 1 fatigue per 10 rest turns
+- Example: Resting for 100 turns reduces 10 fatigue
+
+**2. Consuming Items:**
+- **Restorative Tonic**: -25 fatigue, +20 stamina (craftable)
+- **Energizing Tea**: -15 fatigue, +10 thirst (craftable)
+
+```gdscript
 rest(amount) -> fatigue = max(0, fatigue - amount)
 ```
 

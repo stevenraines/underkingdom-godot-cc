@@ -25,7 +25,7 @@ func test_fatigue_accumulates_over_time() -> void:
 	assert_eq(survival.fatigue, 1.0, "Fatigue should increase by 1 after 100 turns")
 
 
-func test_fatigue_reduces_max_stamina() -> void:
+func test_fatigue_does_not_reduce_max_stamina() -> void:
 	# Given: A survival system with 50 fatigue and 150 base max stamina
 	var survival = SurvivalSystemClass.new(null)
 	survival.base_max_stamina = 150.0  # CON 10: 50 + (10 * 10)
@@ -34,12 +34,11 @@ func test_fatigue_reduces_max_stamina() -> void:
 	# When: Calculating max stamina
 	var max_stamina = survival.get_max_stamina()
 
-	# Then: Max stamina should be reduced by 50%
-	# 150 * (1 - 0.50) = 75
-	assert_eq(max_stamina, 75.0, "Max stamina should be 75 with 50 fatigue")
+	# Then: Max stamina should stay at base value (fatigue only affects current stamina)
+	assert_eq(max_stamina, 150.0, "Max stamina should remain 150 regardless of fatigue")
 
 
-func test_fatigue_100_reduces_to_minimum() -> void:
+func test_fatigue_100_does_not_reduce_max() -> void:
 	# Given: A survival system with 100 fatigue
 	var survival = SurvivalSystemClass.new(null)
 	survival.base_max_stamina = 150.0
@@ -48,8 +47,8 @@ func test_fatigue_100_reduces_to_minimum() -> void:
 	# When: Calculating max stamina
 	var max_stamina = survival.get_max_stamina()
 
-	# Then: Max stamina should be at minimum (10)
-	assert_eq(max_stamina, 10.0, "Max stamina should be 10 (minimum) with 100 fatigue")
+	# Then: Max stamina should remain at base value
+	assert_eq(max_stamina, 150.0, "Max stamina should remain 150 even with 100 fatigue")
 
 
 # =============================================================================
@@ -82,21 +81,22 @@ func test_rest_cannot_go_below_zero() -> void:
 	assert_eq(survival.fatigue, 0.0, "Fatigue should not go below 0")
 
 
-func test_rest_fully_restores_max_stamina() -> void:
+func test_rest_reduces_fatigue_max_stays_constant() -> void:
 	# Given: A survival system with 60 fatigue
 	var survival = SurvivalSystemClass.new(null)
 	survival.base_max_stamina = 150.0
 	survival.fatigue = 60.0
-	var initial_max = survival.get_max_stamina()  # Should be 60
+	var initial_max = survival.get_max_stamina()  # Should be 150
 
 	# When: Resting to remove all fatigue
 	survival.rest(60.0)
 	var final_max = survival.get_max_stamina()
 
-	# Then: Max stamina should be fully restored to base
+	# Then: Fatigue should be reduced and max stamina should remain constant
 	assert_eq(survival.fatigue, 0.0, "Fatigue should be 0")
-	assert_eq(final_max, 150.0, "Max stamina should be fully restored to 150")
-	assert_true(final_max > initial_max, "Max stamina should increase after rest")
+	assert_eq(initial_max, 150.0, "Max stamina should always be 150")
+	assert_eq(final_max, 150.0, "Max stamina should always be 150")
+	assert_eq(final_max, initial_max, "Max stamina should never change")
 
 
 # =============================================================================
@@ -139,28 +139,29 @@ func test_item_effect_reduces_fatigue() -> void:
 
 
 # =============================================================================
-# Test: Max Stamina Recovery When Fatigue Decreases
+# Test: Max Stamina Stays Constant (Fatigue Only Affects Current Stamina)
 # =============================================================================
 
-func test_max_stamina_increases_with_fatigue_decrease() -> void:
+func test_max_stamina_stays_constant_when_fatigue_changes() -> void:
 	# Given: A survival system with 150 base max stamina and 50 fatigue
 	var survival = SurvivalSystemClass.new(null)
 	survival.base_max_stamina = 150.0
 	survival.fatigue = 50.0
 
-	var initial_max = survival.get_max_stamina()  # 75
+	var initial_max = survival.get_max_stamina()  # 150
 
 	# When: Reducing fatigue by 25
 	survival.rest(25.0)
 	var new_max = survival.get_max_stamina()
 
-	# Then: Max stamina should increase from 75 to 112.5
+	# Then: Max stamina should remain constant at 150
 	assert_eq(survival.fatigue, 25.0, "Fatigue should be 25")
-	assert_eq(new_max, 112.5, "Max stamina should be 112.5")
-	assert_almost_eq(new_max - initial_max, 37.5, 0.1, "Max stamina should increase by 37.5")
+	assert_eq(initial_max, 150.0, "Initial max stamina should be 150")
+	assert_eq(new_max, 150.0, "Max stamina should remain 150")
+	assert_eq(new_max, initial_max, "Max stamina should never change")
 
 
-func test_partial_fatigue_recovery_increases_max_stamina() -> void:
+func test_partial_fatigue_recovery_max_stamina_constant() -> void:
 	# Given: A survival system with 80 fatigue
 	var survival = SurvivalSystemClass.new(null)
 	survival.base_max_stamina = 150.0
@@ -170,30 +171,32 @@ func test_partial_fatigue_recovery_increases_max_stamina() -> void:
 	survival.rest(15.0)
 	var new_max = survival.get_max_stamina()
 
-	# Then: Max stamina should increase
+	# Then: Max stamina should remain constant
 	# New fatigue: 65
-	# New max: 150 * (1 - 0.65) = 52.5
+	# Max stamina: always 150
 	assert_eq(survival.fatigue, 65.0, "Fatigue should be 65")
-	assert_eq(new_max, 52.5, "Max stamina should be 52.5")
+	assert_eq(new_max, 150.0, "Max stamina should remain 150")
 
 
-func test_stamina_clamped_when_max_decreases() -> void:
+func test_current_stamina_reduced_when_fatigue_increases() -> void:
 	# Given: A survival system with current stamina at max
 	var survival = SurvivalSystemClass.new(null)
 	survival.base_max_stamina = 150.0
 	survival.fatigue = 0.0
 	survival.stamina = survival.get_max_stamina()  # 150
 
-	# When: Fatigue increases (simulating time passing)
-	survival.fatigue = 50.0
+	# When: Fatigue increases by 1% (via process_turn)
+	# This happens automatically in process_turn() when fatigue accumulates
+	# Simulating what happens: 1% fatigue = 1.5 stamina reduction
+	var old_fatigue = survival.fatigue
+	survival.fatigue = 1.0
+	var fatigue_gain = survival.fatigue - old_fatigue  # 1.0
+	var stamina_reduction = survival.base_max_stamina * (fatigue_gain / 100.0)  # 1.5
+	survival.stamina = max(0.0, survival.stamina - stamina_reduction)
 
-	# Clamp stamina to new max (as done in actual code)
-	var new_max = survival.get_max_stamina()  # 75
-	if survival.stamina > new_max:
-		survival.stamina = new_max
-
-	# Then: Current stamina should be clamped to new max
-	assert_eq(survival.stamina, 75.0, "Stamina should be clamped to new max of 75")
+	# Then: Current stamina should be reduced by 1.5, max should stay at 150
+	assert_eq(survival.get_max_stamina(), 150.0, "Max stamina should remain 150")
+	assert_eq(survival.stamina, 148.5, "Current stamina should be reduced by 1.5")
 
 
 # =============================================================================

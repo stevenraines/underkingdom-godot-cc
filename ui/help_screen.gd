@@ -57,8 +57,11 @@ func _build_help_content() -> void:
 	_add_keybind("D (in inventory)", "Drop item")
 	_add_keybind("{ (in inventory)", "Inscribe text on item")
 	_add_keybind("} (in inventory)", "Remove inscription from item")
+	_add_keybind("1-0 (in inventory)", "Filter items by category")
 	_add_keybind("G", "Toggle auto-pickup on/off")
 	_add_help_text("Inscriptions appear in {curly braces} after item name")
+	_add_help_text("Filters: 1=All 2=Weapons 3=Armor 4=Tools 5=Consumables")
+	_add_help_text("         6=Materials 7=Ammo 8=Books 9=Seeds 0=Misc")
 	_add_spacer()
 
 	# Crafting & Building
@@ -86,8 +89,10 @@ func _build_help_content() -> void:
 	_add_section_header("== NPCs & SHOPPING ==")
 	_add_keybind("T", "Talk to adjacent NPC")
 	_add_keybind("Tab (in shop)", "Switch buy/sell mode")
+	_add_keybind("1-0 (in shop)", "Filter items by category")
 	_add_keybind("+/-", "Adjust quantity")
 	_add_keybind("Enter", "Complete transaction")
+	_add_help_text("Filters work independently for shop and player inventory")
 	_add_spacer()
 
 	# Menus & UI

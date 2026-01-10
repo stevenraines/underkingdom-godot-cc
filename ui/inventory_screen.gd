@@ -33,6 +33,18 @@ const InscriptionDialogScene = preload("res://ui/inscription_dialog.tscn")
 @onready var action_inscribe: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionInscribe
 @onready var action_uninscribe: Label = $Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/ActionsRow/ActionUninscribe
 
+# Filter bar UI elements
+@onready var filter_all: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterAll
+@onready var filter_weapons: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterWeapons
+@onready var filter_armor: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterArmor
+@onready var filter_tools: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterTools
+@onready var filter_consumables: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterConsumables
+@onready var filter_materials: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2/FilterMaterials
+@onready var filter_ammo: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2/FilterAmmo
+@onready var filter_books: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2/FilterBooks
+@onready var filter_seeds: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2/FilterSeeds
+@onready var filter_misc: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow2/FilterMisc
+
 var player: Player = null
 var selected_item: Item = null
 var selected_slot: String = ""
@@ -49,6 +61,10 @@ var pending_equip_slot: String = ""  # The slot we're trying to equip to
 # Inscription dialog
 var inscription_dialog = null
 var inscription_dialog_active: bool = false
+
+# Filter state
+var current_filter: Inventory.FilterType = Inventory.FilterType.ALL
+var filter_bar_focused: bool = false
 
 # Colors
 const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
@@ -84,6 +100,33 @@ const SLOT_ICONS = {
 	"accessory_2": "◇"
 }
 
+# Filter configuration
+const FILTER_LABELS = {
+	Inventory.FilterType.ALL: "All",
+	Inventory.FilterType.WEAPONS: "Weapons",
+	Inventory.FilterType.ARMOR: "Armor",
+	Inventory.FilterType.TOOLS: "Tools",
+	Inventory.FilterType.CONSUMABLES: "Consumables",
+	Inventory.FilterType.MATERIALS: "Materials",
+	Inventory.FilterType.AMMUNITION: "Ammo",
+	Inventory.FilterType.BOOKS: "Books",
+	Inventory.FilterType.SEEDS: "Seeds",
+	Inventory.FilterType.MISC: "Misc"
+}
+
+const FILTER_HOTKEYS = {
+	KEY_1: Inventory.FilterType.ALL,
+	KEY_2: Inventory.FilterType.WEAPONS,
+	KEY_3: Inventory.FilterType.ARMOR,
+	KEY_4: Inventory.FilterType.TOOLS,
+	KEY_5: Inventory.FilterType.CONSUMABLES,
+	KEY_6: Inventory.FilterType.MATERIALS,
+	KEY_7: Inventory.FilterType.AMMUNITION,
+	KEY_8: Inventory.FilterType.BOOKS,
+	KEY_9: Inventory.FilterType.SEEDS,
+	KEY_0: Inventory.FilterType.MISC
+}
+
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -100,6 +143,12 @@ func _input(event: InputEvent) -> void:
 		# Handle slot selection mode separately
 		if slot_selection_mode:
 			_handle_slot_selection_input(event.keycode)
+			get_viewport().set_input_as_handled()
+			return
+
+		# Handle filter hotkeys (number keys 1-0)
+		if FILTER_HOTKEYS.has(event.keycode):
+			_set_filter(FILTER_HOTKEYS[event.keycode])
 			get_viewport().set_input_as_handled()
 			return
 
@@ -159,8 +208,9 @@ func _close() -> void:
 func refresh() -> void:
 	if not player or not player.inventory:
 		return
-	
+
 	_update_weight_display()
+	_update_filter_bar()
 	_update_equipment_display()
 	_update_inventory_display()
 	_update_selection()
@@ -239,17 +289,29 @@ func _update_equipment_display() -> void:
 func _update_inventory_display() -> void:
 	if not inventory_list or not player or not player.inventory:
 		return
-	
+
 	# Clear existing (use free() instead of queue_free() for immediate removal)
 	for child in inventory_list.get_children():
 		inventory_list.remove_child(child)
 		child.free()
-	
-	# Add inventory items
-	var items = player.inventory.get_all_items()
+
+	# Get filtered and sorted items
+	var items = player.inventory.get_items_by_filter(current_filter)
+
+	# Update title with filter info
+	_update_inventory_title(items.size())
+
+	# Reset scroll position to top
+	if inventory_scroll:
+		inventory_scroll.scroll_vertical = 0
+
 	if items.size() == 0:
 		var label = Label.new()
-		label.text = "  (Empty backpack)"
+		if current_filter == Inventory.FilterType.ALL:
+			label.text = "  (Empty backpack)"
+		else:
+			var filter_name = FILTER_LABELS.get(current_filter, "items")
+			label.text = "  (No %s)" % filter_name.to_lower()
 		label.add_theme_color_override("font_color", COLOR_EMPTY)
 		label.add_theme_font_size_override("font_size", 13)
 		inventory_list.add_child(label)
@@ -873,3 +935,51 @@ func _on_inscription_entered(text: String) -> void:
 ## Handle inscription dialog cancellation
 func _on_inscription_cancelled() -> void:
 	inscription_dialog_active = false
+
+
+## Filter Management Functions
+
+## Set the active filter and refresh display
+func _set_filter(filter: Inventory.FilterType) -> void:
+	if current_filter != filter:
+		current_filter = filter
+		inventory_index = 0  # Reset selection to top
+		refresh()
+
+## Update filter bar visual state
+func _update_filter_bar() -> void:
+	if not filter_all:
+		return
+
+	# Map filter labels to their filter types
+	var filter_labels_map = {
+		Inventory.FilterType.ALL: filter_all,
+		Inventory.FilterType.WEAPONS: filter_weapons,
+		Inventory.FilterType.ARMOR: filter_armor,
+		Inventory.FilterType.TOOLS: filter_tools,
+		Inventory.FilterType.CONSUMABLES: filter_consumables,
+		Inventory.FilterType.MATERIALS: filter_materials,
+		Inventory.FilterType.AMMUNITION: filter_ammo,
+		Inventory.FilterType.BOOKS: filter_books,
+		Inventory.FilterType.SEEDS: filter_seeds,
+		Inventory.FilterType.MISC: filter_misc
+	}
+
+	# Update colors for all filter labels
+	for filter_type in filter_labels_map:
+		var label = filter_labels_map[filter_type]
+		if filter_type == current_filter:
+			label.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+		else:
+			label.add_theme_color_override("font_color", COLOR_NORMAL)
+
+## Update inventory title with filter info
+func _update_inventory_title(item_count: int) -> void:
+	if not inventory_title:
+		return
+
+	if current_filter == Inventory.FilterType.ALL:
+		inventory_title.text = "══ BACKPACK (%d items) ══" % item_count
+	else:
+		var filter_name = FILTER_LABELS.get(current_filter, "items")
+		inventory_title.text = "══ BACKPACK (%d %s) ══" % [item_count, filter_name.to_lower()]

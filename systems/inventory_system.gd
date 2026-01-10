@@ -407,9 +407,75 @@ func _is_light_active(item: Item) -> bool:
 func has_light_source_equipped() -> bool:
 	return get_equipped_light_radius() > 0
 
+## Filter types for inventory organization
+enum FilterType {
+	ALL,           # Show everything (default)
+	WEAPONS,       # Swords, axes, bows, etc.
+	ARMOR,         # All equippable armor pieces
+	TOOLS,         # Knives, hammers, waterskins, etc.
+	CONSUMABLES,   # Food, bandages, potions
+	MATERIALS,     # Crafting materials, ore, leather
+	AMMUNITION,    # Arrows, bolts
+	BOOKS,         # Recipe books
+	SEEDS,         # Farming seeds
+	MISC           # Currency, keys, other items
+}
+
 ## Get all items as array (for UI display)
 func get_all_items() -> Array[Item]:
 	return items
+
+## Get items filtered by category and sorted by value
+func get_items_by_filter(filter: FilterType) -> Array[Item]:
+	var filtered = _filter_items(items, filter)
+	return _sort_items(filtered)
+
+## Filter items by category
+func _filter_items(item_list: Array[Item], filter: FilterType) -> Array[Item]:
+	if filter == FilterType.ALL:
+		return item_list.duplicate()
+
+	var result: Array[Item] = []
+	for item in item_list:
+		if _item_matches_filter(item, filter):
+			result.append(item)
+	return result
+
+## Check if item matches filter category
+func _item_matches_filter(item: Item, filter: FilterType) -> bool:
+	match filter:
+		FilterType.WEAPONS:
+			return item.category == "weapons" or (item.flags.get("weapon", false) and item.equip_slots.size() > 0)
+		FilterType.ARMOR:
+			return item.category == "armor" or (item.flags.get("equippable", false) and item.armor_value > 0)
+		FilterType.TOOLS:
+			return item.category == "tools" or item.flags.get("tool", false)
+		FilterType.CONSUMABLES:
+			return item.category == "consumables" or item.flags.get("consumable", false)
+		FilterType.MATERIALS:
+			return item.category == "materials" or item.item_type == "material"
+		FilterType.AMMUNITION:
+			return item.category == "ammunition"
+		FilterType.BOOKS:
+			return item.category == "books" or item.teaches_recipe != ""
+		FilterType.SEEDS:
+			return item.category == "seeds"
+		FilterType.MISC:
+			# Misc includes currency, keys, and anything that doesn't fit other categories
+			return item.category == "misc" or item.item_type == "currency" or (
+				item.category not in ["weapons", "armor", "tools", "consumables", "materials", "ammunition", "books", "seeds"]
+			)
+	return false
+
+## Sort items by value (ascending), then name (alphabetical)
+func _sort_items(item_list: Array[Item]) -> Array[Item]:
+	var sorted = item_list.duplicate()
+	sorted.sort_custom(func(a, b):
+		if a.value == b.value:
+			return a.name < b.name
+		return a.value < b.value
+	)
+	return sorted
 
 ## Get number of items (stacks) in inventory
 func get_item_slot_count() -> int:

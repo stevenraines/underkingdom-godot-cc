@@ -10,7 +10,10 @@ The magic system consists of two main components:
 
 ## Implementation Status
 
-Phase 01 (Mana System) has been implemented. Remaining phases are planned.
+- **Phase 01** (Mana System) - Implemented
+- **Phase 02** (Spell Data & Manager) - Implemented
+
+Remaining phases are planned.
 
 ## Mana System (Implemented)
 
@@ -48,6 +51,67 @@ BASE_MAX_MANA = 30.0
 - `restore_mana(amount)` - Instant mana restoration
 
 For detailed mana documentation, see [Survival System - Mana](./survival-system.md#mana-system).
+
+## Spell Data & Manager (Implemented)
+
+SpellManager autoload loads spell definitions from JSON files.
+
+### Data Location
+```
+data/spells/
+├── evocation/      # Damage and energy spells
+├── conjuration/    # Creation, summoning, healing
+├── enchantment/    # Mind control
+├── transmutation/  # Transformation
+├── divination/     # Detection, knowledge
+├── necromancy/     # Death, undead
+├── abjuration/     # Protection, warding
+└── illusion/       # Deception
+```
+
+### SpellManager Methods
+
+```gdscript
+# Get spell by ID
+SpellManager.get_spell("spark") -> Spell
+
+# Query spells
+SpellManager.get_spells_by_school("evocation") -> Array[Spell]
+SpellManager.get_spells_by_level(1) -> Array[Spell]
+SpellManager.get_cantrips() -> Array[Spell]
+SpellManager.get_all_spell_ids() -> Array[String]
+
+# Check casting requirements
+SpellManager.can_cast(caster, spell) -> {can_cast: bool, reason: String}
+
+# Calculate scaled values
+SpellManager.calculate_spell_damage(spell, caster) -> int
+SpellManager.calculate_spell_duration(spell, caster) -> int
+```
+
+### Spell Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| id | String | Unique identifier |
+| name | String | Display name |
+| school | String | Magic school |
+| level | int | 0-10 (0 = cantrip) |
+| mana_cost | int | Mana required |
+| requirements | Dict | {character_level, intelligence} |
+| targeting | Dict | {mode, range, requires_los} |
+| effects | Dict | Spell effects (damage, buff, heal) |
+
+### Current Spells
+
+| Spell | School | Level | Cost | Effect |
+|-------|--------|-------|------|--------|
+| light | evocation | 0 | 0 | +2 vision for 100 turns |
+| spark | evocation | 1 | 5 | 8 lightning damage |
+| heal | conjuration | 1 | 8 | Restore 10 HP |
+| shield | abjuration | 1 | 5 | +3 armor for 20 turns |
+
+For spell JSON format, see [Spell Data Format](../data/spells.md).
 
 ## Planned Features
 

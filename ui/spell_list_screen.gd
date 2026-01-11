@@ -6,6 +6,7 @@ extends Control
 ## Requires a spellbook item in inventory to access.
 
 signal closed()
+signal spell_cast_requested(spell_id: String)
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var mana_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/ManaLabel
@@ -88,6 +89,9 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_DOWN:
 				_navigate(1)
+				get_viewport().set_input_as_handled()
+			KEY_ENTER, KEY_SPACE, KEY_C:
+				_cast_selected_spell()
 				get_viewport().set_input_as_handled()
 
 func open(p: Player) -> void:
@@ -306,7 +310,7 @@ func _clear_detail_panel() -> void:
 	if req_line_3:
 		req_line_3.text = ""
 	if footer_label:
-		footer_label.text = "[Esc/Shift+M] Close"
+		footer_label.text = "[Enter/C] Cast  [Esc/Shift+M] Close"
 
 func _populate_spell_details(spell) -> void:
 	# Name and description
@@ -352,7 +356,7 @@ func _populate_spell_details(spell) -> void:
 
 	# Footer
 	if footer_label:
-		footer_label.text = "[Esc/Shift+M] Close"
+		footer_label.text = "[Enter/C] Cast  [Esc/Shift+M] Close"
 
 func _update_requirements_display(spell) -> void:
 	if not player:
@@ -392,3 +396,22 @@ func _navigate(direction: int) -> void:
 
 	selected_index = clampi(selected_index + direction, 0, spells.size() - 1)
 	_update_selection()
+
+
+## Attempt to cast the currently selected spell
+func _cast_selected_spell() -> void:
+	if spells.is_empty() or selected_index < 0 or selected_index >= spells.size():
+		return
+
+	var spell = spells[selected_index]
+
+	# Check if player can cast this spell
+	var can_cast_result = SpellManager.can_cast(player, spell)
+	if not can_cast_result.can_cast:
+		EventBus.message_logged.emit(can_cast_result.reason)
+		return
+
+	# Close the screen and emit signal to trigger casting
+	var spell_id = spell.id
+	_close()
+	spell_cast_requested.emit(spell_id)

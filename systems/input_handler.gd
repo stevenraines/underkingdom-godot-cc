@@ -599,6 +599,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_M and event.shift_pressed:  # Shift+M - toggle spellbook
 			_toggle_spell_list()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_K:  # K - open spell casting (alias for spellbook)
+			_toggle_spell_list()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_M and not event.shift_pressed:  # M - toggle world map
 			_toggle_world_map()
 			get_viewport().set_input_as_handled()
@@ -1200,20 +1203,35 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 			get_viewport().set_input_as_handled()
 
 		KEY_ENTER, KEY_SPACE, KEY_R, KEY_F:
-			# Confirm target and fire
-			var result = targeting_system.confirm_target()
-			_process_ranged_attack_result(result)
+			# Check if we're in spell targeting mode
+			if game and game.get("spell_targeting_active") and game.spell_targeting_active:
+				# Spell targeting - cast spell on current target
+				var target = targeting_system.current_target
+				if target:
+					game.cast_pending_spell_on_target(target)
+				game._cancel_spell_targeting()
+			else:
+				# Normal ranged weapon targeting
+				var result = targeting_system.confirm_target()
+				_process_ranged_attack_result(result)
 			ui_blocking_input = false
 			get_viewport().set_input_as_handled()
 
 		KEY_ESCAPE:
 			# Cancel targeting
-			targeting_system.cancel()
+			if game and game.get("spell_targeting_active") and game.spell_targeting_active:
+				# Cancel spell targeting
+				game._cancel_spell_targeting()
+				if game.has_method("_add_message"):
+					game._add_message("Spell cancelled.", Color(0.7, 0.7, 0.7))
+			else:
+				# Cancel normal targeting
+				targeting_system.cancel()
+				if game and game.has_method("hide_targeting_ui"):
+					game.hide_targeting_ui()
+				if game and game.has_method("_add_message"):
+					game._add_message("Targeting cancelled.", Color(0.7, 0.7, 0.7))
 			ui_blocking_input = false
-			if game and game.has_method("hide_targeting_ui"):
-				game.hide_targeting_ui()
-			if game and game.has_method("_add_message"):
-				game._add_message("Targeting cancelled.", Color(0.7, 0.7, 0.7))
 			get_viewport().set_input_as_handled()
 
 

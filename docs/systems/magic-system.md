@@ -13,6 +13,7 @@ The magic system consists of two main components:
 - **Phase 01** (Mana System) - Implemented
 - **Phase 02** (Spell Data & Manager) - Implemented
 - **Phase 03** (Spellbook & Spell Learning) - Implemented
+- **Phase 04** (Spell Casting) - Implemented
 
 Remaining phases are planned.
 
@@ -188,13 +189,102 @@ Open with **Shift+M** to view known spells:
 | Tome of Healing | heal (Lv1) | 100 |
 | Tome of Shield | shield (Lv1) | 75 |
 
-## Planned Features
+## Spell Casting (Implemented)
 
-### Spellcasting
-- Minimum 8 INT required for all magic
-- Spells require level + INT to cast
-- Spell schools: Evocation, Conjuration, Enchantment, Transmutation, Divination, Necromancy, Abjuration, Illusion
-- Failure modes: Fizzle, Backfire, Wild Magic
+The SpellCastingSystem handles all spell casting mechanics.
+
+### Casting a Spell
+
+1. Open spellbook with **Shift+M** or **K**
+2. Select a spell from the list
+3. Press **Enter** or **C** to cast
+4. For ranged spells, use targeting system to select target
+5. Mana is consumed and effects are applied
+
+### Targeting Modes
+
+| Mode | Behavior |
+|------|----------|
+| self | Casts immediately on caster |
+| ranged | Opens targeting system, select enemy |
+| touch | Like ranged but 1-tile range |
+
+### Spell Failure
+
+Spells can fail based on level difference:
+
+| Condition | Base Failure Chance |
+|-----------|---------------------|
+| Spell level > caster level | 25% + 15% per level above |
+| Spell level = caster level | 5% |
+| Spell level = caster level - 1 | 3% |
+| Spell level = caster level - 2 | 2% |
+| Spell level < caster level - 2 | 1% |
+
+**INT bonus** reduces failure chance: -1% per INT point above spell requirement.
+
+**Cantrips** (level 0) never fail.
+
+### Failure Types
+
+| Type | Chance | Effect |
+|------|--------|--------|
+| Fizzle | 70% | Spell dissipates harmlessly |
+| Backfire | 25% | Spell damages caster |
+| Wild Magic | 5% | Random magical effect |
+
+### SpellCastingSystem Methods
+
+```gdscript
+# Cast a spell (static function)
+SpellCastingSystem.cast_spell(caster, spell, target) -> Dictionary
+
+# Result dictionary contains:
+{
+    "success": bool,
+    "damage": int,
+    "healing": int,
+    "mana_cost": int,
+    "message": String,
+    "effects_applied": Array,
+    "target_died": bool,
+    "failed": bool,
+    "failure_type": String  # "fizzle", "backfire", "wild_magic"
+}
+
+# Get valid targets for a spell
+SpellCastingSystem.get_valid_spell_targets(caster, spell) -> Array[Entity]
+
+# Check if caster can cast any spell
+SpellCastingSystem.can_cast_any_spell(caster) -> bool
+```
+
+### Spell Effects
+
+The system handles three types of effects:
+
+**Damage Effects:**
+```gdscript
+damage = base_damage + (scaling × level_bonus)
+# level_bonus = max(0, caster_level - spell_required_level)
+```
+
+**Healing Effects:**
+```gdscript
+healing = base_heal + (scaling × level_bonus)
+```
+
+**Buff Effects:**
+- Applied via `target.apply_buff(spell_id, buff_info, duration)`
+- Duration scales with caster level
+
+### Signals
+
+```gdscript
+EventBus.spell_cast.emit(caster, spell, targets, result)
+```
+
+## Planned Features
 
 ### Magic Items
 - Spellbooks - Required to store learned spells
@@ -215,11 +305,14 @@ Open with **Shift+M** to view known spells:
 | Key | Action |
 |-----|--------|
 | Shift+M | Open spellbook (view known spells) |
+| K | Open spell casting (alias for Shift+M) |
+| Enter/C | Cast selected spell (in spell list) |
+| Tab | Cycle spell targets (in targeting mode) |
+| Escape | Cancel spell targeting |
 
 ### Planned
 | Key | Action |
 |-----|--------|
-| K | Open spell casting menu |
 | Shift+T | Open ritual menu (T alone is Talk) |
 | Shift+S | Summon commands (if summons active) |
 

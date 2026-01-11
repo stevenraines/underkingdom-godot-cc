@@ -82,6 +82,7 @@ var current_target: Entity = null
 | B | Toggle build mode |
 | M | Toggle world map |
 | Shift+M | Toggle spellbook |
+| K | Open spell casting (alias for Shift+M) |
 | P | Character sheet |
 | F1 / ? | Help screen |
 | L | Look mode |
@@ -151,6 +152,18 @@ When _awaiting_harvest_direction:
 Arrow/WASD: Harvest in direction
 Escape: Cancel harvest
 ```
+
+### Spell Targeting Mode
+
+When spell_targeting_active (casting ranged spell):
+```gdscript
+Tab/→/D: Cycle next target
+←/A: Cycle previous target
+Enter/Space/R/F: Cast spell on target
+Escape: Cancel spell targeting
+```
+
+Spell targeting is similar to ranged weapon targeting but casts the pending spell instead of firing a weapon.
 
 ## Wait Action
 

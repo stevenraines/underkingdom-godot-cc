@@ -59,6 +59,7 @@ func _build_help_content() -> void:
 	_add_keybind("} (in inventory)", "Remove inscription from item")
 	_add_keybind("1-0 (in inventory)", "Filter items by category")
 	_add_keybind("G", "Toggle auto-pickup on/off")
+	_add_keybind("Q", "Light/extinguish equipped torch")
 	_add_help_text("Inscriptions appear in {curly braces} after item name")
 	_add_help_text("Filters: 1=All 2=Weapons 3=Armor 4=Tools 5=Consumables")
 	_add_help_text("         6=Materials 7=Ammo 8=Books 9=Seeds 0=Misc")

@@ -141,6 +141,9 @@ func _notify_blocked_by_tile(pos: Vector2i) -> void:
 	if not tile:
 		return
 
+	# Debug: print tile properties
+	print("[BLOCKED] tile_type='%s', ascii_char='%s', walkable=%s" % [tile.tile_type, tile.ascii_char, tile.walkable])
+
 	# Get a human-readable name for the blocking tile
 	var tile_name = _get_tile_display_name(tile)
 	EventBus.message_logged.emit("Your path is blocked by %s." % tile_name)

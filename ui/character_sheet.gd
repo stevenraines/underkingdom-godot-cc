@@ -497,6 +497,12 @@ func _input(event: InputEvent) -> void:
 		var scroll_amount = 40  # Pixels to scroll per key press
 
 		match event.keycode:
+			KEY_L:
+				# L key - open level-up screen if points available
+				if player and (player.available_skill_points > 0 or player.available_ability_points > 0):
+					_on_level_up_button_pressed()
+				get_viewport().set_input_as_handled()
+
 			KEY_TAB:
 				# Cycle through tabs
 				if tab_container:

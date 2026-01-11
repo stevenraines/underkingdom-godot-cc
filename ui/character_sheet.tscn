@@ -116,6 +116,23 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = ExtResource("2_theme")
 
+[node name="Skills" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Skills"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
 [node name="Combat" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
 visible = false
 layout_mode = 2

@@ -12,6 +12,8 @@ signal closed
 @onready var progression_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression/ScrollMargin/ContentBox
 @onready var abilities_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities
 @onready var abilities_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities/ScrollMargin/ContentBox
+@onready var skills_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills
+@onready var skills_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin/ContentBox
 @onready var combat_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat
 @onready var combat_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat/ScrollMargin/ContentBox
 @onready var survival_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival
@@ -40,9 +42,10 @@ func _ready() -> void:
 func open(p_player) -> void:
 	player = p_player
 
-	# Populate all 5 tabs
+	# Populate all 6 tabs
 	_populate_progression_tab()
 	_populate_abilities_tab()
+	_populate_skills_tab()
 	_populate_combat_tab()
 	_populate_survival_tab()
 	_populate_weather_tab()
@@ -71,6 +74,13 @@ func _populate_abilities_tab() -> void:
 		child.queue_free()
 	current_content_box = abilities_content
 	_add_attributes_section()
+
+## Populate the Skills tab
+func _populate_skills_tab() -> void:
+	for child in skills_content.get_children():
+		child.queue_free()
+	current_content_box = skills_content
+	_add_skills_section()
 
 ## Populate the Combat tab
 func _populate_combat_tab() -> void:
@@ -139,6 +149,57 @@ func _add_attributes_section() -> void:
 		stat_line.add_child(value_label)
 
 		abilities_content.add_child(stat_line)
+
+## Add the skills section
+func _add_skills_section() -> void:
+	var section_header = _create_section_header("== SKILLS ==")
+	skills_content.add_child(section_header)
+
+	# Get skill names sorted alphabetically
+	var skill_names = player.skills.keys()
+	skill_names.sort()
+
+	if skill_names.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No skills learned yet"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		empty_label.add_theme_font_size_override("font_size", 14)
+		skills_content.add_child(empty_label)
+		return
+
+	for skill_name in skill_names:
+		var skill_level = player.skills[skill_name]
+		var max_level = player.level  # Skills are capped at player level
+
+		var skill_line = HBoxContainer.new()
+
+		# Skill name (left-aligned)
+		var name_label = Label.new()
+		name_label.text = "%s:" % skill_name
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.add_theme_color_override("font_color", COLOR_LABEL)
+		name_label.add_theme_font_size_override("font_size", 14)
+		skill_line.add_child(name_label)
+
+		# Value display (right-aligned) - show current / max
+		var value_label = Label.new()
+		value_label.text = "%d / %d" % [skill_level, max_level]
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value_label.custom_minimum_size.x = 80
+
+		# Color based on how close to max
+		if skill_level >= max_level:
+			value_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold - maxed
+		elif skill_level > 0:
+			value_label.add_theme_color_override("font_color", COLOR_VALUE)  # Green - has points
+		else:
+			value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))  # Gray - no points
+
+		value_label.add_theme_font_size_override("font_size", 14)
+		skill_line.add_child(value_label)
+
+		skills_content.add_child(skill_line)
 
 ## Add the combat section
 func _add_combat_section() -> void:
@@ -476,11 +537,13 @@ func _on_tab_changed(tab_index: int) -> void:
 			current_scroll_container = progression_scroll
 		1:  # Abilities tab
 			current_scroll_container = abilities_scroll
-		2:  # Combat tab
+		2:  # Skills tab
+			current_scroll_container = skills_scroll
+		3:  # Combat tab
 			current_scroll_container = combat_scroll
-		3:  # Survival tab
+		4:  # Survival tab
 			current_scroll_container = survival_scroll
-		4:  # Weather tab
+		5:  # Weather tab
 			current_scroll_container = weather_scroll
 		_:
 			current_scroll_container = progression_scroll

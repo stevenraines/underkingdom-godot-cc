@@ -242,7 +242,7 @@ func _get_fallback_definition() -> Dictionary:
 		},
 		"lighting": {
 			"base_visibility": 0.5,
-			"torch_radius": 5
+			"torch_radius": 10
 		},
 		"enemy_pools": [],
 		"loot_tables": [],

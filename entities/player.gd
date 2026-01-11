@@ -393,7 +393,7 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 
 	# For non-chunk-based maps (dungeons), check metadata first for stairs position
 	if MapManager.current_map.metadata.has(stairs_type):
-		position = MapManager.current_map.metadata[stairs_type]
+		position = _parse_vector2i(MapManager.current_map.metadata[stairs_type])
 		print("Player positioned at ", stairs_type, " from metadata: ", position)
 		EventBus.player_moved.emit(old_pos, position)
 		return
@@ -946,3 +946,27 @@ func get_death_summary() -> String:
 
 	summary += "."
 	return summary
+
+
+## Parse Vector2i from string format (handles save data serialization)
+## Strings are in format "(x, y)" from JSON serialization
+func _parse_vector2i(value) -> Vector2i:
+	# Already a Vector2i - return as is
+	if value is Vector2i:
+		return value
+
+	# String format - parse it
+	if value is String:
+		var cleaned = value.strip_edges().replace("(", "").replace(")", "")
+		var parts = cleaned.split(",")
+		if parts.size() != 2:
+			push_warning("[Player] Invalid Vector2i string format: %s" % value)
+			return Vector2i.ZERO
+		return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
+
+	# Dictionary format (alternative serialization)
+	if value is Dictionary:
+		return Vector2i(value.get("x", 0), value.get("y", 0))
+
+	push_warning("[Player] Cannot parse Vector2i from type: %s" % typeof(value))
+	return Vector2i.ZERO

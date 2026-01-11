@@ -259,7 +259,7 @@ func spawn_ground_item(item: Item, pos: Vector2i, despawn_turns: int = -1) -> Gr
 func spawn_npc(spawn_data: Dictionary):
 	var NPCClassRef = load("res://entities/npc.gd")
 	var npc_id = spawn_data.get("npc_id", "npc")
-	var position = spawn_data.get("position", Vector2i.ZERO)
+	var position = _parse_vector2i(spawn_data.get("position", Vector2i.ZERO))
 
 	# Check for duplicate NPC by ID - prevent double spawning
 	for entity in entities:
@@ -433,7 +433,7 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 		if enemy_id == "" or not has_enemy_definition(enemy_id):
 			continue
 
-		var enemy = spawn_enemy(enemy_id, enemy_data.get("position", Vector2i.ZERO))
+		var enemy = spawn_enemy(enemy_id, _parse_vector2i(enemy_data.get("position", Vector2i.ZERO)))
 		if enemy:
 			enemy.current_health = enemy_data.get("current_health", enemy.max_health)
 
@@ -458,7 +458,7 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 
 		var item = ItemManager.create_item(item_id, item_data.get("item_count", 1))
 		if item:
-			spawn_ground_item(item, item_data.get("position", Vector2i.ZERO))
+			spawn_ground_item(item, _parse_vector2i(item_data.get("position", Vector2i.ZERO)))
 
 	print("EntityManager: Restored %d enemies, %d items, %d NPCs from map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 	return true
@@ -481,3 +481,27 @@ func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
 
 	if removed_count > 0:
 		print("[EntityManager] Cleaned up %d entities from unloaded chunk %v" % [removed_count, chunk_coords])
+
+
+## Parse Vector2i from string format (handles save data serialization)
+## Strings are in format "(x, y)" from JSON serialization
+func _parse_vector2i(value) -> Vector2i:
+	# Already a Vector2i - return as is
+	if value is Vector2i:
+		return value
+
+	# String format - parse it
+	if value is String:
+		var cleaned = value.strip_edges().replace("(", "").replace(")", "")
+		var parts = cleaned.split(",")
+		if parts.size() != 2:
+			push_warning("[EntityManager] Invalid Vector2i string format: %s" % value)
+			return Vector2i.ZERO
+		return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
+
+	# Dictionary format (alternative serialization)
+	if value is Dictionary:
+		return Vector2i(value.get("x", 0), value.get("y", 0))
+
+	push_warning("[EntityManager] Cannot parse Vector2i from type: %s" % typeof(value))
+	return Vector2i.ZERO

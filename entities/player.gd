@@ -925,11 +925,12 @@ func take_damage(amount: int, source: String = "Unknown", method: String = "") -
 	# Check if this damage will kill us BEFORE applying it
 	var will_die = (current_health - amount) <= 0
 
-	super.take_damage(amount, source, method)
-
-	# If this damage killed us, record the cause
-	if will_die and not is_alive:
+	# Record death cause BEFORE calling super, because super.take_damage() calls die()
+	# which emits entity_died signal synchronously - game.gd reads death_cause immediately
+	if will_die:
 		record_death(source, method)
+
+	super.take_damage(amount, source, method)
 
 ## Get death summary for death screen
 func get_death_summary() -> String:

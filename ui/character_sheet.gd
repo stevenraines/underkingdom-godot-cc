@@ -356,6 +356,10 @@ func _add_progression_section() -> void:
 	var section_header = _create_section_header("== PROGRESSION ==")
 	progression_content.add_child(section_header)
 
+	# Character Name
+	var char_name = GameManager.character_name if GameManager.character_name != "" else "Unknown"
+	_add_stat_line("Name", char_name, Color(0.9, 0.9, 0.6))
+
 	# Level
 	_add_stat_line("Level", "%d" % player.level, Color(1.0, 0.85, 0.3))
 

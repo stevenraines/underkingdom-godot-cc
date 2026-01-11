@@ -11,7 +11,8 @@ const _FogOfWarSystem = preload("res://systems/fog_of_war_system.gd")
 
 # Game state
 var world_seed: int = 0
-var world_name: String = ""  # Player-provided name for the world
+var world_name: String = ""  # Player-provided name for the world (legacy, kept for save compatibility)
+var character_name: String = ""  # Character name displayed in UI
 var game_state: String = "menu"  # "menu", "playing", "paused"
 var current_map_id: String = ""
 var is_loading_save: bool = false  # Flag to prevent start_new_game when loading
@@ -31,17 +32,19 @@ func _ready() -> void:
 	_FarmingSystem.load_crops()
 	print("GameManager initialized")
 
-## Start a new game with world name (used as seed)
-## If world_name_input is empty, generates a random seed and default name
-func start_new_game(world_name_input: String = "") -> void:
-	if world_name_input.is_empty():
+## Start a new game with character name (used as seed)
+## If character_name_input is empty, generates a random seed and default name
+func start_new_game(character_name_input: String = "") -> void:
+	if character_name_input.is_empty():
 		randomize()
 		world_seed = randi()
-		world_name = "World %d" % (world_seed % 10000)
+		character_name = "Adventurer"
+		world_name = character_name  # Keep world_name in sync for save compatibility
 	else:
-		world_name = world_name_input
+		character_name = character_name_input
+		world_name = character_name_input  # Keep world_name in sync for save compatibility
 		# Use abs() to ensure positive seed value (hash() can return negative)
-		world_seed = abs(world_name_input.hash())
+		world_seed = abs(character_name_input.hash())
 		# If hash is 0 (unlikely), use a default value
 		if world_seed == 0:
 			world_seed = 12345
@@ -77,7 +80,7 @@ func start_new_game(world_name_input: String = "") -> void:
 	# Clear visited locations for new game
 	clear_visited_locations()
 
-	print("New game started - World: '%s', Seed: %d" % [world_name, world_seed])
+	print("New game started - Character: '%s', Seed: %d" % [character_name, world_seed])
 
 ## Update the current map being played
 func set_current_map(map_id: String) -> void:

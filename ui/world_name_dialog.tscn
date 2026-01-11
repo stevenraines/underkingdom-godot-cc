@@ -83,14 +83,14 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 14
-text = "Name Your World"
+text = "Name Your Character"
 horizontal_alignment = 1
 
 [node name="NameInput" type="LineEdit" parent="Panel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(400, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-placeholder_text = "(Leave empty for random name)"
+placeholder_text = "(Leave empty for random character)"
 max_length = 30
 
 [node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]

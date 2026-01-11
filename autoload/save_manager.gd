@@ -190,6 +190,7 @@ func _serialize_world() -> Dictionary:
 	return {
 		"seed": GameManager.world_seed,
 		"world_name": GameManager.world_name,
+		"character_name": GameManager.character_name,
 		"current_turn": TurnManager.current_turn,
 		"time_of_day": TurnManager.get_time_of_day(),
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
@@ -456,6 +457,8 @@ func _deserialize_game_state(save_data: Dictionary):
 func _deserialize_world(world_data: Dictionary):
 	GameManager.world_seed = world_data.seed
 	GameManager.world_name = world_data.get("world_name", "Unknown World")
+	# For old saves without character_name, use world_name as fallback
+	GameManager.character_name = world_data.get("character_name", GameManager.world_name)
 	TurnManager.current_turn = world_data.current_turn
 
 	# Restore last overworld position (for dungeon return)

@@ -97,12 +97,12 @@ func _on_start_button_pressed() -> void:
 	if dialog:
 		dialog.open()
 
-func _on_world_name_entered(world_name: String) -> void:
-	print("Starting new game with world name: '%s'..." % world_name)
-	print("World name hash: %d" % world_name.hash())
-	# Store the world name in GameManager before changing scene
-	GameManager.start_new_game(world_name)
-	print("After start_new_game - World seed: %d, World name: '%s'" % [GameManager.world_seed, GameManager.world_name])
+func _on_world_name_entered(character_name: String) -> void:
+	print("Starting new game with character name: '%s'..." % character_name)
+	print("Character name hash: %d" % character_name.hash())
+	# Store the character name in GameManager before changing scene
+	GameManager.start_new_game(character_name)
+	print("After start_new_game - World seed: %d, Character name: '%s'" % [GameManager.world_seed, GameManager.character_name])
 	get_tree().change_scene_to_file("res://scenes/game.tscn")
 
 func _on_world_name_cancelled() -> void:

@@ -170,7 +170,6 @@ func _add_skills_section() -> void:
 
 	for skill_name in skill_names:
 		var skill_level = player.skills[skill_name]
-		var max_level = player.level  # Skills are capped at player level
 
 		var skill_line = HBoxContainer.new()
 
@@ -182,16 +181,14 @@ func _add_skills_section() -> void:
 		name_label.add_theme_font_size_override("font_size", 14)
 		skill_line.add_child(name_label)
 
-		# Value display (right-aligned) - show current / max
+		# Value display (right-aligned) - just show current level
 		var value_label = Label.new()
-		value_label.text = "%d / %d" % [skill_level, max_level]
+		value_label.text = "%d" % skill_level
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		value_label.custom_minimum_size.x = 80
 
-		# Color based on how close to max
-		if skill_level >= max_level:
-			value_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold - maxed
-		elif skill_level > 0:
+		# Color based on skill level
+		if skill_level > 0:
 			value_label.add_theme_color_override("font_color", COLOR_VALUE)  # Green - has points
 		else:
 			value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))  # Gray - no points

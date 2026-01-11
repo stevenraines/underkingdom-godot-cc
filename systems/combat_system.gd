@@ -51,10 +51,8 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		var natural_weapon = attacker.get("natural_weapon") if attacker else null
 		var method = result.weapon_name if result.weapon_name != "" else (natural_weapon if natural_weapon else "")
 
-		if defender.has_method("take_damage") and defender.get_method_argument_count("take_damage") > 1:
+		if defender.has_method("take_damage"):
 			defender.take_damage(damage, source, method)
-		else:
-			defender.take_damage(damage)
 
 		# Check if defender died
 		if not defender.is_alive:

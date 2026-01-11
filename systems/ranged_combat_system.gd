@@ -69,10 +69,8 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		var source = attacker.name if attacker else "Unknown"
 		var method = weapon.name if weapon else "Projectile"
 
-		if target.has_method("take_damage") and target.get_method_argument_count("take_damage") > 1:
+		if target.has_method("take_damage"):
 			target.take_damage(damage, source, method)
-		else:
-			target.take_damage(damage)
 
 		# Check if target died
 		if not target.is_alive:

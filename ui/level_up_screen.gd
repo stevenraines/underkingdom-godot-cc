@@ -12,6 +12,7 @@ signal closed
 @onready var skills_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin/SkillsBox
 @onready var abilities_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities
 @onready var abilities_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities/ScrollMargin/AbilitiesBox
+@onready var message_label: Label = $Panel/MarginContainer/VBoxContainer/MessageLabel
 
 var player = null
 var current_scroll_container: ScrollContainer = null
@@ -51,6 +52,9 @@ func open(p_player) -> void:
 	available_skill_points_remaining = player.available_skill_points
 	available_ability_points_remaining = player.available_ability_points
 
+	# Clear any previous message
+	_clear_message()
+
 	# Build the UI
 	_populate_skills_tab()
 	_populate_abilities_tab()
@@ -80,7 +84,8 @@ func _populate_skills_tab() -> void:
 	for child in skills_content.get_children():
 		child.queue_free()
 
-	await get_tree().process_frame
+	# Clear message when repopulating
+	_clear_message()
 
 	# Header
 	var header = _create_section_header("== SKILL POINTS ==")
@@ -126,7 +131,8 @@ func _populate_abilities_tab() -> void:
 	for child in abilities_content.get_children():
 		child.queue_free()
 
-	await get_tree().process_frame
+	# Clear message when repopulating
+	_clear_message()
 
 	# Header
 	var header = _create_section_header("== ABILITY SCORES ==")
@@ -254,10 +260,9 @@ func _input(event: InputEvent) -> void:
 				_navigate_down()
 				get_viewport().set_input_as_handled()
 			KEY_TAB:
-				# Switch tabs if both have points available
-				if available_skill_points_remaining > 0 and available_ability_points_remaining > 0:
-					tab_container.current_tab = (tab_container.current_tab + 1) % 2
-					_on_tab_changed(tab_container.current_tab)
+				# Switch between tabs
+				tab_container.current_tab = (tab_container.current_tab + 1) % 2
+				_on_tab_changed(tab_container.current_tab)
 				get_viewport().set_input_as_handled()
 			KEY_PLUS, KEY_KP_ADD, KEY_EQUAL:
 				_increment_selected()
@@ -432,17 +437,31 @@ func _try_commit() -> void:
 
 ## Show error if trying to commit with unspent points
 func _show_commit_error() -> void:
-	var error_msg = "You must spend ALL available points before committing!\n\n"
+	var error_parts = []
 	if available_skill_points_remaining > 0:
-		error_msg += "  • %d skill point%s remaining\n" % [available_skill_points_remaining, "s" if available_skill_points_remaining != 1 else ""]
+		error_parts.append("%d skill" % available_skill_points_remaining)
 	if available_ability_points_remaining > 0:
-		error_msg += "  • %d ability point%s remaining" % [available_ability_points_remaining, "s" if available_ability_points_remaining != 1 else ""]
+		error_parts.append("%d ability" % available_ability_points_remaining)
 
-	EventBus.message_logged.emit(error_msg, "warning")
+	var error_msg = "Must spend all points! Remaining: " + ", ".join(error_parts)
+	_show_message(error_msg, Color(1.0, 0.5, 0.5))
 
 ## Show warning when trying to cancel with pending changes
 func _show_cancel_warning() -> void:
-	EventBus.message_logged.emit("You have unspent points! Press C to commit or spend all points to proceed.", "warning")
+	_show_message("Unspent points! Press C to commit changes.", Color(1.0, 0.7, 0.3))
+
+## Show message in the dialog
+func _show_message(text: String, color: Color = Color.WHITE) -> void:
+	if message_label:
+		message_label.text = text
+		message_label.add_theme_color_override("font_color", color)
+		message_label.show()
+
+## Clear message
+func _clear_message() -> void:
+	if message_label:
+		message_label.text = ""
+		message_label.hide()
 
 ## Actually commit the changes to the player
 func _commit_changes() -> void:

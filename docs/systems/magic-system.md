@@ -15,8 +15,15 @@ The magic system consists of two main components:
 - **Phase 03** (Spellbook & Spell Learning) - Implemented
 - **Phase 04** (Spell Casting) - Implemented
 - **Phase 05** (Ranged Spell Targeting) - Implemented
+- **Phase 06** (Damage Spells) - Implemented
+- **Phase 07** (Active Effects/Buffs/Debuffs) - Implemented
+- **Phase 08** (Saving Throws) - Implemented
+- **Phase 09** (Scrolls) - Implemented
+- **Phase 10** (Scroll Transcription) - Implemented
+- **Phase 11** (Wands & Staves) - Implemented
+- **Phase 12** (Rings & Amulets) - Implemented
 
-Remaining phases are planned.
+Remaining phases (Rituals, Summoning, etc.) are planned.
 
 ## Mana System (Implemented)
 
@@ -103,7 +110,8 @@ SpellManager.calculate_spell_duration(spell, caster) -> int
 | mana_cost | int | Mana required |
 | requirements | Dict | {character_level, intelligence} |
 | targeting | Dict | {mode, range, requires_los} |
-| effects | Dict | Spell effects (damage, buff, heal) |
+| effects | Dict | Spell effects (damage, buff, heal, debuff) |
+| save | Dict | Saving throw info {type, on_success} |
 
 ### Current Spells
 
@@ -111,8 +119,15 @@ SpellManager.calculate_spell_duration(spell, caster) -> int
 |-------|--------|-------|------|--------|
 | light | evocation | 0 | 0 | +2 vision for 100 turns |
 | spark | evocation | 1 | 5 | 8 lightning damage |
+| flame_bolt | evocation | 2 | 8 | 12 fire damage |
+| ice_shard | evocation | 3 | 12 | 15 cold damage |
+| lightning_bolt | evocation | 5 | 25 | 30 lightning damage |
 | heal | conjuration | 1 | 8 | Restore 10 HP |
+| drain_life | necromancy | 2 | 10 | 10 damage, heal 50% |
 | shield | abjuration | 1 | 5 | +3 armor for 20 turns |
+| stone_skin | transmutation | 3 | 12 | +5 armor for 30 turns |
+| weakness | necromancy | 3 | 12 | -3 STR for 20 turns |
+| curse | necromancy | 4 | 18 | Multiple stat penalties |
 
 For spell JSON format, see [Spell Data Format](../data/spells.md).
 
@@ -181,15 +196,6 @@ Open with **Shift+M** to view known spells:
 - Detail panel shows requirements and whether player can cast
 - School colors: Evocation (orange), Conjuration (purple), etc.
 
-### Current Spell Tomes
-
-| Tome | Teaches | Value |
-|------|---------|-------|
-| Tome of Light | light cantrip | 25 |
-| Tome of Spark | spark (Lv1) | 75 |
-| Tome of Healing | heal (Lv1) | 100 |
-| Tome of Shield | shield (Lv1) | 75 |
-
 ## Spell Casting (Implemented)
 
 The SpellCastingSystem handles all spell casting mechanics.
@@ -224,6 +230,8 @@ Spells can fail based on level difference:
 
 **INT bonus** reduces failure chance: -1% per INT point above spell requirement.
 
+**Staff bonus** reduces failure chance: success_modifier % (e.g., 10% for Staff of Fire).
+
 **Cantrips** (level 0) never fail.
 
 ### Failure Types
@@ -250,7 +258,10 @@ SpellCastingSystem.cast_spell(caster, spell, target) -> Dictionary
     "effects_applied": Array,
     "target_died": bool,
     "failed": bool,
-    "failure_type": String  # "fizzle", "backfire", "wild_magic"
+    "failure_type": String,  # "fizzle", "backfire", "wild_magic"
+    "save_attempted": bool,
+    "save_succeeded": bool,
+    "save_dc": int
 }
 
 # Get valid targets for a spell
@@ -258,47 +269,308 @@ SpellCastingSystem.get_valid_spell_targets(caster, spell) -> Array[Entity]
 
 # Check if caster can cast any spell
 SpellCastingSystem.can_cast_any_spell(caster) -> bool
+
+# Calculate saving throw DC
+SpellCastingSystem.calculate_save_dc(caster, spell) -> int
+
+# Attempt a saving throw
+SpellCastingSystem.attempt_saving_throw(target, save_type, dc) -> Dictionary
 ```
 
-### Spell Effects
+## Saving Throws (Implemented)
 
-The system handles three types of effects:
+Targets can resist spells with saving throws.
 
-**Damage Effects:**
+### Save Types
+
+| Save Type | Resists | Attribute |
+|-----------|---------|-----------|
+| INT | Mind control, illusions | Intelligence |
+| WIS | Fear, charm, detection | Wisdom |
+| DEX | Area effects, aimed spells | Dexterity |
+| CON | Poison, drain, death effects | Constitution |
+| STR | Forced movement, grappling | Strength |
+
+### Save DC Formula
+```
+DC = 10 + Spell Level + (Caster INT - 10) / 2
+```
+
+### Save Roll
+```
+Roll = d20 + (Target Attribute - 10) / 2
+Success if Roll >= DC
+```
+
+### On Successful Save
+
+| Effect Type | on_success | Result |
+|-------------|------------|--------|
+| Damage | "half_damage" | 50% damage |
+| Debuff | "half_duration" | 50% duration |
+| Control | "no_effect" | Complete immunity |
+
+## Active Effects (Buffs/Debuffs) (Implemented)
+
+Spells can apply temporary effects to entities.
+
+### Effect Properties
+
 ```gdscript
-damage = base_damage + (scaling × level_bonus)
-# level_bonus = max(0, caster_level - spell_required_level)
+{
+    "id": "shield_buff",
+    "type": "buff",  # or "debuff"
+    "source_spell": "shield",
+    "remaining_duration": 20,
+    "modifiers": {"STR": 0, "DEX": 0, ...},
+    "armor_bonus": 3
+}
 ```
 
-**Healing Effects:**
-```gdscript
-healing = base_heal + (scaling × level_bonus)
-```
-
-**Buff Effects:**
-- Applied via `target.apply_buff(spell_id, buff_info, duration)`
-- Duration scales with caster level
-
-### Signals
+### Entity Methods
 
 ```gdscript
-EventBus.spell_cast.emit(caster, spell, targets, result)
+entity.add_magical_effect(effect: Dictionary)
+entity.remove_magical_effect(effect_id: String)
+entity.process_effect_durations()  # Called each turn
+entity.get_effective_attribute(attr_name) -> int  # Includes modifiers
+entity.get_effective_armor() -> int  # Includes armor_modifier
 ```
 
-## Planned Features
+### EventBus Signals
 
-### Magic Items
-- Spellbooks - Required to store learned spells
-- Scrolls - Cast spells without knowing them
-- Wands - Charged items with limited uses
-- Staves - Melee weapons with casting bonuses
-- Magic Rings/Amulets - Passive effect equipment
+```gdscript
+signal effect_applied(entity, effect: Dictionary)
+signal effect_removed(entity, effect: Dictionary)
+signal effect_expired(entity, effect_name: String)
+```
 
-### Rituals
-- Multi-turn channeling
-- Component consumption
-- No level requirement (only INT)
-- Interruptible by damage
+## Scrolls (Implemented)
+
+Scrolls allow casting spells without knowing them.
+
+### Scroll Properties
+
+```json
+{
+  "id": "scroll_spark",
+  "name": "Scroll of Spark",
+  "category": "consumable",
+  "subtype": "scroll",
+  "flags": {"consumable": true, "magical": true, "scroll": true},
+  "casts_spell": "spark"
+}
+```
+
+### Using Scrolls
+
+- Requires minimum 8 INT
+- No mana cost
+- No spell level/INT requirements (scroll handles it)
+- Scroll is consumed on use
+- Uses same targeting system as regular casting
+
+### Scroll Transcription (Implemented)
+
+Players can attempt to transcribe a scroll into their spellbook instead of casting.
+
+```gdscript
+player.attempt_transcription(scroll) -> Dictionary
+player.calculate_transcription_chance(spell) -> float
+```
+
+### Transcription Success Chance
+
+| Player Level vs Spell Level | Base Success |
+|-----------------------------|--------------|
+| Player level = Spell level | 50% |
+| Player level = Spell level + 1 | 65% |
+| Player level = Spell level + 2 | 75% |
+| Player level = Spell level + 3 | 85% |
+| Player level >= Spell level + 4 | 95% |
+
+**INT Bonus**: +2% per INT point above spell's minimum requirement.
+
+**On Failure**: Scroll is destroyed, no spell learned.
+
+### Current Scrolls
+
+| Scroll | Casts | Value |
+|--------|-------|-------|
+| Scroll of Spark | spark | 25 |
+| Scroll of Shield | shield | 30 |
+| Scroll of Flame Bolt | flame_bolt | 50 |
+| Scroll of Heal | heal | 40 |
+| Scroll of Lightning Bolt | lightning_bolt | 150 |
+
+## Wands (Implemented)
+
+Wands are charged items that cast spells without mana cost.
+
+### Wand Properties
+
+```json
+{
+  "id": "wand_of_spark",
+  "name": "Wand of Spark",
+  "category": "weapon",
+  "subtype": "wand",
+  "flags": {"equippable": true, "magical": true, "charged": true},
+  "casts_spell": "spark",
+  "charges": 15,
+  "max_charges": 15,
+  "recharge_cost": 30
+}
+```
+
+### Using Wands
+
+- Requires minimum 8 INT
+- No mana cost (uses charges instead)
+- Charge is consumed on successful cast
+- Can be recharged at mage NPC (future feature)
+- Equips to main_hand slot
+
+### Item Methods
+
+```gdscript
+item.is_wand() -> bool
+item._use_wand(user) -> Dictionary
+item._cast_wand_spell(caster, spell, target) -> Dictionary
+```
+
+### Current Wands
+
+| Wand | Casts | Charges | Value |
+|------|-------|---------|-------|
+| Wand of Spark | spark | 15 | 75 |
+| Wand of Flame Bolt | flame_bolt | 12 | 125 |
+| Wand of Ice Shard | ice_shard | 10 | 150 |
+| Wand of Healing | heal | 8 | 200 |
+| Wand of Lightning | lightning_bolt | 6 | 350 |
+
+## Staves (Casting Focus) (Implemented)
+
+Staves provide casting bonuses while equipped.
+
+### Staff Properties
+
+```json
+{
+  "id": "staff_of_fire",
+  "name": "Staff of Fire",
+  "category": "weapon",
+  "subtype": "staff",
+  "flags": {"equippable": true, "magical": true, "two_handed": true, "casting_focus": true},
+  "damage_bonus": 5,
+  "casting_bonuses": {
+    "success_modifier": 10,
+    "school_affinity": "evocation",
+    "school_damage_bonus": 2,
+    "mana_cost_modifier": -10
+  }
+}
+```
+
+### Casting Bonuses
+
+| Bonus | Effect |
+|-------|--------|
+| success_modifier | Reduces spell failure chance (%) |
+| school_affinity | School that gets damage bonus |
+| school_damage_bonus | Extra damage for affinity school |
+| mana_cost_modifier | % change to mana cost (negative = reduction) |
+
+### Player Methods
+
+```gdscript
+player.get_casting_bonuses() -> Dictionary
+# Returns: {success_modifier, mana_cost_modifier, school_bonuses: {school: bonus}}
+```
+
+### Current Staves
+
+| Staff | Success Mod | School Bonus | Value |
+|-------|-------------|--------------|-------|
+| Staff of Power | +5% | - | 150 |
+| Staff of Fire | +10% | Evocation +2 | 350 |
+| Staff of Frost | +10% | Evocation +2 | 350 |
+| Necromancer's Staff | +10% | Necromancy +3 | 400 |
+| Archmage Staff | +15%, -10% mana | - | 1500 |
+
+## Magic Rings & Amulets (Implemented)
+
+Rings and amulets provide passive effects while equipped.
+
+### Equipment Slots
+
+| Slot | Items |
+|------|-------|
+| accessory_1 | Rings |
+| accessory_2 | Rings |
+| neck | Amulets |
+
+### Passive Effects
+
+```json
+{
+  "id": "ring_of_protection",
+  "category": "accessory",
+  "subtype": "ring",
+  "equip_slots": ["accessory"],
+  "passive_effects": {
+    "armor_bonus": 2,
+    "STR": 1,
+    "max_mana_bonus": 20,
+    "resistances": {"fire": 50}
+  }
+}
+```
+
+### Effect Types
+
+| Effect | Description |
+|--------|-------------|
+| armor_bonus | Adds to armor value |
+| STR/DEX/CON/INT/WIS/CHA | Adds to attribute |
+| max_mana_bonus | Adds to max mana |
+| max_health_bonus | Adds to max health |
+| mana_regen_bonus | Bonus mana per turn |
+| health_regen_bonus | Bonus HP per turn |
+| resistances | {damage_type: % reduction} |
+
+### Resistance Stacking
+
+Resistances use diminishing returns:
+```
+Combined = A + (100 - A) × B / 100
+# Example: 50% + 50% = 75%, not 100%
+```
+
+### Player Methods
+
+```gdscript
+player.get_equipment_passive_effects() -> Dictionary
+player._recalculate_effect_modifiers()  # Called on equip/unequip
+```
+
+### Current Rings
+
+| Ring | Effect | Value |
+|------|--------|-------|
+| Ring of Protection | +2 armor | 100 |
+| Ring of Strength | +1 STR | 150 |
+| Ring of Intelligence | +1 INT | 150 |
+| Ring of Mana | +20 max mana | 300 |
+| Ring of Fire Resistance | 50% fire resist | 200 |
+
+### Current Amulets
+
+| Amulet | Effect | Value |
+|--------|--------|-------|
+| Amulet of Health | +1 CON, +10 max HP | 250 |
+| Amulet of the Mage | +2 INT, +15 max mana | 400 |
+| Amulet of Warding | +3 armor, 25% all resist | 300 |
 
 ## Keybindings
 
@@ -317,13 +589,35 @@ EventBus.spell_cast.emit(caster, spell, targets, result)
 | Shift+T | Open ritual menu (T alone is Talk) |
 | Shift+S | Summon commands (if summons active) |
 
+## EventBus Signals
+
+```gdscript
+# Spell signals
+signal spell_learned(spell_id: String)
+signal spell_cast(caster, spell, targets: Array, result: Dictionary)
+
+# Effect signals
+signal effect_applied(entity: Entity, effect: Dictionary)
+signal effect_removed(entity: Entity, effect: Dictionary)
+signal effect_expired(entity: Entity, effect_name: String)
+
+# Scroll signals
+signal scroll_targeting_started(scroll, spell)
+signal transcription_attempted(scroll, spell, success: bool)
+
+# Wand signals
+signal wand_targeting_started(wand, spell)
+signal wand_used(wand, spell, charges_remaining: int)
+```
+
 ## Related Documentation
 
 - [Spell Data Format](../data/spells.md)
 - [Ritual Data Format](../data/rituals.md)
-- [Spell Manager](spell-manager.md) (to be created)
-- [Ritual System](ritual-system.md) (to be created)
+- [Items Documentation](../data/items.md)
+- [Inventory System](./inventory-system.md)
 
 ## Implementation Phases
 
-The magic system is implemented across 25 phases. See `plans/features/magic-system/` for detailed implementation plans.
+The magic system is implemented across 25 phases. Phases 01-12 are complete.
+See `plans/features/magic-system-spec.md` for the full specification.

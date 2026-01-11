@@ -323,7 +323,7 @@ func load_hazards_from_map(map: GameMap) -> void:
 		return
 
 	for hazard_data in map.metadata.hazards:
-		var pos: Vector2i = hazard_data.position
+		var pos: Vector2i = _parse_vector2i(hazard_data.position)
 
 		# Ensure hazard has its definition reference
 		if not hazard_data.has("definition"):
@@ -351,7 +351,7 @@ func _process_pending_hazards(map: GameMap) -> void:
 
 	for pending_data in pending:
 		var hazard_id: String = pending_data.get("hazard_id", "")
-		var pos: Vector2i = pending_data.get("position", Vector2i.ZERO)
+		var pos: Vector2i = _parse_vector2i(pending_data.get("position", Vector2i.ZERO))
 		var config: Dictionary = pending_data.get("config", {})
 
 		if hazard_id.is_empty() or not hazard_definitions.has(hazard_id):
@@ -413,3 +413,27 @@ func check_proximity_hazards(center: Vector2i, _max_radius: int, entity) -> Arra
 				triggered.append(result)
 
 	return triggered
+
+
+## Parse Vector2i from string format (handles save data serialization)
+## Strings are in format "(x, y)" from JSON serialization
+func _parse_vector2i(value) -> Vector2i:
+	# Already a Vector2i - return as is
+	if value is Vector2i:
+		return value
+
+	# String format - parse it
+	if value is String:
+		var cleaned = value.strip_edges().replace("(", "").replace(")", "")
+		var parts = cleaned.split(",")
+		if parts.size() != 2:
+			push_warning("[HazardManager] Invalid Vector2i string format: %s" % value)
+			return Vector2i.ZERO
+		return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
+
+	# Dictionary format (alternative serialization)
+	if value is Dictionary:
+		return Vector2i(value.get("x", 0), value.get("y", 0))
+
+	push_warning("[HazardManager] Cannot parse Vector2i from type: %s" % typeof(value))
+	return Vector2i.ZERO

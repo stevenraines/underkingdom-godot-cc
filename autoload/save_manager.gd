@@ -171,6 +171,7 @@ func _serialize_game_state() -> Dictionary:
 		"entities": _serialize_entities(),
 		"harvest": _serialize_harvest(),
 		"farming": _serialize_farming(),
+		"structures": StructureManager.serialize(),
 		"fog_of_war": FogOfWarSystemClass.serialize()
 	}
 
@@ -437,6 +438,10 @@ func _deserialize_game_state(save_data: Dictionary):
 	# Restore farming system state
 	if save_data.has("farming"):
 		_deserialize_farming(save_data.farming)
+
+	# Restore structure placements (shelters, etc.)
+	if save_data.has("structures"):
+		StructureManager.deserialize(save_data.structures)
 
 	# Restore fog of war (explored tiles)
 	if save_data.has("fog_of_war"):

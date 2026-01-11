@@ -332,6 +332,11 @@ func regenerate_stamina() -> void:
 		var effects = survival._calculate_survival_effects()
 		survival.regenerate_stamina(effects.stamina_regen_modifier)
 
+## Regenerate mana (called each turn, faster in shelter)
+func regenerate_mana(shelter_multiplier: float = 1.0) -> void:
+	if survival:
+		survival.regenerate_mana(shelter_multiplier)
+
 ## Interact with the tile the player is standing on
 func interact_with_tile() -> void:
 	if not MapManager.current_map:

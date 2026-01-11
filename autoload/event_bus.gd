@@ -59,6 +59,12 @@ signal survival_warning(message: String, severity: String)
 @warning_ignore("unused_signal")
 signal stamina_depleted()
 
+# Mana signals (magic system)
+@warning_ignore("unused_signal")
+signal mana_changed(old_value: float, new_value: float, max_value: float)
+@warning_ignore("unused_signal")
+signal mana_depleted()
+
 # Inventory signals
 @warning_ignore("unused_signal")
 signal item_picked_up(item)  # Item

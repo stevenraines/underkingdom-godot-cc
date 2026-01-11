@@ -9,11 +9,12 @@ The Survival System manages all survival mechanics in Underkingdom including hun
 
 ## Key Concepts
 
-- **Survival Stats**: Hunger, Thirst, Temperature, Stamina, Fatigue
+- **Survival Stats**: Hunger, Thirst, Temperature, Stamina, Fatigue, Mana
 - **Drain Rates**: Stats decrease over time at different rates
 - **Thresholds**: Different severity levels trigger different effects
 - **Stat Penalties**: Low survival stats reduce character attributes
 - **Health Drain**: Critical survival states cause ongoing health damage
+- **Mana Pool**: Resource for magic system, regenerates over time
 
 ## Survival Stats Overview
 
@@ -24,6 +25,7 @@ The Survival System manages all survival mechanics in Underkingdom including hun
 | Temperature | Variable | 68°F | Environment-based |
 | Stamina | 0-Max | Max | Consumed by actions |
 | Fatigue | 0-100 | 0 (rested) | Increases over time |
+| Mana | 0-Max | Max | Consumed by spells |
 
 ## Hunger System
 
@@ -217,6 +219,68 @@ Fatigue can be reduced through two methods:
 rest(amount) -> fatigue = max(0, fatigue - amount)
 ```
 
+## Mana System
+
+Mana is the magical energy pool used for casting spells. It regenerates over time, with faster regeneration when in shelter.
+
+### Maximum Mana
+
+```
+Base Max Mana = 30
+Max Mana = Base Max + (INT - 10) × 5 + (Level - 1) × 5
+```
+
+| INT | Level 1 Max Mana | Level 5 Max Mana |
+|-----|------------------|------------------|
+| 8   | 20 | 40 |
+| 10  | 30 | 50 |
+| 12  | 40 | 60 |
+| 14  | 50 | 70 |
+
+**Note**: INT below 10 reduces max mana (but never below 0).
+
+### Mana Costs
+
+Mana costs vary by spell level. See [Magic System](./magic-system.md) for spell costs.
+
+| Spell Level | Typical Cost |
+|-------------|--------------|
+| Cantrip (0) | 0-2 |
+| Level 1 | 5-10 |
+| Level 2 | 10-15 |
+| Level 3 | 15-20 |
+
+### Mana Regeneration
+
+```
+Base Regen: 1 mana per turn
+Shelter Bonus: 3× regeneration rate when in shelter
+```
+
+**Example: Regenerating from empty (0) to max (50) at level 5, INT 12:**
+- Outside shelter: 50 turns
+- Inside shelter: ~17 turns
+
+### Restoring Mana
+
+Mana can be restored through:
+
+**1. Natural Regeneration**: 1 mana per turn (3× in shelter)
+
+**2. Resting**: Press `Z` and select "Until mana restored"
+
+**3. Mana Potions**: Consumable items that restore mana instantly
+- **Minor Mana Potion**: +20 mana
+- **Mana Potion**: +40 mana
+- **Greater Mana Potion**: +80 mana
+
+### Running Out of Mana
+
+When mana reaches 0:
+- `mana_depleted` signal emitted
+- Spells requiring mana cannot be cast
+- Cantrips (0 cost) can still be used
+
 ## Health Drain
 
 Critical survival states cause periodic health damage.
@@ -287,6 +351,8 @@ The system generates warnings displayed to the player:
 | `survival_stat_changed` | stat_name, old_value, new_value | When any survival stat changes |
 | `survival_warning` | message | When warning threshold crossed |
 | `stamina_depleted` | (none) | When stamina hits 0 or action blocked |
+| `mana_changed` | old_value, new_value, max_value | When mana changes |
+| `mana_depleted` | (none) | When mana hits 0 |
 
 ## Constants Reference
 
@@ -319,6 +385,13 @@ TEMP_MOD_DAWN = -5.0
 TEMP_MOD_DAY = 0.0
 TEMP_MOD_DUSK = -4.0
 TEMP_MOD_NIGHT = -14.0
+
+# Mana system
+MANA_REGEN_PER_TURN = 1.0
+MANA_REGEN_SHELTER_MULTIPLIER = 3.0
+MANA_PER_LEVEL = 5.0
+MANA_PER_INT = 5.0
+BASE_MAX_MANA = 30.0
 ```
 
 ## Integration with Other Systems

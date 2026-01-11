@@ -247,7 +247,9 @@ func _serialize_survival(survival: SurvivalSystem) -> Dictionary:
 		"temperature": survival.temperature,
 		"stamina": survival.stamina,
 		"base_max_stamina": survival.base_max_stamina,
-		"fatigue": survival.fatigue
+		"fatigue": survival.fatigue,
+		"mana": survival.mana,
+		"base_max_mana": survival.base_max_mana
 	}
 
 ## Serialize inventory
@@ -550,6 +552,9 @@ func _deserialize_survival(survival: SurvivalSystem, survival_data: Dictionary):
 	survival.stamina = survival_data.stamina
 	survival.base_max_stamina = survival_data.base_max_stamina
 	survival.fatigue = survival_data.fatigue
+	# Mana (with backwards compatibility for older saves)
+	survival.mana = survival_data.get("mana", survival.get_max_mana())
+	survival.base_max_mana = survival_data.get("base_max_mana", 30.0)
 
 ## Deserialize inventory
 func _deserialize_inventory(inventory: Inventory, items_data: Array):

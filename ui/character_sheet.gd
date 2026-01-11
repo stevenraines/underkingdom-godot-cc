@@ -59,9 +59,9 @@ func close() -> void:
 
 ## Populate the Progression tab
 func _populate_progression_tab() -> void:
+	# Clear existing children immediately (don't await - causes async issues)
 	for child in progression_content.get_children():
 		child.queue_free()
-	await get_tree().process_frame
 	current_content_box = progression_content
 	_add_progression_section()
 
@@ -69,7 +69,6 @@ func _populate_progression_tab() -> void:
 func _populate_abilities_tab() -> void:
 	for child in abilities_content.get_children():
 		child.queue_free()
-	await get_tree().process_frame
 	current_content_box = abilities_content
 	_add_attributes_section()
 
@@ -77,7 +76,6 @@ func _populate_abilities_tab() -> void:
 func _populate_combat_tab() -> void:
 	for child in combat_content.get_children():
 		child.queue_free()
-	await get_tree().process_frame
 	current_content_box = combat_content
 	_add_combat_section()
 
@@ -85,7 +83,6 @@ func _populate_combat_tab() -> void:
 func _populate_survival_tab() -> void:
 	for child in survival_content.get_children():
 		child.queue_free()
-	await get_tree().process_frame
 	current_content_box = survival_content
 	_add_survival_section()
 
@@ -93,7 +90,6 @@ func _populate_survival_tab() -> void:
 func _populate_weather_tab() -> void:
 	for child in weather_content.get_children():
 		child.queue_free()
-	await get_tree().process_frame
 	current_content_box = weather_content
 	_add_weather_section()
 

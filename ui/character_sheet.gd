@@ -16,6 +16,12 @@ signal closed
 var player = null  # Player instance
 var current_scroll_container: ScrollContainer = null  # Track which tab is active for scrolling
 
+# Pending level-up changes (not yet committed)
+var pending_skill_increases: Dictionary = {}  # skill_name -> increase_count
+var pending_ability_increases: Dictionary = {}  # ability_code -> increase_count
+var available_skill_points_remaining: int = 0
+var available_ability_points_remaining: int = 0
+
 # Colors matching inventory screen
 const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
 const COLOR_LABEL = Color(0.85, 0.85, 0.7)
@@ -32,6 +38,13 @@ func _ready() -> void:
 ## Open the character sheet
 func open(p_player) -> void:
 	player = p_player
+
+	# Initialize pending changes
+	pending_skill_increases.clear()
+	pending_ability_increases.clear()
+	available_skill_points_remaining = player.available_skill_points
+	available_ability_points_remaining = player.available_ability_points
+
 	_populate_content()
 	_populate_skills_tab()
 
@@ -463,12 +476,12 @@ func _populate_skills_tab() -> void:
 
 	_add_skills_spacer()
 
-	# Show available points
-	var points_text = "Available Skill Points: %d" % player.available_skill_points
+	# Show available points (remaining after pending changes)
+	var points_text = "Available Skill Points: %d" % available_skill_points_remaining
 	var points_label = Label.new()
 	points_label.text = points_text
 	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if player.available_skill_points > 0:
+	if available_skill_points_remaining > 0:
 		points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.95))
 	else:
 		points_label.add_theme_color_override("font_color", COLOR_LABEL)
@@ -476,6 +489,16 @@ func _populate_skills_tab() -> void:
 	skills_content.add_child(points_label)
 
 	_add_skills_spacer()
+
+	# Show pending changes hint if any
+	if not pending_skill_increases.is_empty():
+		var hint = Label.new()
+		hint.text = "Pending changes - use [-] to undo or click [Commit] to finalize"
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hint.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		hint.add_theme_font_size_override("font_size", 12)
+		skills_content.add_child(hint)
+		_add_skills_spacer()
 
 	# List all skills (alphabetically sorted)
 	var skill_names = player.skills.keys()
@@ -494,12 +517,12 @@ func _populate_skills_tab() -> void:
 
 	_add_skills_spacer()
 
-	# Show available ability points
-	var ability_points_text = "Available Ability Points: %d" % player.available_ability_points
+	# Show available ability points (remaining after pending changes)
+	var ability_points_text = "Available Ability Points: %d" % available_ability_points_remaining
 	var ability_points_label = Label.new()
 	ability_points_label.text = ability_points_text
 	ability_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if player.available_ability_points > 0:
+	if available_ability_points_remaining > 0:
 		ability_points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.7))
 	else:
 		ability_points_label.add_theme_color_override("font_color", COLOR_LABEL)
@@ -508,7 +531,17 @@ func _populate_skills_tab() -> void:
 
 	_add_skills_spacer()
 
-	if player.available_ability_points > 0:
+	# Show pending changes hint if any
+	if not pending_ability_increases.is_empty():
+		var hint = Label.new()
+		hint.text = "Pending changes - use [-] to undo or click [Commit] to finalize"
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hint.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		hint.add_theme_font_size_override("font_size", 12)
+		skills_content.add_child(hint)
+		_add_skills_spacer()
+
+	if available_ability_points_remaining > 0 or not pending_ability_increases.is_empty():
 		var hint_label = Label.new()
 		hint_label.text = "Click a button to increase that ability score:"
 		hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -539,6 +572,21 @@ func _populate_skills_tab() -> void:
 		no_points_label.add_theme_font_size_override("font_size", 12)
 		skills_content.add_child(no_points_label)
 
+	# Add commit button if there are pending changes
+	if not pending_skill_increases.is_empty() or not pending_ability_increases.is_empty():
+		_add_skills_spacer()
+		_add_skills_spacer()
+
+		var commit_button = Button.new()
+		commit_button.text = "COMMIT LEVEL UP CHANGES"
+		commit_button.custom_minimum_size = Vector2(300, 40)
+		commit_button.add_theme_font_size_override("font_size", 16)
+		commit_button.pressed.connect(_on_commit_pressed)
+
+		var center_container = CenterContainer.new()
+		center_container.add_child(commit_button)
+		skills_content.add_child(center_container)
+
 ## Add a skill line with +/- buttons
 func _add_skill_line(skill_name: String, current_level: int) -> void:
 	var line = HBoxContainer.new()
@@ -551,25 +599,44 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
-	# Current level (center)
+	# Calculate pending level (current + pending increases)
+	var pending_increases = pending_skill_increases.get(skill_name, 0)
+	var pending_level = current_level + pending_increases
+
+	# Current level (center) - show pending if different
 	var level_label = Label.new()
-	level_label.text = "%d / %d" % [current_level, player.level]  # Current / Max (level cap)
-	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	level_label.custom_minimum_size.x = 80
-	if current_level >= player.level:
-		level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold if maxed
+	if pending_increases > 0:
+		level_label.text = "%d (+%d) / %d" % [current_level, pending_increases, player.level]
+		level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold for pending
 	else:
-		level_label.add_theme_color_override("font_color", COLOR_VALUE)
+		level_label.text = "%d / %d" % [current_level, player.level]
+		if current_level >= player.level:
+			level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold if maxed
+		else:
+			level_label.add_theme_color_override("font_color", COLOR_VALUE)
+	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_label.custom_minimum_size.x = 100
 	level_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(level_label)
 
-	# + button (right)
+	# - button (only shows if there are pending increases to undo)
+	var minus_button = Button.new()
+	minus_button.text = "-"
+	minus_button.custom_minimum_size = Vector2(30, 0)
+	minus_button.focus_mode = Control.FOCUS_ALL
+	minus_button.disabled = pending_increases <= 0
+	if pending_increases > 0:
+		minus_button.pressed.connect(func(): _on_skill_decrease_pressed(skill_name))
+	line.add_child(minus_button)
+
+	# + button
 	var plus_button = Button.new()
 	plus_button.text = "+"
 	plus_button.custom_minimum_size = Vector2(30, 0)
+	plus_button.focus_mode = Control.FOCUS_ALL
 
-	# Check if can increase
-	var can_increase = player.available_skill_points > 0 and current_level < player.level
+	# Check if can increase (have points remaining and not at cap)
+	var can_increase = available_skill_points_remaining > 0 and pending_level < player.level
 	plus_button.disabled = not can_increase
 
 	if can_increase:
@@ -579,7 +646,7 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 
 	skills_content.add_child(line)
 
-## Add an ability score line with button
+## Add an ability score line with +/- buttons
 func _add_ability_line(ability_code: String, ability_name: String, current_value: int) -> void:
 	var line = HBoxContainer.new()
 
@@ -591,36 +658,192 @@ func _add_ability_line(ability_code: String, ability_name: String, current_value
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
-	# Current value (center)
+	# Calculate pending value (current + pending increases)
+	var pending_increases = pending_ability_increases.get(ability_code, 0)
+	var pending_value = current_value + pending_increases
+
+	# Current value (center) - show pending if different
 	var value_label = Label.new()
-	value_label.text = "%d" % current_value
+	if pending_increases > 0:
+		value_label.text = "%d (+%d)" % [current_value, pending_increases]
+		value_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold for pending
+	else:
+		value_label.text = "%d" % current_value
+		value_label.add_theme_color_override("font_color", COLOR_VALUE)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.custom_minimum_size.x = 80
-	value_label.add_theme_color_override("font_color", COLOR_VALUE)
+	value_label.custom_minimum_size.x = 100
 	value_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(value_label)
 
-	# Increase button (right)
-	var button = Button.new()
-	button.text = "+ Increase"
-	button.custom_minimum_size = Vector2(100, 0)
-	button.pressed.connect(func(): _on_ability_increase_pressed(ability_code))
-	line.add_child(button)
+	# - button (only shows if there are pending increases to undo)
+	var minus_button = Button.new()
+	minus_button.text = "-"
+	minus_button.custom_minimum_size = Vector2(30, 0)
+	minus_button.focus_mode = Control.FOCUS_ALL
+	minus_button.disabled = pending_increases <= 0
+	if pending_increases > 0:
+		minus_button.pressed.connect(func(): _on_ability_decrease_pressed(ability_code))
+	line.add_child(minus_button)
+
+	# + button
+	var plus_button = Button.new()
+	plus_button.text = "+"
+	plus_button.custom_minimum_size = Vector2(30, 0)
+	plus_button.focus_mode = Control.FOCUS_ALL
+
+	# Check if can increase (have points remaining)
+	var can_increase = available_ability_points_remaining > 0
+	plus_button.disabled = not can_increase
+
+	if can_increase:
+		plus_button.pressed.connect(func(): _on_ability_increase_pressed(ability_code))
+
+	line.add_child(plus_button)
 
 	skills_content.add_child(line)
 
 ## Called when skill increase button is pressed
 func _on_skill_increase_pressed(skill_name: String) -> void:
-	if player.spend_skill_point(skill_name):
-		# Refresh the skills tab
-		_populate_skills_tab()
+	# Add to pending changes (don't commit yet)
+	if available_skill_points_remaining <= 0:
+		return
+
+	var current_level = player.skills.get(skill_name, 0)
+	var pending_increases = pending_skill_increases.get(skill_name, 0)
+
+	# Can't exceed player level
+	if current_level + pending_increases >= player.level:
+		return
+
+	# Add pending increase
+	pending_skill_increases[skill_name] = pending_increases + 1
+	available_skill_points_remaining -= 1
+
+	# Refresh the skills tab
+	_populate_skills_tab()
+
+## Called when skill decrease button is pressed (undo pending increase)
+func _on_skill_decrease_pressed(skill_name: String) -> void:
+	var pending_increases = pending_skill_increases.get(skill_name, 0)
+	if pending_increases <= 0:
+		return
+
+	# Remove one pending increase
+	pending_skill_increases[skill_name] = pending_increases - 1
+	if pending_skill_increases[skill_name] <= 0:
+		pending_skill_increases.erase(skill_name)
+
+	available_skill_points_remaining += 1
+
+	# Refresh the skills tab
+	_populate_skills_tab()
 
 ## Called when ability increase button is pressed
 func _on_ability_increase_pressed(ability_code: String) -> void:
-	if player.increase_ability(ability_code):
-		# Refresh both tabs (stats tab shows attributes, skills tab shows ability points)
-		_populate_content()
-		_populate_skills_tab()
+	# Add to pending changes (don't commit yet)
+	if available_ability_points_remaining <= 0:
+		return
+
+	var pending_increases = pending_ability_increases.get(ability_code, 0)
+
+	# Add pending increase
+	pending_ability_increases[ability_code] = pending_increases + 1
+	available_ability_points_remaining -= 1
+
+	# Refresh tabs
+	_populate_content()
+	_populate_skills_tab()
+
+## Called when ability decrease button is pressed (undo pending increase)
+func _on_ability_decrease_pressed(ability_code: String) -> void:
+	var pending_increases = pending_ability_increases.get(ability_code, 0)
+	if pending_increases <= 0:
+		return
+
+	# Remove one pending increase
+	pending_ability_increases[ability_code] = pending_increases - 1
+	if pending_ability_increases[ability_code] <= 0:
+		pending_ability_increases.erase(ability_code)
+
+	available_ability_points_remaining += 1
+
+	# Refresh tabs
+	_populate_content()
+	_populate_skills_tab()
+
+## Called when commit button is pressed - show confirmation and finalize changes
+func _on_commit_pressed() -> void:
+	# Build summary of changes
+	var changes: Array[String] = []
+
+	for skill_name in pending_skill_increases:
+		var count = pending_skill_increases[skill_name]
+		changes.append("  • %s: +%d" % [skill_name, count])
+
+	for ability_code in pending_ability_increases:
+		var count = pending_ability_increases[ability_code]
+		var ability_names = {
+			"STR": "Strength",
+			"DEX": "Dexterity",
+			"CON": "Constitution",
+			"INT": "Intelligence",
+			"WIS": "Wisdom",
+			"CHA": "Charisma"
+		}
+		var ability_name = ability_names.get(ability_code, ability_code)
+		changes.append("  • %s: +%d" % [ability_name, count])
+
+	if changes.is_empty():
+		return  # Nothing to commit
+
+	# Show confirmation dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Confirm Level Up Changes"
+	dialog.dialog_text = "Apply these changes?\n\n" + "\n".join(changes) + "\n\nThis cannot be undone."
+	dialog.ok_button_text = "Commit Changes"
+	dialog.cancel_button_text = "Cancel"
+
+	# Add to scene temporarily
+	add_child(dialog)
+	dialog.popup_centered()
+
+	# Connect signals
+	dialog.confirmed.connect(func():
+		_commit_changes()
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func():
+		dialog.queue_free()
+	)
+
+## Actually commit the pending changes to the player
+func _commit_changes() -> void:
+	# Apply skill increases
+	for skill_name in pending_skill_increases:
+		var count = pending_skill_increases[skill_name]
+		for i in range(count):
+			if not player.spend_skill_point(skill_name):
+				push_error("Failed to commit skill increase for %s" % skill_name)
+
+	# Apply ability increases
+	for ability_code in pending_ability_increases:
+		var count = pending_ability_increases[ability_code]
+		for i in range(count):
+			if not player.increase_ability(ability_code):
+				push_error("Failed to commit ability increase for %s" % ability_code)
+
+	# Clear pending changes
+	pending_skill_increases.clear()
+	pending_ability_increases.clear()
+	available_skill_points_remaining = player.available_skill_points
+	available_ability_points_remaining = player.available_ability_points
+
+	# Refresh both tabs
+	_populate_content()
+	_populate_skills_tab()
+
+	# Show success message
+	EventBus.message_logged.emit("Level up changes committed!", "system")
 
 ## Add a spacer for skills tab
 func _add_skills_spacer() -> void:

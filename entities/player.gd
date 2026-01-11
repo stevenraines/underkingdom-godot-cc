@@ -722,8 +722,8 @@ func try_toggle_adjacent_door() -> bool:
 ## =========================================================================
 
 ## Calculate XP needed to reach a specific level
-## Formula: Fibonacci-like sequence (sum of prior two levels)
-## Level 0: 0, Level 1: 100, Level 2: 200, Level 3: 300, Level 4: 500, etc.
+## Formula: Fibonacci-like sequence (sum of prior two levels) * xp_multiplier
+## Level 0: 0, Level 1: 100, Level 2: 200, Level 3+: (prev + prev_prev) * multiplier
 static func calculate_xp_for_level(target_level: int) -> int:
 	if target_level <= 0:
 		return 0
@@ -732,29 +732,31 @@ static func calculate_xp_for_level(target_level: int) -> int:
 	if target_level == 2:
 		return 200
 
-	# For level 3+, use Fibonacci-like formula
+	# For level 3+, use Fibonacci-like formula with configurable multiplier
 	var prev_prev = 100  # Level 1
 	var prev = 200       # Level 2
 	var current = 0
 
 	for i in range(3, target_level + 1):
-		current = prev + prev_prev
+		# Sum of previous two levels, multiplied by config
+		var base_xp = prev + prev_prev
+		current = int(base_xp * GameConfig.xp_multiplier)
 		prev_prev = prev
 		prev = current
 
 	return current
 
 ## Calculate skill points earned for reaching a level
-## Formula: ceil(level / 3.0)
+## Formula: ceil(level / skill_points_divisor)
 static func calculate_skill_points_for_level(target_level: int) -> int:
 	if target_level <= 0:
 		return 0
-	return int(ceil(float(target_level) / 3.0))
+	return int(ceil(float(target_level) / GameConfig.skill_points_divisor))
 
 ## Check if player qualifies for ability score increase
-## Every 4th level grants +1 to any ability score
+## Every N levels grants +1 to any ability score (N from GameConfig)
 static func grants_ability_point(target_level: int) -> bool:
-	return target_level > 0 and target_level % 4 == 0
+	return target_level > 0 and target_level % GameConfig.ability_point_interval == 0
 
 ## Gain experience and check for level-up
 func gain_experience(amount: int) -> void:

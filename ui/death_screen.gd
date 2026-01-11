@@ -74,7 +74,9 @@ func _display_death_stats(stats: Dictionary) -> void:
 			push_warning("DeathScreen: stats_label not found, cannot display death stats yet")
 			return
 
-	var text = "[center][color=#ff8888][b]*** YOU HAVE DIED ***[/b][/color][/center]\n\n"
+	# Get character name
+	var char_name = GameManager.character_name if GameManager.character_name != "" else "Adventurer"
+	var text = "[center][color=#ff8888][b]*** %s HAS DIED ***[/b][/color][/center]\n\n" % char_name.to_upper()
 
 	# Show cause of death if available
 	var death_cause = stats.get("death_cause", "")

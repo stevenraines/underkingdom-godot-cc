@@ -21,9 +21,27 @@ var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
 var gold: int = 25  # Player's gold currency
 
-# Experience
+# Experience and Leveling
 var experience: int = 0
+var level: int = 0
 var experience_to_next_level: int = 100
+
+# Skill points
+var available_skill_points: int = 0
+var available_ability_points: int = 0  # For ability score increases every 4th level
+
+# Skills (0-level cap)
+var skills: Dictionary = {
+	"Arcana": 0,
+	"Crafting": 0,
+	"Investigation": 0,
+	"Medicine": 0,
+	"Perception": 0,
+	"Persuasion": 0,
+	"Sleight of Hand": 0,
+	"Stealth": 0,
+	"Survival": 0
+}
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
@@ -693,3 +711,142 @@ func try_toggle_adjacent_door() -> bool:
 
 	EventBus.combat_message.emit("No door nearby.", Color.GRAY)
 	return false
+
+## =========================================================================
+## LEVELING SYSTEM
+## =========================================================================
+
+## Calculate XP needed to reach a specific level
+## Formula: Fibonacci-like sequence (sum of prior two levels)
+## Level 0: 0, Level 1: 100, Level 2: 200, Level 3: 300, Level 4: 500, etc.
+static func calculate_xp_for_level(target_level: int) -> int:
+	if target_level <= 0:
+		return 0
+	if target_level == 1:
+		return 100
+	if target_level == 2:
+		return 200
+
+	# For level 3+, use Fibonacci-like formula
+	var prev_prev = 100  # Level 1
+	var prev = 200       # Level 2
+	var current = 0
+
+	for i in range(3, target_level + 1):
+		current = prev + prev_prev
+		prev_prev = prev
+		prev = current
+
+	return current
+
+## Calculate skill points earned for reaching a level
+## Formula: ceil(level / 3.0)
+static func calculate_skill_points_for_level(target_level: int) -> int:
+	if target_level <= 0:
+		return 0
+	return int(ceil(float(target_level) / 3.0))
+
+## Check if player qualifies for ability score increase
+## Every 4th level grants +1 to any ability score
+static func grants_ability_point(target_level: int) -> bool:
+	return target_level > 0 and target_level % 4 == 0
+
+## Gain experience and check for level-up
+func gain_experience(amount: int) -> void:
+	if amount <= 0:
+		return
+
+	experience += amount
+
+	# Check for level-up(s)
+	while experience >= experience_to_next_level:
+		_level_up()
+
+## Handle level-up
+func _level_up() -> void:
+	level += 1
+
+	# Calculate skill points for this level
+	var skill_points = calculate_skill_points_for_level(level)
+	available_skill_points += skill_points
+
+	# Check for ability point
+	if grants_ability_point(level):
+		available_ability_points += 1
+
+	# Update XP requirement for next level
+	experience_to_next_level = calculate_xp_for_level(level + 1)
+
+	# Emit level-up event
+	EventBus.player_leveled_up.emit(level, skill_points, grants_ability_point(level))
+
+## Spend a skill point on a specific skill
+## Returns true if successful, false if invalid
+func spend_skill_point(skill_name: String) -> bool:
+	# Validation
+	if not skills.has(skill_name):
+		return false
+	if available_skill_points <= 0:
+		return false
+	if skills[skill_name] >= level:  # Cap at player level
+		return false
+
+	# Spend the point
+	available_skill_points -= 1
+	skills[skill_name] += 1
+
+	EventBus.skill_increased.emit(skill_name, skills[skill_name])
+	return true
+
+## Increase an ability score (from ability point)
+## Returns true if successful, false if invalid
+func increase_ability(ability_name: String) -> bool:
+	# Validation
+	if not attributes.has(ability_name):
+		return false
+	if available_ability_points <= 0:
+		return false
+
+	# Increase the ability
+	available_ability_points -= 1
+	attributes[ability_name] += 1
+
+	# Recalculate derived stats
+	_recalculate_derived_stats()
+
+	EventBus.ability_increased.emit(ability_name, attributes[ability_name])
+	return true
+
+## Recalculate stats that depend on attributes
+func _recalculate_derived_stats() -> void:
+	# Update max health (10 + CON × 5)
+	var old_max = max_health
+	max_health = 10 + attributes["CON"] * 5
+
+	# Adjust current health proportionally
+	if old_max > 0:
+		var health_ratio = float(current_health) / float(old_max)
+		current_health = int(max_health * health_ratio)
+	else:
+		current_health = max_health
+
+	# Update perception range (5 + WIS / 2)
+	perception_range = 5 + int(attributes["WIS"] / 2.0)
+
+	# Update survival system's base max stamina if it exists
+	if survival:
+		var old_base_stamina = survival.base_max_stamina
+		survival.base_max_stamina = 50.0 + attributes["CON"] * 10.0
+
+		# Adjust current stamina proportionally
+		if old_base_stamina > 0:
+			var stamina_ratio = survival.stamina / old_base_stamina
+			survival.stamina = min(survival.base_max_stamina, survival.base_max_stamina * stamina_ratio)
+
+	# Update inventory max weight if it exists
+	if inventory:
+		inventory.max_weight = 20.0 + attributes["STR"] * 5.0
+
+## Get current skill level for a specific skill
+func get_skill_level(skill_name: String) -> int:
+	return skills.get(skill_name, 0)

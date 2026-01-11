@@ -17,6 +17,14 @@ signal day_changed(day: int)  # New calendar day
 @warning_ignore("unused_signal")
 signal player_moved(old_pos: Vector2i, new_pos: Vector2i)
 
+# Leveling signals
+@warning_ignore("unused_signal")
+signal player_leveled_up(new_level: int, skill_points_gained: int, gained_ability_point: bool)
+@warning_ignore("unused_signal")
+signal skill_increased(skill_name: String, new_value: int)
+@warning_ignore("unused_signal")
+signal ability_increased(ability_name: String, new_value: int)
+
 # Map signals
 @warning_ignore("unused_signal")
 signal map_changed(map_id: String)

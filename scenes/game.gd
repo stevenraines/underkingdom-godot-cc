@@ -209,6 +209,7 @@ func _ready() -> void:
 	EventBus.entity_died.connect(_on_entity_died)
 	EventBus.attack_performed.connect(_on_attack_performed)
 	EventBus.player_died.connect(_on_player_died)
+	EventBus.player_leveled_up.connect(_on_player_leveled_up)
 	EventBus.survival_warning.connect(_on_survival_warning)
 	EventBus.stamina_depleted.connect(_on_stamina_depleted)
 	EventBus.inventory_changed.connect(_on_inventory_changed)
@@ -844,7 +845,7 @@ func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionar
 	# If player killed an enemy, award XP
 	if result.defender_died and is_player_attacker and _defender and _defender is Enemy:
 		var xp_gain = _defender.xp_value if "xp_value" in _defender else 0
-		player.experience += xp_gain
+		player.gain_experience(xp_gain)
 		_add_message("Gained %d XP." % xp_gain, Color(0.6, 0.9, 0.6))
 
 	_update_hud()
@@ -902,6 +903,22 @@ func _on_player_died() -> void:
 	# Show death screen with stats
 	if death_screen:
 		death_screen.open(player_stats)
+
+## Called when player levels up
+func _on_player_leveled_up(new_level: int, skill_points_gained: int, gained_ability_point: bool) -> void:
+	# Display congratulatory message with banner-style formatting
+	_add_message("", Color.WHITE)  # Blank line
+	_add_message("*** LEVEL UP! ***", Color(1.0, 0.85, 0.3))  # Gold
+	_add_message("You have reached Level %d!" % new_level, Color(0.7, 0.95, 0.7))  # Light green
+	_add_message("Gained %d skill point%s." % [skill_points_gained, "s" if skill_points_gained != 1 else ""], Color(0.7, 0.85, 0.95))  # Light blue
+
+	if gained_ability_point:
+		_add_message("You may increase one ability score!", Color(0.95, 0.7, 0.85))  # Light pink
+
+	_add_message("Open Character Screen (P) to spend points.", Color.WHITE)
+	_add_message("", Color.WHITE)  # Blank line
+
+	_update_hud()
 
 ## Handle load save request from death screen
 func _on_death_screen_load_save(slot: int) -> void:
@@ -1050,9 +1067,10 @@ func _update_hud() -> void:
 
 	# Update XP label if present
 	if xp_label and player:
+		var cur_level = player.level if "level" in player else 0
 		var cur_xp = player.experience if "experience" in player else 0
 		var next_xp = player.experience_to_next_level if "experience_to_next_level" in player else 100
-		xp_label.text = "Exp: %d/%d" % [cur_xp, next_xp]
+		xp_label.text = "Lvl %d | Exp: %d/%d" % [cur_level, cur_xp, next_xp]
 
 	# Update gold label if present
 	if gold_label and player:

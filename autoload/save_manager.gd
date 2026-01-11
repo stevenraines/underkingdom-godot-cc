@@ -224,7 +224,11 @@ func _serialize_player() -> Dictionary:
 		"equipment": _serialize_equipment(player.inventory.equipment),
 		"gold": player.gold,
 		"experience": player.experience,
+		"level": player.level,
 		"experience_to_next_level": player.experience_to_next_level,
+		"available_skill_points": player.available_skill_points,
+		"available_ability_points": player.available_ability_points,
+		"skills": player.skills.duplicate(),
 		"known_recipes": player.known_recipes.duplicate()
 	}
 
@@ -488,7 +492,16 @@ func _deserialize_player(player_data: Dictionary):
 	# Misc
 	player.gold = player_data.gold
 	player.experience = player_data.experience
+	player.level = player_data.get("level", 0)  # Default to 0 for old saves
 	player.experience_to_next_level = player_data.experience_to_next_level
+	player.available_skill_points = player_data.get("available_skill_points", 0)
+	player.available_ability_points = player_data.get("available_ability_points", 0)
+
+	# Restore skills (merge with defaults to handle old saves)
+	if player_data.has("skills"):
+		for skill_name in player_data.skills:
+			if player.skills.has(skill_name):
+				player.skills[skill_name] = player_data.skills[skill_name]
 
 	# Restore known recipes (clear and append to maintain Array[String] type)
 	player.known_recipes.clear()

@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_stone_skin",
+  "name": "Tome of Stone Skin",
+  "description": "Ancient transmutation knowledge. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "stone_skin",
+  "weight": 1.0,
+  "value": 175,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#808080"
+}

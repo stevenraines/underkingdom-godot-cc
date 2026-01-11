@@ -1,0 +1,27 @@
+{
+  "id": "archmage_staff",
+  "name": "Archmage Staff",
+  "description": "A legendary staff of pure mithril, topped with a perfect diamond. It radiates overwhelming magical power.",
+  "category": "weapon",
+  "subtype": "staff",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "two_handed": true,
+    "casting_focus": true
+  },
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 8,
+  "attack_type": "melee",
+  "weight": 2.5,
+  "value": 1500,
+  "max_stack": 1,
+  "durability": 200,
+  "ascii_char": "/",
+  "ascii_color": "#FFFFFF",
+  "casting_bonuses": {
+    "success_modifier": 15,
+    "mana_cost_modifier": -10
+  }
+}

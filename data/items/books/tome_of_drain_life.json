@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_drain_life",
+  "name": "Tome of Drain Life",
+  "description": "Dark teachings of the necromancers. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "drain_life",
+  "weight": 1.0,
+  "value": 125,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#AA00AA"
+}

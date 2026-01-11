@@ -1,0 +1,26 @@
+{
+  "id": "staff_of_power",
+  "name": "Staff of Power",
+  "description": "An oak staff etched with arcane runes. It hums with magical energy.",
+  "category": "weapon",
+  "subtype": "staff",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "two_handed": true,
+    "casting_focus": true
+  },
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 4,
+  "attack_type": "melee",
+  "weight": 1.8,
+  "value": 150,
+  "max_stack": 1,
+  "durability": 100,
+  "ascii_char": "/",
+  "ascii_color": "#8844FF",
+  "casting_bonuses": {
+    "success_modifier": 5
+  }
+}

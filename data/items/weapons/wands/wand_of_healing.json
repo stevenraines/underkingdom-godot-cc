@@ -1,0 +1,25 @@
+{
+  "id": "wand_of_healing",
+  "name": "Wand of Healing",
+  "description": "A smooth birch wand inscribed with healing runes. It pulses with gentle warmth.",
+  "category": "weapon",
+  "subtype": "wand",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "charged": true
+  },
+  "equip_slots": ["main_hand"],
+  "casts_spell": "heal",
+  "charges": 8,
+  "max_charges": 8,
+  "recharge_cost": 75,
+  "damage_bonus": 1,
+  "attack_type": "melee",
+  "weight": 0.3,
+  "value": 200,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#44FF44"
+}

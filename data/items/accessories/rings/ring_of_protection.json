@@ -1,0 +1,21 @@
+{
+  "id": "ring_of_protection",
+  "name": "Ring of Protection",
+  "description": "A silver ring inscribed with protective runes. It glows faintly when danger is near.",
+  "category": "accessory",
+  "subtype": "ring",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["accessory"],
+  "weight": 0.1,
+  "value": 100,
+  "max_stack": 1,
+  "ascii_char": "=",
+  "ascii_color": "#C0C0C0",
+  "passive_effects": {
+    "armor_bonus": 2
+  }
+}

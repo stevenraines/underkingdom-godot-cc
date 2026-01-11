@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_ice_shard",
+  "name": "Tome of Ice Shard",
+  "description": "Ancient knowledge of ice magic. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "ice_shard",
+  "weight": 1.0,
+  "value": 150,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#00FFFF"
+}

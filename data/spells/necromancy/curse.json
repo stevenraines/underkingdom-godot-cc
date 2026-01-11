@@ -1,0 +1,38 @@
+{
+  "id": "curse",
+  "name": "Curse",
+  "description": "Afflict your target with a debilitating curse.",
+  "school": "necromancy",
+  "level": 4,
+  "mana_cost": 18,
+  "requirements": {
+    "character_level": 4,
+    "intelligence": 11
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "debuff": {
+      "str_penalty": 2,
+      "dex_penalty": 2,
+      "con_penalty": 2,
+      "duration": 40,
+      "duration_scaling": 10
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 40,
+    "scaling": 10
+  },
+  "save": {
+    "type": "WIS",
+    "on_success": "no_effect"
+  },
+  "cast_message": "A terrible curse falls upon your enemy!",
+  "ascii_char": "*",
+  "ascii_color": "#330033"
+}

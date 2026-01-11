@@ -1,0 +1,22 @@
+{
+  "id": "amulet_of_health",
+  "name": "Amulet of Health",
+  "description": "A jade pendant carved in the shape of a heart. It throbs with vital energy.",
+  "category": "accessory",
+  "subtype": "amulet",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["neck"],
+  "weight": 0.2,
+  "value": 250,
+  "max_stack": 1,
+  "ascii_char": "\"",
+  "ascii_color": "#44FF44",
+  "passive_effects": {
+    "CON": 1,
+    "max_health_bonus": 10
+  }
+}

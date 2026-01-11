@@ -1,0 +1,21 @@
+{
+  "id": "ring_of_strength",
+  "name": "Ring of Strength",
+  "description": "A bronze ring set with a tiger's eye. Wearing it fills you with power.",
+  "category": "accessory",
+  "subtype": "ring",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["accessory"],
+  "weight": 0.1,
+  "value": 150,
+  "max_stack": 1,
+  "ascii_char": "=",
+  "ascii_color": "#CD7F32",
+  "passive_effects": {
+    "STR": 1
+  }
+}

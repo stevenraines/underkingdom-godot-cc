@@ -1,0 +1,25 @@
+{
+  "id": "wand_of_spark",
+  "name": "Wand of Spark",
+  "description": "A slender oak wand that crackles with minor electrical energy.",
+  "category": "weapon",
+  "subtype": "wand",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "charged": true
+  },
+  "equip_slots": ["main_hand"],
+  "casts_spell": "spark",
+  "charges": 15,
+  "max_charges": 15,
+  "recharge_cost": 30,
+  "damage_bonus": 1,
+  "attack_type": "melee",
+  "weight": 0.3,
+  "value": 75,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#8888FF"
+}

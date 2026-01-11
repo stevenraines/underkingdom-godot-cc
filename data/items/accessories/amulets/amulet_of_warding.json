@@ -1,0 +1,26 @@
+{
+  "id": "amulet_of_warding",
+  "name": "Amulet of Warding",
+  "description": "A heavy bronze amulet etched with ancient protective sigils.",
+  "category": "accessory",
+  "subtype": "amulet",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["neck"],
+  "weight": 0.3,
+  "value": 300,
+  "max_stack": 1,
+  "ascii_char": "\"",
+  "ascii_color": "#CD7F32",
+  "passive_effects": {
+    "armor_bonus": 3,
+    "resistances": {
+      "fire": 25,
+      "ice": 25,
+      "lightning": 25
+    }
+  }
+}

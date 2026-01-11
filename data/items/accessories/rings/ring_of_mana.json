@@ -1,0 +1,21 @@
+{
+  "id": "ring_of_mana",
+  "name": "Ring of Mana",
+  "description": "A silver ring set with a sapphire that pulses with arcane energy.",
+  "category": "accessory",
+  "subtype": "ring",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["accessory"],
+  "weight": 0.1,
+  "value": 300,
+  "max_stack": 1,
+  "ascii_char": "=",
+  "ascii_color": "#4444FF",
+  "passive_effects": {
+    "max_mana_bonus": 20
+  }
+}

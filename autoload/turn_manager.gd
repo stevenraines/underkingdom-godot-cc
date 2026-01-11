@@ -38,6 +38,9 @@ func advance_turn() -> void:
 	# Process player survival systems
 	_process_player_survival()
 
+	# Process active magical effect durations
+	_process_effect_durations()
+
 	# Process enemy turns
 	EntityManager.process_entity_turns()
 
@@ -123,6 +126,18 @@ func _generate_daily_weather() -> void:
 func wait_for_player() -> void:
 	is_player_turn = false
 	await EventBus.turn_advanced
+
+## Process active magical effect durations for player and all entities
+func _process_effect_durations() -> void:
+	# Process player effects
+	if EntityManager.player and EntityManager.player.has_method("process_effect_durations"):
+		EntityManager.player.process_effect_durations()
+
+	# Process effects for all other entities
+	for entity in EntityManager.entities:
+		if entity != EntityManager.player and entity.has_method("process_effect_durations"):
+			entity.process_effect_durations()
+
 
 ## Get severity level for a warning message
 func _get_warning_severity(warning: String) -> String:

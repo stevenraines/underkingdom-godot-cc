@@ -1,0 +1,19 @@
+{
+  "id": "scroll_lightning_bolt",
+  "name": "Scroll of Lightning Bolt",
+  "description": "A parchment inscribed with the Lightning Bolt incantation.",
+  "category": "consumable",
+  "subtype": "scroll",
+  "item_type": "consumable",
+  "flags": {
+    "consumable": true,
+    "magical": true,
+    "scroll": true
+  },
+  "casts_spell": "lightning_bolt",
+  "weight": 0.1,
+  "value": 150,
+  "max_stack": 3,
+  "ascii_char": "~",
+  "ascii_color": "#FFFF00"
+}

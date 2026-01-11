@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_flame_bolt",
+  "name": "Tome of Flame Bolt",
+  "description": "A treatise on conjuring fire. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "flame_bolt",
+  "weight": 1.0,
+  "value": 100,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#FF6600"
+}

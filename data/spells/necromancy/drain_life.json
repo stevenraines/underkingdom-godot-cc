@@ -1,0 +1,31 @@
+{
+  "id": "drain_life",
+  "name": "Drain Life",
+  "description": "Siphon life force from your target to heal yourself.",
+  "school": "necromancy",
+  "level": 2,
+  "mana_cost": 10,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 9
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 5,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "necrotic",
+      "base": 10,
+      "scaling": 3
+    },
+    "heal_percent": 0.5
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "Dark energy flows from your target into you!",
+  "ascii_char": "*",
+  "ascii_color": "#AA00AA"
+}

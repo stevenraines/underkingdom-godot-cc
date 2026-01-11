@@ -1,0 +1,30 @@
+{
+  "id": "lightning_bolt",
+  "name": "Lightning Bolt",
+  "description": "A devastating bolt of lightning strikes your foe.",
+  "school": "evocation",
+  "level": 5,
+  "mana_cost": 25,
+  "requirements": {
+    "character_level": 5,
+    "intelligence": 12
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 10,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "lightning",
+      "base": 30,
+      "scaling": 7
+    }
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "Lightning arcs from your fingertips!",
+  "ascii_char": "*",
+  "ascii_color": "#FFFF00"
+}

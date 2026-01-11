@@ -1,0 +1,22 @@
+{
+  "id": "amulet_of_the_mage",
+  "name": "Amulet of the Mage",
+  "description": "A crystal pendant containing a swirling nebula of magical energy.",
+  "category": "accessory",
+  "subtype": "amulet",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["neck"],
+  "weight": 0.2,
+  "value": 400,
+  "max_stack": 1,
+  "ascii_char": "\"",
+  "ascii_color": "#8844FF",
+  "passive_effects": {
+    "INT": 2,
+    "max_mana_bonus": 15
+  }
+}

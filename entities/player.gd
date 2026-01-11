@@ -70,6 +70,21 @@ func _setup_player() -> void:
 	# Initialize inventory system
 	inventory = _Inventory.new(self)
 
+	# Connect to equipment change signals
+	EventBus.item_equipped.connect(_on_item_equipped)
+	EventBus.item_unequipped.connect(_on_item_unequipped)
+
+
+## Called when an item is equipped
+func _on_item_equipped(_item, _slot: String) -> void:
+	_recalculate_effect_modifiers()
+
+
+## Called when an item is unequipped
+func _on_item_unequipped(_item, _slot: String) -> void:
+	_recalculate_effect_modifiers()
+
+
 ## Attempt to attack a target entity
 func attack(target: Entity) -> Dictionary:
 	# Consume stamina for attack
@@ -656,6 +671,196 @@ func get_castable_spells() -> Array:
 		if spell and SpellManager.can_cast(self, spell).can_cast:
 			result.append(spell)
 	return result
+
+
+## Attempt to transcribe a spell from a scroll into the spellbook
+## Returns a dictionary with success status and message
+func attempt_transcription(scroll: Item) -> Dictionary:
+	if not has_spellbook():
+		return {"success": false, "consumed": false, "message": "You need a spellbook to transcribe spells."}
+
+	var spell = SpellManager.get_spell(scroll.casts_spell)
+	if spell == null:
+		return {"success": false, "consumed": false, "message": "This scroll contains corrupted magic."}
+
+	# Check if already known
+	if knows_spell(spell.id):
+		return {"success": false, "consumed": false, "message": "You already know this spell."}
+
+	# Check INT requirement
+	var player_int = get_effective_attribute("INT")
+	if player_int < spell.requirements.get("intelligence", 8):
+		return {"success": false, "consumed": false, "message": "This spell is too complex for you to understand."}
+
+	# Check level requirement
+	if level < spell.requirements.get("character_level", 1):
+		return {"success": false, "consumed": false, "message": "You lack the experience to comprehend this magic."}
+
+	# Calculate success chance
+	var success_chance = calculate_transcription_chance(spell)
+
+	# Roll for success
+	var roll = randf() * 100.0
+	var success = roll < success_chance
+
+	if success:
+		learn_spell(spell.id)
+		EventBus.transcription_attempted.emit(scroll, spell, true)
+		return {
+			"success": true,
+			"consumed": true,
+			"message": "You successfully transcribe %s into your spellbook!" % spell.name
+		}
+	else:
+		EventBus.transcription_attempted.emit(scroll, spell, false)
+		return {
+			"success": false,
+			"consumed": true,
+			"message": "The arcane symbols blur and fade. The scroll crumbles to dust."
+		}
+
+
+## Calculate the chance of successfully transcribing a spell
+## Returns percentage (0-100)
+func calculate_transcription_chance(spell) -> float:
+	var level_diff = level - spell.level
+	var base_chance: float
+
+	# Base chance from level difference
+	if level_diff <= 0:
+		base_chance = 50.0
+	elif level_diff == 1:
+		base_chance = 65.0
+	elif level_diff == 2:
+		base_chance = 75.0
+	elif level_diff == 3:
+		base_chance = 85.0
+	else:
+		base_chance = 95.0
+
+	# INT bonus: +2% per INT above requirement
+	var int_above_req = get_effective_attribute("INT") - spell.requirements.get("intelligence", 8)
+	base_chance += int_above_req * 2.0
+
+	return clampf(base_chance, 10.0, 98.0)
+
+
+## Get total casting bonuses from equipped items (staves, etc.)
+## Returns dictionary with: success_modifier, school_affinity, school_damage_bonus, mana_cost_modifier
+func get_casting_bonuses() -> Dictionary:
+	var bonuses: Dictionary = {
+		"success_modifier": 0,
+		"mana_cost_modifier": 0,
+		"school_bonuses": {}  # school_name -> damage_bonus
+	}
+
+	if not inventory:
+		return bonuses
+
+	# Check main hand for casting focus
+	var main_hand = inventory.get_equipped("main_hand")
+	if main_hand and main_hand.has_method("is_casting_focus") and main_hand.is_casting_focus():
+		var item_bonuses = main_hand.get_casting_bonuses()
+		bonuses.success_modifier += item_bonuses.get("success_modifier", 0)
+		bonuses.mana_cost_modifier += item_bonuses.get("mana_cost_modifier", 0)
+
+		# Handle school affinity bonuses
+		var school = item_bonuses.get("school_affinity", "")
+		if school != "":
+			var school_bonus = item_bonuses.get("school_damage_bonus", 0)
+			bonuses.school_bonuses[school] = bonuses.school_bonuses.get(school, 0) + school_bonus
+
+	return bonuses
+
+
+## Get total passive effects from all equipped items
+## Returns dictionary with stat bonuses, resistances, etc.
+func get_equipment_passive_effects() -> Dictionary:
+	var total_effects: Dictionary = {
+		"stat_bonuses": {},  # {STR: +1, INT: +2, etc.}
+		"armor_bonus": 0,
+		"max_mana_bonus": 0,
+		"max_health_bonus": 0,
+		"mana_regen_bonus": 0,
+		"health_regen_bonus": 0,
+		"resistances": {}  # {fire: 50, ice: 50, etc.}
+	}
+
+	if not inventory:
+		return total_effects
+
+	# Check all equipment slots for passive effects
+	for slot in inventory.equipment:
+		var item = inventory.equipment[slot]
+		if item and item.has_method("has_passive_effects") and item.has_passive_effects():
+			var effects = item.get_passive_effects()
+
+			# Stat bonuses
+			if effects.has("stat_bonuses"):
+				for stat in effects.stat_bonuses:
+					total_effects.stat_bonuses[stat] = total_effects.stat_bonuses.get(stat, 0) + effects.stat_bonuses[stat]
+
+			# Direct stat bonuses (alternative format)
+			for stat in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
+				if effects.has(stat):
+					total_effects.stat_bonuses[stat] = total_effects.stat_bonuses.get(stat, 0) + effects[stat]
+
+			# Armor bonus
+			if effects.has("armor_bonus"):
+				total_effects.armor_bonus += effects.armor_bonus
+
+			# Max mana bonus
+			if effects.has("max_mana_bonus"):
+				total_effects.max_mana_bonus += effects.max_mana_bonus
+
+			# Max health bonus
+			if effects.has("max_health_bonus"):
+				total_effects.max_health_bonus += effects.max_health_bonus
+
+			# Mana regen bonus
+			if effects.has("mana_regen_bonus"):
+				total_effects.mana_regen_bonus += effects.mana_regen_bonus
+
+			# Health regen bonus
+			if effects.has("health_regen_bonus"):
+				total_effects.health_regen_bonus += effects.health_regen_bonus
+
+			# Resistances (stacking with diminishing returns)
+			if effects.has("resistances"):
+				for resist_type in effects.resistances:
+					var current = total_effects.resistances.get(resist_type, 0)
+					var added = effects.resistances[resist_type]
+					# Diminishing returns: 50 + 50 = 75, not 100
+					total_effects.resistances[resist_type] = current + (100 - current) * added / 100.0
+
+	return total_effects
+
+
+## Override to include equipment passive effects in stat calculation
+func _recalculate_effect_modifiers() -> void:
+	# Reset stat modifiers
+	for stat in stat_modifiers:
+		stat_modifiers[stat] = 0
+
+	# Reset armor modifier
+	armor_modifier = 0
+
+	# Apply magical effect modifiers (buffs/debuffs)
+	for effect in active_effects:
+		if effect.has("modifiers"):
+			for stat in effect.modifiers:
+				if stat in stat_modifiers:
+					stat_modifiers[stat] += effect.modifiers[stat]
+		if effect.has("armor_bonus"):
+			armor_modifier += effect.armor_bonus
+
+	# Apply equipment passive effects
+	var equip_effects = get_equipment_passive_effects()
+	for stat in equip_effects.stat_bonuses:
+		if stat in stat_modifiers:
+			stat_modifiers[stat] += equip_effects.stat_bonuses[stat]
+	armor_modifier += equip_effects.armor_bonus
+
 
 ## Open a door at the given position
 ## If locked, attempts to unlock with key first (auto-unlock feature)

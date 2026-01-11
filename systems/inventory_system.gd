@@ -17,6 +17,7 @@ var equipment: Dictionary = {
 	"feet": null,
 	"main_hand": null,
 	"off_hand": null,
+	"neck": null,
 	"accessory_1": null,
 	"accessory_2": null
 }
@@ -36,8 +37,9 @@ const SLOT_NAMES: Dictionary = {
 	"feet": "Feet",
 	"main_hand": "Main Hand",
 	"off_hand": "Off Hand",
-	"accessory_1": "Accessory",
-	"accessory_2": "Accessory"
+	"neck": "Neck",
+	"accessory_1": "Ring",
+	"accessory_2": "Ring"
 }
 
 func _init(owner: Entity = null) -> void:

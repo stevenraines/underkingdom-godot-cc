@@ -1,0 +1,20 @@
+{
+  "id": "summoned_wolf",
+  "name": "Spectral Wolf",
+  "description": "A ghostly wolf bound to your service.",
+  "ascii_char": "w",
+  "ascii_color": "#88AAFF",
+  "base_health": 20,
+  "base_damage": 6,
+  "armor": 0,
+  "attributes": {
+    "STR": 12,
+    "DEX": 14,
+    "CON": 12,
+    "INT": 4,
+    "WIS": 10,
+    "CHA": 6
+  },
+  "behavior": "summoned",
+  "faction": "player"
+}

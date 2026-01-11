@@ -1,0 +1,36 @@
+{
+  "id": "ignite",
+  "name": "Ignite",
+  "description": "Set your target ablaze with magical flames that burn for several turns.",
+  "school": "evocation",
+  "level": 1,
+  "mana_cost": 6,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 5,
+    "requires_los": true
+  },
+  "effects": {
+    "dot": {
+      "type": "burning",
+      "damage_per_turn": 4,
+      "duration": 6,
+      "damage_scaling": 1,
+      "duration_scaling": 1
+    }
+  },
+  "save": {
+    "type": "DEX",
+    "on_success": "half_duration"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "Flames engulf your target!",
+  "ascii_char": "*",
+  "ascii_color": "#FF4500"
+}

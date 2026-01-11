@@ -1,0 +1,14 @@
+{
+  "id": "mana_potion",
+  "result": "mana_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "moonpetal", "count": 2},
+    {"item": "arcane_dust", "count": 1},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "mortar_pestle",
+  "fire_required": true,
+  "difficulty": 4,
+  "discovery_hint": "Grinding moonpetals with arcane dust creates a more concentrated magical infusion"
+}

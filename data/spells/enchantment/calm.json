@@ -1,0 +1,34 @@
+{
+  "id": "calm",
+  "name": "Calm",
+  "description": "Soothe an aggressive creature, making it passive and non-hostile.",
+  "school": "enchantment",
+  "level": 2,
+  "mana_cost": 7,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 5,
+    "requires_los": true
+  },
+  "effects": {
+    "mind_effect": {
+      "type": "calm"
+    }
+  },
+  "save": {
+    "type": "WIS",
+    "on_success": "no_effect"
+  },
+  "duration": {
+    "type": "turns",
+    "base": 15,
+    "scaling": 3
+  },
+  "cast_message": "A wave of peace washes over your target.",
+  "ascii_char": "~",
+  "ascii_color": "#87CEEB"
+}

@@ -1,0 +1,36 @@
+{
+  "id": "fireball",
+  "name": "Fireball",
+  "description": "A ball of fire explodes at the target location, damaging all creatures in the area.",
+  "school": "evocation",
+  "level": 5,
+  "mana_cost": 30,
+  "requirements": {
+    "character_level": 5,
+    "intelligence": 12
+  },
+  "targeting": {
+    "mode": "aoe",
+    "range": 8,
+    "aoe_radius": 2,
+    "aoe_shape": "circle",
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "fire",
+      "base": 20,
+      "scaling": 4
+    }
+  },
+  "save": {
+    "type": "DEX",
+    "on_success": "half_damage"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "A ball of fire explodes!",
+  "ascii_char": "*",
+  "ascii_color": "#FF4500"
+}

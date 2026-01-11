@@ -208,7 +208,7 @@ func _ready() -> void:
 	_register_light_sources()
 
 	# Calculate initial visibility (FOV + lighting)
-	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
+	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
 	renderer.update_fov(visible_tiles, player.position)
 
@@ -1843,7 +1843,7 @@ func _on_weather_changed(_old_weather: String, _new_weather: String, message: St
 func _on_time_of_day_changed(new_time: String) -> void:
 	# Refresh FOV and lighting since sun position affects visibility
 	if player and MapManager.current_map:
-		var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
+		var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 		var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
 		renderer.update_fov(visible_tiles, player.position)
 
@@ -1974,6 +1974,8 @@ func _cast_spell_on_target(spell, target) -> void:
 	if result.success:
 		_add_message(result.message, Color(0.5, 0.8, 1.0))
 		TurnManager.advance_turn()
+		# Update visibility immediately (for Light spell and other buff effects)
+		_update_visibility()
 	elif result.failed:
 		_add_message(result.message, Color(1.0, 0.8, 0.3))
 		TurnManager.advance_turn()  # Still costs a turn
@@ -2218,7 +2220,7 @@ func _update_visibility() -> void:
 	_register_light_sources()
 
 	# Calculate visibility (LOS-based, for entities)
-	var player_light_radius = player.inventory.get_equipped_light_radius() if player.inventory else 0
+	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
 
 	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer

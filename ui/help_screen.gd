@@ -211,4 +211,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif not event.echo and (event.keycode == KEY_ESCAPE or event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed)):
 			close()
-			get_viewport().set_input_as_handled()
+
+		# Always consume keyboard input while help screen is open
+		get_viewport().set_input_as_handled()

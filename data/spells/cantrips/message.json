@@ -1,0 +1,26 @@
+{
+  "id": "message",
+  "name": "Message",
+  "description": "Whisper a message to a creature within range, or hear their response from afar.",
+  "school": "enchantment",
+  "level": 0,
+  "mana_cost": 0,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 10,
+    "requires_los": false
+  },
+  "effects": {
+    "special": "remote_dialogue"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You whisper a magical message.",
+  "ascii_char": "~",
+  "ascii_color": "#88FF88"
+}

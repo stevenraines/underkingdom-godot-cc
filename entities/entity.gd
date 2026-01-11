@@ -39,6 +39,11 @@ var is_alive: bool = true
 var base_damage: int = 1  # Unarmed/natural weapon damage
 var armor: int = 0  # Damage reduction
 
+# Creature type for mind control immunity (humanoid, animal, undead, construct)
+var creature_type: String = "humanoid"
+var faction: String = "neutral"  # player, enemy, neutral, hostile_to_all
+var ai_state: String = "normal"  # normal, fleeing, berserk, idle
+
 # Stat modifiers from survival/effects (applied on top of base attributes)
 var stat_modifiers: Dictionary = {
 	"STR": 0,
@@ -141,6 +146,8 @@ func remove_magical_effect(effect_id: String) -> void:
 	for i in range(active_effects.size() - 1, -1, -1):
 		if active_effects[i].id == effect_id:
 			var effect = active_effects[i]
+			# Handle mind effect state restoration
+			_handle_mind_effect_expiration(effect)
 			active_effects.remove_at(i)
 			EventBus.effect_removed.emit(self, effect)
 	_recalculate_effect_modifiers()
@@ -191,9 +198,54 @@ func process_effect_durations() -> void:
 
 	for effect_id in expired:
 		# Get the effect name before removing
-		var effect_name = effect_id.replace("_buff", "").replace("_debuff", "")
+		var effect_name = effect_id.replace("_buff", "").replace("_debuff", "").replace("_dot", "")
 		remove_magical_effect(effect_id)
 		EventBus.message_logged.emit("The effect of %s has worn off." % effect_name, Color.GRAY)
+
+
+## Process DoT (Damage over Time) effects
+## Call this each turn BEFORE process_effect_durations
+## Returns total DoT damage dealt this turn
+func process_dot_effects() -> int:
+	var total_damage = 0
+
+	for effect in active_effects:
+		if effect.get("type") == "dot":
+			var damage = effect.get("damage_per_turn", 0)
+			if damage > 0:
+				total_damage += damage
+				# Visual feedback via signal
+				var dot_type = effect.get("dot_type", "unknown")
+				EventBus.dot_damage_tick.emit(self, dot_type, damage)
+
+	if total_damage > 0:
+		# Apply damage (bypass armor for DoT effects)
+		take_damage(total_damage, "DoT effects", "dot")
+		EventBus.message_logged.emit(
+			"%s takes %d damage from effects." % [name, total_damage],
+			Color.DARK_RED
+		)
+
+	return total_damage
+
+
+## Remove all DoT effects of a specific type (for curing)
+func cure_dot_type(dot_type: String) -> int:
+	var cured_count = 0
+	var to_remove: Array[String] = []
+
+	for effect in active_effects:
+		if effect.get("type") == "dot" and effect.get("dot_type") == dot_type:
+			to_remove.append(effect.id)
+
+	for effect_id in to_remove:
+		remove_magical_effect(effect_id)
+		cured_count += 1
+
+	if cured_count > 0:
+		EventBus.message_logged.emit("%s is cured of %s!" % [name, dot_type], Color.GREEN)
+
+	return cured_count
 
 
 ## Recalculate stat modifiers from all sources (effects, survival, etc.)
@@ -220,7 +272,55 @@ func get_effective_armor() -> int:
 	return armor + armor_modifier
 
 
+## Get light radius bonus from active effects (for Light spell, etc.)
+func get_light_radius_bonus() -> int:
+	var bonus = 0
+	for effect in active_effects:
+		if effect.has("light_radius_bonus"):
+			bonus += effect.light_radius_bonus
+	return bonus
+
+
 ## Clear all active effects
 func clear_active_effects() -> void:
 	active_effects.clear()
 	_recalculate_effect_modifiers()
+
+
+## Check if entity can be mind controlled
+## Constructs are immune, low INT creatures are immune
+func can_be_mind_controlled() -> bool:
+	# Constructs are always immune
+	if creature_type == "construct":
+		return false
+
+	# Low INT creatures (< 3) are immune
+	if get_effective_attribute("INT") < 3:
+		return false
+
+	return true
+
+
+## Get modifier for mind control saves based on creature type
+func get_mind_save_modifier() -> int:
+	match creature_type:
+		"undead":
+			return 5  # Undead resist mind control
+		"animal":
+			return -2  # Animals are more susceptible
+		_:
+			return 0
+
+
+## Handle mind effect expiration
+func _handle_mind_effect_expiration(effect: Dictionary) -> void:
+	match effect.get("type", ""):
+		"charm", "calm":
+			# Restore original faction
+			faction = effect.get("original_faction", "enemy")
+			ai_state = "normal"
+		"fear":
+			ai_state = "normal"
+		"enrage":
+			faction = effect.get("original_faction", "enemy")
+			ai_state = "normal"

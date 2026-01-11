@@ -1,0 +1,35 @@
+{
+  "id": "charm",
+  "name": "Charm",
+  "description": "Enchant an enemy, causing it to become non-hostile while you maintain concentration.",
+  "school": "enchantment",
+  "level": 2,
+  "mana_cost": 8,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 5,
+    "requires_los": true
+  },
+  "effects": {
+    "mind_effect": {
+      "type": "charm"
+    }
+  },
+  "save": {
+    "type": "WIS",
+    "on_success": "no_effect"
+  },
+  "concentration": true,
+  "duration": {
+    "type": "turns",
+    "base": 20,
+    "scaling": 5
+  },
+  "cast_message": "Your target's eyes glaze over as your charm takes hold.",
+  "ascii_char": "*",
+  "ascii_color": "#FF69B4"
+}

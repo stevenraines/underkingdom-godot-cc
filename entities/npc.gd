@@ -9,7 +9,7 @@ class_name NPC
 var npc_type: String = "generic"  ## Type: "shop", "quest", "guard", "trainer", etc.
 var dialogue: Dictionary = {}  ## Dialogue lines for different contexts
 var schedule: Array = []  ## Future: time-based behavior patterns
-var faction: String = "neutral"  ## Faction affiliation
+# faction is inherited from Entity
 var trade_inventory: Array = []  ## Items available for purchase
 var recipes_for_sale: Array = []  ## Recipes available for training [{recipe_id, base_price}]
 var gold: int = 0  ## NPC's gold for transactions

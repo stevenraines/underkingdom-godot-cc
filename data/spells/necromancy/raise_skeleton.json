@@ -1,0 +1,30 @@
+{
+  "id": "raise_skeleton",
+  "name": "Raise Skeleton",
+  "description": "Animate the bones of the dead to serve as your warrior.",
+  "school": "necromancy",
+  "level": 4,
+  "mana_cost": 20,
+  "requirements": {
+    "character_level": 4,
+    "intelligence": 11
+  },
+  "targeting": {
+    "mode": "self",
+    "range": 0
+  },
+  "effects": {
+    "summon": {
+      "creature_id": "summoned_skeleton",
+      "base_duration": 100,
+      "duration_per_level": 20
+    }
+  },
+  "concentration": false,
+  "duration": {
+    "type": "special"
+  },
+  "cast_message": "Bones rise from the ground and form into a warrior!",
+  "ascii_char": "s",
+  "ascii_color": "#DDDDCC"
+}

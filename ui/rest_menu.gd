@@ -129,7 +129,9 @@ func _input(event: InputEvent) -> void:
 				viewport.set_input_as_handled()
 			KEY_ENTER:
 				_select_option(selected_index)
-				viewport.set_input_as_handled()
+
+		# Always consume keyboard input while rest menu is open
+		viewport.set_input_as_handled()
 
 func open(p: Player) -> void:
 	player = p

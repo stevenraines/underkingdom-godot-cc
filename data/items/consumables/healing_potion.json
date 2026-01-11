@@ -8,8 +8,10 @@
     "equippable": false,
     "consumable": true,
     "craftable": true,
+    "magical": true,
     "tool": false
   },
+  "unidentified": true,
   "weight": 0.3,
   "value": 50,
   "max_stack": 5,

@@ -82,24 +82,21 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_TAB:
 				_toggle_mode()
-				get_viewport().set_input_as_handled()
 			KEY_UP:
 				_select_previous()
-				get_viewport().set_input_as_handled()
 			KEY_DOWN:
 				_select_next()
-				get_viewport().set_input_as_handled()
 			KEY_ENTER:
 				_handle_accept()
-				get_viewport().set_input_as_handled()
 			KEY_BACKSPACE:
 				if current_mode == CraftingMode.EXPERIMENT:
 					_remove_last_ingredient()
-					get_viewport().set_input_as_handled()
 			KEY_C:
 				if current_mode == CraftingMode.EXPERIMENT and selected_ingredients.size() >= 2:
 					_attempt_experiment()
-					get_viewport().set_input_as_handled()
+
+		# Always consume keyboard input while crafting screen is open
+		get_viewport().set_input_as_handled()
 
 func _toggle_mode() -> void:
 	if current_mode == CraftingMode.RECIPES:

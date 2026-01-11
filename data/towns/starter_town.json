@@ -29,6 +29,12 @@
     {
       "building_id": "well",
       "position_offset": [0, 8]
+    },
+    {
+      "building_id": "mage_tower",
+      "position_offset": [-6, 4],
+      "npc_id": "mage",
+      "door_facing": "south"
     }
   ],
   "decorations": {

@@ -1,0 +1,20 @@
+{
+  "id": "soul_gem_filled",
+  "name": "Soul Gem (Filled)",
+  "description": "A soul gem pulsing with captured life essence. Essential for permanent summons and resurrection rituals.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.3,
+  "value": 150,
+  "max_stack": 5,
+  "ascii_char": "o",
+  "ascii_color": "#FF88FF"
+}

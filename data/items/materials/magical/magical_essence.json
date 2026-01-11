@@ -1,0 +1,20 @@
+{
+  "id": "magical_essence",
+  "name": "Magical Essence",
+  "description": "A shimmering vial of condensed magical energy. Extracted from magical creatures and spellcasters.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.2,
+  "value": 50,
+  "max_stack": 10,
+  "ascii_char": "!",
+  "ascii_color": "#AA44FF"
+}

@@ -1,0 +1,34 @@
+{
+  "id": "enrage",
+  "name": "Enrage",
+  "description": "Drive an enemy into a berserker frenzy, causing them to attack anything nearby.",
+  "school": "enchantment",
+  "level": 3,
+  "mana_cost": 12,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 11
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "mind_effect": {
+      "type": "enrage"
+    }
+  },
+  "save": {
+    "type": "WIS",
+    "on_success": "no_effect"
+  },
+  "duration": {
+    "type": "turns",
+    "base": 8,
+    "scaling": 2
+  },
+  "cast_message": "Your target's eyes fill with uncontrollable rage!",
+  "ascii_char": "!",
+  "ascii_color": "#FF4500"
+}

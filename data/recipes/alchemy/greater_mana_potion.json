@@ -1,0 +1,15 @@
+{
+  "id": "greater_mana_potion",
+  "result": "greater_mana_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "moonpetal", "count": 3},
+    {"item": "magical_essence", "count": 1},
+    {"item": "crystal_shard", "count": 1},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "mortar_pestle",
+  "fire_required": true,
+  "difficulty": 6,
+  "discovery_hint": "Magical essence and crystal shards can amplify the properties of moonpetal brews"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "mage",
+  "name": "Aldric the Sage",
+  "npc_type": "shop",
+  "ascii_char": "@",
+  "ascii_color": "#9966FF",
+  "faction": "neutral",
+  "gold": 800,
+  "restock_interval": 750,
+  "dialogue": {
+    "greeting": "Ah, a seeker of arcane knowledge! I have scrolls, potions, and wisdom for those with coin.",
+    "farewell": "May the stars guide your path, traveler.",
+    "no_gold": "The arcane arts are not free, I'm afraid. Return with more gold."
+  },
+  "trade_inventory": [
+    {"item_id": "spellbook", "count": 1, "base_price": 150},
+    {"item_id": "mana_potion", "count": 5, "base_price": 35},
+    {"item_id": "scroll_spark", "count": 3, "base_price": 15},
+    {"item_id": "scroll_heal", "count": 2, "base_price": 45},
+    {"item_id": "scroll_shield", "count": 2, "base_price": 40},
+    {"item_id": "scroll_flame_bolt", "count": 2, "base_price": 55},
+    {"item_id": "scroll_identify", "count": 3, "base_price": 30},
+    {"item_id": "scroll_lightning_bolt", "count": 1, "base_price": 120},
+    {"item_id": "herb", "count": 15, "base_price": 3},
+    {"item_id": "glowing_mushroom", "count": 5, "base_price": 8},
+    {"item_id": "bone", "count": 10, "base_price": 2},
+    {"item_id": "antidote", "count": 3, "base_price": 25}
+  ]
+}

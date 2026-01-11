@@ -1,0 +1,24 @@
+{
+  "id": "identify",
+  "name": "Identify",
+  "description": "Reveal the true nature of a magical item, stripping away the veil of mystery.",
+  "school": "divination",
+  "level": 3,
+  "mana_cost": 12,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "inventory"
+  },
+  "effects": {
+    "identify": true
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "The item's true nature is revealed!",
+  "ascii_char": "?",
+  "ascii_color": "#FFFF88"
+}

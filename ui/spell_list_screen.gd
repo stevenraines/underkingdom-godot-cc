@@ -86,13 +86,13 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_UP:
 				_navigate(-1)
-				get_viewport().set_input_as_handled()
 			KEY_DOWN:
 				_navigate(1)
-				get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_SPACE, KEY_C:
 				_cast_selected_spell()
-				get_viewport().set_input_as_handled()
+
+		# Always consume keyboard input while spell list is open
+		get_viewport().set_input_as_handled()
 
 func open(p: Player) -> void:
 	player = p

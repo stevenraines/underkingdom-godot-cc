@@ -1,0 +1,20 @@
+{
+  "id": "summoned_skeleton",
+  "name": "Skeleton Warrior",
+  "description": "An animated skeleton that obeys your commands.",
+  "ascii_char": "s",
+  "ascii_color": "#DDDDCC",
+  "base_health": 25,
+  "base_damage": 5,
+  "armor": 2,
+  "attributes": {
+    "STR": 14,
+    "DEX": 10,
+    "CON": 14,
+    "INT": 2,
+    "WIS": 8,
+    "CHA": 4
+  },
+  "behavior": "summoned",
+  "faction": "player"
+}

@@ -38,6 +38,9 @@ func advance_turn() -> void:
 	# Process player survival systems
 	_process_player_survival()
 
+	# Process DoT effects (before duration processing)
+	_process_dot_effects()
+
 	# Process active magical effect durations
 	_process_effect_durations()
 
@@ -126,6 +129,19 @@ func _generate_daily_weather() -> void:
 func wait_for_player() -> void:
 	is_player_turn = false
 	await EventBus.turn_advanced
+
+## Process DoT (Damage over Time) effects for player and all entities
+## Must be called BEFORE _process_effect_durations so damage happens before durations tick down
+func _process_dot_effects() -> void:
+	# Process player DoT effects
+	if EntityManager.player and EntityManager.player.has_method("process_dot_effects"):
+		EntityManager.player.process_dot_effects()
+
+	# Process DoT effects for all other entities
+	for entity in EntityManager.entities:
+		if entity != EntityManager.player and entity.has_method("process_dot_effects"):
+			entity.process_dot_effects()
+
 
 ## Process active magical effect durations for player and all entities
 func _process_effect_durations() -> void:

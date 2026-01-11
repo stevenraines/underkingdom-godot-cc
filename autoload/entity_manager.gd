@@ -355,8 +355,20 @@ const ENEMY_PROCESS_RANGE: int = 20
 func process_entity_turns() -> void:
 	var player_pos = player.position if player else Vector2i.ZERO
 
+	# First, process player's summons and tick their durations
+	if player:
+		for summon in player.active_summons.duplicate():  # Duplicate to avoid modification during iteration
+			if summon.is_alive:
+				# Tick duration first - may dismiss the summon
+				if summon.tick_duration():
+					summon.take_turn()
+
 	for entity in entities:
 		if entity.is_alive:
+			# Skip summons (already processed above)
+			if "is_summon" in entity and entity.is_summon:
+				continue
+
 			if entity is Enemy:
 				# Only process enemies within range of player (performance optimization)
 				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)

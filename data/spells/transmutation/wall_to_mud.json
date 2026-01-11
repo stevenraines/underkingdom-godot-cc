@@ -1,0 +1,30 @@
+{
+  "id": "wall_to_mud",
+  "name": "Wall to Mud",
+  "description": "Transform a solid wall into passable mud terrain.",
+  "school": "transmutation",
+  "level": 4,
+  "mana_cost": 18,
+  "requirements": {
+    "character_level": 4,
+    "intelligence": 11
+  },
+  "targeting": {
+    "mode": "tile",
+    "range": 5,
+    "requires_los": true
+  },
+  "effects": {
+    "terrain_change": {
+      "from_type": "wall",
+      "to_type": "mud",
+      "permanent": true
+    }
+  },
+  "duration": {
+    "type": "permanent"
+  },
+  "cast_message": "The wall dissolves into mud!",
+  "ascii_char": "~",
+  "ascii_color": "#8B4513"
+}

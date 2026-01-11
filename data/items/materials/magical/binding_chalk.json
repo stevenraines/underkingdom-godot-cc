@@ -1,0 +1,20 @@
+{
+  "id": "binding_chalk",
+  "name": "Binding Chalk",
+  "description": "Specially prepared chalk infused with magical binders. Used to draw ritual circles and containment wards.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": true,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.1,
+  "value": 8,
+  "max_stack": 20,
+  "ascii_char": "-",
+  "ascii_color": "#FFFFFF"
+}

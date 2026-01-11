@@ -1,0 +1,24 @@
+{
+  "id": "prestidigitation",
+  "name": "Prestidigitation",
+  "description": "A minor magical trick - create sparks, clean objects, or produce small sensory effects.",
+  "school": "transmutation",
+  "level": 0,
+  "mana_cost": 0,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "special": "flavor_effect"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You perform a minor magical trick.",
+  "ascii_char": "*",
+  "ascii_color": "#FF88FF"
+}

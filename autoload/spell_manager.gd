@@ -89,7 +89,7 @@ func _load_spell_from_file(path: String) -> void:
 		_register_spell(spell)
 
 ## Register a spell in all lookup dictionaries
-func _register_spell(spell: Spell) -> void:
+func _register_spell(spell) -> void:
 	if spell.id.is_empty():
 		push_warning("SpellManager: Attempted to register spell with empty ID")
 		return
@@ -108,7 +108,8 @@ func _register_spell(spell: Spell) -> void:
 	_spells_by_level[spell.level].append(spell)
 
 ## Get a spell by ID
-func get_spell(spell_id: String) -> Spell:
+## Returns Spell object or null if not found
+func get_spell(spell_id: String):
 	return _spells.get(spell_id, null)
 
 ## Check if a spell exists
@@ -141,7 +142,7 @@ func get_schools() -> Array:
 
 ## Check if a caster can cast a specific spell
 ## Returns: {can_cast: bool, reason: String}
-func can_cast(caster, spell: Spell) -> Dictionary:
+func can_cast(caster, spell) -> Dictionary:
 	if not spell:
 		return {can_cast = false, reason = "Invalid spell"}
 
@@ -196,7 +197,7 @@ func _get_caster_mana(caster) -> float:
 
 ## Calculate spell damage for a caster
 ## Returns base damage + scaling bonus
-func calculate_spell_damage(spell: Spell, caster) -> int:
+func calculate_spell_damage(spell, caster) -> int:
 	var damage_info = spell.get_damage()
 	if damage_info.is_empty():
 		return 0
@@ -213,7 +214,7 @@ func calculate_spell_damage(spell: Spell, caster) -> int:
 
 ## Calculate spell duration for a caster
 ## Returns base duration + scaling bonus
-func calculate_spell_duration(spell: Spell, caster) -> int:
+func calculate_spell_duration(spell, caster) -> int:
 	var duration_type = spell.duration.get("type", "instant")
 	if duration_type == "instant":
 		return 0

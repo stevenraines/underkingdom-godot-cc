@@ -228,3 +228,21 @@ func calculate_spell_duration(spell, caster) -> int:
 	var total_duration = base_duration + (scaling * level_bonus)
 
 	return total_duration
+
+
+## Calculate spell healing for a caster
+## Returns base healing + scaling bonus
+func calculate_spell_healing(spell, caster) -> int:
+	if not spell.is_heal_spell():
+		return 0
+
+	var heal_info = spell.get_heal()
+	var base_heal = heal_info.get("base", 0)
+	var scaling = heal_info.get("scaling", 0)
+	var caster_level = _get_caster_level(caster)
+
+	# Healing scales with caster level above spell's required level
+	var level_bonus = max(0, caster_level - spell.get_min_level())
+	var total_heal = base_heal + (scaling * level_bonus)
+
+	return total_heal

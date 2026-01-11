@@ -1,7 +1,7 @@
 {
   "id": "heal",
   "name": "Heal",
-  "description": "Restore health to yourself or a touched ally.",
+  "description": "Restore health to yourself.",
   "school": "conjuration",
   "level": 1,
   "mana_cost": 8,
@@ -10,8 +10,7 @@
     "intelligence": 8
   },
   "targeting": {
-    "mode": "touch",
-    "range": 1
+    "mode": "self"
   },
   "effects": {
     "heal": {

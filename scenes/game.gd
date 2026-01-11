@@ -37,6 +37,10 @@ var rest_menu: Control = null
 var spell_list_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
+# Spell casting state
+var pending_spell_id: String = ""  # Spell ID waiting for target selection
+var spell_targeting_active: bool = false
+
 # Rest system state
 var is_resting: bool = false
 var rest_turns_remaining: int = 0
@@ -72,6 +76,7 @@ const NpcMenuScreenScene = preload("res://ui/npc_menu_screen.tscn")
 const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 const DeathScreenScene = preload("res://ui/death_screen.tscn")
 const SpellListScreenScene = preload("res://ui/spell_list_screen.tscn")
+const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -404,6 +409,8 @@ func _setup_spell_list_screen() -> void:
 		hud.add_child(spell_list_screen)
 		if spell_list_screen.has_signal("closed"):
 			spell_list_screen.closed.connect(_on_spell_list_closed)
+		if spell_list_screen.has_signal("spell_cast_requested"):
+			spell_list_screen.spell_cast_requested.connect(_on_spell_cast_requested)
 		print("[Game] Spell list screen scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load spell_list_screen.tscn scene")
@@ -1927,6 +1934,105 @@ func _on_world_map_closed() -> void:
 ## Called when spell list is closed
 func _on_spell_list_closed() -> void:
 	input_handler.ui_blocking_input = false
+
+## Called when player requests to cast a spell from the spell list
+func _on_spell_cast_requested(spell_id: String) -> void:
+	input_handler.ui_blocking_input = false
+
+	if not player or not spell_id:
+		return
+
+	var spell = SpellManager.get_spell(spell_id)
+	if not spell:
+		_add_message("Unknown spell.", Color(1.0, 0.5, 0.5))
+		return
+
+	var targeting_mode = spell.get_targeting_mode()
+
+	if targeting_mode == "self":
+		# Self-targeting spells cast immediately
+		_cast_spell_on_target(spell, player)
+	elif targeting_mode in ["ranged", "touch"]:
+		# Ranged spells need target selection
+		var valid_targets = SpellCastingSystemClass.get_valid_spell_targets(player, spell)
+		if valid_targets.is_empty():
+			_add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))
+			return
+
+		# Enter spell targeting mode
+		pending_spell_id = spell_id
+		spell_targeting_active = true
+		input_handler.ui_blocking_input = true
+
+		# Use the targeting system
+		if input_handler.targeting_system:
+			# Start targeting with spell instead of weapon
+			_start_spell_targeting(spell, valid_targets)
+		else:
+			_add_message("Targeting system not available.", Color(1.0, 0.5, 0.5))
+			_cancel_spell_targeting()
+	else:
+		_add_message("Unsupported targeting mode: %s" % targeting_mode, Color(1.0, 0.5, 0.5))
+
+
+## Start spell targeting mode
+func _start_spell_targeting(spell, targets: Array) -> void:
+	if targets.is_empty():
+		return
+
+	# Set up targeting system for spell
+	var ts = input_handler.targeting_system
+	ts.is_targeting = true
+	ts.valid_targets = targets
+	ts.target_index = 0
+	ts.current_target = targets[0]
+	ts.attacker = player
+	ts.weapon = null  # No weapon for spell targeting
+
+	# Store the spell for when targeting confirms
+	pending_spell_id = spell.id
+
+	ts.targeting_started.emit()
+	ts.target_changed.emit(ts.current_target)
+
+	_add_message("Select target for %s (Tab to cycle, Enter to cast, Esc to cancel)" % spell.name, Color(0.5, 0.8, 1.0))
+
+
+## Cast a spell on a specific target
+func _cast_spell_on_target(spell, target) -> void:
+	var result = SpellCastingSystemClass.cast_spell(player, spell, target)
+
+	if result.success:
+		_add_message(result.message, Color(0.5, 0.8, 1.0))
+		TurnManager.advance_turn()
+	elif result.failed:
+		_add_message(result.message, Color(1.0, 0.8, 0.3))
+		TurnManager.advance_turn()  # Still costs a turn
+	else:
+		_add_message(result.message, Color(1.0, 0.5, 0.5))
+
+	# Update HUD to show mana change
+	_update_hud()
+	_render_all_entities()
+
+
+## Cast the pending spell on a target (called from input_handler during spell targeting)
+func cast_pending_spell_on_target(target) -> void:
+	if pending_spell_id.is_empty():
+		return
+	var spell = SpellManager.get_spell(pending_spell_id)
+	if spell and target:
+		_cast_spell_on_target(spell, target)
+
+
+## Cancel spell targeting mode
+func _cancel_spell_targeting() -> void:
+	pending_spell_id = ""
+	spell_targeting_active = false
+	input_handler.ui_blocking_input = false
+
+	if input_handler.targeting_system:
+		input_handler.targeting_system.cancel()
 
 ## Toggle fast travel screen (called from input handler)
 func toggle_fast_travel() -> void:

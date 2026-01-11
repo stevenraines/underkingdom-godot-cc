@@ -76,18 +76,39 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TabContainer" type="TabContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 theme = ExtResource("2_theme")
 
-[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer"]
+[node name="Stats" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Stats"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_right = 12
 
-[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ScrollMargin"]
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Stats/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
+[node name="Skills" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Skills"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -102,5 +123,5 @@ layout_mode = 2
 theme = ExtResource("2_theme")
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 12
-text = "Press [ESC] or [P] to close"
+text = "Press [ESC] or [P] to close | Tab/Shift+Tab to switch tabs"
 horizontal_alignment = 1

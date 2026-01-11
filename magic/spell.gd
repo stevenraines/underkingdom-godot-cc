@@ -61,7 +61,7 @@ var ascii_char: String = "*"
 var ascii_color: String = "#FFFFFF"
 
 ## Create a Spell from a dictionary (typically loaded from JSON)
-static func from_dict(data: Dictionary) -> Spell:
+static func from_dict(data: Dictionary):
 	var spell = Spell.new()
 
 	# Core identification

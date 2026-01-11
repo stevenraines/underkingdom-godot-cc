@@ -8,19 +8,20 @@ extends Control
 signal closed
 
 @onready var tab_container: TabContainer = $Panel/MarginContainer/VBoxContainer/TabContainer
-@onready var stats_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Stats
-@onready var stats_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Stats/ScrollMargin/ContentBox
-@onready var skills_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills
-@onready var skills_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin/ContentBox
+@onready var progression_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression
+@onready var progression_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression/ScrollMargin/ContentBox
+@onready var abilities_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities
+@onready var abilities_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities/ScrollMargin/ContentBox
+@onready var combat_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat
+@onready var combat_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat/ScrollMargin/ContentBox
+@onready var survival_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival
+@onready var survival_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival/ScrollMargin/ContentBox
+@onready var weather_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Weather
+@onready var weather_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Weather/ScrollMargin/ContentBox
 
 var player = null  # Player instance
 var current_scroll_container: ScrollContainer = null  # Track which tab is active for scrolling
-
-# Pending level-up changes (not yet committed)
-var pending_skill_increases: Dictionary = {}  # skill_name -> increase_count
-var pending_ability_increases: Dictionary = {}  # ability_code -> increase_count
-var available_skill_points_remaining: int = 0
-var available_ability_points_remaining: int = 0
+var current_content_box: VBoxContainer = null  # Track which content box to add to
 
 # Colors matching inventory screen
 const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
@@ -39,14 +40,12 @@ func _ready() -> void:
 func open(p_player) -> void:
 	player = p_player
 
-	# Initialize pending changes
-	pending_skill_increases.clear()
-	pending_ability_increases.clear()
-	available_skill_points_remaining = player.available_skill_points
-	available_ability_points_remaining = player.available_ability_points
-
-	_populate_content()
-	_populate_skills_tab()
+	# Populate all 5 tabs
+	_populate_progression_tab()
+	_populate_abilities_tab()
+	_populate_combat_tab()
+	_populate_survival_tab()
+	_populate_weather_tab()
 
 	# Set initial scroll container based on current tab
 	_on_tab_changed(tab_container.current_tab if tab_container else 0)
@@ -58,30 +57,50 @@ func close() -> void:
 	hide()
 	closed.emit()
 
-## Populate the stats tab content dynamically
-func _populate_content() -> void:
-	# Clear existing content
-	for child in stats_content.get_children():
+## Populate the Progression tab
+func _populate_progression_tab() -> void:
+	for child in progression_content.get_children():
 		child.queue_free()
-
-	# Wait a frame for nodes to be freed
 	await get_tree().process_frame
-
-	# Add sections
-	_add_attributes_section()
-	_add_spacer()
-	_add_combat_section()
-	_add_spacer()
-	_add_survival_section()
-	_add_spacer()
-	_add_weather_section()
-	_add_spacer()
+	current_content_box = progression_content
 	_add_progression_section()
+
+## Populate the Abilities tab
+func _populate_abilities_tab() -> void:
+	for child in abilities_content.get_children():
+		child.queue_free()
+	await get_tree().process_frame
+	current_content_box = abilities_content
+	_add_attributes_section()
+
+## Populate the Combat tab
+func _populate_combat_tab() -> void:
+	for child in combat_content.get_children():
+		child.queue_free()
+	await get_tree().process_frame
+	current_content_box = combat_content
+	_add_combat_section()
+
+## Populate the Survival tab
+func _populate_survival_tab() -> void:
+	for child in survival_content.get_children():
+		child.queue_free()
+	await get_tree().process_frame
+	current_content_box = survival_content
+	_add_survival_section()
+
+## Populate the Weather tab
+func _populate_weather_tab() -> void:
+	for child in weather_content.get_children():
+		child.queue_free()
+	await get_tree().process_frame
+	current_content_box = weather_content
+	_add_weather_section()
 
 ## Add the attributes section (STR, DEX, CON, INT, WIS, CHA)
 func _add_attributes_section() -> void:
 	var section_header = _create_section_header("== ATTRIBUTES ==")
-	stats_content.add_child(section_header)
+	abilities_content.add_child(section_header)
 
 	var attributes = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
 	var attribute_names = {
@@ -123,12 +142,12 @@ func _add_attributes_section() -> void:
 		value_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(value_label)
 
-		stats_content.add_child(stat_line)
+		abilities_content.add_child(stat_line)
 
 ## Add the combat section
 func _add_combat_section() -> void:
 	var section_header = _create_section_header("== COMBAT ==")
-	stats_content.add_child(section_header)
+	combat_content.add_child(section_header)
 
 	# Health
 	_add_stat_line("Health", "%d / %d" % [player.current_health, player.max_health],
@@ -164,7 +183,7 @@ func _add_combat_section() -> void:
 ## Add the survival section
 func _add_survival_section() -> void:
 	var section_header = _create_section_header("== SURVIVAL ==")
-	stats_content.add_child(section_header)
+	survival_content.add_child(section_header)
 
 	if not player.survival:
 		_add_stat_line("Status", "No survival data", Color(0.7, 0.7, 0.7))
@@ -209,7 +228,7 @@ func _add_survival_section() -> void:
 ## Add the weather section
 func _add_weather_section() -> void:
 	var section_header = _create_section_header("== WEATHER ==")
-	stats_content.add_child(section_header)
+	weather_content.add_child(section_header)
 
 	# Current date and time
 	var date_str = CalendarManager.get_short_date_string()
@@ -281,7 +300,7 @@ func _get_season_color(season: String) -> Color:
 ## Add the progression section
 func _add_progression_section() -> void:
 	var section_header = _create_section_header("== PROGRESSION ==")
-	stats_content.add_child(section_header)
+	progression_content.add_child(section_header)
 
 	# Level
 	_add_stat_line("Level", "%d" % player.level, Color(1.0, 0.85, 0.3))
@@ -329,7 +348,7 @@ func _add_stat_line(label_text: String, value_text: String, value_color: Color) 
 	value.add_theme_font_size_override("font_size", 14)
 	line.add_child(value)
 
-	stats_content.add_child(line)
+	current_content_box.add_child(line)
 
 ## Helper: Create a section header
 func _create_section_header(text: String) -> Label:
@@ -344,7 +363,7 @@ func _create_section_header(text: String) -> Label:
 func _add_spacer() -> void:
 	var spacer = Control.new()
 	spacer.custom_minimum_size.y = 12
-	stats_content.add_child(spacer)
+	current_content_box.add_child(spacer)
 
 ## Color helpers
 func _get_health_color(ratio: float) -> Color:
@@ -393,12 +412,18 @@ func _get_encumbrance_color(percent: float) -> Color:
 func _on_tab_changed(tab_index: int) -> void:
 	# Update current scroll container based on active tab
 	match tab_index:
-		0:  # Stats tab
-			current_scroll_container = stats_scroll
-		1:  # Skills tab
-			current_scroll_container = skills_scroll
+		0:  # Progression tab
+			current_scroll_container = progression_scroll
+		1:  # Abilities tab
+			current_scroll_container = abilities_scroll
+		2:  # Combat tab
+			current_scroll_container = combat_scroll
+		3:  # Survival tab
+			current_scroll_container = survival_scroll
+		4:  # Weather tab
+			current_scroll_container = weather_scroll
 		_:
-			current_scroll_container = stats_scroll
+			current_scroll_container = progression_scroll
 
 ## Handle input
 func _input(event: InputEvent) -> void:
@@ -457,396 +482,3 @@ func _input(event: InputEvent) -> void:
 				close()
 				get_viewport().set_input_as_handled()
 
-## =========================================================================
-## SKILLS TAB
-## =========================================================================
-
-## Populate the skills tab
-func _populate_skills_tab() -> void:
-	# Clear existing content
-	for child in skills_content.get_children():
-		child.queue_free()
-
-	# Wait a frame for nodes to be freed
-	await get_tree().process_frame
-
-	# Header
-	var header = _create_section_header("== SKILLS ==")
-	skills_content.add_child(header)
-
-	_add_skills_spacer()
-
-	# Show available points (remaining after pending changes)
-	var points_text = "Available Skill Points: %d" % available_skill_points_remaining
-	var points_label = Label.new()
-	points_label.text = points_text
-	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if available_skill_points_remaining > 0:
-		points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.95))
-	else:
-		points_label.add_theme_color_override("font_color", COLOR_LABEL)
-	points_label.add_theme_font_size_override("font_size", 14)
-	skills_content.add_child(points_label)
-
-	_add_skills_spacer()
-
-	# Show pending changes hint if any
-	if not pending_skill_increases.is_empty():
-		var hint = Label.new()
-		hint.text = "Pending changes - use [-] to undo or click [Commit] to finalize"
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hint.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
-		hint.add_theme_font_size_override("font_size", 12)
-		skills_content.add_child(hint)
-		_add_skills_spacer()
-
-	# List all skills (alphabetically sorted)
-	var skill_names = player.skills.keys()
-	skill_names.sort()
-
-	for skill_name in skill_names:
-		var skill_level = player.skills[skill_name]
-		_add_skill_line(skill_name, skill_level)
-
-	_add_skills_spacer()
-	_add_skills_spacer()
-
-	# Ability Score Increases
-	var ability_header = _create_section_header("== ABILITY SCORE INCREASES ==")
-	skills_content.add_child(ability_header)
-
-	_add_skills_spacer()
-
-	# Show available ability points (remaining after pending changes)
-	var ability_points_text = "Available Ability Points: %d" % available_ability_points_remaining
-	var ability_points_label = Label.new()
-	ability_points_label.text = ability_points_text
-	ability_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if available_ability_points_remaining > 0:
-		ability_points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.7))
-	else:
-		ability_points_label.add_theme_color_override("font_color", COLOR_LABEL)
-	ability_points_label.add_theme_font_size_override("font_size", 14)
-	skills_content.add_child(ability_points_label)
-
-	_add_skills_spacer()
-
-	# Show pending changes hint if any
-	if not pending_ability_increases.is_empty():
-		var hint = Label.new()
-		hint.text = "Pending changes - use [-] to undo or click [Commit] to finalize"
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hint.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
-		hint.add_theme_font_size_override("font_size", 12)
-		skills_content.add_child(hint)
-		_add_skills_spacer()
-
-	if available_ability_points_remaining > 0 or not pending_ability_increases.is_empty():
-		var hint_label = Label.new()
-		hint_label.text = "Click a button to increase that ability score:"
-		hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hint_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.6))
-		hint_label.add_theme_font_size_override("font_size", 13)
-		skills_content.add_child(hint_label)
-
-		_add_skills_spacer()
-
-		# List all abilities with buttons
-		var abilities = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
-		var ability_names = {
-			"STR": "Strength",
-			"DEX": "Dexterity",
-			"CON": "Constitution",
-			"INT": "Intelligence",
-			"WIS": "Wisdom",
-			"CHA": "Charisma"
-		}
-
-		for ability in abilities:
-			_add_ability_line(ability, ability_names[ability], player.attributes[ability])
-	else:
-		var no_points_label = Label.new()
-		no_points_label.text = "No ability points available. Gain them every 4 levels."
-		no_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		no_points_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-		no_points_label.add_theme_font_size_override("font_size", 12)
-		skills_content.add_child(no_points_label)
-
-	# Add commit button if there are pending changes
-	if not pending_skill_increases.is_empty() or not pending_ability_increases.is_empty():
-		_add_skills_spacer()
-		_add_skills_spacer()
-
-		var commit_button = Button.new()
-		commit_button.text = "COMMIT LEVEL UP CHANGES"
-		commit_button.custom_minimum_size = Vector2(300, 40)
-		commit_button.add_theme_font_size_override("font_size", 16)
-		commit_button.pressed.connect(_on_commit_pressed)
-
-		var center_container = CenterContainer.new()
-		center_container.add_child(commit_button)
-		skills_content.add_child(center_container)
-
-## Add a skill line with +/- buttons
-func _add_skill_line(skill_name: String, current_level: int) -> void:
-	var line = HBoxContainer.new()
-
-	# Skill name (left)
-	var name_label = Label.new()
-	name_label.text = "%s:" % skill_name
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
-	name_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(name_label)
-
-	# Calculate pending level (current + pending increases)
-	var pending_increases = pending_skill_increases.get(skill_name, 0)
-	var pending_level = current_level + pending_increases
-
-	# Current level (center) - show pending if different
-	var level_label = Label.new()
-	if pending_increases > 0:
-		level_label.text = "%d (+%d) / %d" % [current_level, pending_increases, player.level]
-		level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold for pending
-	else:
-		level_label.text = "%d / %d" % [current_level, player.level]
-		if current_level >= player.level:
-			level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold if maxed
-		else:
-			level_label.add_theme_color_override("font_color", COLOR_VALUE)
-	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	level_label.custom_minimum_size.x = 100
-	level_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(level_label)
-
-	# - button (only shows if there are pending increases to undo)
-	var minus_button = Button.new()
-	minus_button.text = "-"
-	minus_button.custom_minimum_size = Vector2(30, 0)
-	minus_button.focus_mode = Control.FOCUS_ALL
-	minus_button.disabled = pending_increases <= 0
-	if pending_increases > 0:
-		minus_button.pressed.connect(func(): _on_skill_decrease_pressed(skill_name))
-	line.add_child(minus_button)
-
-	# + button
-	var plus_button = Button.new()
-	plus_button.text = "+"
-	plus_button.custom_minimum_size = Vector2(30, 0)
-	plus_button.focus_mode = Control.FOCUS_ALL
-
-	# Check if can increase (have points remaining and not at cap)
-	var can_increase = available_skill_points_remaining > 0 and pending_level < player.level
-	plus_button.disabled = not can_increase
-
-	if can_increase:
-		plus_button.pressed.connect(func(): _on_skill_increase_pressed(skill_name))
-
-	line.add_child(plus_button)
-
-	skills_content.add_child(line)
-
-## Add an ability score line with +/- buttons
-func _add_ability_line(ability_code: String, ability_name: String, current_value: int) -> void:
-	var line = HBoxContainer.new()
-
-	# Ability name (left)
-	var name_label = Label.new()
-	name_label.text = "%s:" % ability_name
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
-	name_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(name_label)
-
-	# Calculate pending value (current + pending increases)
-	var pending_increases = pending_ability_increases.get(ability_code, 0)
-	var pending_value = current_value + pending_increases
-
-	# Current value (center) - show pending if different
-	var value_label = Label.new()
-	if pending_increases > 0:
-		value_label.text = "%d (+%d)" % [current_value, pending_increases]
-		value_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold for pending
-	else:
-		value_label.text = "%d" % current_value
-		value_label.add_theme_color_override("font_color", COLOR_VALUE)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.custom_minimum_size.x = 100
-	value_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(value_label)
-
-	# - button (only shows if there are pending increases to undo)
-	var minus_button = Button.new()
-	minus_button.text = "-"
-	minus_button.custom_minimum_size = Vector2(30, 0)
-	minus_button.focus_mode = Control.FOCUS_ALL
-	minus_button.disabled = pending_increases <= 0
-	if pending_increases > 0:
-		minus_button.pressed.connect(func(): _on_ability_decrease_pressed(ability_code))
-	line.add_child(minus_button)
-
-	# + button
-	var plus_button = Button.new()
-	plus_button.text = "+"
-	plus_button.custom_minimum_size = Vector2(30, 0)
-	plus_button.focus_mode = Control.FOCUS_ALL
-
-	# Check if can increase (have points remaining)
-	var can_increase = available_ability_points_remaining > 0
-	plus_button.disabled = not can_increase
-
-	if can_increase:
-		plus_button.pressed.connect(func(): _on_ability_increase_pressed(ability_code))
-
-	line.add_child(plus_button)
-
-	skills_content.add_child(line)
-
-## Called when skill increase button is pressed
-func _on_skill_increase_pressed(skill_name: String) -> void:
-	# Add to pending changes (don't commit yet)
-	if available_skill_points_remaining <= 0:
-		return
-
-	var current_level = player.skills.get(skill_name, 0)
-	var pending_increases = pending_skill_increases.get(skill_name, 0)
-
-	# Can't exceed player level
-	if current_level + pending_increases >= player.level:
-		return
-
-	# Add pending increase
-	pending_skill_increases[skill_name] = pending_increases + 1
-	available_skill_points_remaining -= 1
-
-	# Refresh the skills tab
-	_populate_skills_tab()
-
-## Called when skill decrease button is pressed (undo pending increase)
-func _on_skill_decrease_pressed(skill_name: String) -> void:
-	var pending_increases = pending_skill_increases.get(skill_name, 0)
-	if pending_increases <= 0:
-		return
-
-	# Remove one pending increase
-	pending_skill_increases[skill_name] = pending_increases - 1
-	if pending_skill_increases[skill_name] <= 0:
-		pending_skill_increases.erase(skill_name)
-
-	available_skill_points_remaining += 1
-
-	# Refresh the skills tab
-	_populate_skills_tab()
-
-## Called when ability increase button is pressed
-func _on_ability_increase_pressed(ability_code: String) -> void:
-	# Add to pending changes (don't commit yet)
-	if available_ability_points_remaining <= 0:
-		return
-
-	var pending_increases = pending_ability_increases.get(ability_code, 0)
-
-	# Add pending increase
-	pending_ability_increases[ability_code] = pending_increases + 1
-	available_ability_points_remaining -= 1
-
-	# Refresh tabs
-	_populate_content()
-	_populate_skills_tab()
-
-## Called when ability decrease button is pressed (undo pending increase)
-func _on_ability_decrease_pressed(ability_code: String) -> void:
-	var pending_increases = pending_ability_increases.get(ability_code, 0)
-	if pending_increases <= 0:
-		return
-
-	# Remove one pending increase
-	pending_ability_increases[ability_code] = pending_increases - 1
-	if pending_ability_increases[ability_code] <= 0:
-		pending_ability_increases.erase(ability_code)
-
-	available_ability_points_remaining += 1
-
-	# Refresh tabs
-	_populate_content()
-	_populate_skills_tab()
-
-## Called when commit button is pressed - show confirmation and finalize changes
-func _on_commit_pressed() -> void:
-	# Build summary of changes
-	var changes: Array[String] = []
-
-	for skill_name in pending_skill_increases:
-		var count = pending_skill_increases[skill_name]
-		changes.append("  • %s: +%d" % [skill_name, count])
-
-	for ability_code in pending_ability_increases:
-		var count = pending_ability_increases[ability_code]
-		var ability_names = {
-			"STR": "Strength",
-			"DEX": "Dexterity",
-			"CON": "Constitution",
-			"INT": "Intelligence",
-			"WIS": "Wisdom",
-			"CHA": "Charisma"
-		}
-		var ability_name = ability_names.get(ability_code, ability_code)
-		changes.append("  • %s: +%d" % [ability_name, count])
-
-	if changes.is_empty():
-		return  # Nothing to commit
-
-	# Show confirmation dialog
-	var dialog = ConfirmationDialog.new()
-	dialog.title = "Confirm Level Up Changes"
-	dialog.dialog_text = "Apply these changes?\n\n" + "\n".join(changes) + "\n\nThis cannot be undone."
-	dialog.ok_button_text = "Commit Changes"
-	dialog.cancel_button_text = "Cancel"
-
-	# Add to scene temporarily
-	add_child(dialog)
-	dialog.popup_centered()
-
-	# Connect signals
-	dialog.confirmed.connect(func():
-		_commit_changes()
-		dialog.queue_free()
-	)
-	dialog.canceled.connect(func():
-		dialog.queue_free()
-	)
-
-## Actually commit the pending changes to the player
-func _commit_changes() -> void:
-	# Apply skill increases
-	for skill_name in pending_skill_increases:
-		var count = pending_skill_increases[skill_name]
-		for i in range(count):
-			if not player.spend_skill_point(skill_name):
-				push_error("Failed to commit skill increase for %s" % skill_name)
-
-	# Apply ability increases
-	for ability_code in pending_ability_increases:
-		var count = pending_ability_increases[ability_code]
-		for i in range(count):
-			if not player.increase_ability(ability_code):
-				push_error("Failed to commit ability increase for %s" % ability_code)
-
-	# Clear pending changes
-	pending_skill_increases.clear()
-	pending_ability_increases.clear()
-	available_skill_points_remaining = player.available_skill_points
-	available_ability_points_remaining = player.available_ability_points
-
-	# Refresh both tabs
-	_populate_content()
-	_populate_skills_tab()
-
-	# Show success message
-	EventBus.message_logged.emit("Level up changes committed!", "system")
-
-## Add a spacer for skills tab
-func _add_skills_spacer() -> void:
-	var spacer = Control.new()
-	spacer.custom_minimum_size.y = 8
-	skills_content.add_child(spacer)

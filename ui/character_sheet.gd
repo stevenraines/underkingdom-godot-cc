@@ -39,6 +39,9 @@ func _ready() -> void:
 ## Open the character sheet
 func open(p_player) -> void:
 	player = p_player
+	print("[CharacterSheet] Opening with player: ", player)
+	print("[CharacterSheet] progression_content: ", progression_content)
+	print("[CharacterSheet] tab_container: ", tab_container)
 
 	# Populate all 5 tabs
 	_populate_progression_tab()
@@ -46,6 +49,8 @@ func open(p_player) -> void:
 	_populate_combat_tab()
 	_populate_survival_tab()
 	_populate_weather_tab()
+
+	print("[CharacterSheet] After populate - progression children: ", progression_content.get_child_count() if progression_content else "null")
 
 	# Set initial scroll container based on current tab
 	_on_tab_changed(tab_container.current_tab if tab_container else 0)

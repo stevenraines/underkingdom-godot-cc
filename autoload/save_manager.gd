@@ -192,6 +192,7 @@ func _serialize_world() -> Dictionary:
 		"current_turn": TurnManager.current_turn,
 		"time_of_day": TurnManager.get_time_of_day(),
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
+		"current_dungeon_type": MapManager.current_dungeon_type,
 		"current_dungeon_floor": MapManager.current_dungeon_floor,
 		"visited_locations": GameManager.visited_locations.duplicate(true),
 		"calendar": CalendarManager.serialize(),
@@ -407,7 +408,14 @@ func _deserialize_game_state(save_data: Dictionary):
 
 	# Reload current map (this triggers map_changed signal, but we skip enemy spawn)
 	var map_id = save_data.world.get("current_map_id", "overworld")
+	MapManager.current_dungeon_type = save_data.world.get("current_dungeon_type", "")
 	MapManager.current_dungeon_floor = save_data.world.get("current_dungeon_floor", 0)
+
+	# Fallback: parse dungeon type from map_id for old saves
+	if MapManager.current_dungeon_type == "" and "_floor_" in map_id:
+		var floor_idx = map_id.find("_floor_")
+		MapManager.current_dungeon_type = map_id.substr(0, floor_idx)
+
 	MapManager.transition_to_map(map_id)
 
 	# Restore map tiles (to preserve harvested resources)
@@ -551,6 +559,9 @@ func _deserialize_inventory(inventory: Inventory, items_data: Array):
 			# Restore inscription if it was saved
 			if item_data.has("inscription") and item_data.inscription != null:
 				item.inscription = item_data.inscription
+			# Restore lit state for light sources
+			if item_data.has("is_lit"):
+				item.is_lit = item_data.is_lit
 			inventory.items.append(item)
 
 ## Deserialize equipment
@@ -585,6 +596,9 @@ func _deserialize_equipment(inventory: Inventory, equipment_data: Dictionary):
 			# Restore inscription if saved
 			if item and item_data.has("inscription") and item_data.inscription != null:
 				item.inscription = item_data.inscription
+			# Restore lit state for light sources
+			if item and item_data.has("is_lit"):
+				item.is_lit = item_data.is_lit
 		else:
 			# Legacy format: just item_id string
 			item = ItemManager.create_item(item_data, 1)

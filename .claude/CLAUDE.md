@@ -601,10 +601,39 @@ EventBus.turn_advanced.connect(func(turn): print("Turn advanced: ", turn))
 
 ---
 
+## Magic System (Planned)
+
+The magic system is designed but not yet implemented. See `plans/features/magic-system/` for the 25-phase implementation plan.
+
+### Overview
+- **Spells**: Instant-cast, mana-based, level+INT requirements
+- **Rituals**: Multi-turn channeling, component-based, no level requirement
+- 8 schools of magic (Evocation, Conjuration, Enchantment, Transmutation, Divination, Necromancy, Abjuration, Illusion)
+- Minimum 8 INT required for all magic
+
+### Planned Keybindings (Conflicts to Resolve)
+Current keybinding conflicts:
+- `C` is used for Crafting menu
+- `M` is used for World map
+
+Proposed alternatives:
+- `K` - Open spell casting menu
+- `Shift+K` - View known spells
+- `Shift+T` - Open ritual menu
+- `Shift+S` - Summon commands
+
+### Documentation
+- `docs/systems/magic-system.md` - System overview
+- `docs/data/spells.md` - Spell JSON format
+- `docs/data/rituals.md` - Ritual JSON format
+
+---
+
 ## Future Phases (Post-1.15)
 
 - Phase 1.16: UI Polish (shop UI, save/load UI, death screen, menu improvements)
 - Phase 1.17: Integration & Testing (full playtest, balance pass, bug fixes)
+- Phase 2.x: Magic System (25 implementation phases in `plans/features/magic-system/`)
 
 ---
 
@@ -661,6 +690,7 @@ docs/
 | `container-component.md` | `systems/components/container_component.gd` | Storage |
 | `resource-spawner.md` | `systems/resource_spawner.gd` | Resource placement |
 | `recipe-manager.md` | `autoload/recipe_manager.gd` | Recipe loading |
+| `magic-system.md` | `systems/magic_system.gd` | Spellcasting (planned) |
 
 ### Data Documentation Files
 
@@ -678,6 +708,8 @@ docs/
 | `structures.md` | `data/structures/` | Structure definitions |
 | `world-generation.md` | `data/world_generation_config.json` | World gen config |
 | `configuration.md` | Various | Game constants |
+| `spells.md` | `data/spells/` | Spell JSON format (planned) |
+| `rituals.md` | `data/rituals/` | Ritual JSON format (planned) |
 
 ### Update Rules
 

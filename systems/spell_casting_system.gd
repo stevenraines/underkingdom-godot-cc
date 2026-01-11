@@ -95,6 +95,11 @@ static func cast_spell(caster, spell, target = null) -> Dictionary:
 
 	result.success = true
 
+	# Handle concentration spells - caster must maintain concentration
+	if spell.concentration and caster.has_method("start_concentration"):
+		caster.start_concentration(spell.id)
+		result["concentration_started"] = true
+
 	# Emit spell cast signal
 	EventBus.spell_cast.emit(caster, spell, [target] if target else [], result)
 
@@ -329,6 +334,8 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 			effect.modifiers["WIS"] = buff_info.wis_bonus
 		if buff_info.has("cha_bonus"):
 			effect.modifiers["CHA"] = buff_info.cha_bonus
+		if buff_info.has("light_radius_bonus"):
+			effect["light_radius_bonus"] = buff_info.light_radius_bonus
 
 		# Apply effect to target
 		if target and target.has_method("add_magical_effect"):
@@ -400,12 +407,79 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 				target.name if target else "the target"
 			]
 
+	# Handle DoT (Damage over Time) effects
+	if effects.has("dot"):
+		var dot_info = effects.dot
+		var caster_level = caster.level if caster and "level" in caster else 1
+
+		# Calculate scaled damage
+		var base_damage = dot_info.get("damage_per_turn", 3)
+		var damage_scaling = dot_info.get("damage_scaling", 0)
+		var level_diff = max(0, caster_level - spell.level)
+		var scaled_damage = base_damage + (damage_scaling * level_diff)
+
+		# Calculate scaled duration
+		var base_duration = dot_info.get("duration", 10)
+		var duration_scaling = dot_info.get("duration_scaling", 0)
+		var scaled_duration = base_duration + (duration_scaling * level_diff)
+
+		# Apply save for duration reduction
+		var dot_save_on_success = spell.save.get("on_success", "")
+		if save_succeeded and dot_save_on_success == "half_duration":
+			scaled_duration = scaled_duration / 2
+
+		result.effects_applied.append("dot_" + dot_info.get("type", "unknown"))
+
+		# Create DoT effect
+		var effect = {
+			"id": spell.id + "_dot",
+			"name": spell.name,
+			"type": "dot",
+			"dot_type": dot_info.get("type", "poison"),
+			"damage_per_turn": scaled_damage,
+			"remaining_duration": scaled_duration,
+			"source": caster
+		}
+
+		# Apply effect to target
+		if target and target.has_method("add_magical_effect"):
+			target.add_magical_effect(effect)
+			var dot_type_name = dot_info.get("type", "poison").capitalize()
+			var msg = "%s afflicts %s with %s for %d turns (%d damage/turn)." % [
+				spell.name,
+				target.name if target else "the target",
+				dot_type_name,
+				scaled_duration,
+				scaled_damage
+			]
+			# Add partial resist message if save reduced duration
+			if save_succeeded and dot_save_on_success == "half_duration":
+				msg += " (%s partially resists!)" % (target.name if target else "Target")
+			result.message = msg
+		else:
+			result.message = "Poison seeps into the target!"
+
 	# Handle light effect (special case for Light cantrip)
 	if effects.has("light"):
 		var light_info = effects.light
 		result.effects_applied.append("light")
 		result.message = "A soft light begins to glow."
 		# TODO: Integrate with lighting system
+
+	# Handle summon effects
+	if effects.has("summon"):
+		var summon_data = effects.summon
+		result = _apply_summon_effect(caster, spell, summon_data, result)
+
+	# Handle terrain change effects
+	if effects.has("terrain_change"):
+		result = _apply_terrain_change(caster, spell, target, effects.terrain_change, result)
+
+	# Handle mind effects (charm, fear, calm, enrage)
+	if effects.has("mind_effect"):
+		var mind_data = effects.mind_effect
+		var effect_type = mind_data.get("type", "") if mind_data is Dictionary else str(mind_data)
+		result = _apply_mind_effect(caster, spell, target, effect_type, result)
 
 	# Use cast_message if no specific message was set
 	if result.message == "" and spell.cast_message != "":
@@ -511,3 +585,377 @@ static func can_cast_any_spell(caster) -> bool:
 		return known.size() > 0
 
 	return false
+
+
+## Apply summon effect from a spell
+## Creates a summoned creature near the caster
+static func _apply_summon_effect(caster, spell, summon_data: Dictionary, result: Dictionary) -> Dictionary:
+	const SummonedCreatureClass = preload("res://entities/summoned_creature.gd")
+
+	var creature_id = summon_data.get("creature_id", "")
+	if creature_id == "":
+		result.message = "Invalid summon spell."
+		return result
+
+	# Get creature data
+	var creature_data = EntityManager.get_enemy_data(creature_id)
+	if creature_data.is_empty():
+		result.message = "Unknown creature type."
+		return result
+
+	# Calculate duration
+	var caster_level = caster.level if "level" in caster else 1
+	var base_duration = summon_data.get("base_duration", 50)
+	var duration_per_level = summon_data.get("duration_per_level", 10)
+	var duration = base_duration + (caster_level * duration_per_level)
+
+	# Create the summoned creature
+	var summon = SummonedCreatureClass.create_summon(caster, creature_data, duration)
+	summon.scale_for_caster_level(caster_level)
+
+	# Find a valid spawn position near the caster
+	var spawn_pos = _find_summon_spawn_position(caster.position)
+	if spawn_pos == Vector2i(-999, -999):
+		result.message = "No room to summon a creature."
+		return result
+
+	summon.position = spawn_pos
+
+	# Add to entity manager
+	EntityManager.entities.append(summon)
+
+	# Add to caster's summons (if player)
+	if caster.has_method("add_summon"):
+		caster.add_summon(summon)
+
+	result.effects_applied.append("summon")
+	result.message = "You summon a %s!" % summon.name
+
+	return result
+
+
+## Find a valid position near the caster to spawn a summon
+static func _find_summon_spawn_position(caster_pos: Vector2i) -> Vector2i:
+	# Check adjacent tiles first, then further out
+	var offsets = [
+		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+		Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1),
+		Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)
+	]
+
+	for offset in offsets:
+		var check_pos = caster_pos + offset
+		if MapManager.current_map and MapManager.current_map.is_walkable(check_pos):
+			# Check no entity there
+			if not EntityManager.get_blocking_entity_at(check_pos):
+				return check_pos
+
+	return Vector2i(-999, -999)  # No valid position found
+
+
+## Apply terrain change effect from a spell
+## Modifies a tile's terrain type
+static func _apply_terrain_change(caster, spell, target, terrain_data: Dictionary, result: Dictionary) -> Dictionary:
+	if not target:
+		result.message = "No target for terrain spell."
+		return result
+
+	# Get target position (either from entity or direct position)
+	var target_pos: Vector2i
+	if target is Vector2i:
+		target_pos = target
+	elif target.has_method("get") and "position" in target:
+		target_pos = target.position
+	else:
+		result.message = "Invalid target."
+		return result
+
+	if not MapManager.current_map:
+		result.message = "No map loaded."
+		return result
+
+	var current_tile = MapManager.current_map.get_tile(target_pos)
+	if not current_tile:
+		result.message = "Invalid tile."
+		return result
+
+	var from_type = terrain_data.get("from_type", "any")
+	var to_type = terrain_data.get("to_type", "")
+
+	# Validate terrain change
+	if not _can_change_terrain(current_tile, from_type):
+		result.message = "This terrain cannot be changed."
+		# Refund mana
+		if caster and caster.get("survival"):
+			caster.survival.mana += spell.get_mana_cost()
+		return result
+
+	# Check if tile is occupied (can't create wall on occupied tile)
+	if to_type == "wall":
+		var entity_at = EntityManager.get_blocking_entity_at(target_pos)
+		if entity_at:
+			result.message = "Something is in the way."
+			if caster and caster.get("survival"):
+				caster.survival.mana += spell.get_mana_cost()
+			return result
+
+	# Apply the terrain change
+	_apply_tile_type_change(target_pos, to_type)
+	EventBus.terrain_changed.emit(target_pos, to_type)
+
+	result.effects_applied.append("terrain_change")
+	result.message = spell.cast_message if spell.cast_message != "" else "The terrain changes!"
+
+	return result
+
+
+## Check if terrain can be changed
+static func _can_change_terrain(tile, from_type: String) -> bool:
+	match from_type:
+		"wall":
+			return tile.tile_type == "wall"
+		"floor":
+			return tile.walkable and tile.tile_type != "water"
+		"any":
+			return true
+		_:
+			return tile.tile_type == from_type
+
+
+## Apply a tile type change to the map
+static func _apply_tile_type_change(pos: Vector2i, new_type: String) -> void:
+	if not MapManager.current_map:
+		return
+
+	var tile = MapManager.current_map.get_tile(pos)
+	if not tile:
+		return
+
+	# Update tile properties based on new type
+	match new_type:
+		"wall":
+			tile.tile_type = "wall"
+			tile.walkable = false
+			tile.transparent = false
+			tile.ascii_char = "#"
+		"floor":
+			tile.tile_type = "floor"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "."
+		"mud":
+			tile.tile_type = "mud"
+			tile.walkable = true
+			tile.transparent = true
+			tile.ascii_char = "~"
+		"water":
+			tile.tile_type = "water"
+			tile.walkable = false
+			tile.transparent = true
+			tile.ascii_char = "~"
+			tile.harvestable_resource_id = "water"
+		_:
+			# Default to floor-like behavior
+			tile.tile_type = new_type
+			tile.walkable = true
+			tile.transparent = true
+
+	# Emit tile changed event for rendering update
+	EventBus.tile_changed.emit(pos)
+
+
+## Get all entities within an AOE radius
+static func get_entities_in_aoe(center: Vector2i, radius: int, shape: String = "circle") -> Array:
+	var entities: Array = []
+
+	for entity in EntityManager.entities:
+		if not entity.is_alive:
+			continue
+
+		var distance = abs(entity.position.x - center.x) + abs(entity.position.y - center.y)
+
+		match shape:
+			"circle":
+				# Use Chebyshev distance for circle approximation
+				var dx = abs(entity.position.x - center.x)
+				var dy = abs(entity.position.y - center.y)
+				if max(dx, dy) <= radius:
+					entities.append(entity)
+			"square":
+				if distance <= radius * 2:
+					entities.append(entity)
+			_:
+				if distance <= radius:
+					entities.append(entity)
+
+	return entities
+
+
+## Apply AOE damage spell
+static func apply_aoe_damage(caster, spell, center: Vector2i, result: Dictionary) -> Dictionary:
+	var radius = spell.targeting.get("aoe_radius", 2)
+	var shape = spell.targeting.get("aoe_shape", "circle")
+	var entities = get_entities_in_aoe(center, radius, shape)
+
+	var spell_mgr = Engine.get_main_loop().root.get_node("SpellManager")
+	var damage = spell_mgr.calculate_spell_damage(spell, caster)
+	var damage_type = spell.effects.damage.get("type", "magical") if spell.effects.has("damage") else "magical"
+
+	result["targets_hit"] = 0
+	result["total_damage"] = 0
+
+	for entity in entities:
+		# Skip caster (self-protection)
+		if entity == caster:
+			continue
+
+		# Check for friendly fire on summons
+		var is_friendly = false
+		if caster.has_method("get") and "active_summons" in caster:
+			is_friendly = entity in caster.active_summons
+
+		# Apply damage
+		entity.take_damage(damage, caster.name if caster else "AOE Spell", spell.name)
+		result.targets_hit += 1
+		result.total_damage += damage
+
+		if is_friendly:
+			EventBus.message_logged.emit("Your %s is caught in the blast!" % entity.name, Color.ORANGE)
+
+		if not entity.is_alive:
+			result["kills"] = result.get("kills", 0) + 1
+
+	if result.targets_hit > 0:
+		result.message = "%s hits %d targets for %d %s damage!" % [spell.name, result.targets_hit, damage, damage_type]
+	else:
+		result.message = "%s explodes but hits nothing." % spell.name
+
+	result.effects_applied.append("aoe_damage")
+	return result
+
+
+## Apply mind effect (charm, fear, calm, enrage)
+static func _apply_mind_effect(caster, spell, target, effect_type: String, result: Dictionary) -> Dictionary:
+	if not target:
+		result.message = "No target for mind spell."
+		return result
+
+	# Check mind control immunity
+	if target.has_method("can_be_mind_controlled") and not target.can_be_mind_controlled():
+		result.message = "%s is immune to mind control." % target.name
+		# Refund mana
+		if caster and caster.get("survival"):
+			caster.survival.mana += spell.get_mana_cost()
+		return result
+
+	# Calculate save DC with mind save modifier
+	var dc = calculate_save_dc(caster, spell)
+	var save_mod = 0
+	if target.has_method("get_mind_save_modifier"):
+		save_mod = target.get_mind_save_modifier()
+
+	# Attempt saving throw (with modifier)
+	var adjusted_dc = dc - save_mod
+	var save_result = attempt_saving_throw(target, spell.save.get("type", "WIS"), adjusted_dc)
+
+	if save_result.success:
+		result.message = "%s resists the %s!" % [target.name, spell.name]
+		return result
+
+	# Calculate duration
+	var spell_mgr = Engine.get_main_loop().root.get_node("SpellManager")
+	var duration = spell_mgr.calculate_spell_duration(spell, caster)
+
+	# Apply the specific mind effect
+	match effect_type:
+		"charm":
+			result = _apply_charm_effect(caster, spell, target, duration, result)
+		"fear":
+			result = _apply_fear_effect(caster, spell, target, duration, result)
+		"calm":
+			result = _apply_calm_effect(caster, spell, target, duration, result)
+		"enrage":
+			result = _apply_enrage_effect(caster, spell, target, duration, result)
+		_:
+			result.message = "Unknown mind effect."
+
+	return result
+
+
+## Apply charm effect - target fights for caster
+static func _apply_charm_effect(caster, spell, target, duration: int, result: Dictionary) -> Dictionary:
+	var effect = {
+		"id": "charm_effect",
+		"type": "charm",
+		"original_faction": target.faction,
+		"remaining_duration": duration,
+		"source_spell": spell.id
+	}
+
+	target.faction = "player"
+	target.ai_state = "normal"
+	target.add_magical_effect(effect)
+
+	# Charm requires concentration
+	if spell.concentration and caster.has_method("start_concentration"):
+		caster.start_concentration(spell.id)
+
+	result.effects_applied.append("charm")
+	result.message = "%s is now under your control!" % target.name
+	return result
+
+
+## Apply fear effect - target flees from caster
+static func _apply_fear_effect(caster, spell, target, duration: int, result: Dictionary) -> Dictionary:
+	var effect = {
+		"id": "fear_effect",
+		"type": "fear",
+		"flee_from": caster.position,
+		"remaining_duration": duration,
+		"source_spell": spell.id
+	}
+
+	target.ai_state = "fleeing"
+	target.add_magical_effect(effect)
+
+	result.effects_applied.append("fear")
+	result.message = "%s flees in terror!" % target.name
+	return result
+
+
+## Apply calm effect - target becomes neutral
+static func _apply_calm_effect(caster, spell, target, duration: int, result: Dictionary) -> Dictionary:
+	var effect = {
+		"id": "calm_effect",
+		"type": "calm",
+		"original_faction": target.faction,
+		"remaining_duration": duration,
+		"source_spell": spell.id
+	}
+
+	target.faction = "neutral"
+	target.ai_state = "idle"
+	target.add_magical_effect(effect)
+
+	result.effects_applied.append("calm")
+	result.message = "%s becomes calm and non-hostile." % target.name
+	return result
+
+
+## Apply enrage effect - target attacks everything
+static func _apply_enrage_effect(caster, spell, target, duration: int, result: Dictionary) -> Dictionary:
+	var effect = {
+		"id": "enrage_effect",
+		"type": "enrage",
+		"original_faction": target.faction,
+		"remaining_duration": duration,
+		"source_spell": spell.id
+	}
+
+	target.faction = "hostile_to_all"
+	target.ai_state = "berserk"
+	target.add_magical_effect(effect)
+
+	result.effects_applied.append("enrage")
+	result.message = "%s flies into a rage!" % target.name
+	return result

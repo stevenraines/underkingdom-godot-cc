@@ -1,0 +1,20 @@
+{
+  "id": "moonpetal",
+  "name": "Moonpetal",
+  "description": "A luminescent blue flower that pulses with arcane energy. Primary ingredient for mana potions.",
+  "category": "material",
+  "subtype": "herb",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.1,
+  "value": 15,
+  "max_stack": 20,
+  "ascii_char": "*",
+  "ascii_color": "#6666FF"
+}

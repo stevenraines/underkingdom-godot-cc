@@ -1,0 +1,20 @@
+{
+  "id": "crystal_shard",
+  "name": "Crystal Shard",
+  "description": "A fragment of crystallized mana that resonates with magical frequencies. Used in scrying and enchantments.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.15,
+  "value": 35,
+  "max_stack": 20,
+  "ascii_char": "*",
+  "ascii_color": "#88FFFF"
+}

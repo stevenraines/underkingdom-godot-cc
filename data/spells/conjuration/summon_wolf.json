@@ -1,0 +1,30 @@
+{
+  "id": "summon_wolf",
+  "name": "Summon Wolf",
+  "description": "Conjure a spectral wolf to fight by your side.",
+  "school": "conjuration",
+  "level": 3,
+  "mana_cost": 15,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "self",
+    "range": 0
+  },
+  "effects": {
+    "summon": {
+      "creature_id": "summoned_wolf",
+      "base_duration": 50,
+      "duration_per_level": 10
+    }
+  },
+  "concentration": true,
+  "duration": {
+    "type": "special"
+  },
+  "cast_message": "A spectral wolf materializes beside you!",
+  "ascii_char": "w",
+  "ascii_color": "#88AAFF"
+}

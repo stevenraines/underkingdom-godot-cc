@@ -22,8 +22,14 @@ The magic system consists of two main components:
 - **Phase 10** (Scroll Transcription) - Implemented
 - **Phase 11** (Wands & Staves) - Implemented
 - **Phase 12** (Rings & Amulets) - Implemented
+- **Phase 13** (Identification System) - Implemented
+- **Phase 14** (DoT & Concentration) - Implemented
+- **Phase 15** (Summoning System) - Implemented
+- **Phase 16** (AOE & Terrain Spells) - Implemented
+- **Phase 17** (Mind Spells) - Implemented
+- **Phase 18** (Town Mage NPC) - Implemented
 
-Remaining phases (Rituals, Summoning, etc.) are planned.
+Remaining phases (Rituals) are planned.
 
 ## Mana System (Implemented)
 
@@ -617,7 +623,391 @@ signal wand_used(wand, spell, charges_remaining: int)
 - [Items Documentation](../data/items.md)
 - [Inventory System](./inventory-system.md)
 
+## Identification System (Implemented)
+
+The identification system tracks which magical items the player has identified.
+
+### IdentificationManager
+
+```gdscript
+# Check if item type is identified
+IdentificationManager.is_identified(item_id: String) -> bool
+
+# Identify an item type
+IdentificationManager.identify_item(item_id: String)
+
+# Get identified items
+IdentificationManager.get_identified_items() -> Array[String]
+
+# Item-specific checks
+IdentificationManager.needs_identification(item) -> bool
+```
+
+### Items That Need Identification
+
+- Potions (until consumed or identified)
+- Scrolls (cursed scroll detection)
+- Wands (type unknown until used)
+- Rings and amulets (effects hidden)
+
+### Identify Spell
+
+The `identify` spell (Divination, Level 1) reveals an item's true nature:
+```json
+{
+  "id": "identify",
+  "school": "divination",
+  "effects": {"identify": true}
+}
+```
+
+### EventBus Signals
+
+```gdscript
+signal item_identified(item_id: String)
+```
+
+## DoT & Concentration System (Implemented)
+
+### Damage over Time (DoT)
+
+DoT effects deal damage each turn for a duration.
+
+#### DoT Effect Structure
+
+```gdscript
+{
+    "id": "poison_dot",
+    "type": "dot",
+    "dot_type": "poison",  # or "burning", "bleeding"
+    "damage_per_turn": 3,
+    "remaining_duration": 10,
+    "source": caster
+}
+```
+
+#### DoT Spells
+
+| Spell | School | DoT Type | Damage | Duration |
+|-------|--------|----------|--------|----------|
+| poison | necromancy | poison | 3+scaling | 10+scaling |
+| ignite | evocation | burning | 4+scaling | 5+scaling |
+
+#### DoT Processing
+
+DoT effects are processed at the start of each turn:
+```gdscript
+TurnManager._process_dot_effects()
+entity.process_dot_effects() -> int  # Returns total damage
+```
+
+#### Curing DoT
+
+```gdscript
+entity.cure_dot_type("poison") -> int  # Returns count cured
+```
+
+The `antidote` consumable cures poison DoT effects.
+
+### Concentration System
+
+Some spells require concentration to maintain.
+
+#### Concentration Mechanics
+
+- Only one concentration spell active at a time
+- Starting a new concentration spell ends the previous one
+- Taking damage triggers a concentration check
+
+#### Concentration Check
+
+```
+Roll = d20 + (CON - 10) / 2
+DC = max(10, 10 + damage_taken / 2)
+Success if Roll >= DC
+```
+
+#### Player Methods
+
+```gdscript
+player.start_concentration(spell_id: String)
+player.end_concentration()
+player.check_concentration(damage_taken: int) -> bool  # true = maintained
+player.concentration_spell  # Currently concentrated spell ID
+```
+
+#### EventBus Signals
+
+```gdscript
+signal concentration_started(caster, spell_id: String)
+signal concentration_ended(caster, spell_id: String)
+signal dot_damage_tick(entity, dot_type: String, damage: int)
+```
+
+## Summoning System (Implemented)
+
+The summoning system allows players to call creatures to fight alongside them.
+
+### SummonedCreature Class
+
+Summoned creatures extend Enemy with special behavior:
+
+```gdscript
+class_name SummonedCreature
+extends Enemy
+
+var summoner: Entity = null
+var remaining_duration: int = -1  # -1 = permanent
+var is_summon: bool = true
+var faction: String = "player"
+var behavior_mode: String = "follow"  # follow, aggressive, defensive, stay
+```
+
+### Behavior Modes
+
+| Mode | Behavior |
+|------|----------|
+| follow | Stay near summoner, attack nearby enemies |
+| aggressive | Seek out and attack nearest enemy |
+| defensive | Guard summoner, only attack threats |
+| stay | Hold position, attack if approached |
+
+### Summon Limits
+
+- Maximum 3 summons active at once (configurable)
+- Summoning a 4th creature dismisses the oldest
+- Summons last for a duration based on spell + caster level
+
+### Summon Spells
+
+| Spell | School | Creature | Base Duration |
+|-------|--------|----------|---------------|
+| summon_wolf | conjuration | Summoned Wolf | 50 + 10/level |
+| raise_skeleton | necromancy | Skeletal Warrior | 50 + 10/level |
+
+### Summoned Creature Data
+
+Summoned creatures are defined in `data/enemies/summons/`:
+```json
+{
+  "id": "summoned_wolf",
+  "name": "Summoned Wolf",
+  "creature_type": "animal",
+  "base_stats": {"STR": 12, "DEX": 14, "CON": 11},
+  "base_health": 20,
+  "base_damage": 6
+}
+```
+
+### Player Methods
+
+```gdscript
+player.add_summon(summon) -> bool
+player.remove_summon(summon)
+player.dismiss_summon(summon)
+player.dismiss_all_summons()
+player.active_summons  # Array of active summons
+player.MAX_SUMMONS = 3
+```
+
+### EventBus Signals
+
+```gdscript
+signal summon_created(summon, summoner)
+signal summon_dismissed(summon)
+```
+
+## AOE & Terrain Spells (Implemented)
+
+### Area of Effect (AOE)
+
+AOE spells affect multiple targets in a radius.
+
+#### AOE Properties
+
+```json
+{
+  "targeting": {
+    "mode": "aoe",
+    "range": 6,
+    "aoe_radius": 2,
+    "aoe_shape": "circle"
+  }
+}
+```
+
+#### AOE Shapes
+
+| Shape | Behavior |
+|-------|----------|
+| circle | Chebyshev distance (square with rounded edges) |
+| square | Manhattan distance |
+
+#### Friendly Fire
+
+AOE spells can damage the caster's summons. The caster is protected.
+
+#### AOE Methods
+
+```gdscript
+SpellCastingSystem.get_entities_in_aoe(center, radius, shape) -> Array
+SpellCastingSystem.apply_aoe_damage(caster, spell, center, result) -> Dictionary
+```
+
+#### AOE Spells
+
+| Spell | School | Radius | Damage |
+|-------|--------|--------|--------|
+| fireball | evocation | 2 | 15+scaling |
+
+### Terrain Modification
+
+Terrain spells change the map permanently.
+
+#### Terrain Change Effects
+
+```json
+{
+  "effects": {
+    "terrain_change": {
+      "from_type": "floor",  # "floor", "wall", "any"
+      "to_type": "water",    # "water", "wall", "mud", "floor"
+      "permanent": true
+    }
+  }
+}
+```
+
+#### Terrain Rules
+
+- Cannot create walls on occupied tiles
+- Some terrain changes are restricted by source type
+- Mana is refunded if terrain change fails
+
+#### Terrain Spells
+
+| Spell | School | From | To | Level |
+|-------|--------|------|-----|-------|
+| create_water | conjuration | floor | water | 2 |
+| create_wall | transmutation | floor | wall | 5 |
+| wall_to_mud | transmutation | wall | mud | 4 |
+
+#### EventBus Signals
+
+```gdscript
+signal terrain_changed(position: Vector2i, new_type: String)
+signal aoe_cursor_moved(position: Vector2i)
+```
+
+## Mind Spells (Implemented)
+
+Mind spells affect enemy behavior through enchantment.
+
+### Mind Control Immunity
+
+Some creatures are immune to mind control:
+
+```gdscript
+entity.can_be_mind_controlled() -> bool
+# Returns false if:
+# - creature_type == "construct"
+# - INT < 3
+```
+
+### Mind Save Modifiers
+
+| Creature Type | Save Modifier |
+|---------------|---------------|
+| humanoid | +0 |
+| undead | +5 (resistant) |
+| animal | -2 (vulnerable) |
+| construct | Immune |
+
+### Mind Effect Types
+
+| Effect | Faction Change | AI State | Description |
+|--------|---------------|----------|-------------|
+| charm | player | normal | Target fights for caster |
+| fear | unchanged | fleeing | Target flees from caster |
+| calm | neutral | idle | Target becomes non-hostile |
+| enrage | hostile_to_all | berserk | Target attacks everything |
+
+### Mind Effect Expiration
+
+When mind effects expire, the original faction and AI state are restored:
+
+```gdscript
+entity._handle_mind_effect_expiration(effect: Dictionary)
+```
+
+### Mind Spells
+
+| Spell | School | Effect | Level | Concentration |
+|-------|--------|--------|-------|---------------|
+| charm | enchantment | charm | 2 | Yes |
+| fear | enchantment | fear | 1 | No |
+| calm | enchantment | calm | 2 | No |
+| enrage | enchantment | enrage | 3 | No |
+
+### Entity Properties
+
+```gdscript
+entity.creature_type  # "humanoid", "animal", "undead", "construct"
+entity.faction        # "player", "enemy", "neutral", "hostile_to_all"
+entity.ai_state       # "normal", "fleeing", "berserk", "idle"
+```
+
+## Town Mage NPC (Implemented)
+
+The town mage sells magical items and supplies.
+
+### Location
+
+The mage is located in the Mage Tower in Thornhaven (starter town).
+
+### NPC Data
+
+```json
+{
+  "id": "mage",
+  "name": "Aldric the Sage",
+  "npc_type": "shop",
+  "gold": 800,
+  "restock_interval": 750
+}
+```
+
+### Trade Inventory
+
+| Item | Stock | Base Price |
+|------|-------|------------|
+| Spellbook | 1 | 150 |
+| Mana Potion | 5 | 35 |
+| Scroll of Spark | 3 | 15 |
+| Scroll of Heal | 2 | 45 |
+| Scroll of Shield | 2 | 40 |
+| Scroll of Flame Bolt | 2 | 55 |
+| Scroll of Identify | 3 | 30 |
+| Scroll of Lightning Bolt | 1 | 120 |
+| Herb | 15 | 3 |
+| Glowing Mushroom | 5 | 8 |
+| Bone | 10 | 2 |
+| Antidote | 3 | 25 |
+
+### Mage Tower Building
+
+Located at offset (-6, 4) in Thornhaven:
+```
+ ###
+ #.#
+##.##
+#...#
+#.@.#
+#...#
+##+##
+```
+
 ## Implementation Phases
 
-The magic system is implemented across 25 phases. Phases 01-12 are complete.
+The magic system is implemented across 18 phases. Phases 01-18 are complete.
 See `plans/features/magic-system-spec.md` for the full specification.

@@ -1,0 +1,30 @@
+{
+  "id": "create_water",
+  "name": "Create Water",
+  "description": "Create a pool of fresh water that can be harvested.",
+  "school": "conjuration",
+  "level": 2,
+  "mana_cost": 8,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 9
+  },
+  "targeting": {
+    "mode": "tile",
+    "range": 3,
+    "requires_los": true
+  },
+  "effects": {
+    "terrain_change": {
+      "from_type": "floor",
+      "to_type": "water",
+      "permanent": true
+    }
+  },
+  "duration": {
+    "type": "permanent"
+  },
+  "cast_message": "Water springs forth from the ground!",
+  "ascii_char": "~",
+  "ascii_color": "#4169E1"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "create_wall",
+  "name": "Create Wall",
+  "description": "Raise a solid wall from the ground on an empty tile.",
+  "school": "transmutation",
+  "level": 5,
+  "mana_cost": 22,
+  "requirements": {
+    "character_level": 5,
+    "intelligence": 12
+  },
+  "targeting": {
+    "mode": "tile",
+    "range": 4,
+    "requires_los": true
+  },
+  "effects": {
+    "terrain_change": {
+      "from_type": "floor",
+      "to_type": "wall",
+      "permanent": true
+    }
+  },
+  "duration": {
+    "type": "permanent"
+  },
+  "cast_message": "A wall rises from the ground!",
+  "ascii_char": "#",
+  "ascii_color": "#808080"
+}

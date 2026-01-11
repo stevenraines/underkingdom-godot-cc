@@ -79,6 +79,36 @@ signal effect_removed(entity: Entity, effect: Dictionary)
 @warning_ignore("unused_signal")
 signal effect_expired(entity: Entity, effect_name: String)
 
+# DoT (Damage over Time) signals
+@warning_ignore("unused_signal")
+signal dot_damage_tick(entity: Entity, dot_type: String, damage: int)
+
+# Concentration signals
+@warning_ignore("unused_signal")
+signal concentration_started(caster, spell_id: String)
+@warning_ignore("unused_signal")
+signal concentration_ended(caster, spell_id: String)
+@warning_ignore("unused_signal")
+signal concentration_check(caster, damage: int, success: bool)
+
+# Summoning signals
+@warning_ignore("unused_signal")
+signal summon_created(summon, summoner)  # SummonedCreature, Entity
+@warning_ignore("unused_signal")
+signal summon_dismissed(summon)  # SummonedCreature
+@warning_ignore("unused_signal")
+signal summon_died(summon)  # SummonedCreature
+@warning_ignore("unused_signal")
+signal summon_menu_requested()
+@warning_ignore("unused_signal")
+signal summon_command_changed(summon, mode: String)  # SummonedCreature
+
+# AOE and Terrain signals
+@warning_ignore("unused_signal")
+signal aoe_cursor_moved(position: Vector2i)
+@warning_ignore("unused_signal")
+signal terrain_changed(position: Vector2i, new_type: String)
+
 # Scroll signals
 @warning_ignore("unused_signal")
 signal scroll_targeting_started(scroll, spell)  # Item, Spell
@@ -102,6 +132,8 @@ signal item_used(item, result: Dictionary)  # Item
 signal item_equipped(item, slot: String)  # Item
 @warning_ignore("unused_signal")
 signal item_unequipped(item, slot: String)  # Item
+@warning_ignore("unused_signal")
+signal item_identified(item_id: String)  # When an unidentified item is revealed
 @warning_ignore("unused_signal")
 signal inventory_changed()
 @warning_ignore("unused_signal")
@@ -152,6 +184,8 @@ signal training_opened(npc, player)  # NPC, Player
 signal recipe_trained(recipe_id: String, price: int)  # Recipe learned from NPC
 
 # Save/Load signals
+@warning_ignore("unused_signal")
+signal game_started()
 @warning_ignore("unused_signal")
 signal game_saved(slot: int)
 @warning_ignore("unused_signal")

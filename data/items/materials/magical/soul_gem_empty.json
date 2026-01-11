@@ -1,0 +1,20 @@
+{
+  "id": "soul_gem_empty",
+  "name": "Soul Gem (Empty)",
+  "description": "A translucent crystal capable of capturing and storing the essence of defeated creatures.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.2,
+  "value": 75,
+  "max_stack": 5,
+  "ascii_char": "o",
+  "ascii_color": "#AADDFF"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "mage_tower",
+  "name": "Mage Tower",
+  "description": "A crooked tower where a sage practices the arcane arts.",
+  "size": [5, 7],
+  "template_type": "custom",
+  "layout": [
+    " ### ",
+    " #.# ",
+    "##.##",
+    "#...#",
+    "#.@.#",
+    "#...#",
+    "##+##"
+  ]
+}

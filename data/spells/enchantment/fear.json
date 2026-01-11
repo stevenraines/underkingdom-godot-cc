@@ -1,0 +1,34 @@
+{
+  "id": "fear",
+  "name": "Fear",
+  "description": "Strike terror into an enemy's heart, causing them to flee in panic.",
+  "school": "enchantment",
+  "level": 1,
+  "mana_cost": 5,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 9
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "mind_effect": {
+      "type": "fear"
+    }
+  },
+  "save": {
+    "type": "WIS",
+    "on_success": "no_effect"
+  },
+  "duration": {
+    "type": "turns",
+    "base": 5,
+    "scaling": 2
+  },
+  "cast_message": "Your target recoils in terror!",
+  "ascii_char": "!",
+  "ascii_color": "#8B0000"
+}

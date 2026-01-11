@@ -10,6 +10,7 @@
     "magical": true,
     "charged": true
   },
+  "unidentified": true,
   "equip_slots": ["main_hand"],
   "casts_spell": "spark",
   "charges": 15,

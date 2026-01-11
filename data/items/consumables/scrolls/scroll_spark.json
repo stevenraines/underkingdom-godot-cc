@@ -10,6 +10,7 @@
     "magical": true,
     "scroll": true
   },
+  "unidentified": true,
   "casts_spell": "spark",
   "weight": 0.1,
   "value": 25,

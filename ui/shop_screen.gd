@@ -137,7 +137,9 @@ func _input(event: InputEvent) -> void:
 			KEY_L:
 				# Switch to Learn Recipes if NPC has training
 				_switch_to_training()
-				get_viewport().set_input_as_handled()
+
+		# Always consume keyboard input while shop screen is open
+		get_viewport().set_input_as_handled()
 
 func _switch_to_training() -> void:
 	if shop_npc and shop_npc.recipes_for_sale.size() > 0:

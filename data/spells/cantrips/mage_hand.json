@@ -1,0 +1,26 @@
+{
+  "id": "mage_hand",
+  "name": "Mage Hand",
+  "description": "A spectral hand appears and can pick up items from a distance.",
+  "school": "conjuration",
+  "level": 0,
+  "mana_cost": 0,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "tile",
+    "range": 3,
+    "requires_los": true
+  },
+  "effects": {
+    "special": "pickup_item"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "A spectral hand materializes and reaches out.",
+  "ascii_char": "o",
+  "ascii_color": "#AAAAFF"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "mana_potion",
+  "name": "Mana Potion",
+  "description": "A blue potion that restores magical energy.",
+  "category": "consumable",
+  "subtype": "potion",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "magical": true,
+    "tool": false
+  },
+  "unidentified": true,
+  "weight": 0.3,
+  "value": 60,
+  "max_stack": 5,
+  "ascii_char": "!",
+  "ascii_color": "#4466FF",
+  "effects": {
+    "mana": 35
+  }
+}

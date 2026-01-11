@@ -1,0 +1,20 @@
+{
+  "id": "phoenix_feather",
+  "name": "Phoenix Feather",
+  "description": "A radiant feather that never burns. Extremely rare, required for resurrection magic.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.05,
+  "value": 500,
+  "max_stack": 3,
+  "ascii_char": "~",
+  "ascii_color": "#FF6600"
+}

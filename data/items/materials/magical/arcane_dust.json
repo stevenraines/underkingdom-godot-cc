@@ -1,0 +1,20 @@
+{
+  "id": "arcane_dust",
+  "name": "Arcane Dust",
+  "description": "Fine glittering powder infused with residual magical energy. A common component in alchemical preparations.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.05,
+  "value": 10,
+  "max_stack": 50,
+  "ascii_char": ".",
+  "ascii_color": "#AA88FF"
+}

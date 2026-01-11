@@ -42,6 +42,7 @@ VariantManager="*res://autoload/variant_manager.gd"
 WeatherManager="*res://autoload/weather_manager.gd"
 LootTableManager="*res://autoload/loot_table_manager.gd"
 SpellManager="*res://autoload/spell_manager.gd"
+IdentificationManager="*res://autoload/identification_manager.gd"
 
 [debug]
 

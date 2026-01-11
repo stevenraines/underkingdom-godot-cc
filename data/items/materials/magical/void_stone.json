@@ -1,0 +1,20 @@
+{
+  "id": "void_stone",
+  "name": "Void Stone",
+  "description": "A dark, weightless stone that absorbs light. Found only in the deepest dungeons, essential for planar magic.",
+  "category": "material",
+  "subtype": "magical_component",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "magical": true,
+    "tool": false,
+    "crafting_material": true
+  },
+  "weight": 0.0,
+  "value": 200,
+  "max_stack": 5,
+  "ascii_char": "o",
+  "ascii_color": "#220033"
+}

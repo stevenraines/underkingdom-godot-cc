@@ -1,0 +1,36 @@
+{
+  "id": "poison",
+  "name": "Poison",
+  "description": "Infect your target with a virulent poison that deals damage over time.",
+  "school": "necromancy",
+  "level": 1,
+  "mana_cost": 5,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "dot": {
+      "type": "poison",
+      "damage_per_turn": 3,
+      "duration": 10,
+      "damage_scaling": 1,
+      "duration_scaling": 2
+    }
+  },
+  "save": {
+    "type": "CON",
+    "on_success": "half_duration"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "Poison seeps into your target!",
+  "ascii_char": "*",
+  "ascii_color": "#00FF00"
+}

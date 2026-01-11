@@ -1,0 +1,15 @@
+{
+  "id": "supreme_mana_potion",
+  "result": "supreme_mana_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "moonpetal", "count": 5},
+    {"item": "magical_essence", "count": 2},
+    {"item": "void_stone", "count": 1},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "mortar_pestle",
+  "fire_required": true,
+  "difficulty": 8,
+  "discovery_hint": "Only the rarest void stones can unlock the full potential of magical brewing"
+}

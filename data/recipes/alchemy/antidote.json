@@ -1,0 +1,14 @@
+{
+  "id": "antidote",
+  "result": "antidote",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "moonpetal", "count": 1},
+    {"item": "herb", "count": 2},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 3,
+  "discovery_hint": "Moonpetals combined with certain herbs might neutralize poisons..."
+}

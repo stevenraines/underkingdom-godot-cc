@@ -1,0 +1,13 @@
+{
+  "id": "minor_mana_potion",
+  "result": "minor_mana_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "moonpetal", "count": 1},
+    {"item": "fresh_water", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 2,
+  "discovery_hint": "Moonpetals seem to hold magical potential when combined with water..."
+}

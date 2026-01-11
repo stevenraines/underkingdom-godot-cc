@@ -610,5 +610,7 @@ func _input(event: InputEvent) -> void:
 
 			KEY_ESCAPE, KEY_P:
 				close()
-				get_viewport().set_input_as_handled()
+
+		# Always consume keyboard input while character sheet is open
+		get_viewport().set_input_as_handled()
 

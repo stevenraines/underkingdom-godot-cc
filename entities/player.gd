@@ -27,6 +27,102 @@ var experience: int = 0
 var level: int = 0
 var experience_to_next_level: int = 100
 
+# Concentration (for maintained spells)
+var concentration_spell: String = ""  # ID of current concentration spell
+
+# Summoning
+var active_summons: Array = []  # Array of SummonedCreature references
+const MAX_SUMMONS = 3
+
+# =============================================================================
+# SUMMONING SYSTEM
+# =============================================================================
+
+## Add a summon to the player's active summons
+## Enforces MAX_SUMMONS limit by dismissing the oldest summon
+func add_summon(summon) -> bool:
+	# Enforce limit - dismiss oldest if at max
+	if active_summons.size() >= MAX_SUMMONS:
+		var oldest = active_summons[0]
+		oldest.dismiss()
+		# Note: dismiss() calls remove_summon()
+
+	active_summons.append(summon)
+	EventBus.summon_created.emit(summon, self)
+	return true
+
+## Remove a summon from the active list
+func remove_summon(summon) -> void:
+	active_summons.erase(summon)
+
+## Set behavior mode for a summon by index
+func set_summon_behavior(index: int, mode: String) -> void:
+	if index >= 0 and index < active_summons.size():
+		active_summons[index].set_behavior(mode)
+
+## Dismiss a specific summon by index
+func dismiss_summon(index: int) -> void:
+	if index >= 0 and index < active_summons.size():
+		active_summons[index].dismiss()
+
+## Dismiss all active summons
+func dismiss_all_summons() -> void:
+	# Iterate copy since dismiss modifies the array
+	for summon in active_summons.duplicate():
+		summon.dismiss()
+
+## Get active summon count
+func get_summon_count() -> int:
+	return active_summons.size()
+
+# =============================================================================
+# CONCENTRATION SYSTEM
+# =============================================================================
+
+## Start concentrating on a spell
+## Ends any previous concentration spell
+func start_concentration(spell_id: String) -> void:
+	# End previous concentration if any
+	if concentration_spell != "":
+		end_concentration()
+
+	concentration_spell = spell_id
+	EventBus.concentration_started.emit(self, spell_id)
+
+## End concentration, removing the maintained effect
+func end_concentration() -> void:
+	if concentration_spell != "":
+		# Remove the concentration effect from active effects
+		remove_magical_effect(concentration_spell + "_effect")
+		EventBus.concentration_ended.emit(self, concentration_spell)
+		concentration_spell = ""
+
+## Check if concentration is maintained after taking damage
+## Concentration check: d20 + CON modifier vs DC 10 + damage/2 (minimum DC 10)
+## Returns true if concentration maintained, false if broken
+func check_concentration(damage_taken: int) -> bool:
+	if concentration_spell == "":
+		return true  # No concentration to break
+
+	# Roll d20 + CON modifier
+	var roll = randi_range(1, 20)
+	var con_mod = (get_effective_attribute("CON") - 10) / 2
+	var total = roll + con_mod
+
+	# DC is 10 or half the damage, whichever is higher
+	var dc = max(10, 10 + (damage_taken / 2))
+
+	var success = total >= dc
+	EventBus.concentration_check.emit(self, damage_taken, success)
+
+	if not success:
+		var spell_name = concentration_spell.replace("_", " ").capitalize()
+		EventBus.message_logged.emit("Your concentration on %s is broken!" % spell_name, Color.RED)
+		end_concentration()
+		return false
+
+	return true
+
 # Skill points
 var available_skill_points: int = 0
 var available_ability_points: int = 0  # For ability score increases every 4th level
@@ -589,6 +685,11 @@ func apply_item_effects(effects: Dictionary) -> void:
 		survival.stamina = min(survival.get_max_stamina(), survival.stamina + effects.stamina)
 	if "fatigue" in effects and survival:
 		survival.rest(effects.fatigue)
+	if "mana" in effects and survival:
+		survival.restore_mana(effects.mana)
+	if "cure_dot" in effects:
+		# Cure a specific type of DoT effect (e.g., "poison")
+		cure_dot_type(effects.cure_dot)
 
 ## Check if player knows a recipe
 func knows_recipe(recipe_id: String) -> bool:
@@ -635,9 +736,21 @@ func has_spellbook() -> bool:
 		return false
 	return inventory.has_item_with_flag("spellbook")
 
-## Check if player knows a specific spell
+## Check if player knows a specific spell (includes cantrips if requirements met)
 func knows_spell(spell_id: String) -> bool:
-	return spell_id in known_spells
+	# Check if it's a learned spell
+	if spell_id in known_spells:
+		return true
+
+	# Check if it's a cantrip (auto-known with spellbook and 8+ INT)
+	if has_spellbook():
+		var player_int = get_effective_attribute("INT")
+		if player_int >= 8:
+			var spell = SpellManager.get_spell(spell_id)
+			if spell and spell.level == 0:
+				return true
+
+	return false
 
 ## Learn a new spell (requires spellbook)
 ## Returns true if spell was successfully learned
@@ -654,9 +767,19 @@ func learn_spell(spell_id: String) -> bool:
 	print("Player learned spell: ", spell_id)
 	return true
 
-## Get all spells the player knows
+## Get all spells the player knows (includes cantrips automatically)
 func get_known_spells() -> Array:
 	var result: Array = []
+
+	# Add cantrips if player has spellbook and 8+ INT
+	if has_spellbook():
+		var player_int = get_effective_attribute("INT")
+		if player_int >= 8:
+			var cantrips = SpellManager.get_cantrips()
+			for cantrip in cantrips:
+				result.append(cantrip)
+
+	# Add learned spells
 	for spell_id in known_spells:
 		var spell = SpellManager.get_spell(spell_id)
 		if spell:
@@ -666,6 +789,17 @@ func get_known_spells() -> Array:
 ## Get spells the player can currently cast (knows spell + meets requirements)
 func get_castable_spells() -> Array:
 	var result: Array = []
+
+	# Add castable cantrips if player has spellbook and 8+ INT
+	if has_spellbook():
+		var player_int = get_effective_attribute("INT")
+		if player_int >= 8:
+			var cantrips = SpellManager.get_cantrips()
+			for cantrip in cantrips:
+				if SpellManager.can_cast(self, cantrip).can_cast:
+					result.append(cantrip)
+
+	# Add castable learned spells
 	for spell_id in known_spells:
 		var spell = SpellManager.get_spell(spell_id)
 		if spell and SpellManager.can_cast(self, spell).can_cast:
@@ -1174,7 +1308,7 @@ func _get_current_location() -> String:
 
 	return "an Unknown Location"
 
-## Override take_damage to track death source
+## Override take_damage to track death source and check concentration
 func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
 	# Check if this damage will kill us BEFORE applying it
 	var will_die = (current_health - amount) <= 0
@@ -1185,6 +1319,10 @@ func take_damage(amount: int, source: String = "Unknown", method: String = "") -
 		record_death(source, method)
 
 	super.take_damage(amount, source, method)
+
+	# Check concentration after taking damage (if still alive)
+	if is_alive and concentration_spell != "":
+		check_concentration(amount)
 
 ## Get death summary for death screen
 func get_death_summary() -> String:

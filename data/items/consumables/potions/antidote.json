@@ -1,0 +1,19 @@
+{
+  "id": "antidote",
+  "name": "Antidote",
+  "description": "A bitter potion that neutralizes poison. Drink quickly when afflicted.",
+  "category": "consumable",
+  "subcategory": "potion",
+  "flags": {
+    "consumable": true
+  },
+  "effects": {
+    "cure_dot": "poison"
+  },
+  "weight": 0.2,
+  "value": 25,
+  "stack_size": 5,
+  "ascii_char": "!",
+  "ascii_color": "#00FF00",
+  "unidentified": true
+}

@@ -169,28 +169,24 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_ESCAPE, KEY_I:
 				_close()
-				get_viewport().set_input_as_handled()
 			KEY_UP:
 				_navigate(-1)
-				get_viewport().set_input_as_handled()
 			KEY_DOWN:
 				_navigate(1)
-				get_viewport().set_input_as_handled()
 			KEY_TAB:
 				_toggle_focus()
-				get_viewport().set_input_as_handled()
 			KEY_E:
 				_equip_selected()
-				get_viewport().set_input_as_handled()
 			KEY_U:
 				_use_selected()
-				get_viewport().set_input_as_handled()
 			KEY_D:
 				_drop_selected()
-				get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_SPACE:
 				_action_selected()
-				get_viewport().set_input_as_handled()
+
+		# Always consume keyboard input while inventory screen is open
+		# This prevents input from leaking through to the game in the background
+		get_viewport().set_input_as_handled()
 
 func open(p: Player) -> void:
 	player = p

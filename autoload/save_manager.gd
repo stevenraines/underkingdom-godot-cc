@@ -234,7 +234,9 @@ func _serialize_player() -> Dictionary:
 		"available_ability_points": player.available_ability_points,
 		"skills": player.skills.duplicate(),
 		"known_recipes": player.known_recipes.duplicate(),
-		"known_spells": player.known_spells.duplicate()
+		"known_spells": player.known_spells.duplicate(),
+		"concentration_spell": player.concentration_spell,
+		"active_effects": _serialize_active_effects(player.active_effects)
 	}
 
 ## Serialize survival stats
@@ -252,6 +254,33 @@ func _serialize_survival(survival: SurvivalSystem) -> Dictionary:
 		"mana": survival.mana,
 		"base_max_mana": survival.base_max_mana
 	}
+
+## Serialize active magical effects (buffs, debuffs, DoTs)
+func _serialize_active_effects(effects: Array) -> Array:
+	var serialized = []
+	for effect in effects:
+		# Create a copy of the effect, excluding non-serializable references
+		var effect_data = {
+			"id": effect.get("id", ""),
+			"type": effect.get("type", ""),
+			"remaining_duration": effect.get("remaining_duration", 0)
+		}
+		# Copy optional fields
+		if effect.has("name"):
+			effect_data["name"] = effect.name
+		if effect.has("modifiers"):
+			effect_data["modifiers"] = effect.modifiers.duplicate()
+		if effect.has("armor_bonus"):
+			effect_data["armor_bonus"] = effect.armor_bonus
+		if effect.has("source_spell"):
+			effect_data["source_spell"] = effect.source_spell
+		# DoT specific fields
+		if effect.has("dot_type"):
+			effect_data["dot_type"] = effect.dot_type
+		if effect.has("damage_per_turn"):
+			effect_data["damage_per_turn"] = effect.damage_per_turn
+		serialized.append(effect_data)
+	return serialized
 
 ## Serialize inventory
 func _serialize_inventory(inventory: Inventory) -> Array:
@@ -545,6 +574,17 @@ func _deserialize_player(player_data: Dictionary):
 	if player_data.has("known_spells"):
 		for spell_id in player_data.known_spells:
 			player.known_spells.append(spell_id)
+
+	# Restore concentration spell
+	player.concentration_spell = player_data.get("concentration_spell", "")
+
+	# Restore active effects (buffs, debuffs, DoTs)
+	player.active_effects.clear()
+	if player_data.has("active_effects"):
+		for effect_data in player_data.active_effects:
+			player.active_effects.append(effect_data.duplicate(true))
+		# Recalculate stat modifiers from restored effects
+		player._recalculate_effect_modifiers()
 
 	print("SaveManager: Player deserialized")
 

@@ -100,6 +100,10 @@ var is_templated: bool = false      # True if created from template + variants
 # Book properties
 var teaches_recipe: String = ""     # Recipe ID this book teaches when read
 
+# Identification properties
+var unidentified: bool = false      # True if item needs identification before revealing true name
+var true_name: String = ""          # Real name (for cursed items that show false name)
+
 ## Create an item from a data dictionary (loaded from JSON)
 static func create_from_data(data: Dictionary) -> Item:
 	var item = Item.new()
@@ -207,6 +211,10 @@ static func create_from_data(data: Dictionary) -> Item:
 	# Book properties
 	item.teaches_recipe = data.get("teaches_recipe", "")
 
+	# Identification properties
+	item.unidentified = data.get("unidentified", false)
+	item.true_name = data.get("true_name", "")
+
 	return item
 
 ## Create a copy of this item
@@ -259,7 +267,40 @@ func duplicate_item() -> Item:
 	copy.spell_level_override = spell_level_override
 	copy.casting_bonuses = casting_bonuses.duplicate()
 	copy.passive_effects = passive_effects.duplicate(true)
+	copy.unidentified = unidentified
+	copy.true_name = true_name
 	return copy
+
+## Get the display name (handles unidentified items and inscriptions)
+func get_display_name() -> String:
+	var display_name = name
+
+	# Use IdentificationManager if available (it's an autoload)
+	if Engine.has_singleton("IdentificationManager"):
+		var id_manager = Engine.get_singleton("IdentificationManager")
+		display_name = id_manager.get_display_name(self)
+	else:
+		# Fallback: check if we can access it as a node
+		var id_manager = Engine.get_main_loop().root.get_node_or_null("IdentificationManager")
+		if id_manager:
+			display_name = id_manager.get_display_name(self)
+
+	# Add inscription if present
+	if inscription != "":
+		return "%s {%s}" % [display_name, inscription]
+
+	return display_name
+
+## Check if this item is currently identified
+func is_identified() -> bool:
+	if not unidentified:
+		return true  # Non-unidentified items are always "identified"
+
+	var id_manager = Engine.get_main_loop().root.get_node_or_null("IdentificationManager")
+	if id_manager:
+		return id_manager.is_identified(id)
+
+	return true  # Fallback to identified
 
 ## Use this item on an entity
 ## Returns true if the item should be consumed (removed from inventory)
@@ -340,7 +381,11 @@ func _use_consumable(user: Entity) -> Dictionary:
 		if "health" in effects:
 			user.heal(effects.health)
 			result.message = "You use the %s and feel better." % name
-	
+
+	# Identify the consumable on use (potions)
+	if unidentified and result.success:
+		_identify_on_use(result)
+
 	return result
 
 ## Read a book item - teaches recipe if applicable
@@ -507,6 +552,10 @@ func _cast_scroll_spell(caster: Entity, spell, target: Entity) -> Dictionary:
 	result.message = cast_result.message
 	result.effects_applied = cast_result.effects_applied
 
+	# Identify the scroll on use
+	if unidentified and result.success:
+		_identify_on_use(result)
+
 	return result
 
 
@@ -599,6 +648,10 @@ func _cast_wand_spell(caster: Entity, spell, target: Entity) -> Dictionary:
 	result.healing = cast_result.healing
 	result.message = cast_result.message
 	result.effects_applied = cast_result.effects_applied
+
+	# Identify the wand on use
+	if unidentified and result.success:
+		_identify_on_use(result)
 
 	return result
 
@@ -771,13 +824,6 @@ func get_color() -> Color:
 	return Color.from_string(ascii_color, Color.WHITE)
 
 
-## Get display name including inscription if present
-func get_display_name() -> String:
-	if inscription != "":
-		return "%s {%s}" % [name, inscription]
-	return name
-
-
 ## Inscribe text on this item
 func inscribe(text: String) -> void:
 	inscription = text
@@ -902,3 +948,11 @@ func is_ring() -> bool:
 ## Check if this item is an amulet
 func is_amulet() -> bool:
 	return subtype == "amulet"
+
+
+## Helper to identify an item on use and update the result message
+func _identify_on_use(result: Dictionary) -> void:
+	var id_manager = Engine.get_main_loop().root.get_node_or_null("IdentificationManager")
+	if id_manager and not id_manager.is_identified(id):
+		id_manager.identify_item(id)
+		result.message += " (It was a %s!)" % name

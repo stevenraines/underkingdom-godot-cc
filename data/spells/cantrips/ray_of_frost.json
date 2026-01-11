@@ -1,0 +1,30 @@
+{
+  "id": "ray_of_frost",
+  "name": "Ray of Frost",
+  "description": "A beam of freezing energy streaks toward a target.",
+  "school": "evocation",
+  "level": 0,
+  "mana_cost": 5,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "ice",
+      "base": 3,
+      "scaling": 0
+    }
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You fire a ray of frost!",
+  "ascii_char": "*",
+  "ascii_color": "#88CCFF"
+}

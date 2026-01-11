@@ -917,10 +917,13 @@ func _get_current_location() -> String:
 
 ## Override take_damage to track death source
 func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
-	super.take_damage(amount)
+	# Check if this damage will kill us BEFORE applying it
+	var will_die = (current_health - amount) <= 0
+
+	super.take_damage(amount, source, method)
 
 	# If this damage killed us, record the cause
-	if current_health <= 0 and is_alive:
+	if will_die and not is_alive:
 		record_death(source, method)
 
 ## Get death summary for death screen

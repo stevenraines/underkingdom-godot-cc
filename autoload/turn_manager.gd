@@ -61,6 +61,9 @@ func _process_player_survival() -> void:
 		# Regenerate some stamina each turn (slower rate while active)
 		EntityManager.player.regenerate_stamina()
 
+		# Regenerate mana each turn (base rate, faster in shelter)
+		EntityManager.player.regenerate_mana()
+
 		# Emit warnings if any
 		for warning in effects.get("warnings", []):
 			EventBus.survival_warning.emit(warning, _get_warning_severity(warning))

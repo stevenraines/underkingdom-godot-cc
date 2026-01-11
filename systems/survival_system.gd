@@ -3,7 +3,7 @@ extends RefCounted
 
 ## SurvivalSystem - Manages all survival mechanics
 ##
-## Tracks hunger, thirst, temperature, stamina, and fatigue.
+## Tracks hunger, thirst, temperature, stamina, fatigue, and mana.
 ## Applies effects based on survival state thresholds.
 
 # Current survival stats
@@ -14,10 +14,20 @@ var stamina: float = 100.0  # Current stamina
 var base_max_stamina: float = 100.0  # Before fatigue reduction
 var fatigue: float = 0.0  # 0-100, starts rested
 
+# Mana system
+var mana: float = 0.0  # Current mana
+var base_max_mana: float = 30.0  # Base max mana before INT bonus
+
 # Drain rates (turns between 1 point drain)
 const HUNGER_DRAIN_RATE: int = 20
 const THIRST_DRAIN_RATE: int = 15
 const FATIGUE_GAIN_RATE: int = 100  # Turns per 1 fatigue
+
+# Mana regeneration rates
+const MANA_REGEN_PER_TURN: float = 1.0
+const MANA_REGEN_SHELTER_MULTIPLIER: float = 3.0
+const MANA_PER_LEVEL: float = 5.0  # Max mana gained per player level
+const MANA_PER_INT: float = 5.0  # Max mana gained per INT above 10
 
 # Stamina costs
 const STAMINA_COST_MOVE: int = 1
@@ -64,11 +74,27 @@ func _init(owner: Entity = null) -> void:
 		# Calculate base max stamina from CON: 50 + CON × 10
 		base_max_stamina = 50.0 + owner.attributes.get("CON", 10) * 10.0
 		stamina = base_max_stamina
+		# Initialize mana to max
+		mana = get_max_mana()
 
 ## Get effective max stamina (NOT reduced by fatigue)
 func get_max_stamina() -> float:
 	# Max stamina is always base value - fatigue only affects current stamina
 	return base_max_stamina
+
+## Get effective max mana (base + INT bonus + level bonus)
+func get_max_mana() -> float:
+	if not _owner:
+		return base_max_mana
+
+	# INT bonus: 5 mana per INT above 10
+	var int_value = _owner.attributes.get("INT", 10)
+	var int_bonus = max(0.0, (int_value - 10) * MANA_PER_INT)
+
+	# Level bonus: 5 mana per level
+	var level_bonus = (_owner.level - 1) * MANA_PER_LEVEL
+
+	return base_max_mana + int_bonus + level_bonus
 
 ## Process survival effects for a turn
 func process_turn(turn_number: int) -> Dictionary:
@@ -319,14 +345,53 @@ func regenerate_stamina(regen_modifier: float = 1.0) -> void:
 	var max_stam = get_max_stamina()
 	if stamina >= max_stam:
 		return
-	
+
 	# Base regen: 1 per turn, modified by survival effects
 	var regen_amount = 1.0 * regen_modifier
 	var old_stamina = stamina
 	stamina = min(max_stam, stamina + regen_amount)
-	
+
 	if stamina != old_stamina:
 		EventBus.survival_stat_changed.emit("stamina", old_stamina, stamina)
+
+## Consume mana for spellcasting
+## Returns true if mana was consumed, false if insufficient mana
+func consume_mana(amount: int) -> bool:
+	if mana < amount:
+		EventBus.mana_depleted.emit()
+		return false
+
+	var old_mana = mana
+	mana = max(0.0, mana - amount)
+	EventBus.mana_changed.emit(old_mana, mana, get_max_mana())
+
+	if mana <= 0:
+		EventBus.mana_depleted.emit()
+
+	return true
+
+## Regenerate mana (called when resting or in shelter)
+func regenerate_mana(regen_modifier: float = 1.0) -> void:
+	var max_m = get_max_mana()
+	if mana >= max_m:
+		return
+
+	# Base regen: 1 per turn, modified by shelter etc
+	var regen_amount = MANA_REGEN_PER_TURN * regen_modifier
+	var old_mana = mana
+	mana = min(max_m, mana + regen_amount)
+
+	if mana != old_mana:
+		EventBus.mana_changed.emit(old_mana, mana, max_m)
+
+## Restore mana directly (from potions, etc.)
+func restore_mana(amount: float) -> void:
+	var max_m = get_max_mana()
+	var old_mana = mana
+	mana = min(max_m, mana + amount)
+
+	if mana != old_mana:
+		EventBus.mana_changed.emit(old_mana, mana, max_m)
 
 ## Update temperature based on environment
 ## Now uses CalendarManager for seasonal temperature variations

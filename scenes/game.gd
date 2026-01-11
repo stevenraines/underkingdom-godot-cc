@@ -1065,6 +1065,7 @@ func _update_hud() -> void:
 		if player.survival:
 			var s = player.survival
 			var stam_text = "Stam: %d/%d" % [int(s.stamina), int(s.get_max_stamina())]
+			var mana_text = "Mana: %d/%d" % [int(s.mana), int(s.get_max_mana())]
 			var hunger_text = "Hun: %d%%" % int(s.hunger)
 			var thirst_text = "Thr: %d%%" % int(s.thirst)
 			# Show outside temp → player temp (with warmth adjustment)
@@ -1072,7 +1073,7 @@ func _update_hud() -> void:
 			var env_temp = roundi(s.get_environmental_temperature())
 			var player_temp = roundi(s.temperature)
 			var temp_text = "Tmp: %d→%d°F" % [env_temp, player_temp]
-			survival_text = "  %s  %s  %s  %s" % [stam_text, hunger_text, thirst_text, temp_text]
+			survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, hunger_text, thirst_text, temp_text]
 
 		# Light source indicator
 		var light_text = ""

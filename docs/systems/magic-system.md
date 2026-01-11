@@ -8,16 +8,48 @@ The magic system consists of two main components:
 - **Spells** - Instant-cast abilities that consume mana
 - **Rituals** - Multi-turn channeled abilities that consume components
 
-## Status: Not Yet Implemented
+## Implementation Status
 
-This documentation will be updated as each magic system phase is implemented.
+Phase 01 (Mana System) has been implemented. Remaining phases are planned.
+
+## Mana System (Implemented)
+
+The mana system is fully integrated with the SurvivalSystem.
+
+### Mana Pool Formula
+```
+Max Mana = Base (30) + (INT - 10) × 5 + (Level - 1) × 5
+```
+
+### Mana Regeneration
+- **Base Rate**: 1 mana per turn
+- **Shelter Bonus**: 3× regeneration when in shelter
+- Regeneration occurs automatically each turn via TurnManager
+
+### Key Constants
+```gdscript
+MANA_REGEN_PER_TURN = 1.0
+MANA_REGEN_SHELTER_MULTIPLIER = 3.0
+MANA_PER_LEVEL = 5.0
+MANA_PER_INT = 5.0
+BASE_MAX_MANA = 30.0
+```
+
+### Integration Points
+- **HUD**: Displays current/max mana alongside stamina
+- **Rest Menu**: "Until mana restored" option (key 5)
+- **Save/Load**: Mana persists between sessions
+- **Signals**: `mana_changed`, `mana_depleted` via EventBus
+
+### Related Methods (SurvivalSystem)
+- `get_max_mana()` - Calculate max mana from INT and level
+- `consume_mana(amount)` - Deduct mana for spell casting
+- `regenerate_mana(multiplier)` - Called each turn
+- `restore_mana(amount)` - Instant mana restoration
+
+For detailed mana documentation, see [Survival System - Mana](./survival-system.md#mana-system).
 
 ## Planned Features
-
-### Mana System
-- Mana pool: Base 30 + (INT × 5)
-- Regenerates during rest
-- Required for all spellcasting
 
 ### Spellcasting
 - Minimum 8 INT required for all magic

@@ -7,6 +7,7 @@ extends Control
 ## 2. Next time period (dawn, day, dusk, night)
 ## 3. Specific number of turns
 ## 4. Fully healed (only when on shelter tile)
+## 5. Mana restored (only if player has mana pool)
 
 signal closed()
 signal rest_requested(rest_type: String, turns: int)
@@ -17,10 +18,12 @@ signal rest_requested(rest_type: String, turns: int)
 @onready var turns_input: LineEdit = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option3Container/TurnsInput
 @onready var status_label: Label = $Panel/MarginContainer/VBoxContainer/StatusLabel
 @onready var option4_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option4
+@onready var option5_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option5
 
 var selected_index: int = 0
 var player: Player = null
 var is_on_shelter: bool = false  # Whether player is on a shelter tile
+var has_mana: bool = false  # Whether player has a mana pool (magic user)
 
 # Colors
 const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
@@ -58,13 +61,14 @@ func _input(event: InputEvent) -> void:
 					viewport.set_input_as_handled()
 				KEY_TAB:
 					turns_input.release_focus()
-					# Tab from option 3: forward goes to option 4 (if shelter) or wraps to 0
-					# Shift+Tab goes back to option 2
+					# Tab from option 3: forward goes to next available option, Shift+Tab goes back
 					if event.shift_pressed:
 						selected_index = 1
 					else:
 						if is_on_shelter:
 							selected_index = 3  # Go to "Until fully healed"
+						elif has_mana:
+							selected_index = 4  # Go to "Until mana restored"
 						else:
 							selected_index = 0  # Wrap to first option
 					_update_selection()
@@ -74,7 +78,12 @@ func _input(event: InputEvent) -> void:
 					pass
 			return
 
-		var max_options = 4 if is_on_shelter else 3
+		# Calculate max options: base 3 + shelter + mana
+		var max_options = 3
+		if is_on_shelter:
+			max_options += 1
+		if has_mana:
+			max_options += 1
 		match event.keycode:
 			KEY_ESCAPE:
 				_close()
@@ -95,6 +104,11 @@ func _input(event: InputEvent) -> void:
 				# Until fully healed (only if on shelter)
 				if is_on_shelter:
 					_select_option(3)
+				viewport.set_input_as_handled()
+			KEY_5:
+				# Until mana restored (only if player has mana)
+				if has_mana:
+					_select_option(4)
 				viewport.set_input_as_handled()
 			KEY_UP, KEY_DOWN:
 				# Consume arrow keys to prevent them from doing anything
@@ -121,6 +135,7 @@ func open(p: Player) -> void:
 	player = p
 	selected_index = 0
 	is_on_shelter = _check_player_on_shelter()
+	has_mana = _check_player_has_mana()
 	_update_options()
 	_update_selection()
 	_update_status()
@@ -167,6 +182,10 @@ func _update_selection() -> void:
 	if option4_label:
 		option4_label.modulate = COLOR_SELECTED if selected_index == 3 else COLOR_NORMAL
 
+	# Option 5 highlighting (only visible when player has mana)
+	if option5_label:
+		option5_label.modulate = COLOR_SELECTED if selected_index == 4 else COLOR_NORMAL
+
 func _update_options() -> void:
 	# Update option 2 with the next time period
 	var next_period = _get_next_time_period()
@@ -176,11 +195,23 @@ func _update_options() -> void:
 	if option4_label:
 		option4_label.visible = is_on_shelter
 
+	# Show/hide option 5 based on mana status
+	if option5_label:
+		option5_label.visible = has_mana
+
 func _update_status() -> void:
 	if player and player.survival:
 		var current_stamina = player.survival.stamina
 		var max_stamina = player.survival.get_max_stamina()
-		status_label.text = "Stamina: %d/%d" % [int(current_stamina), int(max_stamina)]
+		var status_text = "Stamina: %d/%d" % [int(current_stamina), int(max_stamina)]
+
+		# Add mana info if player has mana
+		if has_mana:
+			var current_mana = player.survival.mana
+			var max_mana = player.survival.get_max_mana()
+			status_text += "  Mana: %d/%d" % [int(current_mana), int(max_mana)]
+
+		status_label.text = status_text
 	else:
 		status_label.text = ""
 
@@ -278,6 +309,12 @@ func _select_option(index: int) -> void:
 				var turns_needed = _calculate_turns_to_full_health()
 				rest_requested.emit("health", turns_needed)
 				_close()
+		4:
+			# Until mana restored (only available if player has mana)
+			if has_mana:
+				var turns_needed = _calculate_turns_to_full_mana()
+				rest_requested.emit("mana", turns_needed)
+				_close()
 
 func _confirm_turns_input() -> void:
 	var text = turns_input.text.strip_edges()
@@ -357,3 +394,30 @@ func _get_player_shelter_data() -> Dictionary:
 				}
 
 	return {}
+
+## Check if player has a mana pool (is a spellcaster)
+func _check_player_has_mana() -> bool:
+	if not player or not player.survival:
+		return false
+	# Player has mana if their max mana > 0
+	return player.survival.get_max_mana() > 0
+
+## Calculate turns needed to restore mana to full
+func _calculate_turns_to_full_mana() -> int:
+	if not player or not player.survival:
+		return 10
+
+	var current_mana = player.survival.mana
+	var max_mana = player.survival.get_max_mana()
+	var missing = max_mana - current_mana
+
+	if missing <= 0:
+		return 1  # Already full, just wait 1 turn
+
+	# Check if player is in shelter for faster regen
+	var regen_per_turn = player.survival.MANA_REGEN_PER_TURN
+	if is_on_shelter:
+		regen_per_turn *= player.survival.MANA_REGEN_SHELTER_MULTIPLIER
+
+	var turns_needed = int(ceil(missing / regen_per_turn))
+	return max(1, turns_needed)

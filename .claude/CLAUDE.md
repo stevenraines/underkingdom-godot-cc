@@ -13,7 +13,7 @@ The game uses a **signal-based event bus** for loose coupling between systems:
 - Key signals: `turn_advanced`, `player_moved`, `entity_died`, `item_picked_up`, etc.
 
 ### Autoload Singletons (Managers)
-Seven persistent managers handle core systems:
+Key persistent managers handle core systems:
 1. **EventBus** - Signal relay for all events
 2. **TurnManager** - Turn-based game loop, day/night cycle (1000 turns/day)
 3. **GameManager** - High-level game state, world seed, save slot management
@@ -21,6 +21,7 @@ Seven persistent managers handle core systems:
 5. **EntityManager** - Enemy definitions, entity spawning, turn processing
 6. **ItemManager** - Item definitions, item creation from JSON data (legacy + templated)
 7. **VariantManager** - Item templates and variant definitions for dynamic item generation
+8. **SpellManager** - Spell definitions, casting requirements, spell lookup by school/level
 
 ### Rendering Abstraction
 Game logic never touches visuals directly:
@@ -291,6 +292,7 @@ res://
 │   ├── map_manager.gd
 │   ├── entity_manager.gd
 │   ├── item_manager.gd
+│   ├── spell_manager.gd
 │   ├── variant_manager.gd  # Item templates and variant loading
 │   ├── recipe_manager.gd
 │   └── save_manager.gd
@@ -303,6 +305,8 @@ res://
 ├── items/              # Item system
 │   ├── item.gd
 │   └── item_factory.gd  # Creates items from templates + variants
+├── magic/              # Magic system
+│   └── spell.gd        # Spell data class
 ├── systems/            # Game systems
 │   ├── combat_system.gd
 │   ├── ranged_combat_system.gd
@@ -358,7 +362,12 @@ res://
 │   ├── enemies/
 │   ├── dungeons/       # Dungeon type definitions
 │   ├── features/       # Dungeon feature definitions (chests, altars, etc.)
-│   └── hazards/        # Dungeon hazard definitions (traps, etc.)
+│   ├── hazards/        # Dungeon hazard definitions (traps, etc.)
+│   └── spells/         # Spell definitions by school
+│       ├── evocation/
+│       ├── conjuration/
+│       ├── abjuration/
+│       └── ...
 ├── scenes/             # Scene files
 │   ├── main.tscn
 │   └── game.tscn
@@ -402,6 +411,7 @@ res://
 - Dungeons: `data/dungeons/` → DungeonManager
 - Features: `data/features/` → FeatureManager
 - Hazards: `data/hazards/` → HazardManager
+- Spells: `data/spells/` → SpellManager
 
 **JSON file template:**
 ```json
@@ -690,7 +700,8 @@ docs/
 | `container-component.md` | `systems/components/container_component.gd` | Storage |
 | `resource-spawner.md` | `systems/resource_spawner.gd` | Resource placement |
 | `recipe-manager.md` | `autoload/recipe_manager.gd` | Recipe loading |
-| `magic-system.md` | `systems/magic_system.gd` | Spellcasting (planned) |
+| `spell-manager.md` | `autoload/spell_manager.gd` | Spell loading and requirements |
+| `magic-system.md` | (overview) | Magic system overview |
 
 ### Data Documentation Files
 
@@ -708,7 +719,7 @@ docs/
 | `structures.md` | `data/structures/` | Structure definitions |
 | `world-generation.md` | `data/world_generation_config.json` | World gen config |
 | `configuration.md` | Various | Game constants |
-| `spells.md` | `data/spells/` | Spell JSON format (planned) |
+| `spells.md` | `data/spells/` | Spell JSON format |
 | `rituals.md` | `data/rituals/` | Ritual JSON format (planned) |
 
 ### Update Rules

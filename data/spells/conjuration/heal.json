@@ -1,0 +1,28 @@
+{
+  "id": "heal",
+  "name": "Heal",
+  "description": "Restore health to yourself or a touched ally.",
+  "school": "conjuration",
+  "level": 1,
+  "mana_cost": 8,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "touch",
+    "range": 1
+  },
+  "effects": {
+    "heal": {
+      "base": 10,
+      "scaling": 4
+    }
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "Healing energy flows through you!",
+  "ascii_char": "+",
+  "ascii_color": "#44FF44"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "spark",
+  "name": "Spark",
+  "description": "A small bolt of lightning strikes the target.",
+  "school": "evocation",
+  "level": 1,
+  "mana_cost": 5,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "lightning",
+      "base": 8,
+      "scaling": 3
+    }
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You release a spark of lightning!",
+  "ascii_char": "*",
+  "ascii_color": "#FFFF00"
+}

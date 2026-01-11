@@ -1,0 +1,30 @@
+{
+  "id": "light",
+  "name": "Light",
+  "description": "Create a small magical light that follows you.",
+  "school": "evocation",
+  "level": 0,
+  "mana_cost": 0,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "buff": {
+      "vision_bonus": 2,
+      "duration": 100,
+      "duration_scaling": 20
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 100,
+    "scaling": 20
+  },
+  "cast_message": "A soft glow surrounds you.",
+  "ascii_char": "*",
+  "ascii_color": "#FFFFAA"
+}

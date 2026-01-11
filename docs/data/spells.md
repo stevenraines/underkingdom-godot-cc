@@ -2,9 +2,15 @@
 
 Spells are defined as JSON files in `data/spells/{school}/` directories.
 
-## Status: Not Yet Implemented
+## Status: Phase 2 Implemented
 
-This documentation will be updated as spell data loading is implemented in Phase 2.
+SpellManager autoload loads spell definitions from JSON files at startup.
+
+**Current spells:**
+- `light` (evocation, cantrip) - Creates a light that follows you
+- `spark` (evocation, level 1) - Lightning bolt attack
+- `heal` (conjuration, level 1) - Restore health
+- `shield` (abjuration, level 1) - Temporary armor buff
 
 ## Directory Structure
 

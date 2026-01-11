@@ -11,4 +11,5 @@ The options should be:
     1. Receipes (the current Receipes)
     2. Spells (spell casters can teach spells to be inscribed in a spellbook)
     3. Capabilities (spell casters can teach how to cast spells)
-3. Train - Teach the player, advancing their skills.
+3. Train - the player can improve skills or learn new skills
+    

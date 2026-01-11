@@ -8,13 +8,22 @@ extends Control
 signal closed
 
 @onready var tab_container: TabContainer = $Panel/MarginContainer/VBoxContainer/TabContainer
-@onready var stats_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Stats
-@onready var stats_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Stats/ScrollMargin/ContentBox
+@onready var progression_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression
+@onready var progression_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression/ScrollMargin/ContentBox
+@onready var abilities_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities
+@onready var abilities_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities/ScrollMargin/ContentBox
 @onready var skills_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills
 @onready var skills_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin/ContentBox
+@onready var combat_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat
+@onready var combat_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat/ScrollMargin/ContentBox
+@onready var survival_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival
+@onready var survival_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival/ScrollMargin/ContentBox
+@onready var weather_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Weather
+@onready var weather_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Weather/ScrollMargin/ContentBox
 
 var player = null  # Player instance
 var current_scroll_container: ScrollContainer = null  # Track which tab is active for scrolling
+var current_content_box: VBoxContainer = null  # Track which content box to add to
 
 # Colors matching inventory screen
 const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
@@ -32,8 +41,14 @@ func _ready() -> void:
 ## Open the character sheet
 func open(p_player) -> void:
 	player = p_player
-	_populate_content()
+
+	# Populate all 6 tabs
+	_populate_progression_tab()
+	_populate_abilities_tab()
 	_populate_skills_tab()
+	_populate_combat_tab()
+	_populate_survival_tab()
+	_populate_weather_tab()
 
 	# Set initial scroll container based on current tab
 	_on_tab_changed(tab_container.current_tab if tab_container else 0)
@@ -45,30 +60,53 @@ func close() -> void:
 	hide()
 	closed.emit()
 
-## Populate the stats tab content dynamically
-func _populate_content() -> void:
-	# Clear existing content
-	for child in stats_content.get_children():
+## Populate the Progression tab
+func _populate_progression_tab() -> void:
+	# Clear existing children immediately (don't await - causes async issues)
+	for child in progression_content.get_children():
 		child.queue_free()
-
-	# Wait a frame for nodes to be freed
-	await get_tree().process_frame
-
-	# Add sections
-	_add_attributes_section()
-	_add_spacer()
-	_add_combat_section()
-	_add_spacer()
-	_add_survival_section()
-	_add_spacer()
-	_add_weather_section()
-	_add_spacer()
+	current_content_box = progression_content
 	_add_progression_section()
+
+## Populate the Abilities tab
+func _populate_abilities_tab() -> void:
+	for child in abilities_content.get_children():
+		child.queue_free()
+	current_content_box = abilities_content
+	_add_attributes_section()
+
+## Populate the Skills tab
+func _populate_skills_tab() -> void:
+	for child in skills_content.get_children():
+		child.queue_free()
+	current_content_box = skills_content
+	_add_skills_section()
+
+## Populate the Combat tab
+func _populate_combat_tab() -> void:
+	for child in combat_content.get_children():
+		child.queue_free()
+	current_content_box = combat_content
+	_add_combat_section()
+
+## Populate the Survival tab
+func _populate_survival_tab() -> void:
+	for child in survival_content.get_children():
+		child.queue_free()
+	current_content_box = survival_content
+	_add_survival_section()
+
+## Populate the Weather tab
+func _populate_weather_tab() -> void:
+	for child in weather_content.get_children():
+		child.queue_free()
+	current_content_box = weather_content
+	_add_weather_section()
 
 ## Add the attributes section (STR, DEX, CON, INT, WIS, CHA)
 func _add_attributes_section() -> void:
 	var section_header = _create_section_header("== ATTRIBUTES ==")
-	stats_content.add_child(section_header)
+	abilities_content.add_child(section_header)
 
 	var attributes = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
 	var attribute_names = {
@@ -110,12 +148,60 @@ func _add_attributes_section() -> void:
 		value_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(value_label)
 
-		stats_content.add_child(stat_line)
+		abilities_content.add_child(stat_line)
+
+## Add the skills section
+func _add_skills_section() -> void:
+	var section_header = _create_section_header("== SKILLS ==")
+	skills_content.add_child(section_header)
+
+	# Get skill names sorted alphabetically
+	var skill_names = player.skills.keys()
+	skill_names.sort()
+
+	if skill_names.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No skills learned yet"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		empty_label.add_theme_font_size_override("font_size", 14)
+		skills_content.add_child(empty_label)
+		return
+
+	for skill_name in skill_names:
+		var skill_level = player.skills[skill_name]
+
+		var skill_line = HBoxContainer.new()
+
+		# Skill name (left-aligned)
+		var name_label = Label.new()
+		name_label.text = "%s:" % skill_name
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.add_theme_color_override("font_color", COLOR_LABEL)
+		name_label.add_theme_font_size_override("font_size", 14)
+		skill_line.add_child(name_label)
+
+		# Value display (right-aligned) - just show current level
+		var value_label = Label.new()
+		value_label.text = "%d" % skill_level
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value_label.custom_minimum_size.x = 80
+
+		# Color based on skill level
+		if skill_level > 0:
+			value_label.add_theme_color_override("font_color", COLOR_VALUE)  # Green - has points
+		else:
+			value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))  # Gray - no points
+
+		value_label.add_theme_font_size_override("font_size", 14)
+		skill_line.add_child(value_label)
+
+		skills_content.add_child(skill_line)
 
 ## Add the combat section
 func _add_combat_section() -> void:
 	var section_header = _create_section_header("== COMBAT ==")
-	stats_content.add_child(section_header)
+	combat_content.add_child(section_header)
 
 	# Health
 	_add_stat_line("Health", "%d / %d" % [player.current_health, player.max_health],
@@ -151,7 +237,7 @@ func _add_combat_section() -> void:
 ## Add the survival section
 func _add_survival_section() -> void:
 	var section_header = _create_section_header("== SURVIVAL ==")
-	stats_content.add_child(section_header)
+	survival_content.add_child(section_header)
 
 	if not player.survival:
 		_add_stat_line("Status", "No survival data", Color(0.7, 0.7, 0.7))
@@ -196,7 +282,7 @@ func _add_survival_section() -> void:
 ## Add the weather section
 func _add_weather_section() -> void:
 	var section_header = _create_section_header("== WEATHER ==")
-	stats_content.add_child(section_header)
+	weather_content.add_child(section_header)
 
 	# Current date and time
 	var date_str = CalendarManager.get_short_date_string()
@@ -268,7 +354,7 @@ func _get_season_color(season: String) -> Color:
 ## Add the progression section
 func _add_progression_section() -> void:
 	var section_header = _create_section_header("== PROGRESSION ==")
-	stats_content.add_child(section_header)
+	progression_content.add_child(section_header)
 
 	# Level
 	_add_stat_line("Level", "%d" % player.level, Color(1.0, 0.85, 0.3))
@@ -277,18 +363,73 @@ func _add_progression_section() -> void:
 	_add_stat_line("Experience", "%d / %d" % [player.experience, player.experience_to_next_level],
 		Color(0.7, 0.85, 0.95))
 
-	# Skill Points Available
-	if player.available_skill_points > 0:
-		_add_stat_line("Skill Points", "%d unspent" % player.available_skill_points,
-			Color(0.95, 0.7, 0.95))  # Bright magenta for unspent points
+	# Prominent level-up notice if points are available
+	if player.available_skill_points > 0 or player.available_ability_points > 0:
+		_add_spacer()
+
+		# Add a prominent notice panel
+		var notice_panel = PanelContainer.new()
+		var notice_style = StyleBoxFlat.new()
+		notice_style.bg_color = Color(0.2, 0.15, 0.3, 0.9)  # Dark purple background
+		notice_style.border_width_left = 2
+		notice_style.border_width_top = 2
+		notice_style.border_width_right = 2
+		notice_style.border_width_bottom = 2
+		notice_style.border_color = Color(0.95, 0.7, 0.95, 1)  # Bright magenta border
+		notice_style.corner_radius_top_left = 4
+		notice_style.corner_radius_top_right = 4
+		notice_style.corner_radius_bottom_left = 4
+		notice_style.corner_radius_bottom_right = 4
+		notice_panel.add_theme_stylebox_override("panel", notice_style)
+
+		var notice_margin = MarginContainer.new()
+		notice_margin.add_theme_constant_override("margin_left", 12)
+		notice_margin.add_theme_constant_override("margin_top", 12)
+		notice_margin.add_theme_constant_override("margin_right", 12)
+		notice_margin.add_theme_constant_override("margin_bottom", 12)
+		notice_panel.add_child(notice_margin)
+
+		var notice_vbox = VBoxContainer.new()
+		notice_vbox.add_theme_constant_override("separation", 8)
+		notice_margin.add_child(notice_vbox)
+
+		# Title label
+		var title_label = Label.new()
+		title_label.text = "⬆ LEVEL UP AVAILABLE ⬆"
+		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		title_label.add_theme_font_size_override("font_size", 18)
+		notice_vbox.add_child(title_label)
+
+		# Points summary
+		var summary_label = Label.new()
+		var summary_parts = []
+		if player.available_skill_points > 0:
+			summary_parts.append("%d Skill Point%s" % [player.available_skill_points, "s" if player.available_skill_points > 1 else ""])
+		if player.available_ability_points > 0:
+			summary_parts.append("%d Ability Point%s" % [player.available_ability_points, "s" if player.available_ability_points > 1 else ""])
+		summary_label.text = " + ".join(summary_parts) + " to spend"
+		summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		summary_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+		summary_label.add_theme_font_size_override("font_size", 14)
+		notice_vbox.add_child(summary_label)
+
+		# Button to open level-up screen
+		var level_up_button = Button.new()
+		level_up_button.text = "Allocate Points [L]"
+		level_up_button.custom_minimum_size = Vector2(200, 40)
+		level_up_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		level_up_button.add_theme_font_size_override("font_size", 14)
+		level_up_button.pressed.connect(_on_level_up_button_pressed)
+		notice_vbox.add_child(level_up_button)
+
+		progression_content.add_child(notice_panel)
+		_add_spacer()
 	else:
+		# Skill Points Available
 		_add_stat_line("Skill Points", "0", Color(0.7, 0.7, 0.7))
 
-	# Ability Points Available
-	if player.available_ability_points > 0:
-		_add_stat_line("Ability Points", "%d unspent" % player.available_ability_points,
-			Color(0.95, 0.7, 0.7))  # Bright red for unspent points
-	else:
+		# Ability Points Available
 		_add_stat_line("Ability Points", "0", Color(0.7, 0.7, 0.7))
 
 	# Gold
@@ -316,7 +457,7 @@ func _add_stat_line(label_text: String, value_text: String, value_color: Color) 
 	value.add_theme_font_size_override("font_size", 14)
 	line.add_child(value)
 
-	stats_content.add_child(line)
+	current_content_box.add_child(line)
 
 ## Helper: Create a section header
 func _create_section_header(text: String) -> Label:
@@ -331,7 +472,7 @@ func _create_section_header(text: String) -> Label:
 func _add_spacer() -> void:
 	var spacer = Control.new()
 	spacer.custom_minimum_size.y = 12
-	stats_content.add_child(spacer)
+	current_content_box.add_child(spacer)
 
 ## Color helpers
 func _get_health_color(ratio: float) -> Color:
@@ -376,16 +517,33 @@ func _get_encumbrance_color(percent: float) -> Color:
 	else:
 		return Color(1.0, 0.4, 0.4)  # Red
 
+## Handle level-up button press
+func _on_level_up_button_pressed() -> void:
+	# Navigate up to find the game node and open level_up_screen
+	var game = get_node("/root/Game")
+	if game and game.level_up_screen and player:
+		hide()  # Hide character sheet while level-up screen is open
+		game.level_up_screen.open(player)
+		game.input_handler.ui_blocking_input = true
+
 ## Called when tab changes
 func _on_tab_changed(tab_index: int) -> void:
 	# Update current scroll container based on active tab
 	match tab_index:
-		0:  # Stats tab
-			current_scroll_container = stats_scroll
-		1:  # Skills tab
+		0:  # Progression tab
+			current_scroll_container = progression_scroll
+		1:  # Abilities tab
+			current_scroll_container = abilities_scroll
+		2:  # Skills tab
 			current_scroll_container = skills_scroll
+		3:  # Combat tab
+			current_scroll_container = combat_scroll
+		4:  # Survival tab
+			current_scroll_container = survival_scroll
+		5:  # Weather tab
+			current_scroll_container = weather_scroll
 		_:
-			current_scroll_container = stats_scroll
+			current_scroll_container = progression_scroll
 
 ## Handle input
 func _input(event: InputEvent) -> void:
@@ -396,6 +554,12 @@ func _input(event: InputEvent) -> void:
 		var scroll_amount = 40  # Pixels to scroll per key press
 
 		match event.keycode:
+			KEY_L:
+				# L key - open level-up screen if points available
+				if player and (player.available_skill_points > 0 or player.available_ability_points > 0):
+					_on_level_up_button_pressed()
+				get_viewport().set_input_as_handled()
+
 			KEY_TAB:
 				# Cycle through tabs
 				if tab_container:
@@ -444,186 +608,3 @@ func _input(event: InputEvent) -> void:
 				close()
 				get_viewport().set_input_as_handled()
 
-## =========================================================================
-## SKILLS TAB
-## =========================================================================
-
-## Populate the skills tab
-func _populate_skills_tab() -> void:
-	# Clear existing content
-	for child in skills_content.get_children():
-		child.queue_free()
-
-	# Wait a frame for nodes to be freed
-	await get_tree().process_frame
-
-	# Header
-	var header = _create_section_header("== SKILLS ==")
-	skills_content.add_child(header)
-
-	_add_skills_spacer()
-
-	# Show available points
-	var points_text = "Available Skill Points: %d" % player.available_skill_points
-	var points_label = Label.new()
-	points_label.text = points_text
-	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if player.available_skill_points > 0:
-		points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.95))
-	else:
-		points_label.add_theme_color_override("font_color", COLOR_LABEL)
-	points_label.add_theme_font_size_override("font_size", 14)
-	skills_content.add_child(points_label)
-
-	_add_skills_spacer()
-
-	# List all skills (alphabetically sorted)
-	var skill_names = player.skills.keys()
-	skill_names.sort()
-
-	for skill_name in skill_names:
-		var skill_level = player.skills[skill_name]
-		_add_skill_line(skill_name, skill_level)
-
-	_add_skills_spacer()
-	_add_skills_spacer()
-
-	# Ability Score Increases
-	var ability_header = _create_section_header("== ABILITY SCORE INCREASES ==")
-	skills_content.add_child(ability_header)
-
-	_add_skills_spacer()
-
-	# Show available ability points
-	var ability_points_text = "Available Ability Points: %d" % player.available_ability_points
-	var ability_points_label = Label.new()
-	ability_points_label.text = ability_points_text
-	ability_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if player.available_ability_points > 0:
-		ability_points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.7))
-	else:
-		ability_points_label.add_theme_color_override("font_color", COLOR_LABEL)
-	ability_points_label.add_theme_font_size_override("font_size", 14)
-	skills_content.add_child(ability_points_label)
-
-	_add_skills_spacer()
-
-	if player.available_ability_points > 0:
-		var hint_label = Label.new()
-		hint_label.text = "Click a button to increase that ability score:"
-		hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hint_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.6))
-		hint_label.add_theme_font_size_override("font_size", 13)
-		skills_content.add_child(hint_label)
-
-		_add_skills_spacer()
-
-		# List all abilities with buttons
-		var abilities = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
-		var ability_names = {
-			"STR": "Strength",
-			"DEX": "Dexterity",
-			"CON": "Constitution",
-			"INT": "Intelligence",
-			"WIS": "Wisdom",
-			"CHA": "Charisma"
-		}
-
-		for ability in abilities:
-			_add_ability_line(ability, ability_names[ability], player.attributes[ability])
-	else:
-		var no_points_label = Label.new()
-		no_points_label.text = "No ability points available. Gain them every 4 levels."
-		no_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		no_points_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-		no_points_label.add_theme_font_size_override("font_size", 12)
-		skills_content.add_child(no_points_label)
-
-## Add a skill line with +/- buttons
-func _add_skill_line(skill_name: String, current_level: int) -> void:
-	var line = HBoxContainer.new()
-
-	# Skill name (left)
-	var name_label = Label.new()
-	name_label.text = "%s:" % skill_name
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
-	name_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(name_label)
-
-	# Current level (center)
-	var level_label = Label.new()
-	level_label.text = "%d / %d" % [current_level, player.level]  # Current / Max (level cap)
-	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	level_label.custom_minimum_size.x = 80
-	if current_level >= player.level:
-		level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Gold if maxed
-	else:
-		level_label.add_theme_color_override("font_color", COLOR_VALUE)
-	level_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(level_label)
-
-	# + button (right)
-	var plus_button = Button.new()
-	plus_button.text = "+"
-	plus_button.custom_minimum_size = Vector2(30, 0)
-
-	# Check if can increase
-	var can_increase = player.available_skill_points > 0 and current_level < player.level
-	plus_button.disabled = not can_increase
-
-	if can_increase:
-		plus_button.pressed.connect(func(): _on_skill_increase_pressed(skill_name))
-
-	line.add_child(plus_button)
-
-	skills_content.add_child(line)
-
-## Add an ability score line with button
-func _add_ability_line(ability_code: String, ability_name: String, current_value: int) -> void:
-	var line = HBoxContainer.new()
-
-	# Ability name (left)
-	var name_label = Label.new()
-	name_label.text = "%s:" % ability_name
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
-	name_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(name_label)
-
-	# Current value (center)
-	var value_label = Label.new()
-	value_label.text = "%d" % current_value
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.custom_minimum_size.x = 80
-	value_label.add_theme_color_override("font_color", COLOR_VALUE)
-	value_label.add_theme_font_size_override("font_size", 14)
-	line.add_child(value_label)
-
-	# Increase button (right)
-	var button = Button.new()
-	button.text = "+ Increase"
-	button.custom_minimum_size = Vector2(100, 0)
-	button.pressed.connect(func(): _on_ability_increase_pressed(ability_code))
-	line.add_child(button)
-
-	skills_content.add_child(line)
-
-## Called when skill increase button is pressed
-func _on_skill_increase_pressed(skill_name: String) -> void:
-	if player.spend_skill_point(skill_name):
-		# Refresh the skills tab
-		_populate_skills_tab()
-
-## Called when ability increase button is pressed
-func _on_ability_increase_pressed(ability_code: String) -> void:
-	if player.increase_ability(ability_code):
-		# Refresh both tabs (stats tab shows attributes, skills tab shows ability points)
-		_populate_content()
-		_populate_skills_tab()
-
-## Add a spacer for skills tab
-func _add_skills_spacer() -> void:
-	var spacer = Control.new()
-	spacer.custom_minimum_size.y = 8
-	skills_content.add_child(spacer)

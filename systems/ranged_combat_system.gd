@@ -65,7 +65,12 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		result.damage = damage
 
 		# Apply damage to target
-		target.take_damage(damage)
+		# Pass source and weapon for death tracking
+		var source = attacker.name if attacker else "Unknown"
+		var method = weapon.name if weapon else "Projectile"
+
+		if target.has_method("take_damage"):
+			target.take_damage(damage, source, method)
 
 		# Check if target died
 		if not target.is_alive:

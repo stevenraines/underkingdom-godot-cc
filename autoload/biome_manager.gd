@@ -12,7 +12,7 @@ var generation_config: Dictionary = {}
 
 # Base paths
 const BIOME_DATA_PATH: String = "res://data/biomes"
-const CONFIG_PATH: String = "res://data/world_generation_config.json"
+const CONFIG_PATH: String = "res://data/configuration/world_generation_config.json"
 
 func _ready() -> void:
 	_load_generation_config()

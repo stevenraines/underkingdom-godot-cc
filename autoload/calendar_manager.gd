@@ -5,7 +5,7 @@ extends Node
 ## Manages years, seasons, months, weeks, and days based on calendar.json.
 ## Provides temperature modifiers based on season and time of day.
 
-const CALENDAR_PATH = "res://data/calendar.json"
+const CALENDAR_PATH = "res://data/configuration/calendar.json"
 
 # Calendar data loaded from JSON
 var calendar_data: Dictionary = {}

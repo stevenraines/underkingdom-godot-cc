@@ -64,6 +64,8 @@ theme_override_constants/margin_bottom = 12
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="Header" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -81,17 +83,34 @@ layout_mode = 2
 size_flags_vertical = 3
 theme = ExtResource("2_theme")
 
-[node name="Stats" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+[node name="Progression" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
 layout_mode = 2
 theme = ExtResource("2_theme")
 
-[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Stats"]
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Progression"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_right = 12
 
-[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Stats/ScrollMargin"]
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Progression/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
+[node name="Abilities" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Abilities"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Abilities/ScrollMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -109,6 +128,57 @@ size_flags_vertical = 3
 theme_override_constants/margin_right = 12
 
 [node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Skills/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
+[node name="Combat" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Combat"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Combat/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
+[node name="Survival" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Survival"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Survival/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
+[node name="Weather" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Weather"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Weather/ScrollMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

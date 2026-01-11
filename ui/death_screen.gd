@@ -76,8 +76,27 @@ func _display_death_stats(stats: Dictionary) -> void:
 
 	var text = "[center][color=#ff8888][b]*** YOU HAVE DIED ***[/b][/color][/center]\n\n"
 
-	# Show cause of death or final stats
-	text += "[color=#cccccc]Your journey has ended...[/color]\n\n"
+	# Show cause of death if available
+	var death_cause = stats.get("death_cause", "")
+	var death_method = stats.get("death_method", "")
+	var death_location = stats.get("death_location", "")
+
+	if death_cause != "":
+		text += "[center][color=#ff6666]"
+
+		# Format the death message based on what information we have
+		if death_method != "" and death_method != "survival":
+			text += "Killed by [b]%s[/b]" % death_cause
+			text += " with %s" % death_method
+		else:
+			text += "Killed by [b]%s[/b]" % death_cause
+
+		if death_location != "":
+			text += "\nin %s" % death_location
+
+		text += "[/color][/center]\n\n"
+	else:
+		text += "[color=#cccccc]Your journey has ended...[/color]\n\n"
 
 	# Display key stats
 	text += "[color=#9acc9a][b]Final Statistics:[/b][/color]\n"

@@ -10,3 +10,5 @@ When the player starts the game and goes to the main menu, the auto-save slot ga
 Loading an existing game copies it into the auto-save slot.
 
 If the player dies, the auto-save slot should be cleared.
+
+If the auto-save slot is cleared and there are no saved games, the continue button should not appear on the main menu

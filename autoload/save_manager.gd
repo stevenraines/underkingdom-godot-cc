@@ -171,6 +171,7 @@ func _serialize_game_state() -> Dictionary:
 		"entities": _serialize_entities(),
 		"harvest": _serialize_harvest(),
 		"farming": _serialize_farming(),
+		"structures": StructureManager.serialize(),
 		"fog_of_war": FogOfWarSystemClass.serialize()
 	}
 
@@ -192,7 +193,9 @@ func _serialize_world() -> Dictionary:
 		"current_turn": TurnManager.current_turn,
 		"time_of_day": TurnManager.get_time_of_day(),
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
+		"current_dungeon_type": MapManager.current_dungeon_type,
 		"current_dungeon_floor": MapManager.current_dungeon_floor,
+		"last_overworld_position": {"x": GameManager.last_overworld_position.x, "y": GameManager.last_overworld_position.y},
 		"visited_locations": GameManager.visited_locations.duplicate(true),
 		"calendar": CalendarManager.serialize(),
 		"weather": WeatherManager.serialize()
@@ -280,24 +283,28 @@ func _serialize_equipment(equipment: Dictionary) -> Dictionary:
 				equipped[slot] = {"id": item.id, "stack_size": 1}
 	return equipped
 
-## Serialize maps (save current map tiles to preserve harvested resources)
+## Serialize maps (save all visited maps to preserve state)
 func _serialize_maps() -> Dictionary:
 	var maps_data = {}
 
-	# Save tiles for the current map (where player has been)
-	if MapManager.current_map:
-		var map = MapManager.current_map
+	# Save all loaded maps (visited dungeons, overworld)
+	for map_id in MapManager.loaded_maps:
+		var map = MapManager.loaded_maps[map_id]
+		if not map:
+			continue
 
-		# For chunk-based maps (overworld), save chunks instead of all tiles
+		# For chunk-based maps (overworld), only save if it's the current map
+		# (we can only save currently loaded chunks)
 		if map.chunk_based:
-			maps_data[map.map_id] = {
-				"width": map.width,
-				"height": map.height,
-				"chunk_based": true,
-				"chunks": ChunkManager.save_chunks()
-			}
+			if map == MapManager.current_map:
+				maps_data[map.map_id] = {
+					"width": map.width,
+					"height": map.height,
+					"chunk_based": true,
+					"chunks": ChunkManager.save_chunks()
+				}
 		else:
-			# For non-chunked maps (dungeons), save all tiles
+			# For non-chunked maps (dungeons), save all tiles for ALL visited floors
 			var tiles_data = []
 
 			# Save all tiles
@@ -320,7 +327,8 @@ func _serialize_maps() -> Dictionary:
 				"width": map.width,
 				"height": map.height,
 				"chunk_based": false,
-				"tiles": tiles_data
+				"tiles": tiles_data,
+				"metadata": map.metadata  # Save metadata (contains entity states)
 			}
 
 	return maps_data
@@ -407,7 +415,14 @@ func _deserialize_game_state(save_data: Dictionary):
 
 	# Reload current map (this triggers map_changed signal, but we skip enemy spawn)
 	var map_id = save_data.world.get("current_map_id", "overworld")
+	MapManager.current_dungeon_type = save_data.world.get("current_dungeon_type", "")
 	MapManager.current_dungeon_floor = save_data.world.get("current_dungeon_floor", 0)
+
+	# Fallback: parse dungeon type from map_id for old saves
+	if MapManager.current_dungeon_type == "" and "_floor_" in map_id:
+		var floor_idx = map_id.find("_floor_")
+		MapManager.current_dungeon_type = map_id.substr(0, floor_idx)
+
 	MapManager.transition_to_map(map_id)
 
 	# Restore map tiles (to preserve harvested resources)
@@ -424,6 +439,10 @@ func _deserialize_game_state(save_data: Dictionary):
 	if save_data.has("farming"):
 		_deserialize_farming(save_data.farming)
 
+	# Restore structure placements (shelters, etc.)
+	if save_data.has("structures"):
+		StructureManager.deserialize(save_data.structures)
+
 	# Restore fog of war (explored tiles)
 	if save_data.has("fog_of_war"):
 		FogOfWarSystemClass.deserialize(save_data.fog_of_war)
@@ -438,6 +457,13 @@ func _deserialize_world(world_data: Dictionary):
 	GameManager.world_seed = world_data.seed
 	GameManager.world_name = world_data.get("world_name", "Unknown World")
 	TurnManager.current_turn = world_data.current_turn
+
+	# Restore last overworld position (for dungeon return)
+	if world_data.has("last_overworld_position"):
+		var pos_data = world_data.last_overworld_position
+		GameManager.last_overworld_position = Vector2i(pos_data.x, pos_data.y)
+	else:
+		GameManager.last_overworld_position = Vector2i.ZERO
 
 	# Restore visited locations for fast travel
 	if world_data.has("visited_locations"):
@@ -551,6 +577,9 @@ func _deserialize_inventory(inventory: Inventory, items_data: Array):
 			# Restore inscription if it was saved
 			if item_data.has("inscription") and item_data.inscription != null:
 				item.inscription = item_data.inscription
+			# Restore lit state for light sources
+			if item_data.has("is_lit"):
+				item.is_lit = item_data.is_lit
 			inventory.items.append(item)
 
 ## Deserialize equipment
@@ -585,6 +614,9 @@ func _deserialize_equipment(inventory: Inventory, equipment_data: Dictionary):
 			# Restore inscription if saved
 			if item and item_data.has("inscription") and item_data.inscription != null:
 				item.inscription = item_data.inscription
+			# Restore lit state for light sources
+			if item and item_data.has("is_lit"):
+				item.is_lit = item_data.is_lit
 		else:
 			# Legacy format: just item_id string
 			item = ItemManager.create_item(item_data, 1)
@@ -592,50 +624,63 @@ func _deserialize_equipment(inventory: Inventory, equipment_data: Dictionary):
 		if item:
 			inventory.equipment[slot] = item
 
-## Deserialize maps (restore tiles to preserve harvested resources)
+## Deserialize maps (restore all saved maps into cache)
 func _deserialize_maps(maps_data: Dictionary, current_map_id: String) -> void:
-	if not maps_data.has(current_map_id):
-		return  # No saved data for this map
+	# Restore ALL saved maps into MapManager.loaded_maps cache
+	for map_id in maps_data:
+		var map_data = maps_data[map_id]
 
-	var map_data = maps_data[current_map_id]
-	var map = MapManager.current_map
+		# Get the map from cache (it should already be generated by transition_to_map)
+		# If it's not the current map, we need to generate it first
+		var map: GameMap = null
+		if map_id == current_map_id:
+			map = MapManager.current_map
+		elif map_id in MapManager.loaded_maps:
+			map = MapManager.loaded_maps[map_id]
+		else:
+			# Generate the map so we can restore its state
+			map = MapManager.get_or_generate_map(map_id, GameManager.world_seed)
 
-	if not map:
-		return
+		if not map:
+			continue
 
-	# For chunk-based maps, load chunks from save
-	if map_data.get("chunk_based", false):
-		var chunks_data = map_data.get("chunks", [])
-		ChunkManager.load_chunks(chunks_data)
-		print("SaveManager: Loaded %d chunks for %s" % [chunks_data.size(), current_map_id])
-		return
+		# For chunk-based maps, load chunks from save (only for current map)
+		if map_data.get("chunk_based", false):
+			if map == MapManager.current_map:
+				var chunks_data = map_data.get("chunks", [])
+				ChunkManager.load_chunks(chunks_data)
+				print("SaveManager: Loaded %d chunks for %s" % [chunks_data.size(), map_id])
+			continue
 
-	# For non-chunked maps (dungeons), restore tiles
-	var tiles_data = map_data.tiles
-	var idx = 0
-	for y in range(map.height):
-		for x in range(map.width):
-			if idx >= tiles_data.size():
-				break
+		# For non-chunked maps (dungeons), restore tiles
+		var tiles_data = map_data.tiles
+		var idx = 0
+		for y in range(map.height):
+			for x in range(map.width):
+				if idx >= tiles_data.size():
+					break
 
-			var tile_data = tiles_data[idx]
-			var tile = map.get_tile(Vector2i(x, y))
+				var tile_data = tiles_data[idx]
+				var tile = map.get_tile(Vector2i(x, y))
 
-			# Update tile properties from saved data
-			tile.tile_type = tile_data.tile_type
-			tile.walkable = tile_data.walkable
-			tile.transparent = tile_data.transparent
-			tile.ascii_char = tile_data.ascii_char
-			tile.harvestable_resource_id = tile_data.harvestable_resource_id
-			tile.is_open = tile_data.get("is_open", false)  # Default to false for backwards compatibility
-			# Lock properties (default to unlocked for backwards compatibility)
-			tile.is_locked = tile_data.get("is_locked", false)
-			tile.lock_id = tile_data.get("lock_id", "")
-			tile.lock_level = tile_data.get("lock_level", 1)
+				# Update tile properties from saved data
+				tile.tile_type = tile_data.tile_type
+				tile.walkable = tile_data.walkable
+				tile.transparent = tile_data.transparent
+				tile.ascii_char = tile_data.ascii_char
+				tile.harvestable_resource_id = tile_data.harvestable_resource_id
+				tile.is_open = tile_data.get("is_open", false)
+				tile.is_locked = tile_data.get("is_locked", false)
+				tile.lock_id = tile_data.get("lock_id", "")
+				tile.lock_level = tile_data.get("lock_level", 1)
 
-			idx += 1
+				idx += 1
 
-	print("SaveManager: Map tiles restored for ", current_map_id)
+		# Restore metadata (contains entity states for this map)
+		if map_data.has("metadata"):
+			map.metadata = map_data.metadata.duplicate(true)
+
+		print("SaveManager: Restored tiles for %s" % map_id)
 
 ## Deserialize entities (NPCs and Enemies)
 func _deserialize_entities(entities_data: Dictionary):

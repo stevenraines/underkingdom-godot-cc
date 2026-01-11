@@ -44,10 +44,16 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		# Calculate and apply damage
 		var damage = calculate_damage(attacker, defender)
 		result.damage = damage
-		
+
 		# Apply damage to defender
-		defender.take_damage(damage)
-		
+		# Pass source and method for death tracking
+		var source = attacker.name if attacker else "Unknown"
+		var natural_weapon = attacker.get("natural_weapon") if attacker else null
+		var method = result.weapon_name if result.weapon_name != "" else (natural_weapon if natural_weapon else "")
+
+		if defender.has_method("take_damage"):
+			defender.take_damage(damage, source, method)
+
 		# Check if defender died
 		if not defender.is_alive:
 			result.defender_died = true

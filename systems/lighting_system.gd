@@ -9,24 +9,24 @@ class_name LightingSystem
 # Light source types
 enum LightType {
 	SUN,           # Ambient daylight
-	TORCH,         # Carried torch (5 tile radius)
-	LANTERN,       # Carried lantern (7 tile radius)
-	CAMPFIRE,      # Structure fire (5 tile radius)
-	BRAZIER,       # Fixed dungeon light (4 tile radius)
+	TORCH,         # Carried torch (8 tile radius)
+	LANTERN,       # Carried lantern (12 tile radius)
+	CAMPFIRE,      # Structure fire (20 tile radius)
+	BRAZIER,       # Fixed dungeon light (10 tile radius)
 	GLOWING_MOSS,  # Natural dungeon light (3 tile radius)
-	MAGICAL,       # Magical light source (6 tile radius)
+	MAGICAL,       # Magical light source (10 tile radius)
 	CANDLE,        # Weak light (2 tile radius)
 }
 
 # Light radius by type
 const LIGHT_RADII: Dictionary = {
 	LightType.SUN: 999,        # Infinite during day
-	LightType.TORCH: 5,
-	LightType.LANTERN: 7,
-	LightType.CAMPFIRE: 5,
-	LightType.BRAZIER: 4,
+	LightType.TORCH: 8,
+	LightType.LANTERN: 12,
+	LightType.CAMPFIRE: 20,
+	LightType.BRAZIER: 10,
 	LightType.GLOWING_MOSS: 3,
-	LightType.MAGICAL: 6,
+	LightType.MAGICAL: 10,
 	LightType.CANDLE: 2,
 }
 

@@ -316,7 +316,11 @@ func _remove_feature(pos: Vector2i) -> void:
 		var features: Array = map.metadata.features
 		for i in range(features.size() - 1, -1, -1):
 			var f: Dictionary = features[i]
-			if f.get("position", Vector2i.ZERO) == pos:
+			var f_pos = f.get("position", Vector2i.ZERO)
+			# Handle both Vector2i (in memory) and String (from save data)
+			if f_pos is String:
+				f_pos = _parse_vector2i(f_pos)
+			if f_pos == pos:
 				features.remove_at(i)
 				break
 
@@ -350,7 +354,10 @@ func _try_unlock_feature(feature: Dictionary, player) -> Dictionary:
 	if unlock_result.success:
 		# Unlock the feature
 		feature.state["is_locked"] = false
-		var pos: Vector2i = feature.get("position", Vector2i.ZERO)
+		var pos = feature.get("position", Vector2i.ZERO)
+		# Handle both Vector2i (in memory) and String (from save data)
+		if pos is String:
+			pos = _parse_vector2i(pos)
 		EventBus.lock_opened.emit(pos, "key")
 		return {"success": true, "message": unlock_result.message}
 
@@ -464,7 +471,12 @@ func load_features_from_map(map: GameMap) -> void:
 		return
 
 	for feature_data in map.metadata.features:
-		var pos: Vector2i = feature_data.position
+		var pos = feature_data.position
+		# Handle both Vector2i (in memory) and String (from save data)
+		if pos is String:
+			pos = _parse_vector2i(pos)
+		elif not pos is Vector2i:
+			pos = Vector2i.ZERO
 
 		# Ensure feature has its definition reference
 		if not feature_data.has("definition"):
@@ -496,7 +508,12 @@ func _process_pending_features(map: GameMap) -> void:
 
 	for pending_data in pending:
 		var feature_id: String = pending_data.get("feature_id", "")
-		var pos: Vector2i = pending_data.get("position", Vector2i.ZERO)
+		var pos = pending_data.get("position", Vector2i.ZERO)
+		# Handle both Vector2i (in memory) and String (from save data)
+		if pos is String:
+			pos = _parse_vector2i(pos)
+		elif not pos is Vector2i:
+			pos = Vector2i.ZERO
 		var config: Dictionary = pending_data.get("config", {})
 
 		if feature_id.is_empty() or not feature_definitions.has(feature_id):
@@ -531,3 +548,15 @@ func _process_pending_features(map: GameMap) -> void:
 	# Clear pending after processing
 	map.metadata.pending_features.clear()
 	print("[FeatureManager] Processed %d pending features" % pending.size())
+
+
+## Parse Vector2i from string representation (handles JSON deserialization)
+## Godot's JSON saves Vector2i as string like "(x, y)"
+func _parse_vector2i(value: String) -> Vector2i:
+	# Remove parentheses and split by comma
+	var cleaned = value.strip_edges().replace("(", "").replace(")", "")
+	var parts = cleaned.split(",")
+	if parts.size() != 2:
+		push_warning("[FeatureManager] Failed to parse Vector2i from string: %s" % value)
+		return Vector2i.ZERO
+	return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))

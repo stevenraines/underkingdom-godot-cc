@@ -43,6 +43,11 @@ var skills: Dictionary = {
 	"Survival": 0
 }
 
+# Death tracking
+var death_cause: String = ""  # What killed the player (enemy name, "Starvation", etc.)
+var death_method: String = ""  # Weapon/method used (if applicable)
+var death_location: String = ""  # Where death occurred
+
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
 	_setup_player()
@@ -135,6 +140,9 @@ func _notify_blocked_by_tile(pos: Vector2i) -> void:
 	var tile = MapManager.current_map.get_tile(pos) if MapManager.current_map else null
 	if not tile:
 		return
+
+	# Debug: print tile properties
+	print("[BLOCKED] tile_type='%s', ascii_char='%s', walkable=%s" % [tile.tile_type, tile.ascii_char, tile.walkable])
 
 	# Get a human-readable name for the blocking tile
 	var tile_name = _get_tile_display_name(tile)
@@ -385,7 +393,7 @@ func _find_and_move_to_stairs(stairs_type: String) -> void:
 
 	# For non-chunk-based maps (dungeons), check metadata first for stairs position
 	if MapManager.current_map.metadata.has(stairs_type):
-		position = MapManager.current_map.metadata[stairs_type]
+		position = _parse_vector2i(MapManager.current_map.metadata[stairs_type])
 		print("Player positioned at ", stairs_type, " from metadata: ", position)
 		EventBus.player_moved.emit(old_pos, position)
 		return
@@ -717,8 +725,8 @@ func try_toggle_adjacent_door() -> bool:
 ## =========================================================================
 
 ## Calculate XP needed to reach a specific level
-## Formula: Fibonacci-like sequence (sum of prior two levels)
-## Level 0: 0, Level 1: 100, Level 2: 200, Level 3: 300, Level 4: 500, etc.
+## Formula: Fibonacci-like sequence (sum of prior two levels) * xp_multiplier
+## Level 0: 0, Level 1: 100, Level 2: 200, Level 3+: (prev + prev_prev) * multiplier
 static func calculate_xp_for_level(target_level: int) -> int:
 	if target_level <= 0:
 		return 0
@@ -727,29 +735,31 @@ static func calculate_xp_for_level(target_level: int) -> int:
 	if target_level == 2:
 		return 200
 
-	# For level 3+, use Fibonacci-like formula
+	# For level 3+, use Fibonacci-like formula with configurable multiplier
 	var prev_prev = 100  # Level 1
 	var prev = 200       # Level 2
 	var current = 0
 
 	for i in range(3, target_level + 1):
-		current = prev + prev_prev
+		# Sum of previous two levels, multiplied by config
+		var base_xp = prev + prev_prev
+		current = int(base_xp * GameConfig.xp_multiplier)
 		prev_prev = prev
 		prev = current
 
 	return current
 
 ## Calculate skill points earned for reaching a level
-## Formula: ceil(level / 3.0)
+## Formula: ceil(level / skill_points_divisor)
 static func calculate_skill_points_for_level(target_level: int) -> int:
 	if target_level <= 0:
 		return 0
-	return int(ceil(float(target_level) / 3.0))
+	return int(ceil(float(target_level) / GameConfig.skill_points_divisor))
 
 ## Check if player qualifies for ability score increase
-## Every 4th level grants +1 to any ability score
+## Every N levels grants +1 to any ability score (N from GameConfig)
 static func grants_ability_point(target_level: int) -> bool:
-	return target_level > 0 and target_level % 4 == 0
+	return target_level > 0 and target_level % GameConfig.ability_point_interval == 0
 
 ## Gain experience and check for level-up
 func gain_experience(amount: int) -> void:
@@ -850,3 +860,110 @@ func _recalculate_derived_stats() -> void:
 ## Get current skill level for a specific skill
 func get_skill_level(skill_name: String) -> int:
 	return skills.get(skill_name, 0)
+
+## =========================================================================
+## DEATH TRACKING
+## =========================================================================
+
+## Record death details
+func record_death(cause: String, method: String = "", location: String = "") -> void:
+	death_cause = cause
+	death_method = method
+	death_location = location if location != "" else _get_current_location()
+
+## Get current location description
+func _get_current_location() -> String:
+	if not MapManager.current_map:
+		return "an Unknown Location"
+
+	var map_id = MapManager.current_map.map_id
+
+	# Check if in dungeon (format: "<dungeon_type>_floor_<number>")
+	if "_floor_" in map_id:
+		var floor_idx = map_id.find("_floor_")
+		var dungeon_type = map_id.substr(0, floor_idx)  # e.g., "sewers", "burial_barrow"
+		var floor_num = map_id.substr(floor_idx + 7)  # Get number after "_floor_"
+
+		# Format dungeon name nicely
+		var dungeon_name = dungeon_type.replace("_", " ").capitalize()
+		return "%s Floor %s" % [dungeon_name, floor_num]
+
+	# Check if in town
+	if map_id.begins_with("town_"):
+		# Format: "town_<name>"
+		var town_name = map_id.substr(5).replace("_", " ").capitalize()
+		return "the Town of %s" % town_name
+
+	# Otherwise, in wilderness - get terrain description
+	elif map_id == "overworld":
+		# Get tile type for terrain description
+		var tile = MapManager.current_map.get_tile(position)
+		if tile:
+			match tile.tile_type:
+				"grass":
+					return "the Grasslands"
+				"tree":
+					return "the Forest"
+				"water":
+					return "the Waterside"
+				"wheat":
+					return "the Farmlands"
+				"dirt", "path":
+					return "the Wilderness"
+				_:
+					return "the Wilderness"
+		return "the Wilderness"
+
+	return "an Unknown Location"
+
+## Override take_damage to track death source
+func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
+	# Check if this damage will kill us BEFORE applying it
+	var will_die = (current_health - amount) <= 0
+
+	# Record death cause BEFORE calling super, because super.take_damage() calls die()
+	# which emits entity_died signal synchronously - game.gd reads death_cause immediately
+	if will_die:
+		record_death(source, method)
+
+	super.take_damage(amount, source, method)
+
+## Get death summary for death screen
+func get_death_summary() -> String:
+	if death_cause == "":
+		return "You died."
+
+	var summary = "You were killed by [color=#ff8888]%s[/color]" % death_cause
+
+	if death_method != "":
+		summary += " with [color=#ffaa66]%s[/color]" % death_method
+
+	if death_location != "":
+		summary += " in [color=#88ccff]%s[/color]" % death_location
+
+	summary += "."
+	return summary
+
+
+## Parse Vector2i from string format (handles save data serialization)
+## Strings are in format "(x, y)" from JSON serialization
+func _parse_vector2i(value) -> Vector2i:
+	# Already a Vector2i - return as is
+	if value is Vector2i:
+		return value
+
+	# String format - parse it
+	if value is String:
+		var cleaned = value.strip_edges().replace("(", "").replace(")", "")
+		var parts = cleaned.split(",")
+		if parts.size() != 2:
+			push_warning("[Player] Invalid Vector2i string format: %s" % value)
+			return Vector2i.ZERO
+		return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
+
+	# Dictionary format (alternative serialization)
+	if value is Dictionary:
+		return Vector2i(value.get("x", 0), value.get("y", 0))
+
+	push_warning("[Player] Cannot parse Vector2i from type: %s" % typeof(value))
+	return Vector2i.ZERO

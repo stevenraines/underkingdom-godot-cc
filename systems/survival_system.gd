@@ -128,7 +128,9 @@ func process_turn(turn_number: int) -> Dictionary:
 			effects.health_damage = 1
 			_last_health_drain_turn = turn_number
 			if _owner:
-				_owner.take_damage(1)
+				# Determine the cause of death from survival conditions
+				var death_cause = _determine_survival_death_cause()
+				_owner.take_damage(1, death_cause, "survival")
 	
 	# Generate warnings
 	effects.warnings = _generate_warnings()
@@ -271,6 +273,26 @@ func _get_temperature_state() -> String:
 		return "hot"
 	else:
 		return "comfortable"
+
+## Determine the primary cause of survival-related death
+## Prioritizes based on severity of the condition
+func _determine_survival_death_cause() -> String:
+	# Priority order: thirst (most deadly) > temperature extremes > hunger
+	if thirst <= 0:
+		return "Dehydration"
+	elif temperature < TEMP_FREEZING:
+		return "Hypothermia"
+	elif temperature > TEMP_HYPERTHERMIA:
+		return "Hyperthermia"
+	elif hunger <= 0:
+		return "Starvation"
+	elif thirst <= 25:
+		return "Dehydration"
+	elif hunger <= 25:
+		return "Starvation"
+	else:
+		# Fallback (shouldn't happen, but just in case)
+		return "Survival conditions"
 
 ## Consume stamina for an action
 ## Returns true if action can proceed, false if not enough stamina

@@ -194,6 +194,7 @@ func _serialize_world() -> Dictionary:
 		"current_map_id": MapManager.current_map.map_id if MapManager.current_map else "overworld",
 		"current_dungeon_type": MapManager.current_dungeon_type,
 		"current_dungeon_floor": MapManager.current_dungeon_floor,
+		"last_overworld_position": {"x": GameManager.last_overworld_position.x, "y": GameManager.last_overworld_position.y},
 		"visited_locations": GameManager.visited_locations.duplicate(true),
 		"calendar": CalendarManager.serialize(),
 		"weather": WeatherManager.serialize()
@@ -451,6 +452,13 @@ func _deserialize_world(world_data: Dictionary):
 	GameManager.world_seed = world_data.seed
 	GameManager.world_name = world_data.get("world_name", "Unknown World")
 	TurnManager.current_turn = world_data.current_turn
+
+	# Restore last overworld position (for dungeon return)
+	if world_data.has("last_overworld_position"):
+		var pos_data = world_data.last_overworld_position
+		GameManager.last_overworld_position = Vector2i(pos_data.x, pos_data.y)
+	else:
+		GameManager.last_overworld_position = Vector2i.ZERO
 
 	# Restore visited locations for fast travel
 	if world_data.has("visited_locations"):

@@ -309,18 +309,73 @@ func _add_progression_section() -> void:
 	_add_stat_line("Experience", "%d / %d" % [player.experience, player.experience_to_next_level],
 		Color(0.7, 0.85, 0.95))
 
-	# Skill Points Available
-	if player.available_skill_points > 0:
-		_add_stat_line("Skill Points", "%d unspent" % player.available_skill_points,
-			Color(0.95, 0.7, 0.95))  # Bright magenta for unspent points
+	# Prominent level-up notice if points are available
+	if player.available_skill_points > 0 or player.available_ability_points > 0:
+		_add_spacer()
+
+		# Add a prominent notice panel
+		var notice_panel = PanelContainer.new()
+		var notice_style = StyleBoxFlat.new()
+		notice_style.bg_color = Color(0.2, 0.15, 0.3, 0.9)  # Dark purple background
+		notice_style.border_width_left = 2
+		notice_style.border_width_top = 2
+		notice_style.border_width_right = 2
+		notice_style.border_width_bottom = 2
+		notice_style.border_color = Color(0.95, 0.7, 0.95, 1)  # Bright magenta border
+		notice_style.corner_radius_top_left = 4
+		notice_style.corner_radius_top_right = 4
+		notice_style.corner_radius_bottom_left = 4
+		notice_style.corner_radius_bottom_right = 4
+		notice_panel.add_theme_stylebox_override("panel", notice_style)
+
+		var notice_margin = MarginContainer.new()
+		notice_margin.add_theme_constant_override("margin_left", 12)
+		notice_margin.add_theme_constant_override("margin_top", 12)
+		notice_margin.add_theme_constant_override("margin_right", 12)
+		notice_margin.add_theme_constant_override("margin_bottom", 12)
+		notice_panel.add_child(notice_margin)
+
+		var notice_vbox = VBoxContainer.new()
+		notice_vbox.add_theme_constant_override("separation", 8)
+		notice_margin.add_child(notice_vbox)
+
+		# Title label
+		var title_label = Label.new()
+		title_label.text = "⬆ LEVEL UP AVAILABLE ⬆"
+		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		title_label.add_theme_font_size_override("font_size", 18)
+		notice_vbox.add_child(title_label)
+
+		# Points summary
+		var summary_label = Label.new()
+		var summary_parts = []
+		if player.available_skill_points > 0:
+			summary_parts.append("%d Skill Point%s" % [player.available_skill_points, "s" if player.available_skill_points > 1 else ""])
+		if player.available_ability_points > 0:
+			summary_parts.append("%d Ability Point%s" % [player.available_ability_points, "s" if player.available_ability_points > 1 else ""])
+		summary_label.text = " + ".join(summary_parts) + " to spend"
+		summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		summary_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+		summary_label.add_theme_font_size_override("font_size", 14)
+		notice_vbox.add_child(summary_label)
+
+		# Button to open level-up screen
+		var level_up_button = Button.new()
+		level_up_button.text = "Allocate Points [L]"
+		level_up_button.custom_minimum_size = Vector2(200, 40)
+		level_up_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		level_up_button.add_theme_font_size_override("font_size", 14)
+		level_up_button.pressed.connect(_on_level_up_button_pressed)
+		notice_vbox.add_child(level_up_button)
+
+		progression_content.add_child(notice_panel)
+		_add_spacer()
 	else:
+		# Skill Points Available
 		_add_stat_line("Skill Points", "0", Color(0.7, 0.7, 0.7))
 
-	# Ability Points Available
-	if player.available_ability_points > 0:
-		_add_stat_line("Ability Points", "%d unspent" % player.available_ability_points,
-			Color(0.95, 0.7, 0.7))  # Bright red for unspent points
-	else:
+		# Ability Points Available
 		_add_stat_line("Ability Points", "0", Color(0.7, 0.7, 0.7))
 
 	# Gold
@@ -407,6 +462,14 @@ func _get_encumbrance_color(percent: float) -> Color:
 		return Color(1.0, 0.85, 0.3)  # Yellow
 	else:
 		return Color(1.0, 0.4, 0.4)  # Red
+
+## Handle level-up button press
+func _on_level_up_button_pressed() -> void:
+	# Navigate up to find the game node and open level_up_screen
+	var game = get_node("/root/Game")
+	if game and game.level_up_screen and player:
+		game.level_up_screen.open(player)
+		game.input_handler.ui_blocking_input = true
 
 ## Called when tab changes
 func _on_tab_changed(tab_index: int) -> void:

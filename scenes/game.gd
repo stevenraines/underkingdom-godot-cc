@@ -29,6 +29,7 @@ var npc_menu_screen: Control = null
 var pause_menu: Control = null
 var death_screen: Control = null
 var character_sheet: Control = null
+var level_up_screen: Control = null
 var help_screen: Control = null
 var world_map_screen: Control = null
 var fast_travel_screen: Control = null
@@ -109,6 +110,9 @@ func _ready() -> void:
 
 	# Create character sheet
 	_setup_character_sheet()
+
+	# Create level-up screen
+	_setup_level_up_screen()
 
 	# Create help screen
 	_setup_help_screen()
@@ -313,6 +317,20 @@ func _setup_character_sheet() -> void:
 		print("[Game] Character sheet scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load character_sheet.tscn scene")
+
+## Setup level-up screen
+func _setup_level_up_screen() -> void:
+	print("[Game] Setting up level-up screen from scene...")
+	var LevelUpScreenScene = load("res://ui/level_up_screen.tscn")
+	if LevelUpScreenScene:
+		level_up_screen = LevelUpScreenScene.instantiate()
+		level_up_screen.name = "LevelUpScreen"
+		hud.add_child(level_up_screen)
+		if level_up_screen.has_signal("closed"):
+			level_up_screen.closed.connect(_on_level_up_screen_closed)
+		print("[Game] Level-up screen scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load level_up_screen.tscn scene")
 
 ## Setup help screen
 func _setup_help_screen() -> void:
@@ -1859,6 +1877,15 @@ func _on_pause_menu_closed() -> void:
 ## Called when character sheet is closed
 func _on_character_sheet_closed() -> void:
 	input_handler.ui_blocking_input = false
+
+## Called when level-up screen is closed
+func _on_level_up_screen_closed() -> void:
+	input_handler.ui_blocking_input = false
+	# Refresh character sheet if it's open
+	if character_sheet and character_sheet.visible:
+		character_sheet.open(player)
+	# Refresh HUD
+	_update_hud()
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:

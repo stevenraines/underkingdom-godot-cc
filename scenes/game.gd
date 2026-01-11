@@ -1881,8 +1881,8 @@ func _on_character_sheet_closed() -> void:
 ## Called when level-up screen is closed
 func _on_level_up_screen_closed() -> void:
 	input_handler.ui_blocking_input = false
-	# Refresh character sheet if it's open
-	if character_sheet and character_sheet.visible:
+	# Reopen character sheet (it was hidden when level-up opened)
+	if character_sheet and player:
 		character_sheet.open(player)
 	# Refresh HUD
 	_update_hud()

@@ -1,0 +1,25 @@
+{
+  "id": "wand_of_flame_bolt",
+  "name": "Wand of Flame Bolt",
+  "description": "A charred willow wand that radiates warmth. The tip glows faintly orange.",
+  "category": "weapon",
+  "subtype": "wand",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "charged": true
+  },
+  "equip_slots": ["main_hand"],
+  "casts_spell": "flame_bolt",
+  "charges": 12,
+  "max_charges": 12,
+  "recharge_cost": 50,
+  "damage_bonus": 1,
+  "attack_type": "melee",
+  "weight": 0.3,
+  "value": 125,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#FF6600"
+}

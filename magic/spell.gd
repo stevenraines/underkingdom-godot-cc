@@ -151,6 +151,10 @@ func get_buff() -> Dictionary:
 func get_heal() -> Dictionary:
 	return effects.get("heal", {})
 
+## Get debuff info if this is a debuff spell
+func get_debuff() -> Dictionary:
+	return effects.get("debuff", {})
+
 ## Check if this spell deals damage
 func is_damage_spell() -> bool:
 	return effects.has("damage")
@@ -158,6 +162,10 @@ func is_damage_spell() -> bool:
 ## Check if this spell provides a buff
 func is_buff_spell() -> bool:
 	return effects.has("buff")
+
+## Check if this spell applies a debuff
+func is_debuff_spell() -> bool:
+	return effects.has("debuff")
 
 ## Check if this spell heals
 func is_heal_spell() -> bool:

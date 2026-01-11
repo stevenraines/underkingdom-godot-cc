@@ -1,0 +1,32 @@
+{
+  "id": "flame_bolt",
+  "name": "Flame Bolt",
+  "description": "A bolt of fire streaks toward your target.",
+  "school": "evocation",
+  "level": 2,
+  "mana_cost": 8,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 9
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 8,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "fire",
+      "base": 12,
+      "scaling": 4
+    },
+    "status_chance": 0.2,
+    "status": "burning"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You hurl a bolt of flame!",
+  "ascii_char": "*",
+  "ascii_color": "#FF6600"
+}

@@ -71,6 +71,26 @@ signal spell_learned(spell_id: String)
 @warning_ignore("unused_signal")
 signal spell_cast(caster, spell, targets: Array, result: Dictionary)
 
+# Magical effect signals (buffs/debuffs)
+@warning_ignore("unused_signal")
+signal effect_applied(entity: Entity, effect: Dictionary)
+@warning_ignore("unused_signal")
+signal effect_removed(entity: Entity, effect: Dictionary)
+@warning_ignore("unused_signal")
+signal effect_expired(entity: Entity, effect_name: String)
+
+# Scroll signals
+@warning_ignore("unused_signal")
+signal scroll_targeting_started(scroll, spell)  # Item, Spell
+@warning_ignore("unused_signal")
+signal transcription_attempted(scroll, spell, success: bool)  # Item, Spell
+
+# Wand signals
+@warning_ignore("unused_signal")
+signal wand_targeting_started(wand, spell)  # Item, Spell
+@warning_ignore("unused_signal")
+signal wand_used(wand, spell, charges_remaining: int)  # Item, Spell
+
 # Inventory signals
 @warning_ignore("unused_signal")
 signal item_picked_up(item)  # Item

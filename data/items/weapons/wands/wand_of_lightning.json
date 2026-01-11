@@ -1,0 +1,25 @@
+{
+  "id": "wand_of_lightning",
+  "name": "Wand of Lightning",
+  "description": "An iron-tipped wand that sparks dangerously. Thunderous energy courses through it.",
+  "category": "weapon",
+  "subtype": "wand",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "charged": true
+  },
+  "equip_slots": ["main_hand"],
+  "casts_spell": "lightning_bolt",
+  "charges": 6,
+  "max_charges": 6,
+  "recharge_cost": 120,
+  "damage_bonus": 2,
+  "attack_type": "melee",
+  "weight": 0.4,
+  "value": 350,
+  "max_stack": 1,
+  "ascii_char": "/",
+  "ascii_color": "#FFFF00"
+}

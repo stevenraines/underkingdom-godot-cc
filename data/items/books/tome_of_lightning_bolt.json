@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_lightning_bolt",
+  "name": "Tome of Lightning Bolt",
+  "description": "A powerful grimoire crackling with energy. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "lightning_bolt",
+  "weight": 1.0,
+  "value": 300,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#FFFF00"
+}

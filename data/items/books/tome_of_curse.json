@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_curse",
+  "name": "Tome of Curse",
+  "description": "A forbidden grimoire of maledictions. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "curse",
+  "weight": 1.0,
+  "value": 225,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#330033"
+}

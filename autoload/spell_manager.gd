@@ -214,13 +214,31 @@ func calculate_spell_damage(spell, caster) -> int:
 
 ## Calculate spell duration for a caster
 ## Returns base duration + scaling bonus
+## Checks both top-level duration and effect-specific durations (buff/debuff)
 func calculate_spell_duration(spell, caster) -> int:
+	var base_duration = 0
+	var scaling = 0
+
+	# First check top-level duration
 	var duration_type = spell.duration.get("type", "instant")
-	if duration_type == "instant":
+	if duration_type != "instant":
+		base_duration = spell.duration.get("base", 0)
+		scaling = spell.duration.get("scaling", 0)
+	else:
+		# Fallback to buff duration if present
+		if spell.is_buff_spell():
+			var buff_info = spell.get_buff()
+			base_duration = buff_info.get("duration", 0)
+			scaling = buff_info.get("duration_scaling", 0)
+		# Fallback to debuff duration if present
+		elif spell.is_debuff_spell():
+			var debuff_info = spell.get_debuff()
+			base_duration = debuff_info.get("duration", 0)
+			scaling = debuff_info.get("duration_scaling", 0)
+
+	if base_duration == 0:
 		return 0
 
-	var base_duration = spell.duration.get("base", 0)
-	var scaling = spell.duration.get("scaling", 0)
 	var caster_level = _get_caster_level(caster)
 
 	# Duration scales with caster level above spell's required level

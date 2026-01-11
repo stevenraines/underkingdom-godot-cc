@@ -63,8 +63,19 @@ static func cast_spell(caster, spell, target = null) -> Dictionary:
 
 	result.target_name = target.name if target else ""
 
-	# Consume mana
+	# Calculate mana cost (with potential reduction from casting focus)
 	var mana_cost = spell.get_mana_cost()
+
+	# Apply mana cost modifier from casting focus (staves)
+	if caster.has_method("get_casting_bonuses"):
+		var casting_bonuses = caster.get_casting_bonuses()
+		var mana_modifier = casting_bonuses.get("mana_cost_modifier", 0)
+		# mana_modifier is a percentage (e.g., -10 = 10% reduction)
+		if mana_modifier != 0:
+			var multiplier = 1.0 + (mana_modifier / 100.0)
+			mana_cost = int(mana_cost * multiplier)
+			mana_cost = max(1, mana_cost)  # Minimum 1 mana cost
+
 	result.mana_cost = mana_cost
 
 	if caster.has_method("get") and caster.get("survival"):
@@ -158,6 +169,13 @@ static func _check_spell_failure(caster, spell) -> Dictionary:
 	var int_bonus = max(0, (caster_int - spell.get_min_intelligence())) * 0.01
 	failure_chance = max(0.0, failure_chance - int_bonus)
 
+	# Apply casting focus bonus (staves)
+	if caster.has_method("get_casting_bonuses"):
+		var casting_bonuses = caster.get_casting_bonuses()
+		var success_modifier = casting_bonuses.get("success_modifier", 0)
+		# success_modifier is a percentage (e.g., 10 = 10% reduction)
+		failure_chance = max(0.0, failure_chance - (success_modifier / 100.0))
+
 	# Roll for failure
 	if randf() < failure_chance:
 		result.failed = true
@@ -183,6 +201,23 @@ static func _check_spell_failure(caster, spell) -> Dictionary:
 static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> Dictionary:
 	var effects = spell.effects
 
+	# Check for saving throw first
+	var save_succeeded = false
+	var save_result = {}
+	if spell.save.get("type", "") != "":
+		var dc = calculate_save_dc(caster, spell)
+		save_result = attempt_saving_throw(target, spell.save.type, dc)
+		save_succeeded = save_result.success
+		result["save_attempted"] = true
+		result["save_succeeded"] = save_succeeded
+		result["save_dc"] = dc
+
+		# If save completely negates the spell, return early
+		if save_succeeded and spell.save.get("on_success", "half") == "no_effect":
+			result.message = "%s resists the %s!" % [target.name if target else "Target", spell.name]
+			result.effects_applied.append("resisted")
+			return result
+
 	# Handle damage effects
 	if spell.is_damage_spell():
 		var damage_info = spell.get_damage()
@@ -196,6 +231,20 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 			caster_level = caster.level
 
 		var damage = SpellManager.calculate_spell_damage(spell, caster)
+
+		# Apply school damage bonus from casting focus (staves)
+		if caster.has_method("get_casting_bonuses"):
+			var casting_bonuses = caster.get_casting_bonuses()
+			var school_bonuses = casting_bonuses.get("school_bonuses", {})
+			var spell_school = spell.school if "school" in spell else ""
+			if spell_school != "" and school_bonuses.has(spell_school):
+				damage += school_bonuses[spell_school]
+
+		# Apply half damage if save succeeded with "half_damage" or "half"
+		var save_on_success = spell.save.get("on_success", "")
+		if save_succeeded and save_on_success in ["half_damage", "half"]:
+			damage = damage / 2
+
 		result.damage = damage
 		result.effects_applied.append("damage")
 
@@ -213,6 +262,20 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 			damage,
 			damage_type
 		]
+
+		# Add partial resist message if save reduced damage
+		if save_succeeded and save_on_success in ["half_damage", "half"]:
+			result.message += " (%s partially resists!)" % (target.name if target else "Target")
+
+		# Handle life drain effect (heal caster for percent of damage dealt)
+		if effects.has("heal_percent"):
+			var heal_percent = effects.heal_percent
+			var heal_amount = int(damage * heal_percent)
+			if heal_amount > 0 and caster and caster.has_method("heal"):
+				caster.heal(heal_amount)
+				result.healing = heal_amount
+				result.effects_applied.append("life_drain")
+				result.message += " You recover %d health!" % heal_amount
 
 	# Handle healing effects
 	if spell.is_heal_spell():
@@ -242,17 +305,97 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 		# Calculate duration
 		var duration = SpellManager.calculate_spell_duration(spell, caster)
 
-		# Apply buff to target
-		if target and target.has_method("apply_buff"):
-			target.apply_buff(spell.id, buff_info, duration)
+		# Build the effect dictionary for the new active effects system
+		var effect = {
+			"id": spell.id + "_buff",
+			"type": "buff",
+			"source_spell": spell.id,
+			"remaining_duration": duration,
+			"modifiers": {}
+		}
+
+		# Add stat modifiers from buff_info
+		if buff_info.has("armor_bonus"):
+			effect["armor_bonus"] = buff_info.armor_bonus
+		if buff_info.has("str_bonus"):
+			effect.modifiers["STR"] = buff_info.str_bonus
+		if buff_info.has("dex_bonus"):
+			effect.modifiers["DEX"] = buff_info.dex_bonus
+		if buff_info.has("con_bonus"):
+			effect.modifiers["CON"] = buff_info.con_bonus
+		if buff_info.has("int_bonus"):
+			effect.modifiers["INT"] = buff_info.int_bonus
+		if buff_info.has("wis_bonus"):
+			effect.modifiers["WIS"] = buff_info.wis_bonus
+		if buff_info.has("cha_bonus"):
+			effect.modifiers["CHA"] = buff_info.cha_bonus
+
+		# Apply effect to target
+		if target and target.has_method("add_magical_effect"):
+			target.add_magical_effect(effect)
 			result.message = "%s grants %s a magical buff for %d turns." % [
 				spell.name,
 				target.name if target else "the target",
 				duration
 			]
 		else:
-			# Simple stat modification if no buff system
 			result.message = "%s enhances %s!" % [
+				spell.name,
+				target.name if target else "the target"
+			]
+
+	# Handle debuff effects
+	if spell.is_debuff_spell():
+		var debuff_info = spell.get_debuff()
+		result.effects_applied.append("debuff")
+
+		# Calculate duration
+		var duration = SpellManager.calculate_spell_duration(spell, caster)
+
+		# Apply half duration if save succeeded with "half_duration"
+		var save_on_success = spell.save.get("on_success", "")
+		if save_succeeded and save_on_success == "half_duration":
+			duration = duration / 2
+
+		# Build the debuff effect dictionary
+		var effect = {
+			"id": spell.id + "_debuff",
+			"type": "debuff",
+			"source_spell": spell.id,
+			"remaining_duration": duration,
+			"modifiers": {}
+		}
+
+		# Add stat penalties from debuff_info (stored as negatives)
+		if debuff_info.has("str_penalty"):
+			effect.modifiers["STR"] = -debuff_info.str_penalty
+		if debuff_info.has("dex_penalty"):
+			effect.modifiers["DEX"] = -debuff_info.dex_penalty
+		if debuff_info.has("con_penalty"):
+			effect.modifiers["CON"] = -debuff_info.con_penalty
+		if debuff_info.has("int_penalty"):
+			effect.modifiers["INT"] = -debuff_info.int_penalty
+		if debuff_info.has("wis_penalty"):
+			effect.modifiers["WIS"] = -debuff_info.wis_penalty
+		if debuff_info.has("cha_penalty"):
+			effect.modifiers["CHA"] = -debuff_info.cha_penalty
+		if debuff_info.has("armor_penalty"):
+			effect["armor_bonus"] = -debuff_info.armor_penalty
+
+		# Apply effect to target
+		if target and target.has_method("add_magical_effect"):
+			target.add_magical_effect(effect)
+			var msg = "%s afflicts %s with a debuff for %d turns." % [
+				spell.name,
+				target.name if target else "the target",
+				duration
+			]
+			# Add partial resist message if save reduced duration
+			if save_succeeded and save_on_success == "half_duration":
+				msg += " (%s partially resists!)" % (target.name if target else "Target")
+			result.message = msg
+		else:
+			result.message = "%s weakens %s!" % [
 				spell.name,
 				target.name if target else "the target"
 			]
@@ -271,6 +414,40 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 		result.message = "You cast %s." % spell.name
 
 	return result
+
+
+## Calculate the saving throw DC for a spell
+## DC = 10 + Spell Level + (Caster INT modifier)
+static func calculate_save_dc(caster, spell) -> int:
+	var caster_int = 10
+	if caster and caster.has_method("get_effective_attribute"):
+		caster_int = caster.get_effective_attribute("INT")
+
+	# INT modifier is (INT - 10) / 2
+	var int_mod = (caster_int - 10) / 2
+	return 10 + spell.level + int_mod
+
+
+## Attempt a saving throw against a spell
+## Returns true if the save succeeds (target resists)
+static func attempt_saving_throw(target, save_type: String, dc: int) -> Dictionary:
+	var roll = randi_range(1, 20)
+	var attribute_mod = 0
+
+	if target and target.has_method("get_effective_attribute"):
+		var attr_value = target.get_effective_attribute(save_type)
+		attribute_mod = (attr_value - 10) / 2
+
+	var total = roll + attribute_mod
+	var success = total >= dc
+
+	return {
+		"success": success,
+		"roll": roll,
+		"modifier": attribute_mod,
+		"total": total,
+		"dc": dc
+	}
 
 
 ## Get valid targets for a ranged spell

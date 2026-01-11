@@ -1,0 +1,32 @@
+{
+  "id": "ice_shard",
+  "name": "Ice Shard",
+  "description": "A razor-sharp shard of ice impales your target.",
+  "school": "evocation",
+  "level": 3,
+  "mana_cost": 12,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 7,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "ice",
+      "base": 15,
+      "scaling": 5
+    },
+    "status_chance": 0.3,
+    "status": "slowed"
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You launch a shard of ice!",
+  "ascii_char": "*",
+  "ascii_color": "#00FFFF"
+}

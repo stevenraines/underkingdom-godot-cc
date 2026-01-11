@@ -49,6 +49,12 @@ var _current_seed_index: int = 0  # Index into _available_seeds for cycling
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
 
+# Scroll targeting - track pending scroll for consumption after cast
+var pending_scroll: Item = null  # Scroll being used for spell casting
+
+# Wand targeting - track pending wand for charge consumption after cast
+var pending_wand: Item = null  # Wand being used for spell casting
+
 # Persistent target tracking (separate from active targeting mode)
 var current_target: Entity = null  # Currently selected target for ranged attacks
 
@@ -66,6 +72,9 @@ func _ready() -> void:
 	set_process_unhandled_input(true)
 	set_process(true)
 	targeting_system = TargetingSystemClass.new()
+	# Connect to scroll and wand targeting signals
+	EventBus.scroll_targeting_started.connect(_on_scroll_targeting_started)
+	EventBus.wand_targeting_started.connect(_on_wand_targeting_started)
 
 func set_player(p: Player) -> void:
 	player = p
@@ -1208,6 +1217,15 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 				# Spell targeting - cast spell on current target
 				var result = targeting_system.confirm_spell_target()
 				_process_spell_result(result, game)
+				# Consume scroll if this was scroll-based targeting
+				if pending_scroll and result.success:
+					player.inventory.remove_item(pending_scroll)
+					pending_scroll = null
+				# Consume wand charge if this was wand-based targeting
+				if pending_wand and result.success:
+					pending_wand.charges -= 1
+					EventBus.wand_used.emit(pending_wand, targeting_system.current_spell, pending_wand.charges)
+					pending_wand = null
 			else:
 				# Normal ranged weapon targeting
 				var result = targeting_system.confirm_target()
@@ -1219,6 +1237,9 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 			# Cancel targeting
 			var was_spell_targeting = targeting_system.is_spell_targeting
 			targeting_system.cancel()
+			# Clear pending scroll/wand without consuming
+			pending_scroll = null
+			pending_wand = null
 			if game and game.has_method("hide_targeting_ui"):
 				game.hide_targeting_ui()
 			if game and game.has_method("_add_message"):
@@ -1992,3 +2013,51 @@ func get_look_position() -> Vector2i:
 	if look_mode_active and look_objects.size() > look_index:
 		return look_objects[look_index].get("position", Vector2i(-1, -1))
 	return Vector2i(-1, -1)
+
+
+## Handle scroll targeting signal
+## Called when a scroll with a ranged spell is used
+func _on_scroll_targeting_started(scroll, spell) -> void:
+	if not player:
+		return
+
+	var game = get_parent()
+
+	# Store the scroll for consumption after cast
+	pending_scroll = scroll
+
+	# Start spell targeting for the scroll's spell
+	if targeting_system.start_spell_targeting(player, spell):
+		ui_blocking_input = true
+		if game and game.has_method("_add_message"):
+			game._add_message(targeting_system.get_status_text(), Color(0.5, 0.8, 1.0))
+			game._add_message(targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
+	else:
+		# No valid targets - don't consume scroll
+		pending_scroll = null
+		if game and game.has_method("_add_message"):
+			game._add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))
+
+
+## Handle wand targeting signal
+## Called when a wand with a ranged spell is used
+func _on_wand_targeting_started(wand, spell) -> void:
+	if not player:
+		return
+
+	var game = get_parent()
+
+	# Store the wand for charge consumption after cast
+	pending_wand = wand
+
+	# Start spell targeting for the wand's spell
+	if targeting_system.start_spell_targeting(player, spell):
+		ui_blocking_input = true
+		if game and game.has_method("_add_message"):
+			game._add_message(targeting_system.get_status_text(), Color(0.5, 0.8, 1.0))
+			game._add_message(targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
+	else:
+		# No valid targets - don't consume charge
+		pending_wand = null
+		if game and game.has_method("_add_message"):
+			game._add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))

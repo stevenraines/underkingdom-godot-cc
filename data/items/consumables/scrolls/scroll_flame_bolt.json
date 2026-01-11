@@ -1,0 +1,19 @@
+{
+  "id": "scroll_flame_bolt",
+  "name": "Scroll of Flame Bolt",
+  "description": "A parchment inscribed with the Flame Bolt incantation.",
+  "category": "consumable",
+  "subtype": "scroll",
+  "item_type": "consumable",
+  "flags": {
+    "consumable": true,
+    "magical": true,
+    "scroll": true
+  },
+  "casts_spell": "flame_bolt",
+  "weight": 0.1,
+  "value": 50,
+  "max_stack": 5,
+  "ascii_char": "~",
+  "ascii_color": "#FF6600"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "stone_skin",
+  "name": "Stone Skin",
+  "description": "Your skin hardens like stone, providing significant protection.",
+  "school": "transmutation",
+  "level": 3,
+  "mana_cost": 15,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "buff": {
+      "armor_bonus": 5,
+      "duration": 30,
+      "duration_scaling": 8
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 30,
+    "scaling": 8
+  },
+  "cast_message": "Your skin takes on a stony texture!",
+  "ascii_char": "O",
+  "ascii_color": "#808080"
+}

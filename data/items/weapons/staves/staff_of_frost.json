@@ -1,0 +1,28 @@
+{
+  "id": "staff_of_frost",
+  "name": "Staff of Frost",
+  "description": "A pale ash staff covered in frost crystals. A sapphire at its head glows with cold light.",
+  "category": "weapon",
+  "subtype": "staff",
+  "item_type": "weapon",
+  "flags": {
+    "equippable": true,
+    "magical": true,
+    "two_handed": true,
+    "casting_focus": true
+  },
+  "equip_slots": ["main_hand"],
+  "damage_bonus": 5,
+  "attack_type": "melee",
+  "weight": 2.0,
+  "value": 350,
+  "max_stack": 1,
+  "durability": 120,
+  "ascii_char": "/",
+  "ascii_color": "#88CCFF",
+  "casting_bonuses": {
+    "success_modifier": 10,
+    "school_affinity": "evocation",
+    "school_damage_bonus": 2
+  }
+}

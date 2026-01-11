@@ -1,0 +1,36 @@
+{
+  "id": "weakness",
+  "name": "Weakness",
+  "description": "Sap the strength from your enemy.",
+  "school": "necromancy",
+  "level": 3,
+  "mana_cost": 12,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "debuff": {
+      "str_penalty": 3,
+      "duration": 25,
+      "duration_scaling": 5
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 25,
+    "scaling": 5
+  },
+  "save": {
+    "type": "CON",
+    "on_success": "half_duration"
+  },
+  "cast_message": "Dark energy saps your target's strength!",
+  "ascii_char": "*",
+  "ascii_color": "#660066"
+}

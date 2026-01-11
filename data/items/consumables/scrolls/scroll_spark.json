@@ -1,0 +1,19 @@
+{
+  "id": "scroll_spark",
+  "name": "Scroll of Spark",
+  "description": "A parchment inscribed with the Spark incantation.",
+  "category": "consumable",
+  "subtype": "scroll",
+  "item_type": "consumable",
+  "flags": {
+    "consumable": true,
+    "magical": true,
+    "scroll": true
+  },
+  "casts_spell": "spark",
+  "weight": 0.1,
+  "value": 25,
+  "max_stack": 5,
+  "ascii_char": "~",
+  "ascii_color": "#FFFF00"
+}

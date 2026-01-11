@@ -1,0 +1,23 @@
+{
+  "id": "ring_of_fire_resistance",
+  "name": "Ring of Fire Resistance",
+  "description": "A blackened iron ring that stays cool to the touch even in extreme heat.",
+  "category": "accessory",
+  "subtype": "ring",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["accessory"],
+  "weight": 0.1,
+  "value": 200,
+  "max_stack": 1,
+  "ascii_char": "=",
+  "ascii_color": "#FF4400",
+  "passive_effects": {
+    "resistances": {
+      "fire": 50
+    }
+  }
+}

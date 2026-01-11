@@ -1,0 +1,19 @@
+{
+  "id": "scroll_heal",
+  "name": "Scroll of Heal",
+  "description": "A parchment inscribed with the Heal incantation.",
+  "category": "consumable",
+  "subtype": "scroll",
+  "item_type": "consumable",
+  "flags": {
+    "consumable": true,
+    "magical": true,
+    "scroll": true
+  },
+  "casts_spell": "heal",
+  "weight": 0.1,
+  "value": 40,
+  "max_stack": 5,
+  "ascii_char": "~",
+  "ascii_color": "#44FF44"
+}

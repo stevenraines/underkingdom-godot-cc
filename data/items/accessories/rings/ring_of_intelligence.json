@@ -1,0 +1,21 @@
+{
+  "id": "ring_of_intelligence",
+  "name": "Ring of Intelligence",
+  "description": "A gold ring with an owl motif. Your thoughts become clearer when wearing it.",
+  "category": "accessory",
+  "subtype": "ring",
+  "item_type": "accessory",
+  "flags": {
+    "equippable": true,
+    "magical": true
+  },
+  "equip_slots": ["accessory"],
+  "weight": 0.1,
+  "value": 150,
+  "max_stack": 1,
+  "ascii_char": "=",
+  "ascii_color": "#FFD700",
+  "passive_effects": {
+    "INT": 1
+  }
+}

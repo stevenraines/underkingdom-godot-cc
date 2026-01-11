@@ -74,6 +74,21 @@ var effects: Dictionary = {}        # {"hunger": 30, "thirst": 20, "health": 10}
 # Spell learning (for spell tomes)
 var teaches_spell: String = ""      # Spell ID to learn when this item is read
 
+# Scroll properties (for spell scrolls)
+var casts_spell: String = ""        # Spell ID to cast when scroll is used
+
+# Wand properties (for charged spell items)
+var charges: int = -1               # Current charges (-1 = not a wand)
+var max_charges: int = -1           # Maximum charges (-1 = not a wand)
+var recharge_cost: int = 0          # Gold cost to recharge at mage NPC
+var spell_level_override: int = -1  # Override spell level when cast from wand (-1 = use spell's level)
+
+# Staff/casting focus properties
+var casting_bonuses: Dictionary = {} # {success_modifier, school_affinity, school_damage_bonus, mana_cost_modifier}
+
+# Passive effects (for rings, amulets - applied while equipped)
+var passive_effects: Dictionary = {} # {stat_bonuses: {STR: +1}, resistances: {fire: 50}, etc.}
+
 # Transform on use (e.g., full waterskin -> empty waterskin)
 var transforms_into: String = ""    # Item ID to transform into after use
 
@@ -165,6 +180,21 @@ static func create_from_data(data: Dictionary) -> Item:
 	# Spell learning
 	item.teaches_spell = data.get("teaches_spell", "")
 
+	# Scroll properties
+	item.casts_spell = data.get("casts_spell", "")
+
+	# Wand properties
+	item.max_charges = data.get("max_charges", -1)
+	item.charges = data.get("charges", item.max_charges)  # Default to max if not specified
+	item.recharge_cost = data.get("recharge_cost", 0)
+	item.spell_level_override = data.get("spell_level_override", -1)
+
+	# Staff/casting focus properties
+	item.casting_bonuses = data.get("casting_bonuses", {})
+
+	# Passive effects (for rings, amulets)
+	item.passive_effects = data.get("passive_effects", {})
+
 	# Transform on use
 	item.transforms_into = data.get("transforms_into", "")
 
@@ -222,6 +252,13 @@ func duplicate_item() -> Item:
 	copy.is_templated = is_templated
 	copy.teaches_recipe = teaches_recipe
 	copy.teaches_spell = teaches_spell
+	copy.casts_spell = casts_spell
+	copy.charges = charges
+	copy.max_charges = max_charges
+	copy.recharge_cost = recharge_cost
+	copy.spell_level_override = spell_level_override
+	copy.casting_bonuses = casting_bonuses.duplicate()
+	copy.passive_effects = passive_effects.duplicate(true)
 	return copy
 
 ## Use this item on an entity
@@ -233,7 +270,15 @@ func use(user: Entity) -> Dictionary:
 		"message": ""
 	}
 
-	# Handle books first (can be any item_type with book flag)
+	# Handle wands (charged spell items)
+	if is_wand():
+		return _use_wand(user)
+
+	# Handle scrolls (can be identified by casts_spell or scroll flag)
+	if casts_spell != "" or flags.get("scroll", false):
+		return _use_scroll(user)
+
+	# Handle books (can be any item_type with book flag)
 	if flags.get("book", false) or flags.get("readable", false):
 		return _use_book(user)
 
@@ -387,6 +432,177 @@ func _use_spell_tome(user: Entity) -> Dictionary:
 
 	return result
 
+
+## Use a spell scroll to cast a spell
+func _use_scroll(user: Entity) -> Dictionary:
+	var result = {
+		"success": false,
+		"consumed": false,
+		"message": "",
+		"requires_targeting": false,
+		"scroll_spell": null
+	}
+
+	# Check minimum INT requirement (8) for using scrolls
+	var user_int = 10
+	if user.has_method("get_effective_attribute"):
+		user_int = user.get_effective_attribute("INT")
+	elif "attributes" in user:
+		user_int = user.attributes.get("INT", 10)
+
+	if user_int < 8:
+		result.message = "You lack the intelligence to use scrolls."
+		return result
+
+	# Get the spell from the scroll
+	var spell = SpellManager.get_spell(casts_spell)
+	if spell == null:
+		result.message = "This scroll contains corrupted magic."
+		return result
+
+	# Scrolls bypass level/INT requirements for the spell itself
+	# They just need minimum 8 INT to use any scroll
+
+	# Check targeting mode
+	var targeting_mode = spell.get_targeting_mode()
+	if targeting_mode == "self":
+		# Self-targeting spells cast immediately from scroll
+		result = _cast_scroll_spell(user, spell, user)
+		result.consumed = result.success
+	elif targeting_mode in ["ranged", "touch"]:
+		# Ranged/touch spells need targeting - signal for targeting mode
+		result.success = true
+		result.requires_targeting = true
+		result.scroll_spell = spell
+		result.message = "Select a target for %s..." % spell.name
+		# Emit signal for input handler to start targeting
+		EventBus.scroll_targeting_started.emit(self, spell)
+	else:
+		result.message = "Unknown scroll targeting type."
+
+	return result
+
+
+## Cast a spell from a scroll on a target
+## Scrolls don't consume mana, don't fail, and cast at base spell level
+func _cast_scroll_spell(caster: Entity, spell, target: Entity) -> Dictionary:
+	var result = {
+		"success": true,
+		"damage": 0,
+		"healing": 0,
+		"message": "",
+		"from_scroll": true,
+		"effects_applied": []
+	}
+
+	# Use SpellCastingSystem but with special scroll flags
+	# Scrolls cast at minimum level (spell.level) with no scaling
+	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
+	var cast_result = SpellCastingSystemClass.cast_spell(caster, spell, target)
+
+	# Copy results
+	result.success = cast_result.success or not cast_result.failed
+	result.damage = cast_result.damage
+	result.healing = cast_result.healing
+	result.message = cast_result.message
+	result.effects_applied = cast_result.effects_applied
+
+	return result
+
+
+## Check if this item is a scroll
+func is_scroll() -> bool:
+	# A scroll has casts_spell but is NOT a wand (no charges)
+	if is_wand():
+		return false
+	return casts_spell != "" or flags.get("scroll", false)
+
+
+## Check if this item is a wand
+func is_wand() -> bool:
+	return max_charges > 0 and casts_spell != "" and flags.get("charged", false)
+
+
+## Use a wand to cast its spell (consumes a charge)
+func _use_wand(user: Entity) -> Dictionary:
+	var result = {
+		"success": false,
+		"consumed": false,
+		"message": "",
+		"requires_targeting": false,
+		"wand_spell": null
+	}
+
+	# Check minimum INT requirement (8) for using wands
+	var user_int = 10
+	if user.has_method("get_effective_attribute"):
+		user_int = user.get_effective_attribute("INT")
+	elif "attributes" in user:
+		user_int = user.attributes.get("INT", 10)
+
+	if user_int < 8:
+		result.message = "You lack the intelligence to use wands."
+		return result
+
+	# Check if wand has charges
+	if charges <= 0:
+		result.message = "The %s is out of charges." % name
+		return result
+
+	# Get the spell from the wand
+	var spell = SpellManager.get_spell(casts_spell)
+	if spell == null:
+		result.message = "This wand contains corrupted magic."
+		return result
+
+	# Check targeting mode
+	var targeting_mode = spell.get_targeting_mode()
+	if targeting_mode == "self":
+		# Self-targeting spells cast immediately from wand
+		result = _cast_wand_spell(user, spell, user)
+		if result.success:
+			charges -= 1
+			EventBus.wand_used.emit(self, spell, charges)
+	elif targeting_mode in ["ranged", "touch"]:
+		# Ranged/touch spells need targeting - signal for targeting mode
+		result.success = true
+		result.requires_targeting = true
+		result.wand_spell = spell
+		result.message = "Select a target for %s..." % spell.name
+		# Emit signal for input handler to start targeting
+		EventBus.wand_targeting_started.emit(self, spell)
+	else:
+		result.message = "Unknown wand targeting type."
+
+	return result
+
+
+## Cast a spell from a wand on a target
+## Wands don't consume mana, don't fail, and cast at wand's spell level
+func _cast_wand_spell(caster: Entity, spell, target: Entity) -> Dictionary:
+	var result = {
+		"success": true,
+		"damage": 0,
+		"healing": 0,
+		"message": "",
+		"from_wand": true,
+		"effects_applied": []
+	}
+
+	# Use SpellCastingSystem
+	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
+	var cast_result = SpellCastingSystemClass.cast_spell(caster, spell, target)
+
+	# Copy results
+	result.success = cast_result.success or not cast_result.failed
+	result.damage = cast_result.damage
+	result.healing = cast_result.healing
+	result.message = cast_result.message
+	result.effects_applied = cast_result.effects_applied
+
+	return result
+
+
 ## Check if this item can stack with another item
 func can_stack_with(other: Item) -> bool:
 	if not other:
@@ -531,7 +747,15 @@ func get_tooltip() -> String:
 	
 	if durability > 0:
 		lines.append("Durability: %d/%d" % [durability, max_durability])
-	
+
+	# Wand charges
+	if max_charges > 0:
+		lines.append("Charges: %d/%d" % [charges, max_charges])
+		if casts_spell != "":
+			var spell = SpellManager.get_spell(casts_spell)
+			if spell:
+				lines.append("Casts: %s" % spell.name)
+
 	if effects.size() > 0:
 		lines.append("")
 		lines.append("Effects:")
@@ -594,6 +818,10 @@ func serialize() -> Dictionary:
 	if inscription != "":
 		data["inscription"] = inscription
 
+	# Save wand charges if not at max
+	if max_charges > 0 and charges != max_charges:
+		data["charges"] = charges
+
 	return data
 
 ## Check if item stack is empty
@@ -636,3 +864,41 @@ func get_effective_range(str_stat: int = 0) -> int:
 		@warning_ignore("integer_division")
 		return attack_range + (str_stat / 2)
 	return attack_range
+
+
+## Check if this item is a casting focus (staff)
+func is_casting_focus() -> bool:
+	return flags.get("casting_focus", false)
+
+
+## Check if this item is a staff
+func is_staff() -> bool:
+	return subtype == "staff" or flags.get("casting_focus", false)
+
+
+## Get casting bonuses provided by this item
+## Returns dictionary with: success_modifier, school_affinity, school_damage_bonus, mana_cost_modifier
+func get_casting_bonuses() -> Dictionary:
+	return casting_bonuses
+
+
+## Check if this item has passive effects
+func has_passive_effects() -> bool:
+	return not passive_effects.is_empty()
+
+
+## Get passive effects provided by this item
+## Returns dictionary that may contain: stat_bonuses, max_mana_bonus, max_health_bonus,
+## resistances, mana_regen_bonus, health_regen_bonus, etc.
+func get_passive_effects() -> Dictionary:
+	return passive_effects
+
+
+## Check if this item is a ring
+func is_ring() -> bool:
+	return subtype == "ring"
+
+
+## Check if this item is an amulet
+func is_amulet() -> bool:
+	return subtype == "amulet"

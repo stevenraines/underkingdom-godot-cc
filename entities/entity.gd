@@ -49,6 +49,13 @@ var stat_modifiers: Dictionary = {
 	"CHA": 0
 }
 
+# Armor modifier (from buffs)
+var armor_modifier: int = 0
+
+# Active magical effects (buffs/debuffs with duration)
+# Each effect: {id, type, modifiers, remaining_duration, source_spell, armor_bonus}
+var active_effects: Array[Dictionary] = []
+
 # Components (composition pattern)
 var components: Dictionary = {}  # component_name -> component instance
 
@@ -112,3 +119,108 @@ func get_component(component_name: String) -> Variant:
 ## Check if has component
 func has_component(component_name: String) -> bool:
 	return component_name in components
+
+
+## Add a magical effect (buff or debuff)
+## If the same effect already exists, refresh its duration instead of stacking
+func add_magical_effect(effect: Dictionary) -> void:
+	# Check if effect already exists (refresh duration)
+	for existing in active_effects:
+		if existing.id == effect.id:
+			existing.remaining_duration = effect.remaining_duration
+			_recalculate_effect_modifiers()
+			return
+
+	active_effects.append(effect)
+	_recalculate_effect_modifiers()
+	EventBus.effect_applied.emit(self, effect)
+
+
+## Remove a magical effect by ID
+func remove_magical_effect(effect_id: String) -> void:
+	for i in range(active_effects.size() - 1, -1, -1):
+		if active_effects[i].id == effect_id:
+			var effect = active_effects[i]
+			active_effects.remove_at(i)
+			EventBus.effect_removed.emit(self, effect)
+	_recalculate_effect_modifiers()
+
+
+## Get a specific active effect by ID
+func get_active_effect(effect_id: String) -> Dictionary:
+	for effect in active_effects:
+		if effect.id == effect_id:
+			return effect
+	return {}
+
+
+## Check if entity has a specific effect active
+func has_active_effect(effect_id: String) -> bool:
+	for effect in active_effects:
+		if effect.id == effect_id:
+			return true
+	return false
+
+
+## Get all active buff effects
+func get_active_buffs() -> Array[Dictionary]:
+	var buffs: Array[Dictionary] = []
+	for effect in active_effects:
+		if effect.get("type", "") == "buff":
+			buffs.append(effect)
+	return buffs
+
+
+## Get all active debuff effects
+func get_active_debuffs() -> Array[Dictionary]:
+	var debuffs: Array[Dictionary] = []
+	for effect in active_effects:
+		if effect.get("type", "") == "debuff":
+			debuffs.append(effect)
+	return debuffs
+
+
+## Process effect durations (call each turn)
+func process_effect_durations() -> void:
+	var expired: Array[String] = []
+
+	for effect in active_effects:
+		effect.remaining_duration -= 1
+		if effect.remaining_duration <= 0:
+			expired.append(effect.id)
+
+	for effect_id in expired:
+		# Get the effect name before removing
+		var effect_name = effect_id.replace("_buff", "").replace("_debuff", "")
+		remove_magical_effect(effect_id)
+		EventBus.message_logged.emit("The effect of %s has worn off." % effect_name, Color.GRAY)
+
+
+## Recalculate stat modifiers from all sources (effects, survival, etc.)
+func _recalculate_effect_modifiers() -> void:
+	# Reset stat modifiers
+	for stat in stat_modifiers:
+		stat_modifiers[stat] = 0
+
+	# Reset armor modifier
+	armor_modifier = 0
+
+	# Apply magical effect modifiers
+	for effect in active_effects:
+		if effect.has("modifiers"):
+			for stat in effect.modifiers:
+				if stat in stat_modifiers:
+					stat_modifiers[stat] += effect.modifiers[stat]
+		if effect.has("armor_bonus"):
+			armor_modifier += effect.armor_bonus
+
+
+## Get effective armor (base + modifier)
+func get_effective_armor() -> int:
+	return armor + armor_modifier
+
+
+## Clear all active effects
+func clear_active_effects() -> void:
+	active_effects.clear()
+	_recalculate_effect_modifiers()

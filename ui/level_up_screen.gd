@@ -80,9 +80,11 @@ func close() -> void:
 
 ## Populate skills tab
 func _populate_skills_tab() -> void:
-	# Clear existing content
-	for child in skills_content.get_children():
-		child.queue_free()
+	# Clear existing content - use immediate removal to avoid node name conflicts
+	while skills_content.get_child_count() > 0:
+		var child = skills_content.get_child(0)
+		skills_content.remove_child(child)
+		child.free()
 
 	# Clear message when repopulating
 	_clear_message()
@@ -127,9 +129,11 @@ func _populate_skills_tab() -> void:
 
 ## Populate abilities tab
 func _populate_abilities_tab() -> void:
-	# Clear existing content
-	for child in abilities_content.get_children():
-		child.queue_free()
+	# Clear existing content - use immediate removal to avoid node name conflicts
+	while abilities_content.get_child_count() > 0:
+		var child = abilities_content.get_child(0)
+		abilities_content.remove_child(child)
+		child.free()
 
 	# Clear message when repopulating
 	_clear_message()
@@ -187,19 +191,28 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 	var line = HBoxContainer.new()
 	line.name = "Skill_" + skill_name  # For finding later
 
+	# Selection marker (hidden by default)
+	var marker = Label.new()
+	marker.name = "Marker"
+	marker.text = "  "
+	marker.add_theme_color_override("font_color", COLOR_SELECTED)
+	marker.add_theme_font_size_override("font_size", 14)
+	line.add_child(marker)
+
 	# Skill name
 	var name_label = Label.new()
-	name_label.text = "%s:" % skill_name
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.name = "Name"
+	name_label.text = skill_name
+	name_label.custom_minimum_size.x = 180
 	name_label.add_theme_color_override("font_color", COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
 	# Value with pending
 	var pending_increases = pending_skill_increases.get(skill_name, 0)
-	var pending_level = current_level + pending_increases
 
 	var value_label = Label.new()
+	value_label.name = "Value"
 	if pending_increases > 0:
 		value_label.text = "%d (+%d) / %d" % [current_level, pending_increases, player.level]
 		value_label.add_theme_color_override("font_color", COLOR_PENDING)
@@ -209,8 +222,6 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 			value_label.add_theme_color_override("font_color", COLOR_PENDING)
 		else:
 			value_label.add_theme_color_override("font_color", COLOR_VALUE)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value_label.custom_minimum_size.x = 120
 	value_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(value_label)
 
@@ -221,10 +232,19 @@ func _add_ability_line(ability_code: String, ability_name: String, current_value
 	var line = HBoxContainer.new()
 	line.name = "Ability_" + ability_code  # For finding later
 
+	# Selection marker (hidden by default)
+	var marker = Label.new()
+	marker.name = "Marker"
+	marker.text = "  "
+	marker.add_theme_color_override("font_color", COLOR_SELECTED)
+	marker.add_theme_font_size_override("font_size", 14)
+	line.add_child(marker)
+
 	# Ability name
 	var name_label = Label.new()
-	name_label.text = "%s:" % ability_name
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.name = "Name"
+	name_label.text = ability_name
+	name_label.custom_minimum_size.x = 180
 	name_label.add_theme_color_override("font_color", COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
@@ -233,14 +253,13 @@ func _add_ability_line(ability_code: String, ability_name: String, current_value
 	var pending_increases = pending_ability_increases.get(ability_code, 0)
 
 	var value_label = Label.new()
+	value_label.name = "Value"
 	if pending_increases > 0:
 		value_label.text = "%d (+%d)" % [current_value, pending_increases]
 		value_label.add_theme_color_override("font_color", COLOR_PENDING)
 	else:
 		value_label.text = "%d" % current_value
 		value_label.add_theme_color_override("font_color", COLOR_VALUE)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value_label.custom_minimum_size.x = 120
 	value_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(value_label)
 
@@ -388,16 +407,26 @@ func _update_selection_visual() -> void:
 	var item = navigable_items[selected_index]
 	var content_box = skills_content if item.type == "skill" else abilities_content
 
-	# Reset all lines
+	# Reset all lines - clear markers and restore normal colors
 	for child in content_box.get_children():
 		if child is HBoxContainer:
-			child.modulate = COLOR_NORMAL
+			var marker = child.get_node_or_null("Marker")
+			var name_node = child.get_node_or_null("Name")
+			if marker:
+				marker.text = "  "
+			if name_node:
+				name_node.add_theme_color_override("font_color", COLOR_LABEL)
 
-	# Highlight selected line
+	# Highlight selected line with arrow marker
 	var line_name = ("Skill_" if item.type == "skill" else "Ability_") + item.name
 	var selected_line = content_box.get_node_or_null(line_name)
 	if selected_line:
-		selected_line.modulate = COLOR_SELECTED
+		var marker = selected_line.get_node_or_null("Marker")
+		var name_node = selected_line.get_node_or_null("Name")
+		if marker:
+			marker.text = "► "
+		if name_node:
+			name_node.add_theme_color_override("font_color", COLOR_SELECTED)
 
 ## Scroll to selected item
 func _scroll_to_selected() -> void:

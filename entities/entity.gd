@@ -67,7 +67,9 @@ func _calculate_derived_stats() -> void:
 	current_health = max_health
 
 ## Take damage
-func take_damage(amount: int) -> void:
+## source: What caused the damage (e.g., enemy name, "Starvation", "Dehydration")
+## method: How the damage was dealt (e.g., weapon name, "survival")
+func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
 	current_health = max(0, current_health - amount)
 	if current_health <= 0:
 		die()

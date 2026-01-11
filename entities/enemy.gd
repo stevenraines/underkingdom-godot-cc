@@ -246,8 +246,8 @@ func _distance_to(target: Vector2i) -> int:
 
 
 ## Override take_damage to alert enemy when hit
-func take_damage(amount: int) -> void:
-	super.take_damage(amount)
+func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
+	super.take_damage(amount, source, method)
 
 	# Being attacked alerts the enemy and makes them aware of the player's location
 	if is_alive and EntityManager.player:

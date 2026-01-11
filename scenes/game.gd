@@ -897,7 +897,10 @@ func _on_player_died() -> void:
 		"experience": player.experience if player else 0,
 		"gold": player.gold if player else 0,
 		"recipes_discovered": player.known_recipes.size() if player else 0,
-		"structures_built": 0  # TODO: Track this if needed
+		"structures_built": 0,  # TODO: Track this if needed
+		"death_cause": player.death_cause if player else "",
+		"death_method": player.death_method if player else "",
+		"death_location": player.death_location if player else ""
 	}
 
 	# Show death screen with stats

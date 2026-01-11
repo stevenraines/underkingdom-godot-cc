@@ -43,6 +43,11 @@ var skills: Dictionary = {
 	"Survival": 0
 }
 
+# Death tracking
+var death_cause: String = ""  # What killed the player (enemy name, "Starvation", etc.)
+var death_method: String = ""  # Weapon/method used (if applicable)
+var death_location: String = ""  # Where death occurred
+
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
 	_setup_player()
@@ -850,3 +855,86 @@ func _recalculate_derived_stats() -> void:
 ## Get current skill level for a specific skill
 func get_skill_level(skill_name: String) -> int:
 	return skills.get(skill_name, 0)
+
+## =========================================================================
+## DEATH TRACKING
+## =========================================================================
+
+## Record death details
+func record_death(cause: String, method: String = "", location: String = "") -> void:
+	death_cause = cause
+	death_method = method
+	death_location = location if location != "" else _get_current_location()
+
+## Get current location description
+func _get_current_location() -> String:
+	if not MapManager.current_map:
+		return "Unknown Location"
+
+	var map_id = MapManager.current_map.map_id
+
+	# Check if in dungeon
+	if map_id.begins_with("dungeon_"):
+		# Extract dungeon type and floor number
+		# Format: "dungeon_<type>_floor_<number>"
+		var parts = map_id.split("_")
+		if parts.size() >= 4:
+			var dungeon_type = parts[1].capitalize()  # e.g., "barrow" -> "Barrow"
+			var floor_num = parts[3]
+			return "%s Floor %s" % [dungeon_type, floor_num]
+		return "Unknown Dungeon"
+
+	# Check if in town
+	elif map_id.begins_with("town_"):
+		# Format: "town_<name>"
+		var town_name = map_id.substr(5).capitalize()  # Remove "town_" prefix
+		return "Town of %s" % town_name
+
+	# Otherwise, in wilderness - get biome and terrain
+	elif map_id == "overworld":
+		var biome = BiomeGenerator.get_biome_at(position.x, position.y, MapManager.current_map.seed)
+		var biome_name = biome.get("name", "Wilderness").capitalize()
+
+		# Get tile type for more detail
+		var tile = MapManager.current_map.get_tile(position)
+		var terrain = "Grassland"
+		if tile:
+			match tile.tile_type:
+				"grass":
+					terrain = "Grassland"
+				"tree":
+					terrain = "Forest"
+				"water":
+					terrain = "Waterside"
+				"wheat":
+					terrain = "Farmland"
+				_:
+					terrain = "Wilderness"
+
+		return "%s %s" % [biome_name, terrain]
+
+	return "Unknown Location"
+
+## Override take_damage to track death source
+func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
+	super.take_damage(amount)
+
+	# If this damage killed us, record the cause
+	if current_health <= 0 and is_alive:
+		record_death(source, method)
+
+## Get death summary for death screen
+func get_death_summary() -> String:
+	if death_cause == "":
+		return "You died."
+
+	var summary = "You were killed by [color=#ff8888]%s[/color]" % death_cause
+
+	if death_method != "":
+		summary += " with [color=#ffaa66]%s[/color]" % death_method
+
+	if death_location != "":
+		summary += " in [color=#88ccff]%s[/color]" % death_location
+
+	summary += "."
+	return summary

@@ -895,30 +895,27 @@ func _get_current_location() -> String:
 		var town_name = map_id.substr(5).capitalize()  # Remove "town_" prefix
 		return "Town of %s" % town_name
 
-	# Otherwise, in wilderness - get biome and terrain
+	# Otherwise, in wilderness - get terrain description
 	elif map_id == "overworld":
-		var biome = BiomeGenerator.get_biome_at(position.x, position.y, MapManager.current_map.seed)
-		var biome_name = biome.get("name", "Wilderness").capitalize()
-
-		# Get tile type for more detail
+		# Get tile type for terrain description
 		var tile = MapManager.current_map.get_tile(position)
-		var terrain = "Grassland"
 		if tile:
 			match tile.tile_type:
 				"grass":
-					terrain = "Grassland"
+					return "the Grasslands"
 				"tree":
-					terrain = "Forest"
+					return "the Forest"
 				"water":
-					terrain = "Waterside"
+					return "the Waterside"
 				"wheat":
-					terrain = "Farmland"
+					return "the Farmlands"
+				"dirt", "path":
+					return "the Wilderness"
 				_:
-					terrain = "Wilderness"
+					return "the Wilderness"
+		return "the Wilderness"
 
-		return "%s %s" % [biome_name, terrain]
-
-	return "Unknown Location"
+	return "an Unknown Location"
 
 ## Override take_damage to track death source
 func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:

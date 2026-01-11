@@ -62,7 +62,8 @@ var ascii_color: String = "#FFFFFF"
 
 ## Create a Spell from a dictionary (typically loaded from JSON)
 static func from_dict(data: Dictionary):
-	var spell = Spell.new()
+	var script = load("res://magic/spell.gd")
+	var spell = script.new()
 
 	# Core identification
 	spell.id = data.get("id", "")

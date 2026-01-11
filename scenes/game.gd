@@ -34,6 +34,7 @@ var help_screen: Control = null
 var world_map_screen: Control = null
 var fast_travel_screen: Control = null
 var rest_menu: Control = null
+var spell_list_screen: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
 # Rest system state
@@ -70,6 +71,7 @@ const TrainingScreenScene = preload("res://ui/training_screen.tscn")
 const NpcMenuScreenScene = preload("res://ui/npc_menu_screen.tscn")
 const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 const DeathScreenScene = preload("res://ui/death_screen.tscn")
+const SpellListScreenScene = preload("res://ui/spell_list_screen.tscn")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -125,6 +127,9 @@ func _ready() -> void:
 
 	# Create rest menu
 	_setup_rest_menu()
+
+	# Create spell list screen
+	_setup_spell_list_screen()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -389,6 +394,19 @@ func _setup_rest_menu() -> void:
 		print("[Game] Rest menu scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load rest_menu.tscn scene")
+
+## Setup spell list screen
+func _setup_spell_list_screen() -> void:
+	print("[Game] Setting up spell list screen from scene...")
+	if SpellListScreenScene:
+		spell_list_screen = SpellListScreenScene.instantiate()
+		spell_list_screen.name = "SpellListScreen"
+		hud.add_child(spell_list_screen)
+		if spell_list_screen.has_signal("closed"):
+			spell_list_screen.closed.connect(_on_spell_list_closed)
+		print("[Game] Spell list screen scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load spell_list_screen.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -1677,6 +1695,16 @@ func toggle_world_map() -> void:
 			world_map_screen.open()
 			input_handler.ui_blocking_input = true
 
+## Toggle spell list (called from input handler via Shift+M)
+func toggle_spell_list() -> void:
+	if spell_list_screen and player:
+		if spell_list_screen.visible:
+			spell_list_screen.hide()
+			input_handler.ui_blocking_input = false
+		else:
+			spell_list_screen.open(player)
+			input_handler.ui_blocking_input = true
+
 ## Open container screen (called from input handler)
 func open_container_screen(structure: Structure) -> void:
 	if container_screen and player:
@@ -1894,6 +1922,10 @@ func _on_help_screen_closed() -> void:
 
 ## Called when world map is closed
 func _on_world_map_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when spell list is closed
+func _on_spell_list_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Toggle fast travel screen (called from input handler)

@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_shield",
+  "name": "Tome of Shield",
+  "description": "A guide to creating magical barriers. Reading this will inscribe the spell into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "shield",
+  "weight": 1.0,
+  "value": 75,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#4444FF"
+}

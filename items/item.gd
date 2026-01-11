@@ -71,6 +71,9 @@ var inscription: String = ""        # Player-written inscription displayed in {c
 # Consumable effects
 var effects: Dictionary = {}        # {"hunger": 30, "thirst": 20, "health": 10}
 
+# Spell learning (for spell tomes)
+var teaches_spell: String = ""      # Spell ID to learn when this item is read
+
 # Transform on use (e.g., full waterskin -> empty waterskin)
 var transforms_into: String = ""    # Item ID to transform into after use
 
@@ -158,7 +161,10 @@ static func create_from_data(data: Dictionary) -> Item:
 
 	# Consumable effects
 	item.effects = data.get("effects", {})
-	
+
+	# Spell learning
+	item.teaches_spell = data.get("teaches_spell", "")
+
 	# Transform on use
 	item.transforms_into = data.get("transforms_into", "")
 
@@ -215,6 +221,7 @@ func duplicate_item() -> Item:
 	copy.applied_variants = applied_variants.duplicate()
 	copy.is_templated = is_templated
 	copy.teaches_recipe = teaches_recipe
+	copy.teaches_spell = teaches_spell
 	return copy
 
 ## Use this item on an entity
@@ -295,9 +302,13 @@ func _use_consumable(user: Entity) -> Dictionary:
 func _use_book(user: Entity) -> Dictionary:
 	var result = {
 		"success": false,
-		"consumed": false,  # Books are NOT consumed after reading
+		"consumed": false,  # Books are NOT consumed after reading by default
 		"message": ""
 	}
+
+	# Check if this is a spell tome
+	if teaches_spell != "":
+		return _use_spell_tome(user)
 
 	# Book without recipe to teach
 	if teaches_recipe == "":
@@ -320,6 +331,59 @@ func _use_book(user: Entity) -> Dictionary:
 		result.success = true
 		if recipe:
 			EventBus.recipe_discovered.emit(recipe)
+
+	return result
+
+## Use a spell tome to learn a spell
+func _use_spell_tome(user: Entity) -> Dictionary:
+	var result = {
+		"success": false,
+		"consumed": false,
+		"message": ""
+	}
+
+	# Check if player has spellbook
+	if not user.has_method("has_spellbook") or not user.has_spellbook():
+		result.message = "You need a spellbook to learn spells."
+		return result
+
+	# Get the spell
+	var spell = SpellManager.get_spell(teaches_spell)
+	if spell == null:
+		result.message = "This tome contains corrupted knowledge."
+		return result
+
+	# Check INT requirement
+	var user_int = 10
+	if user.has_method("get_effective_attribute"):
+		user_int = user.get_effective_attribute("INT")
+	elif "attributes" in user:
+		user_int = user.attributes.get("INT", 10)
+
+	if user_int < spell.requirements.get("intelligence", 8):
+		result.message = "The arcane symbols are incomprehensible to you."
+		return result
+
+	# Check level requirement
+	var user_level = user.level if "level" in user else 1
+	if user_level < spell.requirements.get("character_level", 1):
+		result.message = "This magic is beyond your current abilities."
+		return result
+
+	# Check if already known
+	if user.has_method("knows_spell") and user.knows_spell(teaches_spell):
+		result.message = "You already know this spell."
+		result.success = true  # Still successful read, just no new knowledge
+		return result
+
+	# Learn the spell
+	if user.has_method("learn_spell"):
+		if user.learn_spell(teaches_spell):
+			result.message = "You inscribe %s into your spellbook!" % spell.name
+			result.success = true
+			result.consumed = true  # Spell tomes are consumed after learning
+		else:
+			result.message = "You cannot learn this spell."
 
 	return result
 

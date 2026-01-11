@@ -1,0 +1,15 @@
+{
+  "id": "spellbook",
+  "name": "Spellbook",
+  "description": "A leather-bound tome for recording arcane knowledge. Required to learn and cast spells.",
+  "category": "book",
+  "subtype": "spellbook",
+  "flags": {
+    "spellbook": true
+  },
+  "weight": 2.0,
+  "value": 50,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#8844AA"
+}

@@ -233,7 +233,8 @@ func _serialize_player() -> Dictionary:
 		"available_skill_points": player.available_skill_points,
 		"available_ability_points": player.available_ability_points,
 		"skills": player.skills.duplicate(),
-		"known_recipes": player.known_recipes.duplicate()
+		"known_recipes": player.known_recipes.duplicate(),
+		"known_spells": player.known_spells.duplicate()
 	}
 
 ## Serialize survival stats
@@ -538,6 +539,12 @@ func _deserialize_player(player_data: Dictionary):
 	player.known_recipes.clear()
 	for recipe_id in player_data.known_recipes:
 		player.known_recipes.append(recipe_id)
+
+	# Restore known spells (clear and append to maintain Array[String] type)
+	player.known_spells.clear()
+	if player_data.has("known_spells"):
+		for spell_id in player_data.known_spells:
+			player.known_spells.append(spell_id)
 
 	print("SaveManager: Player deserialized")
 

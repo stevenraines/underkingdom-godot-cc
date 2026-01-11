@@ -81,6 +81,7 @@ var current_target: Entity = null
 | C | Open crafting |
 | B | Toggle build mode |
 | M | Toggle world map |
+| Shift+M | Toggle spellbook |
 | P | Character sheet |
 | F1 / ? | Help screen |
 | L | Look mode |

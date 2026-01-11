@@ -874,26 +874,25 @@ func record_death(cause: String, method: String = "", location: String = "") -> 
 ## Get current location description
 func _get_current_location() -> String:
 	if not MapManager.current_map:
-		return "Unknown Location"
+		return "an Unknown Location"
 
 	var map_id = MapManager.current_map.map_id
 
-	# Check if in dungeon
-	if map_id.begins_with("dungeon_"):
-		# Extract dungeon type and floor number
-		# Format: "dungeon_<type>_floor_<number>"
-		var parts = map_id.split("_")
-		if parts.size() >= 4:
-			var dungeon_type = parts[1].capitalize()  # e.g., "barrow" -> "Barrow"
-			var floor_num = parts[3]
-			return "%s Floor %s" % [dungeon_type, floor_num]
-		return "Unknown Dungeon"
+	# Check if in dungeon (format: "<dungeon_type>_floor_<number>")
+	if "_floor_" in map_id:
+		var floor_idx = map_id.find("_floor_")
+		var dungeon_type = map_id.substr(0, floor_idx)  # e.g., "sewers", "burial_barrow"
+		var floor_num = map_id.substr(floor_idx + 7)  # Get number after "_floor_"
+
+		# Format dungeon name nicely
+		var dungeon_name = dungeon_type.replace("_", " ").capitalize()
+		return "%s Floor %s" % [dungeon_name, floor_num]
 
 	# Check if in town
-	elif map_id.begins_with("town_"):
+	if map_id.begins_with("town_"):
 		# Format: "town_<name>"
-		var town_name = map_id.substr(5).capitalize()  # Remove "town_" prefix
-		return "Town of %s" % town_name
+		var town_name = map_id.substr(5).replace("_", " ").capitalize()
+		return "the Town of %s" % town_name
 
 	# Otherwise, in wilderness - get terrain description
 	elif map_id == "overworld":

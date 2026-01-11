@@ -1,6 +1,12 @@
-# Feature: Show death cause
+# Feature: Auto-save slot
 
-**Goal**: The player should know what killed them
+**Goal**: Create an auto-save slot (hidden) to store the current game
 
 ---
-When a player dies, they are shown the death screen. On this screen, identify what killed them (fatigue, a stirge, a bandit) with what if there was a weapon invovled and where (dungeon name and level, town name, or if in the wilderness the biome and ground type)
+Create an auto-save slot for the current game. Persist the current game into that slot every turn.
+
+When the player starts the game and goes to the main menu, the auto-save slot game should be what happens when you click continue. If there is no game in the auto-save slot, continue should not appear.
+
+Loading an existing game copies it into the auto-save slot.
+
+If the player dies, the auto-save slot should be cleared.

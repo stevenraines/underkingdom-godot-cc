@@ -123,5 +123,5 @@ layout_mode = 2
 theme = ExtResource("2_theme")
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 12
-text = "Press [ESC] or [P] to close | Tab/Shift+Tab to switch tabs"
+text = "Press [ESC] or [P] to close | [Tab] to switch tabs"
 horizontal_alignment = 1

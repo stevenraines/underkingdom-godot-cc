@@ -23,7 +23,7 @@ const COLOR_VALUE = Color(0.7, 0.9, 0.7)
 
 func _ready() -> void:
 	hide()
-	set_process_unhandled_input(false)
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	# Connect tab changed signal
 	if tab_container:
@@ -39,12 +39,10 @@ func open(p_player) -> void:
 	_on_tab_changed(tab_container.current_tab if tab_container else 0)
 
 	show()
-	set_process_unhandled_input(true)
 
 ## Close the character sheet
 func close() -> void:
 	hide()
-	set_process_unhandled_input(false)
 	closed.emit()
 
 ## Populate the stats tab content dynamically
@@ -390,33 +388,61 @@ func _on_tab_changed(tab_index: int) -> void:
 			current_scroll_container = stats_scroll
 
 ## Handle input
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
 		var scroll_amount = 40  # Pixels to scroll per key press
 
-		if current_scroll_container:
-			if event.keycode == KEY_UP or event.keycode == KEY_W:
-				current_scroll_container.scroll_vertical -= scroll_amount
-				get_viewport().set_input_as_handled()
-			elif event.keycode == KEY_DOWN or event.keycode == KEY_S:
-				current_scroll_container.scroll_vertical += scroll_amount
-				get_viewport().set_input_as_handled()
-			elif event.keycode == KEY_PAGEUP:
-				current_scroll_container.scroll_vertical -= scroll_amount * 5
-				get_viewport().set_input_as_handled()
-			elif event.keycode == KEY_PAGEDOWN:
-				current_scroll_container.scroll_vertical += scroll_amount * 5
-				get_viewport().set_input_as_handled()
-			elif event.keycode == KEY_HOME:
-				current_scroll_container.scroll_vertical = 0
-				get_viewport().set_input_as_handled()
-			elif event.keycode == KEY_END:
-				current_scroll_container.scroll_vertical = int(current_scroll_container.get_v_scroll_bar().max_value)
+		match event.keycode:
+			KEY_TAB:
+				# Cycle through tabs
+				if tab_container:
+					var current_tab = tab_container.current_tab
+					var tab_count = tab_container.get_tab_count()
+					if event.shift_pressed:
+						# Shift+Tab: Previous tab
+						current_tab = (current_tab - 1 + tab_count) % tab_count
+					else:
+						# Tab: Next tab
+						current_tab = (current_tab + 1) % tab_count
+					tab_container.current_tab = current_tab
 				get_viewport().set_input_as_handled()
 
-		if not event.echo and (event.keycode == KEY_ESCAPE or event.keycode == KEY_P):
-			close()
-			get_viewport().set_input_as_handled()
+			KEY_UP, KEY_W:
+				if current_scroll_container:
+					current_scroll_container.scroll_vertical -= scroll_amount
+				get_viewport().set_input_as_handled()
+
+			KEY_DOWN, KEY_S:
+				if current_scroll_container:
+					current_scroll_container.scroll_vertical += scroll_amount
+				get_viewport().set_input_as_handled()
+
+			KEY_PAGEUP:
+				if current_scroll_container:
+					current_scroll_container.scroll_vertical -= scroll_amount * 5
+				get_viewport().set_input_as_handled()
+
+			KEY_PAGEDOWN:
+				if current_scroll_container:
+					current_scroll_container.scroll_vertical += scroll_amount * 5
+				get_viewport().set_input_as_handled()
+
+			KEY_HOME:
+				if current_scroll_container:
+					current_scroll_container.scroll_vertical = 0
+				get_viewport().set_input_as_handled()
+
+			KEY_END:
+				if current_scroll_container:
+					current_scroll_container.scroll_vertical = int(current_scroll_container.get_v_scroll_bar().max_value)
+				get_viewport().set_input_as_handled()
+
+			KEY_ESCAPE, KEY_P:
+				close()
+				get_viewport().set_input_as_handled()
 
 ## =========================================================================
 ## SKILLS TAB

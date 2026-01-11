@@ -6,14 +6,15 @@
 
 ## Overview
 
-The Targeting System manages target selection for ranged combat. It handles target cycling, validation, hit chance calculation, and attack confirmation. An instance is created by InputHandler for each targeting session.
+The Targeting System manages target selection for ranged combat and spell casting. It handles target cycling, validation, hit chance calculation, and attack/spell confirmation. An instance is created by InputHandler for each targeting session.
 
 ## Key Concepts
 
 - **Targeting Session**: Active period of target selection
 - **Valid Targets**: Enemies within range and line of sight
 - **Target Cycling**: Moving between available targets
-- **Hit Chance**: Calculated accuracy display
+- **Hit Chance**: Calculated accuracy display (ranged weapons only)
+- **Spell Targeting**: Special mode for casting spells on targets
 
 ## Core Properties
 
@@ -25,6 +26,10 @@ var target_index: int = 0
 var attacker: Entity = null
 var weapon: Item = null
 var ammo: Item = null
+
+# Spell targeting mode
+var is_spell_targeting: bool = false
+var targeting_spell = null  # The spell being targeted
 ```
 
 ## Signals
@@ -136,12 +141,64 @@ var help = targeting_system.get_help_text()
 
 ## Valid Target Criteria
 
-From RangedCombatSystem:
+From RangedCombatSystem (weapons):
 - Is an Enemy
 - Is alive
 - Within weapon range
 - Has line of sight from attacker
 - Not at melee range (distance < 1)
+
+## Spell Targeting
+
+The targeting system also supports spell casting through a separate spell targeting mode.
+
+### Starting Spell Targeting
+
+```gdscript
+var has_targets = targeting_system.start_spell_targeting(caster, spell)
+```
+
+Returns true if valid targets exist within spell range.
+
+### Confirming Spell Cast
+
+```gdscript
+var result = targeting_system.confirm_spell_target()
+```
+
+Returns spell cast result dictionary from SpellCastingSystem.
+
+### Spell Target Criteria
+
+From SpellCastingSystem:
+- Is an Enemy (for damage spells)
+- Is alive
+- Within spell range
+- Has line of sight if required by spell
+
+### Spell Targeting Properties
+
+```gdscript
+var is_spell_targeting: bool  # True when targeting for a spell
+var targeting_spell           # The spell being cast
+
+func get_spell_range() -> int           # Get spell's range
+func get_targeting_spell()              # Get the spell object
+```
+
+### Spell Status Text
+
+When `is_spell_targeting` is true, `get_status_text()` returns:
+```
+"CASTING: Spark | Target: Skeleton (1/3) | Distance: 5"
+```
+
+### Spell Help Text
+
+When `is_spell_targeting` is true, `get_help_text()` returns:
+```
+"[Tab/←→] Cycle | [Enter/C] Cast | [Esc] Cancel"
+```
 
 ## Session Lifecycle
 
@@ -171,7 +228,8 @@ func _end_targeting():
 ## Integration with Other Systems
 
 - **InputHandler**: Creates instance, handles input routing
-- **RangedCombatSystem**: Provides valid targets, executes attacks
+- **RangedCombatSystem**: Provides valid targets, executes ranged weapon attacks
+- **SpellCastingSystem**: Provides spell targets, executes spell casts
 - **Game Scene**: Displays targeting UI
 
 ## Usage in InputHandler
@@ -191,8 +249,23 @@ func _handle_targeting_input(event):
         KEY_ESCAPE: targeting_system.cancel()
 ```
 
+## Spell Targeting in InputHandler
+
+```gdscript
+# Start spell targeting (from game.gd)
+if targeting_system.start_spell_targeting(player, spell):
+    ui_blocking_input = true
+    game._add_message(targeting_system.get_status_text())
+
+# Handle spell targeting confirmation
+if targeting_system.is_spell_targeting:
+    var result = targeting_system.confirm_spell_target()
+    # Process spell result...
+```
+
 ## Related Documentation
 
 - [Ranged Combat System](./ranged-combat-system.md) - Attack resolution
+- [Magic System](./magic-system.md) - Spell casting
 - [Input Handler](./input-handler.md) - Input routing
 - [Combat System](./combat-system.md) - Damage calculation

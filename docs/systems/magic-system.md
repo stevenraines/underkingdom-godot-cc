@@ -14,6 +14,7 @@ The magic system consists of two main components:
 - **Phase 02** (Spell Data & Manager) - Implemented
 - **Phase 03** (Spellbook & Spell Learning) - Implemented
 - **Phase 04** (Spell Casting) - Implemented
+- **Phase 05** (Ranged Spell Targeting) - Implemented
 
 Remaining phases are planned.
 

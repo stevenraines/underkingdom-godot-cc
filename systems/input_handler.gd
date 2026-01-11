@@ -1204,12 +1204,10 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 
 		KEY_ENTER, KEY_SPACE, KEY_R, KEY_F:
 			# Check if we're in spell targeting mode
-			if game and game.get("spell_targeting_active") and game.spell_targeting_active:
+			if targeting_system.is_spell_targeting:
 				# Spell targeting - cast spell on current target
-				var target = targeting_system.current_target
-				if target:
-					game.cast_pending_spell_on_target(target)
-				game._cancel_spell_targeting()
+				var result = targeting_system.confirm_spell_target()
+				_process_spell_result(result, game)
 			else:
 				# Normal ranged weapon targeting
 				var result = targeting_system.confirm_target()
@@ -1219,17 +1217,14 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 
 		KEY_ESCAPE:
 			# Cancel targeting
-			if game and game.get("spell_targeting_active") and game.spell_targeting_active:
-				# Cancel spell targeting
-				game._cancel_spell_targeting()
-				if game.has_method("_add_message"):
+			var was_spell_targeting = targeting_system.is_spell_targeting
+			targeting_system.cancel()
+			if game and game.has_method("hide_targeting_ui"):
+				game.hide_targeting_ui()
+			if game and game.has_method("_add_message"):
+				if was_spell_targeting:
 					game._add_message("Spell cancelled.", Color(0.7, 0.7, 0.7))
-			else:
-				# Cancel normal targeting
-				targeting_system.cancel()
-				if game and game.has_method("hide_targeting_ui"):
-					game.hide_targeting_ui()
-				if game and game.has_method("_add_message"):
+				else:
 					game._add_message("Targeting cancelled.", Color(0.7, 0.7, 0.7))
 			ui_blocking_input = false
 			get_viewport().set_input_as_handled()
@@ -1288,6 +1283,33 @@ func _process_ranged_attack_result(result: Dictionary) -> void:
 	if game and game.has_method("_render_all_entities"):
 		game._render_all_entities()
 		game._render_ground_items()
+
+
+## Process the result of a spell cast
+func _process_spell_result(result: Dictionary, game) -> void:
+	if result.success:
+		if game and game.has_method("_add_message"):
+			game._add_message(result.message, Color(0.5, 0.8, 1.0))
+		TurnManager.advance_turn()
+	elif result.failed:
+		if game and game.has_method("_add_message"):
+			game._add_message(result.message, Color(1.0, 0.8, 0.3))
+		TurnManager.advance_turn()  # Still costs a turn
+	else:
+		if game and game.has_method("_add_message"):
+			game._add_message(result.get("message", "Spell failed."), Color(1.0, 0.5, 0.5))
+
+	# Hide targeting UI
+	if game and game.has_method("hide_targeting_ui"):
+		game.hide_targeting_ui()
+
+	# Update HUD to show mana change
+	if game and game.has_method("_update_hud"):
+		game._update_hud()
+
+	# Refresh rendering
+	if game and game.has_method("_render_all_entities"):
+		game._render_all_entities()
 
 
 ## Get the equipped ranged or thrown weapon

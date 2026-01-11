@@ -19,6 +19,7 @@ var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
+var known_spells: Array[String] = []  # Array of spell IDs the player has learned
 var gold: int = 25  # Player's gold currency
 
 # Experience and Leveling
@@ -607,6 +608,53 @@ func get_craftable_recipes() -> Array:
 		if recipe and recipe.has_requirements(inventory, near_fire):
 			result.append(recipe)
 
+	return result
+
+# =============================================================================
+# SPELLBOOK & SPELL LEARNING
+# =============================================================================
+
+## Check if player has a spellbook in inventory
+func has_spellbook() -> bool:
+	if not inventory:
+		return false
+	return inventory.has_item_with_flag("spellbook")
+
+## Check if player knows a specific spell
+func knows_spell(spell_id: String) -> bool:
+	return spell_id in known_spells
+
+## Learn a new spell (requires spellbook)
+## Returns true if spell was successfully learned
+func learn_spell(spell_id: String) -> bool:
+	if not has_spellbook():
+		return false
+	if knows_spell(spell_id):
+		return false
+	var spell = SpellManager.get_spell(spell_id)
+	if spell == null:
+		return false
+	known_spells.append(spell_id)
+	EventBus.spell_learned.emit(spell_id)
+	print("Player learned spell: ", spell_id)
+	return true
+
+## Get all spells the player knows
+func get_known_spells() -> Array:
+	var result: Array = []
+	for spell_id in known_spells:
+		var spell = SpellManager.get_spell(spell_id)
+		if spell:
+			result.append(spell)
+	return result
+
+## Get spells the player can currently cast (knows spell + meets requirements)
+func get_castable_spells() -> Array:
+	var result: Array = []
+	for spell_id in known_spells:
+		var spell = SpellManager.get_spell(spell_id)
+		if spell and SpellManager.can_cast(self, spell).can_cast:
+			result.append(spell)
 	return result
 
 ## Open a door at the given position

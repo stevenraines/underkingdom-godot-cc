@@ -12,6 +12,7 @@ The magic system consists of two main components:
 
 - **Phase 01** (Mana System) - Implemented
 - **Phase 02** (Spell Data & Manager) - Implemented
+- **Phase 03** (Spellbook & Spell Learning) - Implemented
 
 Remaining phases are planned.
 
@@ -113,6 +114,80 @@ SpellManager.calculate_spell_duration(spell, caster) -> int
 
 For spell JSON format, see [Spell Data Format](../data/spells.md).
 
+## Spellbook & Spell Learning (Implemented)
+
+Players must possess a spellbook item to learn and access spells.
+
+### Spellbook Item
+
+A spellbook is a book item with the `spellbook` flag:
+```json
+{
+  "id": "spellbook",
+  "category": "book",
+  "flags": {"readable": true, "magical": true, "spellbook": true}
+}
+```
+
+### Player Known Spells
+
+- `known_spells: Array[String]` - List of learned spell IDs
+- Persisted in save/load
+- Accessed via `player.get_known_spells()` which returns full Spell objects
+
+### Learning Spells
+
+Spells are learned from **Spell Tomes** - book items with `teaches_spell` property:
+
+```json
+{
+  "id": "tome_of_spark",
+  "name": "Tome of Spark",
+  "category": "book",
+  "subtype": "spell_tome",
+  "teaches_spell": "spark"
+}
+```
+
+**Learning Requirements:**
+- Player must have a spellbook in inventory
+- Player must meet spell's INT requirement
+- Player must meet spell's level requirement
+- Player must not already know the spell
+- Spell tome is consumed on successful learning
+
+### Player Methods
+
+```gdscript
+player.has_spellbook() -> bool       # Check for spellbook item
+player.knows_spell(spell_id) -> bool # Check if spell is known
+player.learn_spell(spell_id) -> bool # Learn a new spell
+player.get_known_spells() -> Array   # Get all known Spell objects
+```
+
+### EventBus Signals
+
+```gdscript
+signal spell_learned(spell_id: String)
+signal spell_cast(caster, spell, targets: Array, result: Dictionary)
+```
+
+### Spell List UI
+
+Open with **Shift+M** to view known spells:
+- Shows all learned spells with name, school, level, mana cost
+- Detail panel shows requirements and whether player can cast
+- School colors: Evocation (orange), Conjuration (purple), etc.
+
+### Current Spell Tomes
+
+| Tome | Teaches | Value |
+|------|---------|-------|
+| Tome of Light | light cantrip | 25 |
+| Tome of Spark | spark (Lv1) | 75 |
+| Tome of Healing | heal (Lv1) | 100 |
+| Tome of Shield | shield (Lv1) | 75 |
+
 ## Planned Features
 
 ### Spellcasting
@@ -136,17 +211,15 @@ For spell JSON format, see [Spell Data Format](../data/spells.md).
 
 ## Keybindings
 
-**Note:** These are planned keybindings. Some may conflict with existing controls and will be adjusted during implementation.
+### Implemented
+| Key | Action |
+|-----|--------|
+| Shift+M | Open spellbook (view known spells) |
 
-Conflicts identified:
-- `C` is used for Crafting menu
-- `M` is used for World map
-
-Proposed keybindings:
+### Planned
 | Key | Action |
 |-----|--------|
 | K | Open spell casting menu |
-| Shift+K | View known spells |
 | Shift+T | Open ritual menu (T alone is Talk) |
 | Shift+S | Summon commands (if summons active) |
 

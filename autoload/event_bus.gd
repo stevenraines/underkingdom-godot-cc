@@ -65,6 +65,12 @@ signal mana_changed(old_value: float, new_value: float, max_value: float)
 @warning_ignore("unused_signal")
 signal mana_depleted()
 
+# Spell signals (magic system)
+@warning_ignore("unused_signal")
+signal spell_learned(spell_id: String)
+@warning_ignore("unused_signal")
+signal spell_cast(caster, spell, targets: Array, result: Dictionary)
+
 # Inventory signals
 @warning_ignore("unused_signal")
 signal item_picked_up(item)  # Item

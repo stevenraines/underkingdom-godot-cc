@@ -596,7 +596,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_T and not event.shift_pressed:  # T - talk/interact with NPC
 			_try_interact_npc()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_M:  # M - toggle world map
+		elif event.keycode == KEY_M and event.shift_pressed:  # Shift+M - toggle spellbook
+			_toggle_spell_list()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_M and not event.shift_pressed:  # M - toggle world map
 			_toggle_world_map()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_H:  # H key - harvest (prompts for direction)
@@ -793,6 +796,12 @@ func _toggle_world_map() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_world_map"):
 		game.toggle_world_map()
+
+## Toggle spell list screen
+func _toggle_spell_list() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_spell_list"):
+		game.toggle_spell_list()
 
 ## Interact with structure at player position
 func _interact_with_structure() -> void:

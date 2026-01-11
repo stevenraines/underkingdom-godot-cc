@@ -100,6 +100,7 @@ func _build_help_content() -> void:
 	_add_section_header("== MENUS & UI ==")
 	_add_keybind("P", "Character sheet")
 	_add_keybind("M", "World map")
+	_add_keybind("Shift+M", "Spellbook (view known spells)")
 	_add_keybind("Z", "Fast travel to visited locations")
 	_add_keybind("? or F1", "This help screen")
 	_add_keybind("ESC", "Pause menu / close UI")

@@ -158,6 +158,17 @@ func remove_item_by_id(item_id: String, count: int = 1) -> int:
 func has_item(item_id: String, count: int = 1) -> bool:
 	return get_item_count(item_id) >= count
 
+## Check if inventory contains any item with a specific flag
+func has_item_with_flag(flag_name: String) -> bool:
+	for item in items:
+		if item.has_flag(flag_name):
+			return true
+	# Also check equipped items
+	for slot in equipment.values():
+		if slot and slot.has_flag(flag_name):
+			return true
+	return false
+
 ## Get total count of an item by ID
 func get_item_count(item_id: String) -> int:
 	var total = 0

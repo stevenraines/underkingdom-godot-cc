@@ -1,0 +1,17 @@
+{
+  "id": "tome_of_light",
+  "name": "Tome of Light",
+  "description": "A primer on the most basic evocation - summoning light. Reading this will inscribe the cantrip into your spellbook.",
+  "category": "book",
+  "subtype": "spell_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_spell": "light",
+  "weight": 0.5,
+  "value": 25,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#FFFFAA"
+}

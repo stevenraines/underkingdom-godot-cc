@@ -1326,10 +1326,12 @@ func _process_ranged_attack_result(result: Dictionary) -> void:
 	# Advance turn
 	TurnManager.advance_turn()
 
-	# Refresh rendering
+	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
 	if game and game.has_method("_render_all_entities"):
 		game._render_all_entities()
 		game._render_ground_items()
+	if game and game.has_method("_update_visibility"):
+		game._update_visibility()
 
 
 ## Process the result of a spell cast
@@ -1354,9 +1356,12 @@ func _process_spell_result(result: Dictionary, game) -> void:
 	if game and game.has_method("_update_hud"):
 		game._update_hud()
 
-	# Refresh rendering
+	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
 	if game and game.has_method("_render_all_entities"):
 		game._render_all_entities()
+		game._render_ground_items()
+	if game and game.has_method("_update_visibility"):
+		game._update_visibility()
 
 
 ## Get the equipped ranged or thrown weapon

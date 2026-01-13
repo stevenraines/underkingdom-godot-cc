@@ -53,7 +53,7 @@ func _load_ritual_file(path: String) -> void:
 	if error == OK:
 		var data = json.get_data()
 		if data is Dictionary:
-			var ritual = Ritual.new(data)
+			var ritual = Ritual.from_dict(data)
 			rituals[ritual.id] = ritual
 	else:
 		push_warning("Failed to parse ritual file: %s" % path)

@@ -1996,8 +1996,6 @@ func _cast_spell_on_target(spell, target) -> void:
 	if result.success:
 		_add_message(result.message, Color(0.5, 0.8, 1.0))
 		TurnManager.advance_turn()
-		# Update visibility immediately (for Light spell and other buff effects)
-		_update_visibility()
 	elif result.failed:
 		_add_message(result.message, Color(1.0, 0.8, 0.3))
 		TurnManager.advance_turn()  # Still costs a turn
@@ -2006,7 +2004,10 @@ func _cast_spell_on_target(spell, target) -> void:
 
 	# Update HUD to show mana change
 	_update_hud()
+	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
 	_render_all_entities()
+	_render_ground_items()
+	_update_visibility()
 
 
 ## Called when EventBus.ritual_menu_requested is emitted

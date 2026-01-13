@@ -1,22 +1,15 @@
 {
-  "id": "mana_potion_greater_recipe",
-  "name": "Greater Mana Potion",
-  "description": "Brew a powerful mana restoration potion.",
-  "category": "consumable",
+  "id": "greater_mana_potion",
+  "result": "mana_potion_greater",
+  "result_count": 1,
   "ingredients": [
-    {"item_id": "empty_flask", "quantity": 1},
-    {"item_id": "mana_crystal", "quantity": 3},
-    {"item_id": "moonpetal", "quantity": 5},
-    {"item_id": "arcane_essence", "quantity": 1}
+    {"item": "empty_flask", "count": 1},
+    {"item": "mana_crystal", "count": 3},
+    {"item": "moonpetal", "count": 5},
+    {"item": "arcane_essence", "count": 1}
   ],
-  "result": {"item_id": "mana_potion_greater", "quantity": 1},
-  "requirements": {
-    "intelligence": 14,
-    "near_fire": true,
-    "has_alchemy_kit": true
-  },
+  "tool_required": "alchemy_kit",
+  "fire_required": true,
   "difficulty": 7,
-  "stamina_cost": 15,
-  "discovery_hints": ["advanced alchemy", "arcane essence", "concentrated mana"],
-  "known_by_default": false
+  "discovery_hint": "Concentrated mana crystals and arcane essence create powerful restorative draughts"
 }

@@ -1,23 +1,14 @@
 {
-  "id": "mana_potion_minor_recipe",
-  "name": "Minor Mana Potion",
-  "description": "Brew a minor mana potion.",
-  "category": "consumable",
+  "id": "minor_mana_potion",
+  "result": "mana_potion_minor",
+  "result_count": 1,
   "ingredients": [
-    {"item_id": "empty_vial", "quantity": 1},
-    {"item_id": "moonpetal", "quantity": 2},
-    {"item_id": "water_flask", "quantity": 1}
+    {"item": "empty_vial", "count": 1},
+    {"item": "moonpetal", "count": 2},
+    {"item": "water_flask", "count": 1}
   ],
-  "result": {"item_id": "mana_potion_minor", "quantity": 1},
-  "byproducts": [
-    {"item_id": "empty_flask", "quantity": 1}
-  ],
-  "requirements": {
-    "intelligence": 9,
-    "near_fire": true
-  },
+  "tool_required": "",
+  "fire_required": true,
   "difficulty": 2,
-  "stamina_cost": 5,
-  "discovery_hints": ["magical herb", "brewing", "mana"],
-  "known_by_default": false
+  "discovery_hint": "Brewing moonpetal with water creates a minor mana restorative"
 }

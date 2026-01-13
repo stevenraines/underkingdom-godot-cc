@@ -631,6 +631,8 @@ static func attempt_saving_throw(target, save_type: String, dc: int) -> Dictiona
 ## Get valid targets for a ranged spell
 ## Returns an array of entities that can be targeted
 static func get_valid_spell_targets(caster, spell) -> Array[Entity]:
+	const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+
 	var targets: Array[Entity] = []
 
 	var targeting_mode = spell.get_targeting_mode()
@@ -647,6 +649,11 @@ static func get_valid_spell_targets(caster, spell) -> Array[Entity]:
 			continue
 
 		if not entity.is_alive:
+			continue
+
+		# Check if target is currently visible (in FOV and illuminated)
+		# This prevents targeting enemies behind walls or in unexplored areas
+		if not FogOfWarSystemClass.is_visible(entity.position):
 			continue
 
 		# Check range

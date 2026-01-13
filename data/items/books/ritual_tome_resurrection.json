@@ -1,0 +1,17 @@
+{
+  "id": "ritual_tome_resurrection",
+  "name": "Ritual Tome: Resurrection",
+  "description": "A sacred text on the art of returning souls to the living. This forbidden knowledge allows the resurrection of the fallen.",
+  "category": "book",
+  "subtype": "ritual_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_ritual": "resurrection",
+  "weight": 2.0,
+  "value": 1000,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#FFFFFF"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "resist_elements",
+  "name": "Resist Elements",
+  "description": "Grant resistance to all elemental damage types.",
+  "school": "abjuration",
+  "level": 5,
+  "mana_cost": 25,
+  "requirements": {
+    "character_level": 5,
+    "intelligence": 12
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "concentration": true,
+  "effects": {
+    "elemental_resistance_all": {
+      "modifier": -25,
+      "duration": 100,
+      "duration_scaling": 20
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 100,
+    "scaling": 20
+  },
+  "cast_message": "Elemental wards shimmer around you.",
+  "ascii_char": "O",
+  "ascii_color": "#FFFFFF"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "minor_illusion",
+  "name": "Minor Illusion",
+  "description": "Create a small illusory distraction.",
+  "school": "illusion",
+  "level": 0,
+  "mana_cost": 0,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "tile",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "create_illusion": {
+      "duration": 10,
+      "attracts_enemies": true
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 10
+  },
+  "cast_message": "An illusion shimmers into existence.",
+  "ascii_char": "?",
+  "ascii_color": "#AAAAFF"
+}

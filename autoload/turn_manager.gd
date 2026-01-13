@@ -8,6 +8,7 @@ extends Node
 
 const HarvestSystem = preload("res://systems/harvest_system.gd")
 const FarmingSystem = preload("res://systems/farming_system.gd")
+const RitualSystemClass = preload("res://systems/ritual_system.gd")
 
 # Turn tracking
 var current_turn: int = 0
@@ -37,6 +38,9 @@ func advance_turn() -> void:
 
 	# Process player survival systems
 	_process_player_survival()
+
+	# Process ritual channeling (if player is channeling a ritual)
+	_process_ritual_channeling()
 
 	# Process DoT effects (before duration processing)
 	_process_dot_effects()
@@ -73,6 +77,11 @@ func _process_player_survival() -> void:
 		# Emit warnings if any
 		for warning in effects.get("warnings", []):
 			EventBus.survival_warning.emit(warning, _get_warning_severity(warning))
+
+## Process ritual channeling each turn (if active)
+func _process_ritual_channeling() -> void:
+	if RitualSystemClass.is_channeling():
+		RitualSystemClass.process_channeling_turn()
 
 ## Get current time of day period based on turn number
 func get_time_of_day() -> String:

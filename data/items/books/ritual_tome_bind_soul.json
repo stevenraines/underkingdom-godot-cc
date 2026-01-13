@@ -1,0 +1,17 @@
+{
+  "id": "ritual_tome_bind_soul",
+  "name": "Ritual Tome: Bind Soul",
+  "description": "A necromantic text on trapping souls within crystalline prisons. The knowledge within is as valuable as it is disturbing.",
+  "category": "book",
+  "subtype": "ritual_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_ritual": "bind_soul",
+  "weight": 1.5,
+  "value": 500,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#9966FF"
+}

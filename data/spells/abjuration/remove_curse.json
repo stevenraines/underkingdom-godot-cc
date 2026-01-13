@@ -1,0 +1,24 @@
+{
+  "id": "remove_curse",
+  "name": "Remove Curse",
+  "description": "Lift a curse from an item or creature.",
+  "school": "abjuration",
+  "level": 4,
+  "mana_cost": 20,
+  "requirements": {
+    "character_level": 4,
+    "intelligence": 11
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "remove_curse": true
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "The curse dissipates!",
+  "ascii_char": "O",
+  "ascii_color": "#FFFFFF"
+}

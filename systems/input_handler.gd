@@ -12,6 +12,7 @@ const FarmingSystemClass = preload("res://systems/farming_system.gd")
 const CropEntityClass = preload("res://entities/crop_entity.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const HarvestSystemClass = preload("res://systems/harvest_system.gd")
+const RitualSystemClass = preload("res://systems/ritual_system.gd")
 
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
@@ -608,7 +609,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_M and event.shift_pressed:  # Shift+M - toggle spellbook
 			_toggle_spell_list()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_K:  # K - open spell casting (alias for spellbook)
+		elif event.keycode == KEY_K and event.shift_pressed:  # Shift+K - ritual menu
+			_toggle_ritual_menu()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_K and not event.shift_pressed:  # K - open spell casting (alias for spellbook)
 			_toggle_spell_list()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_M and not event.shift_pressed:  # M - toggle world map
@@ -814,6 +818,28 @@ func _toggle_spell_list() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_spell_list"):
 		game.toggle_spell_list()
+
+## Toggle ritual menu screen
+func _toggle_ritual_menu() -> void:
+	var game = get_parent()
+
+	# Check if player is currently channeling a ritual
+	if RitualSystemClass.is_channeling():
+		if game and game.has_method("_add_message"):
+			var progress = RitualSystemClass.get_channeling_progress()
+			var ritual = progress.get("ritual")
+			var remaining = progress.get("remaining", 0)
+			game._add_message("Currently channeling %s... %d turns remaining. Wait or move to interrupt." % [ritual.name if ritual else "ritual", remaining], Color.MAGENTA)
+		return
+
+	# Check if player has the INT requirement for rituals (minimum 8)
+	if player and player.get_effective_attribute("INT") < 8:
+		if game and game.has_method("_add_message"):
+			game._add_message("You lack the intelligence to perform rituals. (Requires 8 INT)", Color(0.9, 0.6, 0.4))
+		return
+
+	# Emit the ritual menu requested signal
+	EventBus.ritual_menu_requested.emit()
 
 ## Interact with structure at player position
 func _interact_with_structure() -> void:

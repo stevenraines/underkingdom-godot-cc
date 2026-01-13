@@ -1,0 +1,17 @@
+{
+  "id": "ritual_tome_scrying",
+  "name": "Ritual Tome: Scrying",
+  "description": "A mystical text on peering through the veil to see distant locations. Reading this will teach you the Scrying ritual.",
+  "category": "book",
+  "subtype": "ritual_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_ritual": "scrying",
+  "weight": 1.5,
+  "value": 350,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#33CCFF"
+}

@@ -14,12 +14,14 @@ const _HarvestSystem = preload("res://systems/harvest_system.gd")
 const _FarmingSystem = preload("res://systems/farming_system.gd")
 const _FOVSystem = preload("res://systems/fov_system.gd")
 const _LockSystem = preload("res://systems/lock_system.gd")
+const _RitualSystem = preload("res://systems/ritual_system.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
 var inventory: Inventory = null
 var known_recipes: Array[String] = []  # Array of recipe IDs the player has discovered
 var known_spells: Array[String] = []  # Array of spell IDs the player has learned
+var known_rituals: Array[String] = []  # Array of ritual IDs the player has learned
 var gold: int = 25  # Player's gold currency
 
 # Experience and Leveling
@@ -123,6 +125,30 @@ func check_concentration(damage_taken: int) -> bool:
 
 	return true
 
+# =============================================================================
+# RITUAL SYSTEM
+# =============================================================================
+
+## Learn a ritual
+## Returns true if successfully learned, false if already known
+func learn_ritual(ritual_id: String) -> bool:
+	if ritual_id in known_rituals:
+		return false
+
+	known_rituals.append(ritual_id)
+	EventBus.ritual_learned.emit(self, ritual_id)
+	return true
+
+
+## Check if player knows a ritual
+func knows_ritual(ritual_id: String) -> bool:
+	return ritual_id in known_rituals
+
+
+## Get all known rituals
+func get_known_rituals() -> Array[String]:
+	return known_rituals
+
 # Skill points
 var available_skill_points: int = 0
 var available_ability_points: int = 0  # For ability score increases every 4th level
@@ -183,6 +209,10 @@ func _on_item_unequipped(_item, _slot: String) -> void:
 
 ## Attempt to attack a target entity
 func attack(target: Entity) -> Dictionary:
+	# Interrupt ritual channeling if player attacks
+	if _RitualSystem.is_channeling():
+		_RitualSystem.interrupt_ritual("interrupted by combat")
+
 	# Consume stamina for attack
 	if survival and not survival.consume_stamina(survival.STAMINA_COST_ATTACK):
 		return {"hit": false, "no_stamina": true}
@@ -191,6 +221,10 @@ func attack(target: Entity) -> Dictionary:
 ## Attempt to move in a direction
 func move(direction: Vector2i) -> bool:
 	var new_pos = position + direction
+
+	# Interrupt ritual channeling if player moves
+	if _RitualSystem.is_channeling():
+		_RitualSystem.interrupt_ritual("interrupted by movement")
 
 	# Check for blocking features (chests, altars, etc.) - interact instead of moving
 	# Must check this before is_walkable since blocking features make tiles non-walkable

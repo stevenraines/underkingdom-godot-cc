@@ -1,0 +1,27 @@
+{
+  "id": "resurrection",
+  "name": "Resurrection",
+  "description": "Return a fallen ally to life. The resurrected creature returns weakened and must recover over time.",
+  "school": "necromancy",
+  "components": [
+    {"item_id": "phoenix_feather", "quantity": 1},
+    {"item_id": "arcane_essence", "quantity": 5},
+    {"item_id": "gold", "quantity": 500}
+  ],
+  "channeling_turns": 20,
+  "requirements": {
+    "intelligence": 16,
+    "near_corpse": true
+  },
+  "effects": {
+    "resurrect": {
+      "health_percent": 25,
+      "temporary_weakness": true,
+      "weakness_duration": 100
+    }
+  },
+  "failure_effects": {
+    "summon_hostile_undead": true
+  },
+  "discovery_location": "sacred_temple"
+}

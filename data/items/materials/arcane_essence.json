@@ -1,0 +1,13 @@
+{
+  "id": "arcane_essence",
+  "name": "Arcane Essence",
+  "description": "Distilled magical energy in its purest form.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true, "rare": true},
+  "weight": 0.1,
+  "value": 100,
+  "stack_max": 10,
+  "ascii_char": "*",
+  "ascii_color": "#FF88FF"
+}

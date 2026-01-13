@@ -1,0 +1,12 @@
+{
+  "id": "silver_dust",
+  "name": "Silver Dust",
+  "description": "Finely ground silver with purifying properties. Used in protective wards.",
+  "category": "material",
+  "subcategory": "magical",
+  "weight": 0.1,
+  "value": 15,
+  "stack_max": 50,
+  "ascii_char": ".",
+  "ascii_color": "#CCCCCC"
+}

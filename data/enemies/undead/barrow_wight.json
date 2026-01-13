@@ -5,6 +5,7 @@
   "cr": 4,
   "ascii_char": "W",
   "ascii_color": "#44FF44",
+  "creature_type": "undead",
   "stats": {
     "health": 25,
     "str": 12,
@@ -13,6 +14,13 @@
     "int": 5,
     "wis": 6,
     "cha": 4
+  },
+  "elemental_resistances": {
+    "necrotic": -100,
+    "poison": -100,
+    "holy": 50,
+    "fire": 25,
+    "ice": -25
   },
   "behavior": "guardian",
   "base_damage": 5,

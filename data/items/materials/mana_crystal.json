@@ -1,0 +1,13 @@
+{
+  "id": "mana_crystal",
+  "name": "Mana Crystal",
+  "description": "A crystallized fragment of pure magical energy.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true},
+  "weight": 0.1,
+  "value": 30,
+  "stack_max": 20,
+  "ascii_char": "*",
+  "ascii_color": "#88AAFF"
+}

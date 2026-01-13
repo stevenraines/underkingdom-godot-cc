@@ -1,0 +1,44 @@
+{
+  "id": "lich",
+  "name": "Lich",
+  "description": "A powerful undead sorcerer who has achieved immortality through dark rituals.",
+  "cr": 10,
+  "ascii_char": "L",
+  "ascii_color": "#FF00FF",
+  "creature_type": "undead",
+  "stats": {
+    "health": 100,
+    "str": 10,
+    "dex": 14,
+    "con": 16,
+    "int": 22,
+    "wis": 18,
+    "cha": 16
+  },
+  "spellcaster": {
+    "max_mana": 150,
+    "spells": ["drain_life", "fireball", "frost_bolt", "summon_skeleton", "weakness", "fear"]
+  },
+  "elemental_resistances": {
+    "necrotic": -100,
+    "poison": -100,
+    "holy": 50,
+    "ice": -25
+  },
+  "yields": [
+    {"item_id": "mana_crystal", "min_count": 3, "max_count": 6, "chance": 0.9},
+    {"item_id": "arcane_essence", "min_count": 1, "max_count": 2, "chance": 0.6},
+    {"item_id": "phylactery_shard", "min_count": 1, "max_count": 1, "chance": 0.3}
+  ],
+  "behavior": "spellcaster_aggressive",
+  "base_damage": 12,
+  "armor": 3,
+  "loot_table": "lich_loot",
+  "xp_value": 500,
+  "spawn_biomes": [],
+  "spawn_dungeons": ["burial_barrow", "dark_sanctum"],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 10,
+  "min_spawn_level": 15,
+  "max_spawn_level": 50
+}

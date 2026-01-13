@@ -1,0 +1,16 @@
+{
+  "id": "moonpetal_flower",
+  "name": "Moonpetal Flower",
+  "description": "A luminescent flower that blooms under moonlight.",
+  "ascii_char": ",",
+  "ascii_color": "#CCCCFF",
+  "harvest_behavior": "destroy_renewable",
+  "respawn_turns": 3000,
+  "tool_required": null,
+  "yields": [
+    {"item_id": "moonpetal", "min": 1, "max": 3, "chance": 1.0}
+  ],
+  "stamina_cost": 2,
+  "spawn_biomes": ["forest", "meadow"],
+  "spawn_time": "night"
+}

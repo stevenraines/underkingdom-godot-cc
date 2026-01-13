@@ -1,0 +1,17 @@
+{
+  "id": "ritual_tome_enchant_item",
+  "name": "Ritual Tome: Enchant Item",
+  "description": "An ancient tome describing the ritual of item enchantment. Reading this will teach you how to imbue items with magical properties.",
+  "category": "book",
+  "subtype": "ritual_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_ritual": "enchant_item",
+  "weight": 1.5,
+  "value": 300,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#00FF00"
+}

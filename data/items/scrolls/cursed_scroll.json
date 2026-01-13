@@ -1,0 +1,16 @@
+{
+  "id": "cursed_scroll",
+  "name": "Scroll",
+  "description": "A scroll with strange markings.",
+  "category": "scroll",
+  "flags": {"consumable": true, "magical": true, "cursed": true, "unidentified": true, "scroll": true},
+  "is_cursed": true,
+  "effects": {
+    "cursed_effect": true
+  },
+  "weight": 0.1,
+  "value": 0,
+  "stack_max": 5,
+  "ascii_char": "?",
+  "ascii_color": "#884444"
+}

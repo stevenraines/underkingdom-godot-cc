@@ -1,0 +1,26 @@
+{
+  "id": "summon_skeleton",
+  "name": "Summon Skeleton",
+  "description": "Summon a skeletal warrior to fight for you.",
+  "school": "conjuration",
+  "level": 2,
+  "mana_cost": 20,
+  "cooldown": 10,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 12
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "summon": {
+      "creature_id": "summoned_skeleton",
+      "duration": 50,
+      "max_summons": 2
+    }
+  },
+  "cast_message": "Bones rise from the ground and form into a warrior!",
+  "ascii_char": "s",
+  "ascii_color": "#EEEEEE"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "moonpetal",
+  "name": "Moonpetal",
+  "description": "A luminescent flower petal with magical properties.",
+  "category": "material",
+  "subcategory": "herb",
+  "flags": {"magical": true},
+  "weight": 0.05,
+  "value": 15,
+  "stack_max": 30,
+  "ascii_char": ",",
+  "ascii_color": "#CCCCFF"
+}

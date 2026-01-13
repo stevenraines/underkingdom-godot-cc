@@ -1,0 +1,23 @@
+{
+  "id": "scrying",
+  "name": "Scrying",
+  "description": "Peer through the veil to see distant locations. Reveals the surrounding area and marks enemies and items within range.",
+  "school": "divination",
+  "components": [
+    {"item_id": "crystal_ball", "quantity": 1, "consumed": false},
+    {"item_id": "moonpetal", "quantity": 3}
+  ],
+  "channeling_turns": 5,
+  "requirements": {
+    "intelligence": 12
+  },
+  "effects": {
+    "reveal_map": {
+      "radius": 30,
+      "reveals_enemies": true,
+      "reveals_items": true
+    }
+  },
+  "failure_effects": {},
+  "discovery_location": "mage_tower"
+}

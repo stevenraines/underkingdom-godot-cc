@@ -1,0 +1,17 @@
+{
+  "id": "ritual_tome_summon_demon",
+  "name": "Ritual Tome: Summon Demon",
+  "description": "A dark grimoire containing the forbidden words to call forth demons from the lower planes. Use with caution.",
+  "category": "book",
+  "subtype": "ritual_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_ritual": "summon_demon",
+  "weight": 2.0,
+  "value": 750,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#FF3333"
+}

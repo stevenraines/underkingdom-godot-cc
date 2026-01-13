@@ -1,0 +1,37 @@
+{
+  "id": "bound_demon",
+  "name": "Bound Demon",
+  "description": "A lesser demon bound to serve through dark ritual. Fiercely loyal to its summoner.",
+  "cr": 5,
+  "ascii_char": "D",
+  "ascii_color": "#FF3333",
+  "creature_type": "demon",
+  "stats": {
+    "health": 35,
+    "str": 16,
+    "dex": 12,
+    "con": 14,
+    "int": 10,
+    "wis": 8,
+    "cha": 8
+  },
+  "elemental_resistances": {
+    "fire": -50,
+    "holy": 100,
+    "necrotic": -25,
+    "ice": 25
+  },
+  "behavior": "aggressive",
+  "base_damage": 8,
+  "armor": 3,
+  "loot_table": "demon_common",
+  "xp_value": 75,
+  "spawn_biomes": [],
+  "spawn_dungeons": [],
+  "spawn_density_overworld": 0,
+  "spawn_density_dungeon": 0,
+  "min_spawn_level": 0,
+  "max_spawn_level": 0,
+  "summon_only": true,
+  "abilities": ["fire_claws"]
+}

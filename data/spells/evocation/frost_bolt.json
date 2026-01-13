@@ -1,0 +1,28 @@
+{
+  "id": "frost_bolt",
+  "name": "Frost Bolt",
+  "description": "Launch a bolt of freezing cold at an enemy.",
+  "school": "evocation",
+  "level": 1,
+  "mana_cost": 10,
+  "cooldown": 2,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 7,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "ice",
+      "base": 8,
+      "scaling": 2
+    }
+  },
+  "cast_message": "A bolt of frost streaks toward the target!",
+  "ascii_char": "*",
+  "ascii_color": "#88DDFF"
+}

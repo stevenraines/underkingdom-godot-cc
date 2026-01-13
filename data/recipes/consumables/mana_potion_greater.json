@@ -1,0 +1,22 @@
+{
+  "id": "mana_potion_greater_recipe",
+  "name": "Greater Mana Potion",
+  "description": "Brew a powerful mana restoration potion.",
+  "category": "consumable",
+  "ingredients": [
+    {"item_id": "empty_flask", "quantity": 1},
+    {"item_id": "mana_crystal", "quantity": 3},
+    {"item_id": "moonpetal", "quantity": 5},
+    {"item_id": "arcane_essence", "quantity": 1}
+  ],
+  "result": {"item_id": "mana_potion_greater", "quantity": 1},
+  "requirements": {
+    "intelligence": 14,
+    "near_fire": true,
+    "has_alchemy_kit": true
+  },
+  "difficulty": 7,
+  "stamina_cost": 15,
+  "discovery_hints": ["advanced alchemy", "arcane essence", "concentrated mana"],
+  "known_by_default": false
+}

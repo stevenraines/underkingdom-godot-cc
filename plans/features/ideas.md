@@ -4,6 +4,7 @@
 * Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type
 * Add game animals (rabbits, deer, etc.) appropriate to each biome.
 * Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
+* Detect & Disarm Traps (Hazards) Actions
 * Add rivers to the game, including one near the starting town
 * Add a mill and a miller to the starting town, who can grind grains into flour
 * Add a butcher to the starting town

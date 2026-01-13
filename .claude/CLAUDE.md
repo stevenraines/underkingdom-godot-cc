@@ -474,6 +474,38 @@ func some_function():
 2. ✅ In EVERY file that uses the new system, add `const NewSystemClass = preload("res://path/to/new_system.gd")`
 3. ✅ Use `NewSystemClass.method()` for all calls, never bare `NewSystem.method()`
 
+### Autoload Registration (CRITICAL)
+**MANDATORY**: When creating a new autoload manager in the `autoload/` directory, you MUST register it in `project.godot` under the `[autoload]` section. Failure to do this will cause "Identifier not declared in current scope" errors when other scripts try to access the manager.
+
+**Registration Format:**
+```
+ManagerName="*res://autoload/manager_name.gd"
+```
+
+The `*` prefix makes the autoload a singleton that's accessible globally by name.
+
+**Checklist when creating a new autoload manager:**
+1. ✅ Create the manager script in `autoload/new_manager.gd`
+2. ✅ Add `class_name NewManager` at the top of the script
+3. ✅ **Register in `project.godot`** under `[autoload]` section:
+   ```
+   NewManager="*res://autoload/new_manager.gd"
+   ```
+4. ✅ Verify the manager loads by checking for initialization print in console
+
+**Current autoloads** (add new ones after these):
+- EventBus, GameConfig, TileTypeManager, CalendarManager, TurnManager
+- GameManager, FeatureManager, HazardManager, TownManager, NPCManager
+- MapManager, ChunkManager, BiomeManager, DungeonManager, EntityManager
+- ItemManager, RecipeManager, StructureManager, SaveManager, VariantManager
+- WeatherManager, LootTableManager, SpellManager, IdentificationManager, RitualManager
+
+**Common Mistake:**
+```gdscript
+# This FAILS if NewManager is not registered in project.godot:
+var data = NewManager.get_data()  # Error: Identifier "NewManager" not declared
+```
+
 ### GDScript Runtime Loading Pattern
 For scripts with complex dependency chains (e.g., scripts extending other custom classes), use runtime `load()` instead of `preload()` to avoid parse-time circular dependency issues:
 

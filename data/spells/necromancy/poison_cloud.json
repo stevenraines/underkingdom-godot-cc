@@ -1,0 +1,33 @@
+{
+  "id": "poison_cloud",
+  "name": "Poison Cloud",
+  "description": "Create a cloud of poisonous gas around the target.",
+  "school": "necromancy",
+  "level": 3,
+  "mana_cost": 15,
+  "cooldown": 5,
+  "requirements": {
+    "character_level": 3,
+    "intelligence": 12
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "dot": {
+      "type": "poison",
+      "damage_per_turn": 3,
+      "duration": 8
+    }
+  },
+  "save": {
+    "attribute": "CON",
+    "dc_base": 12,
+    "on_success": "half_duration"
+  },
+  "cast_message": "A cloud of poison envelops the target!",
+  "ascii_char": "*",
+  "ascii_color": "#44AA44"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "enchant_item",
+  "name": "Enchant Item",
+  "description": "Imbue an item with permanent magical properties. The enchantment granted is random, drawn from a pool of beneficial effects.",
+  "school": "transmutation",
+  "components": [
+    {"item_id": "mana_crystal", "quantity": 5},
+    {"item_id": "arcane_essence", "quantity": 2},
+    {"item_id": "gold", "quantity": 100}
+  ],
+  "channeling_turns": 10,
+  "requirements": {
+    "intelligence": 14,
+    "near_altar": true
+  },
+  "effects": {
+    "enchant_item": {
+      "enchantment_pool": ["sharpness", "protection", "mana_regen", "health_regen"]
+    }
+  },
+  "failure_effects": {
+    "destroy_item_chance": 0.3
+  },
+  "discovery_location": "ancient_library"
+}

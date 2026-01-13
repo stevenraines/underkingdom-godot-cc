@@ -1,0 +1,13 @@
+{
+  "id": "soul_gem",
+  "name": "Filled Soul Gem",
+  "description": "A crystalline container holding a trapped soul. The gem pulses with captured life force.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true, "rare": true},
+  "weight": 0.3,
+  "value": 200,
+  "stack_max": 5,
+  "ascii_char": "*",
+  "ascii_color": "#AA00FF"
+}

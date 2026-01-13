@@ -74,6 +74,9 @@ var effects: Dictionary = {}        # {"hunger": 30, "thirst": 20, "health": 10}
 # Spell learning (for spell tomes)
 var teaches_spell: String = ""      # Spell ID to learn when this item is read
 
+# Ritual learning (for ritual tomes)
+var teaches_ritual: String = ""     # Ritual ID to learn when this item is read
+
 # Scroll properties (for spell scrolls)
 var casts_spell: String = ""        # Spell ID to cast when scroll is used
 
@@ -103,6 +106,13 @@ var teaches_recipe: String = ""     # Recipe ID this book teaches when read
 # Identification properties
 var unidentified: bool = false      # True if item needs identification before revealing true name
 var true_name: String = ""          # Real name (for cursed items that show false name)
+var true_description: String = ""   # Real description (for cursed items)
+
+# Curse properties
+var is_cursed: bool = false         # True if item is cursed
+var curse_type: String = ""         # "binding", "draining", "unlucky"
+var curse_revealed: bool = false    # True once curse is discovered
+var fake_passive_effects: Dictionary = {}  # Fake effects shown before curse reveal
 
 ## Create an item from a data dictionary (loaded from JSON)
 static func create_from_data(data: Dictionary) -> Item:
@@ -184,6 +194,9 @@ static func create_from_data(data: Dictionary) -> Item:
 	# Spell learning
 	item.teaches_spell = data.get("teaches_spell", "")
 
+	# Ritual learning
+	item.teaches_ritual = data.get("teaches_ritual", "")
+
 	# Scroll properties
 	item.casts_spell = data.get("casts_spell", "")
 
@@ -214,6 +227,13 @@ static func create_from_data(data: Dictionary) -> Item:
 	# Identification properties
 	item.unidentified = data.get("unidentified", false)
 	item.true_name = data.get("true_name", "")
+	item.true_description = data.get("true_description", "")
+
+	# Curse properties
+	item.is_cursed = data.get("is_cursed", false) or data.get("flags", {}).get("cursed", false)
+	item.curse_type = data.get("curse_type", "")
+	item.curse_revealed = data.get("curse_revealed", false)
+	item.fake_passive_effects = data.get("fake_passive_effects", {})
 
 	return item
 
@@ -260,6 +280,7 @@ func duplicate_item() -> Item:
 	copy.is_templated = is_templated
 	copy.teaches_recipe = teaches_recipe
 	copy.teaches_spell = teaches_spell
+	copy.teaches_ritual = teaches_ritual
 	copy.casts_spell = casts_spell
 	copy.charges = charges
 	copy.max_charges = max_charges
@@ -269,6 +290,11 @@ func duplicate_item() -> Item:
 	copy.passive_effects = passive_effects.duplicate(true)
 	copy.unidentified = unidentified
 	copy.true_name = true_name
+	copy.true_description = true_description
+	copy.is_cursed = is_cursed
+	copy.curse_type = curse_type
+	copy.curse_revealed = curse_revealed
+	copy.fake_passive_effects = fake_passive_effects.duplicate(true)
 	return copy
 
 ## Get the display name (handles unidentified items and inscriptions)
@@ -366,6 +392,13 @@ func _use_consumable(user: Entity) -> Dictionary:
 				"consumed": false,
 				"message": "You are not thirsty."
 			}
+		# Check mana-restoring items
+		if "restore_mana" in effects and survival.mana >= survival.max_mana:
+			return {
+				"success": false,
+				"consumed": false,
+				"message": "Your mana is already full."
+			}
 
 	# Apply effects
 	if user.has_method("apply_item_effects"):
@@ -381,6 +414,18 @@ func _use_consumable(user: Entity) -> Dictionary:
 		if "health" in effects:
 			user.heal(effects.health)
 			result.message = "You use the %s and feel better." % name
+		# Handle mana restoration
+		if "restore_mana" in effects and user.get("survival"):
+			var survival = user.survival
+			var amount = effects.restore_mana
+			# Check for percentage restoration
+			if effects.get("restore_mana_percent", false):
+				amount = survival.max_mana
+			var old_mana = survival.mana
+			survival.mana = minf(survival.mana + amount, survival.max_mana)
+			var restored = survival.mana - old_mana
+			result.message = "You drink the %s. Mana restored: %d" % [name, int(restored)]
+			EventBus.mana_changed.emit(old_mana, survival.mana, survival.max_mana)
 
 	# Identify the consumable on use (potions)
 	if unidentified and result.success:
@@ -399,6 +444,10 @@ func _use_book(user: Entity) -> Dictionary:
 	# Check if this is a spell tome
 	if teaches_spell != "":
 		return _use_spell_tome(user)
+
+	# Check if this is a ritual tome
+	if teaches_ritual != "":
+		return _use_ritual_tome(user)
 
 	# Book without recipe to teach
 	if teaches_recipe == "":
@@ -478,6 +527,54 @@ func _use_spell_tome(user: Entity) -> Dictionary:
 	return result
 
 
+## Use a ritual tome to learn a ritual
+func _use_ritual_tome(user: Entity) -> Dictionary:
+	var result = {
+		"success": false,
+		"consumed": false,
+		"message": ""
+	}
+
+	# Get the ritual
+	var ritual = RitualManager.get_ritual(teaches_ritual)
+	if ritual == null:
+		result.message = "This tome contains corrupted knowledge."
+		return result
+
+	# Check INT requirement (minimum 8 for any magic)
+	var user_int = 10
+	if user.has_method("get_effective_attribute"):
+		user_int = user.get_effective_attribute("INT")
+	elif "attributes" in user:
+		user_int = user.attributes.get("INT", 10)
+
+	if user_int < 8:
+		result.message = "You lack the intelligence to understand ritual magic."
+		return result
+
+	if user_int < ritual.get_min_intelligence():
+		result.message = "The ritual described within is too complex for you to comprehend."
+		return result
+
+	# Check if already known
+	if user.has_method("knows_ritual") and user.knows_ritual(teaches_ritual):
+		result.message = "You already know this ritual."
+		result.success = true  # Still successful read, just no new knowledge
+		return result
+
+	# Learn the ritual
+	if user.has_method("learn_ritual"):
+		if user.learn_ritual(teaches_ritual):
+			result.message = "You commit the %s ritual to memory!" % ritual.name
+			result.success = true
+			result.consumed = true  # Ritual tomes are consumed after learning
+			EventBus.ritual_learned.emit(user, teaches_ritual)
+		else:
+			result.message = "You cannot learn this ritual."
+
+	return result
+
+
 ## Use a spell scroll to cast a spell
 func _use_scroll(user: Entity) -> Dictionary:
 	var result = {
@@ -498,6 +595,15 @@ func _use_scroll(user: Entity) -> Dictionary:
 	if user_int < 8:
 		result.message = "You lack the intelligence to use scrolls."
 		return result
+
+	# Check for cursed scroll (has cursed_effect in effects)
+	if effects.get("cursed_effect", false):
+		const CurseSystemClass = preload("res://systems/curse_system.gd")
+		var curse_result = CurseSystemClass.use_cursed_scroll(user, self)
+		# Identify the cursed scroll
+		if unidentified:
+			_identify_on_use(curse_result)
+		return curse_result
 
 	# Get the spell from the scroll
 	var spell = SpellManager.get_spell(casts_spell)
@@ -956,3 +1062,42 @@ func _identify_on_use(result: Dictionary) -> void:
 	if id_manager and not id_manager.is_identified(id):
 		id_manager.identify_item(id)
 		result.message += " (It was a %s!)" % name
+
+
+## Check if this item has a curse
+func has_curse() -> bool:
+	return is_cursed and curse_type != ""
+
+
+## Reveal the curse on this item
+func reveal_curse() -> void:
+	if is_cursed and not curse_revealed:
+		curse_revealed = true
+		EventBus.curse_revealed.emit(self)
+
+
+## Remove the curse from this item
+func remove_curse() -> void:
+	if is_cursed:
+		is_cursed = false
+		curse_type = ""
+		curse_revealed = false
+		# Restore true name if it was hidden
+		if true_name != "":
+			name = true_name
+		if true_description != "":
+			description = true_description
+		EventBus.curse_removed.emit(self)
+
+
+## Check if this item has binding curse (cannot be unequipped)
+func has_binding_curse() -> bool:
+	return is_cursed and curse_type == "binding"
+
+
+## Get the effective passive effects (real or fake based on curse reveal)
+func get_effective_passive_effects() -> Dictionary:
+	# If cursed but not revealed, show fake effects
+	if is_cursed and not curse_revealed and not fake_passive_effects.is_empty():
+		return fake_passive_effects
+	return passive_effects

@@ -1,0 +1,16 @@
+{
+  "id": "mana_potion_minor",
+  "name": "Minor Mana Potion",
+  "description": "A small vial of glowing blue liquid. Restores some mana.",
+  "category": "consumable",
+  "subcategory": "potion",
+  "flags": {"consumable": true, "magical": true},
+  "effects": {
+    "restore_mana": 15
+  },
+  "weight": 0.3,
+  "value": 20,
+  "stack_max": 10,
+  "ascii_char": "!",
+  "ascii_color": "#6688FF"
+}

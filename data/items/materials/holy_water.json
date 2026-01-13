@@ -1,0 +1,13 @@
+{
+  "id": "holy_water",
+  "name": "Holy Water",
+  "description": "Blessed water with protective properties. Effective against undead and demons.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true},
+  "weight": 0.3,
+  "value": 30,
+  "stack_max": 10,
+  "ascii_char": "!",
+  "ascii_color": "#AAFFFF"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "minor_mana_potion",
+  "result": "mana_potion_minor",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "empty_vial", "count": 1},
+    {"item": "moonpetal", "count": 2},
+    {"item": "water_flask", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 2,
+  "discovery_hint": "Brewing moonpetal with water creates a minor mana restorative"
+}

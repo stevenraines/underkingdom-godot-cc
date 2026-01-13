@@ -1,0 +1,13 @@
+{
+  "id": "demon_blood",
+  "name": "Demon Blood",
+  "description": "Dark ichor from a demonic creature. Used in dark summoning rituals.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true, "rare": true},
+  "weight": 0.3,
+  "value": 150,
+  "stack_max": 5,
+  "ascii_char": "~",
+  "ascii_color": "#880000"
+}

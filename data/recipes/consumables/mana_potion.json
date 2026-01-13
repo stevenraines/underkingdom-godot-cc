@@ -1,0 +1,15 @@
+{
+  "id": "mana_potion",
+  "result": "mana_potion",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "empty_vial", "count": 1},
+    {"item": "mana_crystal", "count": 1},
+    {"item": "moonpetal", "count": 3},
+    {"item": "water_flask", "count": 1}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 4,
+  "discovery_hint": "Mana crystals and moonpetal infused in water restore magical energy"
+}

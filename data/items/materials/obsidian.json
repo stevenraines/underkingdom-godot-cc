@@ -1,0 +1,13 @@
+{
+  "id": "obsidian",
+  "name": "Obsidian",
+  "description": "A shard of volcanic glass, black as night. Used in dark rituals and demon summoning.",
+  "type": "material",
+  "subtype": "ritual_component",
+  "weight": 0.5,
+  "value": 25,
+  "stack_size": 50,
+  "ascii_char": "*",
+  "color": "#333344",
+  "rarity": "uncommon"
+}

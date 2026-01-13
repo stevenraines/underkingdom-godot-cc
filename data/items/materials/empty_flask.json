@@ -1,0 +1,12 @@
+{
+  "id": "empty_flask",
+  "name": "Empty Flask",
+  "description": "A glass flask for holding liquids.",
+  "category": "material",
+  "subcategory": "container",
+  "weight": 0.2,
+  "value": 8,
+  "stack_max": 15,
+  "ascii_char": "!",
+  "ascii_color": "#888888"
+}

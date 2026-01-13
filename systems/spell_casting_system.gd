@@ -9,6 +9,7 @@ extends RefCounted
 
 # Preload dependencies
 const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+const ElementalSystemClass = preload("res://systems/elemental_system.gd")
 
 ## Attempt to cast a spell on a target
 ## caster: The entity casting the spell
@@ -87,6 +88,12 @@ static func cast_spell(caster, spell, target = null) -> Dictionary:
 		result.failed = true
 		result.failure_type = failure_result.type
 		result.message = failure_result.message
+
+		# Handle wild magic if that's the failure type
+		if failure_result.type == "wild_magic":
+			const WildMagicClass = preload("res://systems/wild_magic.gd")
+			WildMagicClass.trigger_wild_magic(caster, spell)
+
 		# Mana is still consumed on failure
 		return result
 
@@ -250,27 +257,58 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 		if save_succeeded and save_on_success in ["half_damage", "half"]:
 			damage = damage / 2
 
+		# Apply elemental damage calculation if target exists
+		var elemental_result = {}
+		if target:
+			elemental_result = ElementalSystemClass.calculate_elemental_damage(damage, damage_type, target, caster)
+			damage = elemental_result.get("final_damage", damage)
+
 		result.damage = damage
 		result.effects_applied.append("damage")
 
 		# Apply damage to target
 		if target and target.has_method("take_damage"):
 			var source = caster.name if caster else "Magic"
-			target.take_damage(damage, source, spell.name)
+
+			# Skip take_damage if elemental system already healed (necrotic vs undead)
+			if not elemental_result.get("healed", false):
+				target.take_damage(damage, source, spell.name)
 
 			if not target.is_alive:
 				result.target_died = true
 
-		result.message = "%s hits %s for %d %s damage!" % [
-			spell.name,
-			target.name if target else "the target",
-			damage,
-			damage_type
-		]
+		# Generate message based on elemental result
+		if elemental_result.get("message", "") != "":
+			result.message = elemental_result.message
+		elif elemental_result.get("immune", false):
+			result.message = "%s is immune to %s!" % [target.name if target else "Target", damage_type]
+		elif elemental_result.get("healed", false):
+			result.message = "%s absorbs the %s energy!" % [target.name if target else "Target", damage_type]
+		else:
+			result.message = "%s hits %s for %d %s damage!" % [
+				spell.name,
+				target.name if target else "the target",
+				damage,
+				damage_type
+			]
+
+			# Add elemental feedback
+			if elemental_result.get("resisted", false):
+				result.message += " (resisted)"
+			elif elemental_result.get("vulnerable", false):
+				result.message += " (vulnerable!)"
 
 		# Add partial resist message if save reduced damage
 		if save_succeeded and save_on_success in ["half_damage", "half"]:
 			result.message += " (%s partially resists!)" % (target.name if target else "Target")
+
+		# Emit elemental damage signal
+		if target:
+			EventBus.elemental_damage_applied.emit(target, damage_type, damage, elemental_result.get("resisted", false))
+
+		# Check for environmental combos
+		if target and "position" in target:
+			ElementalSystemClass.apply_environmental_combo(target.position, damage_type, caster)
 
 		# Handle life drain effect (heal caster for percent of damage dealt)
 		if effects.has("heal_percent"):
@@ -350,6 +388,62 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 				spell.name,
 				target.name if target else "the target"
 			]
+
+	# Handle elemental resistance effects
+	if effects.has("elemental_resistance"):
+		var resist_info = effects.elemental_resistance
+		var element = resist_info.get("element", "fire")
+		var modifier = resist_info.get("modifier", -50)
+		var duration = SpellManager.calculate_spell_duration(spell, caster)
+
+		var effect = {
+			"id": spell.id + "_resistance",
+			"type": "elemental_resistance",
+			"element": element,
+			"modifier": modifier,
+			"remaining_duration": duration,
+			"source_spell": spell.id
+		}
+
+		if target and target.has_method("add_magical_effect"):
+			target.add_magical_effect(effect)
+			result.effects_applied.append("elemental_resistance")
+			var resist_percent = abs(modifier)
+			result.message = "%s gains %d%% resistance to %s for %d turns." % [
+				target.name if target else "Target",
+				resist_percent,
+				element,
+				duration
+			]
+			EventBus.resistance_changed.emit(target, element, target.get_elemental_resistance(element) if target.has_method("get_elemental_resistance") else modifier)
+
+	# Handle elemental resistance all (resist elements spell)
+	if effects.has("elemental_resistance_all"):
+		var resist_info = effects.elemental_resistance_all
+		var modifier = resist_info.get("modifier", -25)
+		var duration = SpellManager.calculate_spell_duration(spell, caster)
+
+		var elements = ["fire", "ice", "lightning", "poison", "necrotic", "holy"]
+		for element in elements:
+			var effect = {
+				"id": spell.id + "_" + element + "_resistance",
+				"type": "elemental_resistance",
+				"element": element,
+				"modifier": modifier,
+				"remaining_duration": duration,
+				"source_spell": spell.id
+			}
+
+			if target and target.has_method("add_magical_effect"):
+				target.add_magical_effect(effect)
+
+		result.effects_applied.append("elemental_resistance_all")
+		var resist_percent = abs(modifier)
+		result.message = "%s gains %d%% resistance to all elements for %d turns." % [
+			target.name if target else "Target",
+			resist_percent,
+			duration
+		]
 
 	# Handle debuff effects
 	if spell.is_debuff_spell():
@@ -481,6 +575,16 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 		var effect_type = mind_data.get("type", "") if mind_data is Dictionary else str(mind_data)
 		result = _apply_mind_effect(caster, spell, target, effect_type, result)
 
+	# Handle remove curse effect
+	if effects.has("remove_curse"):
+		const CurseSystemClass = preload("res://systems/curse_system.gd")
+		var curses_removed = CurseSystemClass.remove_all_curses(target)
+		result.effects_applied.append("remove_curse")
+		if curses_removed > 0:
+			result.message = "The curses are lifted!"
+		else:
+			result.message = "No curses to remove."
+
 	# Use cast_message if no specific message was set
 	if result.message == "" and spell.cast_message != "":
 		result.message = spell.cast_message
@@ -527,6 +631,8 @@ static func attempt_saving_throw(target, save_type: String, dc: int) -> Dictiona
 ## Get valid targets for a ranged spell
 ## Returns an array of entities that can be targeted
 static func get_valid_spell_targets(caster, spell) -> Array[Entity]:
+	const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
+
 	var targets: Array[Entity] = []
 
 	var targeting_mode = spell.get_targeting_mode()
@@ -543,6 +649,11 @@ static func get_valid_spell_targets(caster, spell) -> Array[Entity]:
 			continue
 
 		if not entity.is_alive:
+			continue
+
+		# Check if target is currently visible (in FOV and illuminated)
+		# This prevents targeting enemies behind walls or in unexplored areas
+		if not FogOfWarSystemClass.is_visible(entity.position):
 			continue
 
 		# Check range

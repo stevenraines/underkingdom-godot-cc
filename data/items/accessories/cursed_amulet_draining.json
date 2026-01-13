@@ -1,0 +1,23 @@
+{
+  "id": "cursed_amulet_draining",
+  "name": "Amulet of Vitality",
+  "true_name": "Cursed Amulet of Draining",
+  "description": "An amulet that pulses with energy.",
+  "true_description": "A cursed amulet that drains your health.",
+  "category": "accessory",
+  "subtype": "amulet",
+  "equip_slots": ["neck"],
+  "flags": {"equippable": true, "magical": true, "cursed": true, "unidentified": true},
+  "is_cursed": true,
+  "curse_type": "binding",
+  "passive_effects": {
+    "health_drain_per_turn": 1
+  },
+  "fake_passive_effects": {
+    "stat_bonuses": {"CON": 2}
+  },
+  "weight": 0.2,
+  "value": 0,
+  "ascii_char": "\"",
+  "ascii_color": "#660066"
+}

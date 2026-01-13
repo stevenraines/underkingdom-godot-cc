@@ -1,0 +1,31 @@
+{
+  "id": "resist_lightning",
+  "name": "Resist Lightning",
+  "description": "Grant resistance to lightning and electric damage.",
+  "school": "abjuration",
+  "level": 2,
+  "mana_cost": 10,
+  "requirements": {
+    "character_level": 2,
+    "intelligence": 9
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "elemental_resistance": {
+      "element": "lightning",
+      "modifier": -50,
+      "duration": 50,
+      "duration_scaling": 10
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 50,
+    "scaling": 10
+  },
+  "cast_message": "A protective ward against lightning surrounds you.",
+  "ascii_char": "O",
+  "ascii_color": "#FFFF00"
+}

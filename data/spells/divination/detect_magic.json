@@ -1,0 +1,28 @@
+{
+  "id": "detect_magic",
+  "name": "Detect Magic",
+  "description": "Sense magical auras nearby.",
+  "school": "divination",
+  "level": 0,
+  "mana_cost": 0,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "reveal_magic": {
+      "range": 10,
+      "duration": 20
+    }
+  },
+  "duration": {
+    "type": "turns",
+    "base": 20
+  },
+  "cast_message": "Your senses attune to magical energies.",
+  "ascii_char": "?",
+  "ascii_color": "#AAFFFF"
+}

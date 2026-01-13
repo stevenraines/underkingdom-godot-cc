@@ -57,6 +57,17 @@ var stat_modifiers: Dictionary = {
 # Armor modifier (from buffs)
 var armor_modifier: int = 0
 
+# Elemental resistances: -100 (immune) to 0 (normal) to +100 (vulnerable)
+# Negative = resistance, Positive = vulnerability
+var elemental_resistances: Dictionary = {
+	"fire": 0,
+	"ice": 0,
+	"lightning": 0,
+	"poison": 0,
+	"necrotic": 0,
+	"holy": 0
+}
+
 # Active magical effects (buffs/debuffs with duration)
 # Each effect: {id, type, modifiers, remaining_duration, source_spell, armor_bonus}
 var active_effects: Array[Dictionary] = []
@@ -279,6 +290,25 @@ func get_light_radius_bonus() -> int:
 		if effect.has("light_radius_bonus"):
 			bonus += effect.light_radius_bonus
 	return bonus
+
+
+## Get elemental resistance for a specific element
+## Returns value from -100 (immune) to +100 (vulnerable), 0 is normal
+func get_elemental_resistance(element: String) -> int:
+	var base = elemental_resistances.get(element, 0)
+
+	# Add buff/debuff modifiers
+	for effect in active_effects:
+		if effect.get("type") == "elemental_resistance" and effect.get("element") == element:
+			base += effect.get("modifier", 0)
+
+	# Clamp to valid range
+	return clampi(base, -100, 100)
+
+
+## Set elemental resistance for a specific element
+func set_elemental_resistance(element: String, value: int) -> void:
+	elemental_resistances[element] = clampi(value, -100, 100)
 
 
 ## Clear all active effects

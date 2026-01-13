@@ -1,0 +1,24 @@
+{
+  "id": "ward_area",
+  "name": "Ward Area",
+  "description": "Create a protective barrier around an area. The ward repels undead and demons while alerting you to any hostile intrusion.",
+  "school": "abjuration",
+  "components": [
+    {"item_id": "silver_dust", "quantity": 10},
+    {"item_id": "holy_water", "quantity": 1},
+    {"item_id": "mana_crystal", "quantity": 2}
+  ],
+  "channeling_turns": 12,
+  "requirements": {
+    "intelligence": 12
+  },
+  "effects": {
+    "create_ward": {
+      "radius": 5,
+      "duration": 500,
+      "effects": ["blocks_undead", "blocks_demons", "alarm_on_entry"]
+    }
+  },
+  "failure_effects": {},
+  "discovery_location": "temple"
+}

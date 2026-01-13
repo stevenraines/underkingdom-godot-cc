@@ -70,6 +70,12 @@ signal mana_depleted()
 signal spell_learned(spell_id: String)
 @warning_ignore("unused_signal")
 signal spell_cast(caster, spell, targets: Array, result: Dictionary)
+@warning_ignore("unused_signal")
+signal enemy_spell_cast(enemy, spell, target, result: Dictionary)
+@warning_ignore("unused_signal")
+signal wild_magic_triggered(caster, effect: Dictionary)
+@warning_ignore("unused_signal")
+signal cantrip_cast(caster, spell)
 
 # Magical effect signals (buffs/debuffs)
 @warning_ignore("unused_signal")
@@ -82,6 +88,38 @@ signal effect_expired(entity: Entity, effect_name: String)
 # DoT (Damage over Time) signals
 @warning_ignore("unused_signal")
 signal dot_damage_tick(entity: Entity, dot_type: String, damage: int)
+
+# Elemental damage signals
+@warning_ignore("unused_signal")
+signal elemental_damage_applied(target: Entity, element: String, damage: int, resisted: bool)
+@warning_ignore("unused_signal")
+signal environmental_combo_triggered(position: Vector2i, element: String, effect: String)
+@warning_ignore("unused_signal")
+signal resistance_changed(entity: Entity, element: String, new_value: int)
+
+# Curse signals
+@warning_ignore("unused_signal")
+signal curse_revealed(item)  # Item
+@warning_ignore("unused_signal")
+signal curse_removed(item)  # Item
+@warning_ignore("unused_signal")
+signal cursed_scroll_used(player, effect: String)  # Entity, effect description
+
+# Ritual signals
+@warning_ignore("unused_signal")
+signal ritual_started(caster, ritual)  # Entity, Ritual
+@warning_ignore("unused_signal")
+signal ritual_completed(caster, ritual, result: Dictionary)  # Entity, Ritual
+@warning_ignore("unused_signal")
+signal ritual_interrupted(caster, ritual, reason: String)  # Entity, Ritual
+@warning_ignore("unused_signal")
+signal ritual_progress(caster, ritual, turns_remaining: int)  # Entity, Ritual
+@warning_ignore("unused_signal")
+signal ritual_learned(entity, ritual_id: String)  # Entity
+@warning_ignore("unused_signal")
+signal ritual_menu_requested()
+@warning_ignore("unused_signal")
+signal ritual_effect_applied(caster, ritual, effects: Dictionary)  # Entity, Ritual
 
 # Concentration signals
 @warning_ignore("unused_signal")

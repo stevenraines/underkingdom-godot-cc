@@ -1,0 +1,13 @@
+{
+  "id": "empty_soul_gem",
+  "name": "Empty Soul Gem",
+  "description": "A crystalline container capable of holding souls. Used in necromantic rituals.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true},
+  "weight": 0.2,
+  "value": 100,
+  "stack_max": 10,
+  "ascii_char": "*",
+  "ascii_color": "#888888"
+}

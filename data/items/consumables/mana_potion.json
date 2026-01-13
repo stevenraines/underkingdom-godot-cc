@@ -1,0 +1,16 @@
+{
+  "id": "mana_potion",
+  "name": "Mana Potion",
+  "description": "A vial of swirling blue energy. Restores a moderate amount of mana.",
+  "category": "consumable",
+  "subcategory": "potion",
+  "flags": {"consumable": true, "magical": true},
+  "effects": {
+    "restore_mana": 35
+  },
+  "weight": 0.3,
+  "value": 50,
+  "stack_max": 10,
+  "ascii_char": "!",
+  "ascii_color": "#4466FF"
+}

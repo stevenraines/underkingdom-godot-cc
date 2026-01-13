@@ -1,0 +1,14 @@
+{
+  "id": "alchemy_kit",
+  "name": "Alchemy Kit",
+  "description": "A set of tools for brewing potions.",
+  "category": "tool",
+  "subcategory": "crafting",
+  "flags": {"tool": true},
+  "tool_type": "alchemy",
+  "durability": {"current": 50, "max": 50},
+  "weight": 2.0,
+  "value": 75,
+  "ascii_char": "&",
+  "ascii_color": "#886644"
+}

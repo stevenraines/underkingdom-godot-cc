@@ -35,6 +35,7 @@ var world_map_screen: Control = null
 var fast_travel_screen: Control = null
 var rest_menu: Control = null
 var spell_list_screen: Control = null
+var ritual_menu: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
 # Spell casting state (targeting handled by TargetingSystem)
@@ -74,6 +75,7 @@ const NpcMenuScreenScene = preload("res://ui/npc_menu_screen.tscn")
 const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 const DeathScreenScene = preload("res://ui/death_screen.tscn")
 const SpellListScreenScene = preload("res://ui/spell_list_screen.tscn")
+const RitualMenuScene = preload("res://ui/ritual_menu.tscn")
 const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
 
 func _ready() -> void:
@@ -133,6 +135,9 @@ func _ready() -> void:
 
 	# Create spell list screen
 	_setup_spell_list_screen()
+
+	# Create ritual menu
+	_setup_ritual_menu()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -412,6 +417,23 @@ func _setup_spell_list_screen() -> void:
 		print("[Game] Spell list screen scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load spell_list_screen.tscn scene")
+
+## Setup ritual menu
+func _setup_ritual_menu() -> void:
+	print("[Game] Setting up ritual menu from scene...")
+	if RitualMenuScene:
+		ritual_menu = RitualMenuScene.instantiate()
+		ritual_menu.name = "RitualMenu"
+		hud.add_child(ritual_menu)
+		if ritual_menu.has_signal("closed"):
+			ritual_menu.closed.connect(_on_ritual_menu_closed)
+		if ritual_menu.has_signal("ritual_started"):
+			ritual_menu.ritual_started.connect(_on_ritual_started)
+		# Connect to EventBus signal
+		EventBus.ritual_menu_requested.connect(_on_ritual_menu_requested)
+		print("[Game] Ritual menu scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load ritual_menu.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -1974,8 +1996,6 @@ func _cast_spell_on_target(spell, target) -> void:
 	if result.success:
 		_add_message(result.message, Color(0.5, 0.8, 1.0))
 		TurnManager.advance_turn()
-		# Update visibility immediately (for Light spell and other buff effects)
-		_update_visibility()
 	elif result.failed:
 		_add_message(result.message, Color(1.0, 0.8, 0.3))
 		TurnManager.advance_turn()  # Still costs a turn
@@ -1984,7 +2004,26 @@ func _cast_spell_on_target(spell, target) -> void:
 
 	# Update HUD to show mana change
 	_update_hud()
+	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
 	_render_all_entities()
+	_render_ground_items()
+	_update_visibility()
+
+
+## Called when EventBus.ritual_menu_requested is emitted
+func _on_ritual_menu_requested() -> void:
+	if ritual_menu and player:
+		ritual_menu.open(player)
+		input_handler.ui_blocking_input = true
+
+## Called when ritual menu is closed
+func _on_ritual_menu_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when player begins a ritual from the ritual menu
+func _on_ritual_started(ritual_id: String) -> void:
+	input_handler.ui_blocking_input = false
+	_add_message("Ritual channeling has begun. Continue waiting to complete it.", Color.MAGENTA)
 
 
 ## Toggle fast travel screen (called from input handler)

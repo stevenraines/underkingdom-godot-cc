@@ -1,0 +1,15 @@
+{
+  "id": "greater_mana_potion",
+  "result": "mana_potion_greater",
+  "result_count": 1,
+  "ingredients": [
+    {"item": "empty_flask", "count": 1},
+    {"item": "mana_crystal", "count": 3},
+    {"item": "moonpetal", "count": 5},
+    {"item": "arcane_essence", "count": 1}
+  ],
+  "tool_required": "alchemy_kit",
+  "fire_required": true,
+  "difficulty": 7,
+  "discovery_hint": "Concentrated mana crystals and arcane essence create powerful restorative draughts"
+}

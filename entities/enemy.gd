@@ -24,6 +24,14 @@ var target_position: Vector2i = Vector2i.ZERO
 var last_known_player_pos: Vector2i = Vector2i.ZERO
 var is_alerted: bool = false  # Has detected player
 
+# Spellcasting properties
+var known_spells: Array[String] = []
+var current_mana: int = 0
+var max_mana: int = 0
+var spell_cooldowns: Dictionary = {}  # spell_id -> turns until ready
+var mana_regen_rate: int = 1  # Mana regained per 5 turns
+var _mana_regen_counter: int = 0
+
 func _init() -> void:
 	super()
 
@@ -73,11 +81,33 @@ static func create(enemy_data: Dictionary) -> Enemy:
 	enemy.base_damage = enemy_data.get("base_damage", 2)
 	enemy.armor = enemy_data.get("armor", 0)
 
+	# Creature type for elemental damage rules
+	enemy.creature_type = enemy_data.get("creature_type", "humanoid")
+
+	# Elemental resistances
+	if enemy_data.has("elemental_resistances"):
+		var resistances = enemy_data.elemental_resistances
+		for element in resistances:
+			enemy.elemental_resistances[element] = resistances[element]
+
 	# Yields on death (drops)
 	enemy.yields.assign(enemy_data.get("yields", []))
 
 	# Aggro range based on INT
 	enemy.aggro_range = 3 + enemy.attributes["INT"]
+
+	# Spellcasting properties
+	if enemy_data.has("spellcaster"):
+		var spell_data = enemy_data.spellcaster
+		enemy.max_mana = spell_data.get("max_mana", 0)
+		enemy.current_mana = enemy.max_mana
+		# Convert spells array to typed array
+		var spells = spell_data.get("spells", [])
+		for spell_id in spells:
+			enemy.known_spells.append(spell_id)
+		# Initialize cooldowns to 0 (ready to cast)
+		for spell_id in enemy.known_spells:
+			enemy.spell_cooldowns[spell_id] = 0
 
 	return enemy
 
@@ -85,6 +115,11 @@ static func create(enemy_data: Dictionary) -> Enemy:
 func take_turn() -> void:
 	if not is_alive:
 		return
+
+	# Process mana regeneration for spellcasters
+	if max_mana > 0:
+		_tick_mana_regen()
+		_tick_spell_cooldowns()
 
 	var player = EntityManager.player
 	if not player or not player.is_alive:
@@ -113,6 +148,11 @@ func _execute_behavior(player: Player) -> void:
 		_move_away_from(threat_pos)
 		return  # Fleeing consumes the turn
 
+	# Spellcaster behaviors - try to cast a spell first
+	if behavior_type in ["spellcaster_aggressive", "spellcaster_defensive"] and known_spells.size() > 0:
+		if _process_spellcaster_turn(player):
+			return  # Spell cast consumed the turn
+
 	# Otherwise, execute movement behavior
 	match behavior_type:
 		"aggressive":
@@ -132,6 +172,18 @@ func _execute_behavior(player: Player) -> void:
 				_move_toward_target(last_known_player_pos)
 			else:
 				_wander()
+		"spellcaster_aggressive":
+			# Close distance to get in spell range, melee if adjacent
+			var distance = _distance_to(player.position)
+			if distance > 8:
+				_move_toward_target(player.position)
+		"spellcaster_defensive":
+			# Keep distance, flee if too close
+			var distance = _distance_to(player.position)
+			if distance < 4:
+				_move_away_from(player.position)
+			elif distance > 8:
+				_move_toward_target(player.position)
 		_:
 			_move_toward_target(player.position)
 
@@ -411,3 +463,166 @@ func _try_close_door_behind(old_pos: Vector2i, _move_dir: Vector2i) -> void:
 			EventBus.combat_message.emit("%s closes a door." % name, Color.GRAY)
 			_FOVSystem.invalidate_cache()
 			EventBus.tile_changed.emit(old_pos)
+
+
+# =========================================
+# SPELLCASTING METHODS
+# =========================================
+
+## Process a spellcaster's turn - returns true if a spell was cast
+func _process_spellcaster_turn(player: Player) -> bool:
+	var distance = _distance_to(player.position)
+	var has_los = _has_line_of_sight_to(player.position)
+
+	# Try to cast an appropriate spell if we have LOS
+	if has_los:
+		var spell_to_cast = _choose_spell(player, distance)
+		if spell_to_cast != "":
+			return cast_spell_at(spell_to_cast, player)
+
+	return false
+
+## Check if enemy can cast a specific spell
+func can_cast_spell(spell_id: String) -> bool:
+	if spell_id not in known_spells:
+		return false
+	if spell_cooldowns.get(spell_id, 0) > 0:
+		return false
+
+	var spell = SpellManager.get_spell(spell_id)
+	if not spell:
+		return false
+
+	return current_mana >= spell.mana_cost
+
+## Cast a spell at a target
+func cast_spell_at(spell_id: String, target: Entity) -> bool:
+	if not can_cast_spell(spell_id):
+		return false
+
+	var spell = SpellManager.get_spell(spell_id)
+	if not spell:
+		return false
+
+	# Check range
+	var distance = _distance_to(target.position)
+	var spell_range = spell.get_range()
+	if distance > spell_range:
+		return false
+
+	# Consume mana
+	current_mana -= spell.mana_cost
+
+	# Set cooldown (default 3 turns if not specified)
+	var cooldown = spell.get("cooldown", 3) if spell.has_method("get") else 3
+	if "cooldown" in spell:
+		cooldown = spell.cooldown
+	spell_cooldowns[spell_id] = cooldown
+
+	# Use SpellCastingSystem to apply effect
+	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
+	var result = SpellCastingSystemClass.cast_spell(self, spell, target)
+
+	# Emit signal for visual feedback
+	EventBus.enemy_spell_cast.emit(self, spell, target, result)
+
+	# Log the cast message
+	var school_color = _get_school_color(spell.school)
+	EventBus.combat_message.emit("%s casts %s!" % [name, spell.name], school_color)
+
+	if result.message and result.message != "":
+		EventBus.combat_message.emit(result.message, school_color)
+
+	return true
+
+## Choose the best spell to cast
+func _choose_spell(target: Entity, distance: int) -> String:
+	# Priority: Debuff if target not debuffed > Damage > Buff self
+
+	# Check for debuff opportunities first
+	for spell_id in known_spells:
+		var spell = SpellManager.get_spell(spell_id)
+		if not spell or not can_cast_spell(spell_id):
+			continue
+
+		var effects = spell.get_effects()
+		if effects.has("debuff"):
+			var spell_range = spell.get_range()
+			if distance <= spell_range:
+				# Check if target already has this debuff
+				var debuff_id = effects.debuff.get("id", spell_id + "_debuff")
+				if not target.has_active_effect(debuff_id):
+					return spell_id
+
+	# Cast damage spell if in range
+	for spell_id in known_spells:
+		var spell = SpellManager.get_spell(spell_id)
+		if not spell or not can_cast_spell(spell_id):
+			continue
+
+		var effects = spell.get_effects()
+		if effects.has("damage"):
+			var spell_range = spell.get_range()
+			if distance <= spell_range:
+				return spell_id
+
+	# Cast DoT if in range
+	for spell_id in known_spells:
+		var spell = SpellManager.get_spell(spell_id)
+		if not spell or not can_cast_spell(spell_id):
+			continue
+
+		var effects = spell.get_effects()
+		if effects.has("dot"):
+			var spell_range = spell.get_range()
+			if distance <= spell_range:
+				var dot_id = effects.dot.get("id", spell_id + "_dot")
+				if not target.has_active_effect(dot_id):
+					return spell_id
+
+	# Cast self-buff if available
+	for spell_id in known_spells:
+		var spell = SpellManager.get_spell(spell_id)
+		if not spell or not can_cast_spell(spell_id):
+			continue
+
+		var effects = spell.get_effects()
+		var targeting_mode = spell.get_targeting_mode()
+		if effects.has("buff") and targeting_mode == "self":
+			var buff_id = effects.buff.get("id", spell_id + "_buff")
+			if not has_active_effect(buff_id):
+				return spell_id
+
+	return ""
+
+## Tick spell cooldowns each turn
+func _tick_spell_cooldowns() -> void:
+	for spell_id in spell_cooldowns:
+		if spell_cooldowns[spell_id] > 0:
+			spell_cooldowns[spell_id] -= 1
+
+## Tick mana regeneration
+func _tick_mana_regen() -> void:
+	_mana_regen_counter += 1
+	if _mana_regen_counter >= 5:
+		_mana_regen_counter = 0
+		if current_mana < max_mana:
+			current_mana = mini(current_mana + mana_regen_rate, max_mana)
+
+## Check if we have line of sight to a position
+func _has_line_of_sight_to(target_pos: Vector2i) -> bool:
+	const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+	return RangedCombatSystemClass.has_line_of_sight(position, target_pos)
+
+## Get color for spell school (for visual feedback)
+func _get_school_color(school: String) -> Color:
+	match school:
+		"evocation": return Color.ORANGE
+		"necromancy": return Color.PURPLE
+		"enchantment": return Color.PINK
+		"conjuration": return Color.CYAN
+		"abjuration": return Color.BLUE
+		"transmutation": return Color.GREEN
+		"divination": return Color.YELLOW
+		"illusion": return Color.GRAY
+	return Color.WHITE

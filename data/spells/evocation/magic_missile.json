@@ -1,0 +1,28 @@
+{
+  "id": "magic_missile",
+  "name": "Magic Missile",
+  "description": "Fire glowing darts of magical force that never miss.",
+  "school": "evocation",
+  "level": 1,
+  "mana_cost": 8,
+  "cooldown": 2,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 10
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 8,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "force",
+      "base": 6,
+      "scaling": 2
+    }
+  },
+  "cast_message": "Glowing missiles streak toward the target!",
+  "ascii_char": "*",
+  "ascii_color": "#88AAFF"
+}

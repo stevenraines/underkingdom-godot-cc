@@ -1,0 +1,27 @@
+{
+  "id": "summon_demon",
+  "name": "Summon Demon",
+  "description": "Call forth a powerful demon from the lower planes to serve you. This dark ritual can only be performed at night.",
+  "school": "conjuration",
+  "components": [
+    {"item_id": "demon_blood", "quantity": 1},
+    {"item_id": "obsidian", "quantity": 5},
+    {"item_id": "soul_gem", "quantity": 1}
+  ],
+  "channeling_turns": 15,
+  "requirements": {
+    "intelligence": 15,
+    "night_only": true
+  },
+  "effects": {
+    "summon": {
+      "creature_id": "bound_demon",
+      "duration": 200,
+      "behavior": "aggressive"
+    }
+  },
+  "failure_effects": {
+    "summon_hostile_demon": true
+  },
+  "discovery_location": "dark_sanctum"
+}

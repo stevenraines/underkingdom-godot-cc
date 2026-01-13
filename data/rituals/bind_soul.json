@@ -1,0 +1,25 @@
+{
+  "id": "bind_soul",
+  "name": "Bind Soul",
+  "description": "Trap a weakened creature's soul in a gem for later use. The target must be near death for the ritual to work.",
+  "school": "necromancy",
+  "components": [
+    {"item_id": "empty_soul_gem", "quantity": 1}
+  ],
+  "channeling_turns": 8,
+  "requirements": {
+    "intelligence": 13,
+    "target_low_health": true
+  },
+  "effects": {
+    "bind_soul": {
+      "kills_target": true,
+      "creates_item": "filled_soul_gem",
+      "health_threshold": 0.25
+    }
+  },
+  "failure_effects": {
+    "target_enraged": true
+  },
+  "discovery_location": "necromancer_lair"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "phoenix_feather",
+  "name": "Phoenix Feather",
+  "description": "A brilliant feather radiating warmth and life. Essential for resurrection rituals.",
+  "category": "material",
+  "subcategory": "magical",
+  "flags": {"magical": true, "rare": true},
+  "weight": 0.05,
+  "value": 250,
+  "stack_max": 5,
+  "ascii_char": "/",
+  "ascii_color": "#FF6600"
+}

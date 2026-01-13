@@ -1,0 +1,17 @@
+{
+  "id": "ritual_tome_ward_area",
+  "name": "Ritual Tome: Ward Area",
+  "description": "A protective text containing the secrets of creating magical barriers. Reading this will teach you to ward an area against evil.",
+  "category": "book",
+  "subtype": "ritual_tome",
+  "flags": {
+    "readable": true,
+    "magical": true
+  },
+  "teaches_ritual": "ward_area",
+  "weight": 1.5,
+  "value": 400,
+  "max_stack": 1,
+  "ascii_char": "+",
+  "ascii_color": "#FFFF88"
+}

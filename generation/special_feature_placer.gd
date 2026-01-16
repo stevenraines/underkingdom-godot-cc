@@ -76,14 +76,23 @@ static func place_all_towns(world_seed: int, town_definitions: Dictionary) -> Ar
 			var roads_config = town_def.get("roads", {})
 			var roads_connected = roads_config.get("connected_to_other_towns", false)
 
-			towns.append({
+			var town_data = {
 				"town_id": town_id,
 				"position": town_pos,
 				"size": town_size,
 				"name": town_def.get("name", town_id),
 				"is_safe_zone": town_def.get("is_safe_zone", true),
 				"roads_connected": roads_connected
-			})
+			}
+
+			# For coastal towns, store the ocean direction for dock orientation
+			if placement == "coastal":
+				var ocean_info = _get_ocean_direction(town_pos, world_seed)
+				town_data["ocean_direction"] = ocean_info.direction
+				town_data["ocean_distance"] = ocean_info.distance
+				print("[SpecialFeaturePlacer] Coastal town %s: ocean is %s at %d tiles" % [town_id, ocean_info.direction, ocean_info.distance])
+
+			towns.append(town_data)
 			print("[SpecialFeaturePlacer] SUCCESS: Placed town %s (%s) at %v (roads_connected=%s)" % [town_id, town_def.get("name", town_id), town_pos, roads_connected])
 		else:
 			push_warning("[SpecialFeaturePlacer] FAILED: Could not place town %s" % town_id)
@@ -93,10 +102,14 @@ static func place_all_towns(world_seed: int, town_definitions: Dictionary) -> Ar
 
 
 ## Place the primary/starter town (uses original coastal logic)
+## For coastal towns, positions are adjusted to be within ~8 tiles of the ocean
 static func _place_primary_town(world_seed: int, biome_prefs: Array, placement: String) -> Vector2i:
 	var suitable_biomes = biome_prefs if not biome_prefs.is_empty() else ["grassland", "woodland", "forest"]
 	var coastal_biomes = ["beach", "marsh"]  # Biomes that indicate nearby coast
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]  # Never spawn in water
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]  # Never spawn in water
+
+	# For coastal towns, we want to be very close to the ocean
+	var max_ocean_distance = 8 if placement == "coastal" else 999
 
 	# Get island center from config (in chunks)
 	var island_settings = BiomeManager.get_island_settings()
@@ -104,10 +117,10 @@ static func _place_primary_town(world_seed: int, biome_prefs: Array, placement: 
 	var island_height_chunks = island_settings.get("height_chunks", 25)
 	var center_chunk = Vector2i(island_width_chunks / 2, island_height_chunks / 2)
 
-	# If coastal placement preferred, look for coast first
+	# If coastal placement preferred, look for positions close to ocean
 	if placement == "coastal":
 		var coastal_candidates: Array = []
-		for radius in range(1, 12):
+		for radius in range(1, 20):  # Search wider area
 			var positions = _get_spiral_positions(center_chunk, radius)
 
 			for chunk_coords in positions:
@@ -117,31 +130,34 @@ static func _place_primary_town(world_seed: int, biome_prefs: Array, placement: 
 				if biome.biome_name in excluded_biomes:
 					continue
 
-				if biome.biome_name in suitable_biomes:
-					# Check if near coast
-					var is_coastal = false
-					for dx in range(-2, 3):
-						for dy in range(-2, 3):
-							if dx == 0 and dy == 0:
-								continue
-							var neighbor_pos = world_pos + Vector2i(dx * 32, dy * 32)
-							var neighbor_biome = BiomeGenerator.get_biome_at(neighbor_pos.x, neighbor_pos.y, world_seed)
-							if neighbor_biome.biome_name in coastal_biomes:
-								is_coastal = true
-								break
-						if is_coastal:
-							break
+				# Accept beach biome directly for coastal towns, or suitable biomes near coast
+				var on_valid_biome = biome.biome_name in suitable_biomes or biome.biome_name in coastal_biomes
+				if not on_valid_biome:
+					continue
 
-					if is_coastal:
-						coastal_candidates.append({"pos": world_pos, "chunk": chunk_coords, "biome": biome.biome_name})
+				# Check distance to ocean
+				var ocean_info = _get_ocean_direction(world_pos, world_seed)
+				if ocean_info.distance <= max_ocean_distance:
+					coastal_candidates.append({
+						"pos": world_pos,
+						"chunk": chunk_coords,
+						"biome": biome.biome_name,
+						"ocean_distance": ocean_info.distance,
+						"ocean_direction": ocean_info.direction
+					})
 
+		# Sort by distance to ocean (closest first)
 		if coastal_candidates.size() > 0:
+			coastal_candidates.sort_custom(func(a, b): return a.ocean_distance < b.ocean_distance)
 			var selected = coastal_candidates[0]
-			print("[SpecialFeaturePlacer] Primary town placed in coastal %s biome at chunk %v" % [selected.biome, selected.chunk])
+			print("[SpecialFeaturePlacer] Coastal town placed in %s biome at chunk %v, %d tiles from ocean (dir=%s)" % [
+				selected.biome, selected.chunk, selected.ocean_distance, selected.ocean_direction])
 			return selected.pos
 
-	# Fallback: any suitable biome
-	for radius in range(1, 12):
+	# Fallback: any suitable biome (but still enforce coastal requirement if specified)
+	# Use larger search radius for coastal towns to search more of the island
+	var max_radius = 20 if placement == "coastal" else 12
+	for radius in range(1, max_radius):
 		var positions = _get_spiral_positions(center_chunk, radius)
 
 		for chunk_coords in positions:
@@ -152,11 +168,22 @@ static func _place_primary_town(world_seed: int, biome_prefs: Array, placement: 
 				continue
 
 			if biome.biome_name in suitable_biomes:
-				print("[SpecialFeaturePlacer] Primary town placed in %s biome at chunk %v" % [biome.biome_name, chunk_coords])
+				# If coastal placement required, verify proximity to ocean
+				if placement == "coastal":
+					var ocean_info = _get_ocean_direction(world_pos, world_seed)
+					if ocean_info.distance > max_ocean_distance:
+						# Try to find a closer position toward the ocean
+						var closer_pos = _find_position_near_ocean(world_pos, world_seed, suitable_biomes, max_ocean_distance)
+						if closer_pos != world_pos:
+							print("[SpecialFeaturePlacer] Adjusted coastal town from %v to %v (closer to ocean)" % [world_pos, closer_pos])
+							return closer_pos
+						continue  # Skip if we can't get close enough
+
+				print("[SpecialFeaturePlacer] Primary town placed in %s biome at chunk %v (coastal=%s)" % [biome.biome_name, chunk_coords, placement == "coastal"])
 				return world_pos
 
 	# Ultimate fallback
-	push_warning("SpecialFeaturePlacer: Could not find suitable biome for primary town")
+	push_warning("SpecialFeaturePlacer: Could not find suitable biome for primary town (placement=%s)" % placement)
 	return center_chunk * 32 + Vector2i(16, 16)
 
 
@@ -180,7 +207,7 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 	if land_biomes.is_empty():
 		land_biomes = ["grassland", "woodland"]
 
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 	var min_distance_from_towns = 30  # Minimum tiles between town centers
 	var max_distance_from_towns = 120  # Maximum tiles from nearest town
 
@@ -284,7 +311,7 @@ static func _place_additional_town(world_seed: int, existing_positions: Array, b
 ## Find a coastal position by searching from the island edge inward
 ## This is more reliable than random sampling for finding coastal locations
 static func _find_coastal_position(world_seed: int, existing_positions: Array, land_biomes: Array, min_distance_from_towns: int, rng: SeededRandom, island_width_chunks: int, island_height_chunks: int) -> Vector2i:
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 	var ocean_biomes = ["ocean", "deep_ocean"]
 	var candidates: Array = []
 
@@ -378,6 +405,84 @@ static func _is_near_coast(pos: Vector2i, world_seed: int) -> bool:
 	return found_ocean
 
 
+## Get the direction to the nearest ocean from a position
+## Returns a dictionary with "direction" (string) and "distance" (int)
+## Direction is one of: "north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest"
+static func _get_ocean_direction(pos: Vector2i, world_seed: int) -> Dictionary:
+	var ocean_biomes = ["ocean", "deep_ocean"]
+	var min_distance = 9999
+	var best_direction = "south"  # Default fallback
+	var best_dx = 0
+	var best_dy = 1  # Default to south
+
+	# Check in 8 cardinal/diagonal directions at multiple distances
+	var directions = [
+		{"name": "north", "dx": 0, "dy": -1},
+		{"name": "south", "dx": 0, "dy": 1},
+		{"name": "east", "dx": 1, "dy": 0},
+		{"name": "west", "dx": -1, "dy": 0},
+		{"name": "northeast", "dx": 1, "dy": -1},
+		{"name": "northwest", "dx": -1, "dy": -1},
+		{"name": "southeast", "dx": 1, "dy": 1},
+		{"name": "southwest", "dx": -1, "dy": 1}
+	]
+
+	for dir in directions:
+		# Check at increasing distances until we find ocean
+		for dist in range(1, 50):
+			var check_pos = pos + Vector2i(dir.dx * dist, dir.dy * dist)
+			var biome = BiomeGenerator.get_biome_at(check_pos.x, check_pos.y, world_seed)
+
+			if biome.biome_name in ocean_biomes:
+				if dist < min_distance:
+					min_distance = dist
+					best_direction = dir.name
+					best_dx = dir.dx
+					best_dy = dir.dy
+				break  # Found ocean in this direction, move to next direction
+
+	return {
+		"direction": best_direction,
+		"distance": min_distance,
+		"dx": best_dx,
+		"dy": best_dy
+	}
+
+
+## Find a position very close to the ocean for coastal towns
+## Returns position within max_ocean_distance tiles of ocean, or original position if not found
+static func _find_position_near_ocean(start_pos: Vector2i, world_seed: int, suitable_biomes: Array, max_ocean_distance: int = 10) -> Vector2i:
+	var ocean_info = _get_ocean_direction(start_pos, world_seed)
+
+	if ocean_info.distance <= max_ocean_distance:
+		return start_pos  # Already close enough
+
+	# Move toward the ocean until we're close enough but still on land
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
+	var best_pos = start_pos
+	var best_distance = ocean_info.distance
+
+	# Walk toward the ocean
+	for steps in range(1, ocean_info.distance):
+		var test_pos = start_pos + Vector2i(ocean_info.dx * steps, ocean_info.dy * steps)
+		var biome = BiomeGenerator.get_biome_at(test_pos.x, test_pos.y, world_seed)
+
+		if biome.biome_name in excluded_biomes:
+			break  # Hit water, use last valid position
+
+		if biome.biome_name in suitable_biomes or biome.biome_name == "beach":
+			var test_ocean_info = _get_ocean_direction(test_pos, world_seed)
+			if test_ocean_info.distance <= max_ocean_distance:
+				print("[SpecialFeaturePlacer] Found position %v at %d tiles from ocean" % [test_pos, test_ocean_info.distance])
+				return test_pos
+			if test_ocean_info.distance < best_distance:
+				best_pos = test_pos
+				best_distance = test_ocean_info.distance
+
+	print("[SpecialFeaturePlacer] Best position %v is %d tiles from ocean (target was %d)" % [best_pos, best_distance, max_ocean_distance])
+	return best_pos
+
+
 ## Place all dungeon entrances based on dungeon definitions
 ## Returns array of dictionaries with dungeon_type, position, entrance_char, entrance_color
 static func place_all_dungeon_entrances(world_seed: int, primary_town_pos: Vector2i) -> Array:
@@ -423,7 +528,7 @@ static func place_all_dungeon_entrances(world_seed: int, primary_town_pos: Vecto
 
 ## Place a town near the starter town (for farms, outposts, etc.)
 static func _place_near_starter_town(world_seed: int, starter_pos: Vector2i, existing_positions: Array, biome_prefs: Array, min_distance: int, max_distance: int, rng: SeededRandom) -> Vector2i:
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 	var min_distance_from_others = 15
 
 	for _attempt in range(100):
@@ -477,7 +582,7 @@ static func _place_near_town_dungeon(world_seed: int, town_pos: Vector2i, existi
 	var min_distance = 20  # Outside town bounds
 	var max_distance = 60  # But not too far
 	var min_distance_from_others = 15
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 
 	for _attempt in range(100):
 		var angle = rng.randf() * 2 * PI
@@ -581,7 +686,7 @@ static func _place_town_dungeon(_world_seed: int, town_pos: Vector2i, existing: 
 static func _place_wilderness_dungeon(world_seed: int, town_pos: Vector2i, existing: Array, biome_prefs: Array, rng: SeededRandom) -> Vector2i:
 	var min_distance_from_town = 25  # Not too close to starter town
 	var min_distance_from_others = 40  # Spread dungeons apart
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 
 	# Get island bounds for full-island placement
 	var island_settings = BiomeManager.get_island_settings()
@@ -675,7 +780,7 @@ static func place_dungeon_entrance(world_seed: int, town_pos: Vector2i) -> Vecto
 ## Place player spawn just outside primary town, opposite side from first dungeon
 ## town_size is optional - if not provided, uses default of 20x20
 static func place_player_spawn(town_pos: Vector2i, entrance_pos: Vector2i, world_seed: int, town_size: Vector2i = Vector2i(20, 20)) -> Vector2i:
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 
 	# Spawn distance should be OUTSIDE the town boundary
 	# Town is centered on town_pos, so half-size + buffer puts us outside
@@ -715,7 +820,7 @@ static func place_player_spawn(town_pos: Vector2i, entrance_pos: Vector2i, world
 ## Get a valid spawn position outside a town (for fast travel)
 ## Returns a position just outside the town boundary on walkable ground
 static func get_town_spawn_position(town_pos: Vector2i, town_size: Vector2i, world_seed: int) -> Vector2i:
-	var excluded_biomes = ["ocean", "deep_ocean", "water"]
+	var excluded_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water", "water"]
 	var half_size = max(town_size.x, town_size.y) / 2
 	var spawn_distance = half_size + 3  # 3 tiles outside town edge
 

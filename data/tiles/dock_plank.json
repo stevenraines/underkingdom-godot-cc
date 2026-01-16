@@ -1,0 +1,8 @@
+{
+  "id": "dock_plank",
+  "display_name": "wooden dock planks",
+  "ascii_char": "=",
+  "walkable": true,
+  "transparent": true,
+  "is_fire_source": false
+}

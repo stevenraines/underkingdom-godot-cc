@@ -1,0 +1,8 @@
+{
+  "id": "dock_post",
+  "display_name": "a dock post",
+  "ascii_char": "O",
+  "walkable": false,
+  "transparent": true,
+  "is_fire_source": false
+}

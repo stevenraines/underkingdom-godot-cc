@@ -1,0 +1,12 @@
+{
+  "id": "fresh_water",
+  "name": "Fresh Water",
+  "base_tile": "water",
+  "grass_char": "~",
+  "tree_density": 0.0,
+  "rock_density": 0.0,
+  "color_floor": [0.3, 0.5, 0.7],
+  "color_grass": [0.35, 0.55, 0.75],
+  "altitude_tier": 0,
+  "base_temp_modifier": 0
+}

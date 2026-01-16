@@ -1,0 +1,19 @@
+{
+  "id": "dock",
+  "name": "Fishing Dock",
+  "description": "A wooden dock extending into the water for fishing boats.",
+  "size": [3, 8],
+  "template_type": "custom",
+  "layout": [
+    "O=O",
+    "===",
+    "===",
+    "===",
+    "===",
+    "===",
+    "===",
+    " O "
+  ],
+  "dock_building": true,
+  "extends_into_water": true
+}

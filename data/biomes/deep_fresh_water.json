@@ -1,0 +1,12 @@
+{
+  "id": "deep_fresh_water",
+  "name": "Deep Fresh Water",
+  "base_tile": "water",
+  "grass_char": "~",
+  "tree_density": 0.0,
+  "rock_density": 0.0,
+  "color_floor": [0.2, 0.4, 0.6],
+  "color_grass": [0.25, 0.45, 0.65],
+  "altitude_tier": 0,
+  "base_temp_modifier": 0
+}

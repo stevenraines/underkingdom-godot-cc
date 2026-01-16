@@ -135,6 +135,9 @@ func take_turn() -> void:
 	# Execute behavior based on type and alert state
 	if is_alerted:
 		_execute_behavior(player)
+	elif behavior_type == "passive":
+		# Passive animals wander when not alerted
+		_wander()
 
 ## Execute AI behavior
 func _execute_behavior(player: Player) -> void:
@@ -172,6 +175,9 @@ func _execute_behavior(player: Player) -> void:
 				_move_toward_target(last_known_player_pos)
 			else:
 				_wander()
+		"passive":
+			# Flee from player when alerted
+			_move_away_from(player.position)
 		"spellcaster_aggressive":
 			# Close distance to get in spell range, melee if adjacent
 			var distance = _distance_to(player.position)

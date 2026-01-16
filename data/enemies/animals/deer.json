@@ -1,0 +1,32 @@
+{
+  "id": "deer",
+  "name": "Deer",
+  "description": "A graceful woodland deer, prized for its meat and hide.",
+  "cr": 0,
+  "ascii_char": "d",
+  "ascii_color": "#8B4513",
+  "stats": {
+    "health": 10,
+    "str": 8,
+    "dex": 16,
+    "con": 10,
+    "int": 3,
+    "wis": 12,
+    "cha": 6
+  },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 2, "max_count": 3, "chance": 1.0},
+    {"item_id": "leather", "min_count": 1, "max_count": 2, "chance": 0.8}
+  ],
+  "behavior": "passive",
+  "base_damage": 0,
+  "armor": 0,
+  "xp_value": 10,
+  "spawn_biomes": ["forest", "woodland"],
+  "spawn_dungeons": [],
+  "spawn_density_overworld": 600,
+  "spawn_density_dungeon": 0,
+  "min_spawn_level": 0,
+  "max_spawn_level": 0,
+  "min_distance_from_town": 10
+}

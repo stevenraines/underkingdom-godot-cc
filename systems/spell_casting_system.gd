@@ -226,7 +226,7 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 
 		# If save completely negates the spell, return early
 		if save_succeeded and spell.save.get("on_success", "half") == "no_effect":
-			result.message = "%s resists the %s!" % [target.name if target else "Target", spell.name]
+			result.message = "%s resists the %s! %s" % [target.name if target else "Target", spell.name, save_result.get("roll_info", "")]
 			result.effects_applied.append("resisted")
 			return result
 
@@ -619,13 +619,26 @@ static func attempt_saving_throw(target, save_type: String, dc: int) -> Dictiona
 	var total = roll + attribute_mod
 	var success = total >= dc
 
+	# Build roll info string
+	var roll_info = _format_save_roll(roll, attribute_mod, save_type, total, dc)
+
 	return {
 		"success": success,
 		"roll": roll,
 		"modifier": attribute_mod,
 		"total": total,
-		"dc": dc
+		"dc": dc,
+		"roll_info": roll_info
 	}
+
+
+## Format saving throw roll breakdown for display (grey colored)
+## Returns: "[X (Roll) +Y (SAVE) = total vs DC N]"
+static func _format_save_roll(dice_roll: int, modifier: int, save_type: String, total: int, dc: int) -> String:
+	var parts: Array[String] = ["%d (Roll)" % dice_roll]
+	parts.append("%+d (%s)" % [modifier, save_type])
+	parts.append("= %d vs DC %d" % [total, dc])
+	return "[color=gray][%s][/color]" % " ".join(parts)
 
 
 ## Get valid targets for a ranged spell

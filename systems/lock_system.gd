@@ -85,20 +85,33 @@ static func try_pick_lock(lock_level: int, player) -> Dictionary:
 	var dice_roll: int = randi_range(1, 20)
 	var total_roll: int = dice_roll + dex_modifier + lockpicking_skill
 
+	# Build roll breakdown string
+	var roll_info = _format_d20_roll(dice_roll, dex_modifier, "DEX", lockpicking_skill, total_roll, dc)
+
 	if total_roll >= dc:
 		result.success = true
 		result.result = LockResult.PICK_SUCCESS
-		result.message = "You successfully pick the lock. (rolled %d)" % dice_roll
+		result.message = "You successfully pick the lock. %s" % roll_info
 	else:
 		result.success = false
 		result.result = LockResult.PICK_FAILED
 		result.lockpick_broken = true
-		result.message = "The lockpick breaks! (rolled %d)" % dice_roll
+		result.message = "The lockpick breaks! %s" % roll_info
 
 		# Consume lockpick
 		_consume_lockpick(lockpick, player.inventory)
 
 	return result
+
+## Format d20 roll breakdown for display (grey colored)
+## Returns: "[X (Roll) +Y (ATTR) +Z (Skill) = total vs DC N]"
+static func _format_d20_roll(dice_roll: int, modifier: int, attr_name: String, skill: int, total: int, dc: int) -> String:
+	var parts: Array[String] = ["%d (Roll)" % dice_roll]
+	parts.append("%+d (%s)" % [modifier, attr_name])
+	if skill > 0:
+		parts.append("+%d (Skill)" % skill)
+	parts.append("= %d vs DC %d" % [total, dc])
+	return "[color=gray][%s][/color]" % " ".join(parts)
 
 ## Attempt to lock an open lock using lockpicks (half difficulty)
 ## Returns Dictionary with result info: {success, result, message, lockpick_broken}
@@ -128,15 +141,18 @@ static func try_lock_with_pick(lock_level: int, player) -> Dictionary:
 	var dice_roll: int = randi_range(1, 20)
 	var total_roll: int = dice_roll + dex_modifier + lockpicking_skill
 
+	# Build roll breakdown string
+	var roll_info = _format_d20_roll(dice_roll, dex_modifier, "DEX", lockpicking_skill, total_roll, dc)
+
 	if total_roll >= dc:
 		result.success = true
 		result.result = LockResult.SUCCESS
-		result.message = "You re-lock the mechanism. (rolled %d)" % dice_roll
+		result.message = "You re-lock the mechanism. %s" % roll_info
 	else:
 		result.success = false
 		result.result = LockResult.PICK_FAILED
 		result.lockpick_broken = true
-		result.message = "The lockpick breaks! (rolled %d)" % dice_roll
+		result.message = "The lockpick breaks! %s" % roll_info
 
 		# Consume lockpick
 		_consume_lockpick(lockpick, player.inventory)

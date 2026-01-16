@@ -293,12 +293,15 @@ func try_active_detect_hazard(pos: Vector2i, ability_modifier: int, traps_skill:
 	var dice_roll: int = randi_range(1, 20)
 	var total_roll: int = dice_roll + ability_modifier + traps_skill + bonus
 
+	# Build roll breakdown string
+	var roll_info = _format_d20_roll_with_bonus(dice_roll, ability_modifier, "WIS", traps_skill, bonus, total_roll, detection_difficulty)
+
 	if total_roll >= detection_difficulty:
 		hazard.detected = true
 		hazard_detected.emit(hazard.hazard_id, pos)
-		return {"detected": true, "message": "You discover a hidden %s! (rolled %d)" % [hazard_name, dice_roll], "hazard_name": hazard_name}
+		return {"detected": true, "message": "You discover a hidden %s! %s" % [hazard_name, roll_info], "hazard_name": hazard_name}
 
-	return {"detected": false, "message": "You sense something, but can't quite pinpoint it... (rolled %d)" % dice_roll, "hazard_name": hazard_name}
+	return {"detected": false, "message": "You sense something, but can't pinpoint it... %s" % roll_info, "hazard_name": hazard_name}
 
 
 ## Try to disarm a hazard at position using player's traps skill
@@ -325,13 +328,29 @@ func try_disarm_hazard_with_player(pos: Vector2i, player) -> Dictionary:
 	var dice_roll: int = randi_range(1, 20)
 	var total_roll: int = dice_roll + dex_modifier + traps_skill
 
+	# Build roll breakdown string (no bonus for disarm)
+	var roll_info = _format_d20_roll_with_bonus(dice_roll, dex_modifier, "DEX", traps_skill, 0, total_roll, disarm_difficulty)
+
 	if total_roll >= disarm_difficulty:
 		hazard.disarmed = true
 		hazard_disarmed.emit(hazard.hazard_id, pos)
-		return {"success": true, "message": "You successfully disarm the %s. (rolled %d)" % [hazard_def.name.to_lower(), dice_roll]}
+		return {"success": true, "message": "You successfully disarm the %s. %s" % [hazard_def.name.to_lower(), roll_info]}
 	else:
 		# Failed - trigger hazard!
-		return {"success": false, "message": "You fail to disarm the trap! (rolled %d)" % dice_roll, "triggered": true}
+		return {"success": false, "message": "You fail to disarm the trap! %s" % roll_info, "triggered": true}
+
+
+## Format d20 roll breakdown for display (grey colored)
+## Returns: "[X (Roll) +Y (ATTR) +Z (Skill) +W (Search) = total vs DC N]"
+func _format_d20_roll_with_bonus(dice_roll: int, modifier: int, attr_name: String, skill: int, bonus: int, total: int, dc: int) -> String:
+	var parts: Array[String] = ["%d (Roll)" % dice_roll]
+	parts.append("%+d (%s)" % [modifier, attr_name])
+	if skill > 0:
+		parts.append("+%d (Skill)" % skill)
+	if bonus > 0:
+		parts.append("+%d (Search)" % bonus)
+	parts.append("= %d vs DC %d" % [total, dc])
+	return "[color=gray][%s][/color]" % " ".join(parts)
 
 
 ## Try to disarm a hazard at position (legacy - uses raw skill value)

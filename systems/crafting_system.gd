@@ -39,13 +39,15 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 		result.message = "Missing requirements: " + ", ".join(missing)
 		return result
 
-	# Calculate success chance (with crafting skill bonus)
+	# D&D-style skill check: d20 + INT modifier + crafting skill vs DC
 	var crafting_skill = player.skills.get("crafting", 0)
-	var success_chance = calculate_success_chance(recipe.difficulty, player.attributes["INT"], crafting_skill)
+	var int_val = player.get_effective_attribute("INT") if player.has_method("get_effective_attribute") else player.attributes.get("INT", 10)
+	var int_modifier: int = int((int_val - 10) / 2.0)
+	var dc: int = recipe.difficulty * 2 + 8  # DC scales with difficulty
 
-	# Roll for success
-	var roll = randf()
-	var success = roll <= success_chance
+	var dice_roll: int = randi_range(1, 20)
+	var total_roll: int = dice_roll + int_modifier + crafting_skill
+	var success: bool = total_roll >= dc
 
 	# Consume ingredients (regardless of success/failure)
 	if not recipe.consume_ingredients(player.inventory):

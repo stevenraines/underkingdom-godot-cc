@@ -50,8 +50,9 @@ func _build_help_content() -> void:
 
 	# Traps & Hazards
 	_add_section_header("== TRAPS & HAZARDS ==")
-	_add_keybind("N", "Search for traps (then direction)")
-	_add_keybind("Shift + N", "Disarm trap (then direction)")
+	_add_keybind("N", "Search for traps (range: 2 + traps skill)")
+	_add_keybind("Shift + N", "Disarm visible trap")
+	_add_help_text("Active search gives +5 bonus vs passive detection")
 	_add_help_text("Detection uses WIS + traps skill vs trap difficulty")
 	_add_help_text("Disarming uses DEX + traps skill")
 	_add_help_text("Failed disarm may trigger the trap!")

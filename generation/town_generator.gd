@@ -37,9 +37,18 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		var offset = Vector2i(offset_array[0], offset_array[1])
 		var npc_id = building_entry.get("npc_id", "")
 		var door_facing = building_entry.get("door_facing", "south")
+		var dock_auto_orient = building_entry.get("dock_auto_orient", false)
 
-		var building_pos = center_pos + offset
 		var building_def = building_defs.get(building_id, {})
+		var building_pos = center_pos + offset
+
+		# Handle dock auto-orientation toward ocean
+		if dock_auto_orient and building_def.get("dock_building", false):
+			var dock_result = _place_dock_toward_ocean(tiles_dict, building_def, center_pos, town_size, world_seed)
+			door_facing = dock_result.direction
+			building_pos = dock_result.position
+			print("[TownGenerator] Auto-oriented dock to face %s at %v" % [door_facing, building_pos])
+
 		var npc_pos = _place_building(tiles_dict, building_def, building_pos, rng, door_facing)
 
 		# If building has an NPC, record spawn position
@@ -383,6 +392,12 @@ static func _char_to_tile(tile_char: String) -> GameTile:
 			return tile
 		"~":
 			return GameTile.create("water")
+		"=":
+			# Dock plank - walkable wooden surface over water
+			return GameTile.create("dock_plank")
+		"O":
+			# Dock post - mooring post at end of dock
+			return GameTile.create("dock_post")
 		"@":
 			var tile = GameTile.create("floor")
 			tile.color = Color.WHITE
@@ -477,3 +492,86 @@ static func _generate_crop_field(tiles_dict: Dictionary, center_pos: Vector2i, f
 
 	print("[TownGenerator] Generated %dx%d crop field of %s at %v (mature=%s)" % [width, height, crop_id, field_start, mature])
 	return crop_spawns
+
+
+## Place a dock building oriented toward the nearest water body (ocean or fresh water lake)
+## Returns dictionary with "direction" (door_facing) and "position" for the dock
+static func _place_dock_toward_ocean(_tiles_dict: Dictionary, building_def: Dictionary, town_center: Vector2i, _town_size: Vector2i, world_seed: int) -> Dictionary:
+	var water_biomes = ["ocean", "deep_ocean", "fresh_water", "deep_fresh_water"]
+
+	# Check cardinal directions first (preferred for dock orientation)
+	# Store distances for each direction
+	var direction_distances = {}
+	var directions = [
+		{"name": "north", "dx": 0, "dy": -1},
+		{"name": "south", "dx": 0, "dy": 1},
+		{"name": "east", "dx": 1, "dy": 0},
+		{"name": "west", "dx": -1, "dy": 0}
+	]
+
+	# Find water distance in each cardinal direction
+	for dir in directions:
+		for dist in range(1, 80):
+			var check_pos = town_center + Vector2i(dir.dx * dist, dir.dy * dist)
+			var biome = BiomeGenerator.get_biome_at(check_pos.x, check_pos.y, world_seed)
+
+			if biome.biome_name in water_biomes:
+				direction_distances[dir.name] = dist
+				print("[TownGenerator] Water found %s at distance %d (biome: %s)" % [dir.name, dist, biome.biome_name])
+				break
+
+	# Find the direction with the shortest distance to water
+	var min_distance = 9999
+	var best_direction = "south"  # Default fallback
+
+	for dir_name in direction_distances:
+		var dist = direction_distances[dir_name]
+		if dist < min_distance:
+			min_distance = dist
+			best_direction = dir_name
+
+	# Safety check: if no water found, use a reasonable default
+	if direction_distances.is_empty():
+		push_warning("[TownGenerator] No water found near town center %v - placing dock at default position" % town_center)
+		min_distance = 10  # Default distance
+
+	var cardinal_direction = best_direction
+	print("[TownGenerator] Best water direction: %s at %d tiles" % [cardinal_direction, min_distance])
+
+	# Get dock size - the long dimension (height) extends toward water
+	var size_array = building_def.get("size", [3, 8])
+	var dock_length = size_array[1]  # The long dimension extends toward water
+	var half_dock = dock_length / 2
+
+	# Position dock so its far end reaches INTO the water
+	# The dock is placed at its center, so:
+	# - Near end is at center - (half_dock - 1) = center - 3 for an 8-tile dock
+	# - Far end is at center + (half_dock - 1) = center + 3
+	# We want the far end to be 2 tiles past the water edge (into the water)
+	# So: center_offset + (half_dock - 1) = min_distance + 2
+	# Therefore: center_offset = min_distance - half_dock + 3
+	var center_offset = min_distance - half_dock + 3
+
+	# Ensure minimum offset so dock near end isn't at town center
+	center_offset = maxi(center_offset, half_dock + 1)
+
+	var dock_pos = town_center
+
+	print("[TownGenerator] Dock calc: min_distance=%d, dock_length=%d, half_dock=%d, center_offset=%d" % [min_distance, dock_length, half_dock, center_offset])
+
+	match cardinal_direction:
+		"north":
+			dock_pos = town_center + Vector2i(0, -center_offset)
+		"south":
+			dock_pos = town_center + Vector2i(0, center_offset)
+		"east":
+			dock_pos = town_center + Vector2i(center_offset, 0)
+		"west":
+			dock_pos = town_center + Vector2i(-center_offset, 0)
+
+	print("[TownGenerator] Placing dock at %v facing %s (water at %d tiles from town center)" % [dock_pos, cardinal_direction, min_distance])
+
+	return {
+		"direction": cardinal_direction,
+		"position": dock_pos
+	}

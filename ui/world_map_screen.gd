@@ -535,6 +535,10 @@ func _get_biome_map_color(biome_name: String) -> Color:
 	match biome_name:
 		"ocean", "deep_ocean":
 			return Color(0.12, 0.18, 0.32)
+		"fresh_water":
+			return Color(0.22, 0.35, 0.52)  # Lighter blue for inland lakes
+		"deep_fresh_water":
+			return Color(0.15, 0.28, 0.45)  # Slightly darker for deep lakes
 		"beach":
 			return Color(0.55, 0.52, 0.42)
 		"grassland":

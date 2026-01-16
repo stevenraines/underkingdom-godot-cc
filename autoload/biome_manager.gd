@@ -150,6 +150,19 @@ func get_biome(biome_id: String) -> Dictionary:
 
 ## Get biome ID from elevation and moisture values
 func get_biome_id_from_values(elevation: float, moisture: float) -> String:
+	# Check for inland fresh water first
+	# Positive elevation = inside island (not contiguous with edge ocean)
+	# Low positive elevation = inland water depression (lake/pond)
+	if elevation >= 0 and elevation < 0.05:
+		# Inside island but low elevation = inland fresh water (NOT ocean)
+		if moisture < 0.4:
+			return "deep_fresh_water"
+		else:
+			return "fresh_water"
+
+	# Negative elevation = outside island = actual ocean (contiguous with edge)
+	# Falls through to matrix lookup which returns ocean/deep_ocean
+
 	# Use biome matrix from config if available
 	if generation_config.has("biome_matrix"):
 		var matrix_data = generation_config["biome_matrix"]

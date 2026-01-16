@@ -4,7 +4,7 @@
   "description": "A small trading settlement where travelers rest before venturing into the wilds.",
   "size": [25, 25],
   "biome_preferences": ["grassland", "woodland"],
-  "placement": "coastal",
+  "placement": "any",
   "is_safe_zone": true,
   "known_at_start": true,
   "buildings": [

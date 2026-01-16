@@ -131,7 +131,7 @@ func generate_floor(dungeon_id: String, floor_number: int, world_seed: int) -> G
 	var map: GameMap = generator.generate_floor(dungeon_def, floor_number, world_seed)
 
 	# Process pending features and hazards stored by generator
-	_process_pending_features(map)
+	_process_pending_features(map, world_seed, floor_number)
 	_process_pending_hazards(map)
 
 	return map
@@ -139,13 +139,17 @@ func generate_floor(dungeon_id: String, floor_number: int, world_seed: int) -> G
 
 ## Process pending features stored in map metadata by generator
 ## Transfers feature data to FeatureManager for runtime handling
-func _process_pending_features(map: GameMap) -> void:
+func _process_pending_features(map: GameMap, world_seed: int, floor_number: int) -> void:
 	if not map.metadata.has("pending_features"):
 		return
 
 	var pending: Array = map.metadata.pending_features
 	if pending.is_empty():
 		return
+
+	# Create seeded random for deterministic loot generation
+	var loot_seed = hash(str(world_seed) + "_features_" + str(floor_number))
+	var rng = SeededRandom.new(loot_seed)
 
 	# Initialize features array in metadata
 	if not map.metadata.has("features"):
@@ -166,8 +170,10 @@ func _process_pending_features(map: GameMap) -> void:
 			"state": {}
 		}
 
-		# Add loot if applicable
-		if config.get("contains_loot", false):
+		# Add loot if applicable (check contains_loot flag OR loot_table presence)
+		var should_have_loot = config.get("contains_loot", false) or config.has("loot_table")
+		if should_have_loot:
+			feature_instance.state["loot"] = _generate_feature_loot(config, rng)
 			feature_instance.state["has_loot"] = true
 
 		# Add summon enemy if applicable
@@ -179,6 +185,17 @@ func _process_pending_features(map: GameMap) -> void:
 	# Clear pending features
 	map.metadata.erase("pending_features")
 	print("[DungeonManager] Processed %d features" % map.metadata.features.size())
+
+
+## Generate loot for a feature using LootTableManager
+func _generate_feature_loot(config: Dictionary, rng: SeededRandom) -> Array:
+	var loot_table: String = config.get("loot_table", "")
+	if loot_table != "":
+		var generated = LootTableManager.generate_loot(loot_table, rng)
+		if not generated.is_empty():
+			return generated
+	# Fallback: default gold if no loot table or generation failed
+	return [{"item_id": "gold_coin", "count": rng.randi_range(5, 25)}]
 
 
 ## Process pending hazards stored in map metadata by generator

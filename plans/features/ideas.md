@@ -6,17 +6,17 @@
 - [X] Improve performance of overworld lighting
 - [X] Detect & Disarm Traps (Hazards) Actions
 - [X] Include skill and attack check values (roll, ability modifier, skill bonus, other bonuses)  in the log so players can see their roll
+- [X] Fix chests not giving treasure
+- [ ] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
 
-- [ ] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic found in other roguelikes.
 - [ ] Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
 - [ ] Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.
-- [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather. Modify all creature yields that drop leather to drop a hide instead.
-up
+- [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
 - [ ] Add rivers to the game, including one near the starting town. where rivers and roads intersect, bridges should exist.
 - [ ] Add a mill and a miller to the starting town, who can grind grains into flour. the mill must be directly adjacent to a river.
 - [ ] Add a butcher to the starting town
 - [ ] Add a baker to the starting town
-- [ ] Add a weaver to the starting town - can teach the player how to make cloth. Then create sources of fiber the player can harvest to create cloth.
+- [ ] Add a weaver to the starting town - can teach the player how to make cloth
 - [ ] Add a tailor ot the starting town who can teach the player how to create cloth clothes
 - [ ] Add a dyer to the starting town, who teaches making dyes, sells dye pot an premade dyes - player should be able to dye clothes, 
 - [ ] Add a cobbler to the town who teaches making shows and sells components and tools for shoe-making

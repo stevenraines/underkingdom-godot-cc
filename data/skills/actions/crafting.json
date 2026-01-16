@@ -1,0 +1,9 @@
+{
+  "id": "crafting",
+  "name": "Crafting",
+  "description": "Skill in creating items from raw materials.",
+  "category": "action",
+  "bonus_type": "success_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

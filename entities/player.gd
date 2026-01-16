@@ -153,18 +153,8 @@ func get_known_rituals() -> Array[String]:
 var available_skill_points: int = 0
 var available_ability_points: int = 0  # For ability score increases every 4th level
 
-# Skills (0-level cap)
-var skills: Dictionary = {
-	"Arcana": 0,
-	"Crafting": 0,
-	"Investigation": 0,
-	"Medicine": 0,
-	"Perception": 0,
-	"Persuasion": 0,
-	"Sleight of Hand": 0,
-	"Stealth": 0,
-	"Survival": 0
-}
+# Skills (0-level cap, initialized from SkillManager)
+var skills: Dictionary = {}
 
 # Death tracking
 var death_cause: String = ""  # What killed the player (enemy name, "Starvation", etc.)
@@ -185,12 +175,27 @@ func _setup_player() -> void:
 	# Player starts with base attributes (defined in Entity)
 	# Perception range calculated from WIS: Base 5 + (WIS / 2)
 	perception_range = 5 + int(attributes["WIS"] / 2.0)
-	
+
+	# Initialize skills from SkillManager
+	_setup_skills()
+
 	# Initialize survival system
 	survival = _SurvivalSystem.new(self)
-	
+
 	# Initialize inventory system
 	inventory = _Inventory.new(self)
+
+
+## Initialize skills dictionary from SkillManager definitions
+## Called during setup and again when loading a game if skills are empty
+func _setup_skills() -> void:
+	skills.clear()
+	# Use Engine.get_main_loop() to access autoloads safely
+	var tree = Engine.get_main_loop()
+	if tree and tree.root.has_node("SkillManager"):
+		var skill_manager = tree.root.get_node("SkillManager")
+		for skill_id in skill_manager.get_all_skill_ids():
+			skills[skill_id] = 0
 
 	# Connect to equipment change signals
 	EventBus.item_equipped.connect(_on_item_equipped)
@@ -1224,7 +1229,17 @@ func spend_skill_point(skill_name: String) -> bool:
 		return false
 	if available_skill_points <= 0:
 		return false
-	if skills[skill_name] >= level:  # Cap at player level
+
+	# Get max level from SkillManager (default to 20 if not available)
+	var skill_max_level: int = 20
+	var tree = Engine.get_main_loop()
+	if tree and tree.root.has_node("SkillManager"):
+		var skill_manager = tree.root.get_node("SkillManager")
+		skill_max_level = skill_manager.get_skill_max_level(skill_name)
+
+	# Cap at player level or skill's max_level (whichever is lower)
+	var cap = mini(level, skill_max_level)
+	if skills[skill_name] >= cap:
 		return false
 
 	# Spend the point
@@ -1233,6 +1248,35 @@ func spend_skill_point(skill_name: String) -> bool:
 
 	EventBus.skill_increased.emit(skill_name, skills[skill_name])
 	return true
+
+
+## Get the effective bonus for a skill
+## Returns: skill_level (flat bonus system - +1 per level)
+func get_skill_bonus(skill_id: String) -> int:
+	return skills.get(skill_id, 0)
+
+
+## Get weapon skill bonus for currently equipped weapon
+## Returns the skill bonus for the weapon's type (e.g., Swords skill for swords)
+func get_weapon_skill_bonus() -> int:
+	if not inventory or not inventory.equipment:
+		return 0
+
+	var weapon = inventory.equipment.get("main_hand")
+	if not weapon:
+		return 0
+
+	# Get the skill that applies to this weapon from SkillManager
+	var tree = Engine.get_main_loop()
+	if not tree or not tree.root.has_node("SkillManager"):
+		return 0
+
+	var skill_manager = tree.root.get_node("SkillManager")
+	var skill_def = skill_manager.get_weapon_skill_for_weapon(weapon)
+	if skill_def:
+		return get_skill_bonus(skill_def.id)
+
+	return 0
 
 ## Increase an ability score (from ability point)
 ## Returns true if successful, false if invalid

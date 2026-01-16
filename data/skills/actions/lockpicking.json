@@ -1,0 +1,9 @@
+{
+  "id": "lockpicking",
+  "name": "Lockpicking",
+  "description": "Ability to open locks without keys.",
+  "category": "action",
+  "bonus_type": "success_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

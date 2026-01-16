@@ -1,0 +1,10 @@
+{
+  "id": "axes",
+  "name": "Axes",
+  "description": "Proficiency with axes, hatchets, and similar chopping weapons.",
+  "category": "weapon",
+  "weapon_subtypes": ["axe"],
+  "bonus_type": "hit_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

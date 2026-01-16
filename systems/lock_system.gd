@@ -76,10 +76,11 @@ static func try_pick_lock(lock_level: int, player) -> Dictionary:
 		return result
 
 	# Calculate success chance
-	# Formula: base 50% + (DEX * 2) + (level * 3) - (lock_level * 10)
+	# Formula: base 50% + (DEX * 2) + (level * 3) + lockpicking_skill - (lock_level * 10)
 	var dex = player.get_effective_attribute("DEX")
 	var player_level = player.get("level") if "level" in player else 1
-	var base_chance = 50 + (dex * 2) + (player_level * 3) - (lock_level * 10)
+	var lockpicking_skill = player.skills.get("lockpicking", 0) if "skills" in player else 0
+	var base_chance = 50 + (dex * 2) + (player_level * 3) + lockpicking_skill - (lock_level * 10)
 	var final_chance = clamp(base_chance, 5, 95)
 
 	# Roll
@@ -122,7 +123,8 @@ static func try_lock_with_pick(lock_level: int, player) -> Dictionary:
 	var effective_level = lock_level / 2
 	var dex = player.get_effective_attribute("DEX")
 	var player_level = player.get("level") if "level" in player else 1
-	var base_chance = 50 + (dex * 2) + (player_level * 3) - (effective_level * 10)
+	var lockpicking_skill = player.skills.get("lockpicking", 0) if "skills" in player else 0
+	var base_chance = 50 + (dex * 2) + (player_level * 3) + lockpicking_skill - (effective_level * 10)
 	var final_chance = clamp(base_chance, 5, 95)
 
 	# Roll

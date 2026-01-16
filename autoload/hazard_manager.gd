@@ -264,7 +264,42 @@ func try_detect_hazard(pos: Vector2i, perception: int) -> bool:
 	return false
 
 
-## Try to disarm a hazard at position
+## Try to disarm a hazard at position using player's traps skill
+## Returns result dictionary: {success, message, triggered}
+func try_disarm_hazard_with_player(pos: Vector2i, player) -> Dictionary:
+	if not active_hazards.has(pos):
+		return {"success": false, "message": "No hazard here."}
+
+	var hazard: Dictionary = active_hazards[pos]
+	var hazard_def: Dictionary = hazard.definition
+
+	if not hazard_def.get("can_disarm", false):
+		return {"success": false, "message": "This hazard cannot be disarmed."}
+
+	if hazard.disarmed:
+		return {"success": false, "message": "Already disarmed."}
+
+	# Calculate disarm chance
+	# Formula: 50% + (DEX * 2) + traps_skill - (difficulty * 10)
+	var disarm_difficulty: int = hazard.config.get("disarm_difficulty", hazard.config.get("detection_difficulty", 5))
+	var dex = player.get_effective_attribute("DEX") if player.has_method("get_effective_attribute") else 10
+	var traps_skill = player.skills.get("traps", 0) if "skills" in player else 0
+	var success_chance = 50 + (dex * 2) + traps_skill - (disarm_difficulty * 10)
+	success_chance = clamp(success_chance, 5, 95)
+
+	# Roll for success
+	var roll = randf() * 100.0
+
+	if roll < success_chance:
+		hazard.disarmed = true
+		hazard_disarmed.emit(hazard.hazard_id, pos)
+		return {"success": true, "message": "You successfully disarm the %s." % hazard_def.name.to_lower()}
+	else:
+		# Failed - trigger hazard!
+		return {"success": false, "message": "You fail to disarm the trap!", "triggered": true}
+
+
+## Try to disarm a hazard at position (legacy - uses raw skill value)
 ## Returns result dictionary
 func try_disarm_hazard(pos: Vector2i, skill_value: int) -> Dictionary:
 	if not active_hazards.has(pos):

@@ -1,0 +1,10 @@
+{
+  "id": "swords",
+  "name": "Swords",
+  "description": "Proficiency with swords, sabers, and similar bladed weapons.",
+  "category": "weapon",
+  "weapon_subtypes": ["sword", "blade"],
+  "bonus_type": "hit_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

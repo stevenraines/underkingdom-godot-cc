@@ -115,6 +115,10 @@ static func calculate_ranged_accuracy(attacker: Entity, target: Entity, weapon: 
 	# Weapon accuracy modifier
 	base_accuracy += weapon.accuracy_modifier
 
+	# Add weapon skill bonus if attacker has the method
+	if attacker.has_method("get_weapon_skill_bonus"):
+		base_accuracy += attacker.get_weapon_skill_bonus()
+
 	# Target evasion
 	var target_dex = target.attributes.get("DEX", 10)
 	var evasion = 5 + target_dex

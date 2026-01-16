@@ -341,6 +341,11 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 	var yield_messages: Array[String] = []
 	var yield_bonus = tool_check.yield_bonus  # Bonus from preferred tool
 
+	# Add harvesting skill bonus (+1 yield per 2 skill levels)
+	var harvesting_skill = player.skills.get("harvesting", 0) if player else 0
+	@warning_ignore("integer_division")
+	yield_bonus += harvesting_skill / 2
+
 	for yield_data in resource.yields:
 		var item_id = yield_data.get("item_id", "")
 		var min_count = int(yield_data.get("min_count", 1))

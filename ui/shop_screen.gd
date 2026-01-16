@@ -21,6 +21,15 @@ signal switch_to_training(npc, player)  # Signal to switch to training screen
 @onready var sell_button: Button = $Panel/MarginContainer/VBoxContainer/ActionsContainer/SellButton
 @onready var help_label: Label = $Panel/MarginContainer/VBoxContainer/HelpLabel
 
+# Item details UI elements
+@onready var item_name_label: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/NameColumn/ItemName
+@onready var item_desc_label: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/NameColumn/ItemDesc
+@onready var stat_line_1: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/StatsColumn/StatLine1
+@onready var stat_line_2: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/StatsColumn/StatLine2
+@onready var stat_line_3: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/StatsColumn/StatLine3
+@onready var weight_line: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/ValueColumn/WeightLine
+@onready var value_line: Label = $Panel/MarginContainer/VBoxContainer/ItemDetailsContainer/ValueColumn/ValueLine
+
 # Filter bar UI elements
 @onready var filter_all: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterAll
 @onready var filter_weapons: Label = $Panel/MarginContainer/VBoxContainer/FilterBarContainer/FilterRow1/FilterWeapons
@@ -377,6 +386,9 @@ func _refresh_display() -> void:
 	else:
 		help_label.text = "[Tab] Switch  |  [+/-] Quantity  |  [Enter] Buy  |  [S] Sell  |  [Esc] Close"
 
+	# Update item details panel
+	_update_item_details()
+
 	# Scroll to selected item after the frame updates
 	_scroll_to_selected.call_deferred()
 
@@ -500,3 +512,107 @@ func _update_filter_bar() -> void:
 			label.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
 		else:
 			label.add_theme_color_override("font_color", COLOR_NORMAL)
+
+
+## Update the item details panel with currently selected item
+func _update_item_details() -> void:
+	var item: Item = null
+
+	if is_shop_focused:
+		# Get selected shop item
+		var filtered_shop_items = _get_filtered_shop_items()
+		if filtered_shop_items.size() > 0 and selected_index < filtered_shop_items.size():
+			var item_data = filtered_shop_items[selected_index]
+			# Create a temporary Item instance from the shop data for display
+			item = ItemManager.create_item(item_data.item_id, 1)
+	else:
+		# Get selected player item
+		var player_items = _get_filtered_player_items()
+		if player_items.size() > 0 and selected_index < player_items.size():
+			item = player_items[selected_index]
+
+	if item:
+		_populate_item_tooltip(item)
+	else:
+		_clear_item_tooltip()
+
+
+## Clear the item tooltip when no item is selected
+func _clear_item_tooltip() -> void:
+	item_name_label.text = "Select an item to view details"
+	item_name_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	item_desc_label.text = ""
+	stat_line_1.text = ""
+	stat_line_2.text = ""
+	stat_line_3.text = ""
+	weight_line.text = ""
+	value_line.text = ""
+
+
+## Populate the tooltip UI with item data
+func _populate_item_tooltip(item: Item) -> void:
+	# Name column
+	item_name_label.text = item.get_display_name()
+	item_name_label.add_theme_color_override("font_color", item.get_color())
+	item_desc_label.text = item.description
+
+	# Stats column - build stat lines based on item type
+	var stats: Array[String] = []
+
+	match item.item_type:
+		"consumable":
+			if item.effects.has("health") and item.effects["health"] > 0:
+				stats.append("♥ Heals: %d HP" % item.effects["health"])
+			if item.effects.has("hunger") and item.effects["hunger"] > 0:
+				stats.append("◆ Hunger: +%d%%" % item.effects["hunger"])
+			if item.effects.has("thirst") and item.effects["thirst"] > 0:
+				stats.append("◇ Thirst: +%d%%" % item.effects["thirst"])
+		"weapon":
+			stats.append("⚔ Damage: +%d" % item.damage_bonus)
+			if item.is_two_handed():
+				stats.append("◊ Two-Handed")
+		"armor":
+			if item.armor_value > 0:
+				stats.append("◈ Armor: %d" % item.armor_value)
+			if item.warmth != 0.0:
+				stats.append("☀ Warmth: %+.0f°F" % item.warmth)
+		"tool":
+			if item.tool_type != "":
+				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
+			if item.is_two_handed():
+				stats.append("◊ Two-Handed")
+
+	# Assign stats to the 3 stat lines
+	stat_line_1.text = stats[0] if stats.size() > 0 else ""
+	stat_line_2.text = stats[1] if stats.size() > 1 else ""
+	stat_line_3.text = stats[2] if stats.size() > 2 else ""
+
+	# Set stat colors based on type
+	var stat_color = Color(0.7, 0.9, 0.7)
+	match item.item_type:
+		"consumable":
+			stat_color = Color(0.5, 0.9, 0.5)
+		"weapon":
+			stat_color = Color(1.0, 0.5, 0.5)
+		"armor":
+			stat_color = Color(0.5, 0.5, 1.0)
+		"tool":
+			stat_color = Color(0.8, 0.8, 0.8)
+
+	stat_line_1.add_theme_color_override("font_color", stat_color)
+	stat_line_2.add_theme_color_override("font_color", stat_color)
+	stat_line_3.add_theme_color_override("font_color", stat_color)
+
+	# Apply warmth-specific coloring (orange for positive, blue for negative)
+	if item.item_type == "armor" and item.warmth != 0.0:
+		var warmth_color = Color(1.0, 0.7, 0.4) if item.warmth > 0 else Color(0.5, 0.7, 1.0)
+		if stat_line_1.text.contains("Warmth"):
+			stat_line_1.add_theme_color_override("font_color", warmth_color)
+		elif stat_line_2.text.contains("Warmth"):
+			stat_line_2.add_theme_color_override("font_color", warmth_color)
+		elif stat_line_3.text.contains("Warmth"):
+			stat_line_3.add_theme_color_override("font_color", warmth_color)
+
+	# Value column
+	weight_line.text = "%.1f kg" % item.weight
+	value_line.text = "%d gold" % item.value

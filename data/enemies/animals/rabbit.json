@@ -1,0 +1,31 @@
+{
+  "id": "rabbit",
+  "name": "Rabbit",
+  "description": "A small woodland creature that flees at the first sign of danger.",
+  "cr": 0,
+  "ascii_char": "r",
+  "ascii_color": "#A0522D",
+  "stats": {
+    "health": 3,
+    "str": 2,
+    "dex": 14,
+    "con": 4,
+    "int": 2,
+    "wis": 10,
+    "cha": 4
+  },
+  "yields": [
+    {"item_id": "raw_meat", "min_count": 1, "max_count": 1, "chance": 1.0}
+  ],
+  "behavior": "passive",
+  "base_damage": 0,
+  "armor": 0,
+  "xp_value": 5,
+  "spawn_biomes": ["forest", "woodland", "grassland"],
+  "spawn_dungeons": [],
+  "spawn_density_overworld": 300,
+  "spawn_density_dungeon": 0,
+  "min_spawn_level": 0,
+  "max_spawn_level": 0,
+  "min_distance_from_town": 5
+}

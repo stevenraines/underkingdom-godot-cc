@@ -48,6 +48,15 @@ func _build_help_content() -> void:
 	_add_help_text("Locked doors auto-try keys if you bump them")
 	_add_spacer()
 
+	# Traps & Hazards
+	_add_section_header("== TRAPS & HAZARDS ==")
+	_add_keybind("N", "Search for traps (then direction)")
+	_add_keybind("Shift + N", "Disarm trap (then direction)")
+	_add_help_text("Detection uses WIS + traps skill vs trap difficulty")
+	_add_help_text("Disarming uses DEX + traps skill")
+	_add_help_text("Failed disarm may trigger the trap!")
+	_add_spacer()
+
 	# Inventory & Equipment
 	_add_section_header("== INVENTORY & EQUIPMENT ==")
 	_add_keybind("I", "Open inventory")

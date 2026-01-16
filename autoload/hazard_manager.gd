@@ -240,7 +240,7 @@ func _trigger_hazard(hazard: Dictionary, entity) -> Dictionary:
 	return result
 
 
-## Try to detect hidden hazard at position
+## Try to detect hidden hazard at position (passive detection on movement)
 ## Returns true if hazard was detected
 func try_detect_hazard(pos: Vector2i, perception: int) -> bool:
 	if not active_hazards.has(pos):
@@ -262,6 +262,39 @@ func try_detect_hazard(pos: Vector2i, perception: int) -> bool:
 		return true
 
 	return false
+
+
+## Active trap detection with traps skill bonus (player action)
+## Returns: {detected: bool, message: String, hazard_name: String}
+func try_active_detect_hazard(pos: Vector2i, perception: int, traps_skill: int) -> Dictionary:
+	if not active_hazards.has(pos):
+		return {"detected": false, "message": "You find nothing suspicious.", "hazard_name": ""}
+
+	var hazard: Dictionary = active_hazards[pos]
+	var hazard_def: Dictionary = hazard.definition
+	var hazard_name: String = hazard_def.get("name", "trap").to_lower()
+
+	# Already detected
+	if hazard.detected:
+		return {"detected": false, "message": "You already know about the %s here." % hazard_name, "hazard_name": hazard_name}
+
+	# Not hidden - already visible
+	if not hazard_def.get("hidden", false):
+		return {"detected": false, "message": "The %s is already visible." % hazard_name, "hazard_name": hazard_name}
+
+	# Already disarmed
+	if hazard.disarmed:
+		return {"detected": false, "message": "There's a disarmed trap here.", "hazard_name": hazard_name}
+
+	var detection_difficulty: int = hazard.config.get("detection_difficulty", hazard_def.get("detection_difficulty", 15))
+	var detection_roll: int = perception + traps_skill
+
+	if detection_roll >= detection_difficulty:
+		hazard.detected = true
+		hazard_detected.emit(hazard.hazard_id, pos)
+		return {"detected": true, "message": "You discover a hidden %s!" % hazard_name, "hazard_name": hazard_name}
+
+	return {"detected": false, "message": "You find nothing suspicious.", "hazard_name": ""}
 
 
 ## Try to disarm a hazard at position using player's traps skill

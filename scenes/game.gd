@@ -653,6 +653,9 @@ func _render_hazard_at(pos: Vector2i) -> void:
 		var definition: Dictionary = hazard.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "^")
 		var color: Color = definition.get("color", Color.RED)
+		# Disarmed hazards appear grey
+		if hazard.get("disarmed", false):
+			color = Color(0.5, 0.5, 0.5)  # Grey
 		renderer.render_entity(pos, ascii_char, color)
 
 

@@ -8,18 +8,19 @@
 - [X] Include skill and attack check values (roll, ability modifier, skill bonus, other bonuses)  in the log so players can see their roll
 - [X] Fix chests not giving treasure
 - [X] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
+- [/] fix bug - Saltmere is not always placed next to the ocean
 - [ ] Modify mine generation so that in addition to the fixed mine design, sometimes mines run into a cave system.
 - [ ] Modify all dungeon generators so they have an layout for when they are above ground. For instance, a fort or tower should have structure above ground. The barrow should have a crypt and be surrounded by tombstones, etc.
 - [ ] loot drops shoulds be based on the scale of the creature. Review https://dungeonmastertools.github.io/treasure.html and the related pages to improve how loot tables work to make them more realistic
-- [ ] fix bug - Saltmere is not always placed next to the ocean
+- [ ] only allow fast travel to destinations that the player has been near previously
 - [ ] Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
 - [ ] Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.
-- [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
+- [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather. Modify creatures that yield leather to yield hide instead.
 - [ ] Add rivers to the game, including one near the starting town. where rivers and roads intersect, bridges should exist.
 - [ ] Add a mill and a miller to the starting town, who can grind grains into flour. the mill must be directly adjacent to a river.
 - [ ] Add a butcher to the starting town
 - [ ] Add a baker to the starting town
-- [ ] Add a weaver to the starting town - can teach the player how to make cloth
+- [ ] Add a weaver to the starting town - can teach the player how to make cloth. Add resources the player can gather to make cloth.
 - [ ] Add a tailor ot the starting town who can teach the player how to create cloth clothes
 - [ ] Add a dyer to the starting town, who teaches making dyes, sells dye pot an premade dyes - player should be able to dye clothes, 
 - [ ] Add a cobbler to the town who teaches making shows and sells components and tools for shoe-making
@@ -28,13 +29,14 @@
 - [ ] Add wandering traders who appear along roads and offer goods for sale.
 - [ ] Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
 - [ ] Towns should not have fixed layouts. Layouts should be randomly generated based on the seeds
-- [ ] Stealth mechanic
-- [ ] Pick pockets mechanic
+- [ ] Add a Stealth mechanic, based on traditional roguelikes.
+- [ ] Add a Pick pockets mechanic, based on traditional roguelikes.
 - [ ] NPC's go about daily activities related to their profession
 - [ ] NPCs only buy certain types of items
 - [ ] Animal companions 
 - [ ] Familiars (ritual to summon, animal companion with bonus abilities)
 - [ ] Multi-tiered currency system (pp, gp, ep, sp, cp)
+- [ ] Add alcohol effects using traditional roguelikes.
 - [ ] Quests
 - [ ] Hirelings
 - [ ] Playable character races with different abilities

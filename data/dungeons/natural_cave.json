@@ -133,5 +133,11 @@
     "enemy_count_base": 4,
     "enemy_count_per_floor": 0.3,
     "loot_quality_multiplier": 1.0
+  },
+
+  "ore_veins": {
+    "base_count": 2,
+    "per_floor": 0.3,
+    "max_veins": 8
   }
 }

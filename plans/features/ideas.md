@@ -1,15 +1,17 @@
 # Feature ideas to flesh out with Claude
 
-- [ ] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items and creatures, etc)
-- [ ] Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
+- [ ] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
+- [ ] Weapon damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
 - [x] Add game animals (rabbits, deer, etc.) appropriate to each biome.
 - [X] Improve performance of overworld lighting
 - [X] Detect & Disarm Traps (Hazards) Actions
 - [X] Include skill and attack check values (roll, ability modifier, skill bonus, other bonuses)  in the log so players can see their roll
 - [X] Fix chests not giving treasure
-- [ ] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
-- [ ] loot drops shouls be based on the scale of the creature. Review https://dungeonmastertools.github.io/treasure.html and the related pages to improve how loot tables work to make them more realistic
-
+- [/] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
+- [ ] Modify mine generation so that in addition to the fixed mine design, sometimes mines run into a cave system.
+- [ ] Modify all dungeon generators so they have an layout for when they are above ground. For instance, a fort or tower should have structure above ground. The barrow should have a crypt and be surrounded by tombstones, etc.
+- [ ] loot drops shoulds be based on the scale of the creature. Review https://dungeonmastertools.github.io/treasure.html and the related pages to improve how loot tables work to make them more realistic
+- [ ] fix bug - Saltmere is not always placed next to the ocean
 - [ ] Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
 - [ ] Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.
 - [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
@@ -23,6 +25,7 @@
 - [ ] Add a cobbler to the town who teaches making shows and sells components and tools for shoe-making
 - [ ] Add a brewer to the starting town who sells beer and teaches brewing skill
 - [ ] Add a vintner outside of the starting town who sells wine and teaches wine making & distillation
+- [ ] Add wandering traders who appear along roads and offer goods for sale.
 - [ ] Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
 - [ ] Towns should not have fixed layouts. Layouts should be randomly generated based on the seeds
 - [ ] Stealth mechanic
@@ -31,12 +34,13 @@
 - [ ] NPCs only buy certain types of items
 - [ ] Animal companions 
 - [ ] Familiars (ritual to summon, animal companion with bonus abilities)
+- [ ] Multi-tiered currency system (pp, gp, ep, sp, cp)
 - [ ] Quests
 - [ ] Hirelings
 - [ ] Playable character races with different abilities
 - [ ] Playable Character Classes with starting skill levels and special abilities
 - [ ] Character Customization at game start (point assignment for scores, classes, races)
 - [ ] Turn undead ability for cleric classes
-- [ ] 
+- [ ] Add sailing mechanic - player can board a boat at a dock
 - [ ] Multiplayer implementation
 

@@ -1,0 +1,20 @@
+{
+  "id": "copper_ore",
+  "name": "Copper Ore",
+  "description": "Raw copper ore. Can be smelted into copper ingots.",
+  "category": "material",
+  "subtype": "ore",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true,
+    "smeltable": true
+  },
+  "weight": 0.8,
+  "value": 5,
+  "max_stack": 20,
+  "ascii_char": "o",
+  "ascii_color": "#B87333"
+}

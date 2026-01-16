@@ -1,0 +1,20 @@
+{
+  "id": "silver_ore",
+  "name": "Silver Ore",
+  "description": "Raw silver ore. Can be smelted into silver ingots.",
+  "category": "material",
+  "subtype": "ore",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true,
+    "smeltable": true
+  },
+  "weight": 1.2,
+  "value": 15,
+  "max_stack": 15,
+  "ascii_char": "o",
+  "ascii_color": "#C0C0C0"
+}

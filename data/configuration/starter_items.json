@@ -4,6 +4,7 @@
     {"id": "breeches", "count": 1, "equip": true},
     {"id": "tunic", "count": 1, "equip": true},
     {"id": "ration", "count": 3},
+    {"id": "pickaxe", "count": 1},
     {"id": "waterskin_full", "count": 1},
     {"template_id": "knife", "variants": {"material": "flint"}, "count": 1},
     {"template_id": "hatchet", "variants": {"material": "iron"}, "count": 1,  "equip": true},

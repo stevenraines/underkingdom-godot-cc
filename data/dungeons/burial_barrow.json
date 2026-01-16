@@ -153,6 +153,12 @@
     "loot_quality_multiplier": 1.2
   },
 
+  "ore_veins": {
+    "base_count": 1,
+    "per_floor": 0.2,
+    "max_veins": 5
+  },
+
   "hints": [
     "Beware the darkness below...",
     "The treasure lies beyond the guardian.",

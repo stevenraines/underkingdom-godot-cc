@@ -1,0 +1,10 @@
+{
+  "id": "mithril_vein",
+  "display_name": "mithril ore vein",
+  "ascii_char": "◊",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false,
+  "harvestable_resource_id": "mithril_vein",
+  "color": "#7DF9FF"
+}

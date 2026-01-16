@@ -3,10 +3,15 @@
 - [ ] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items and creatures, etc)
 - [ ] Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type
 - [x] Add game animals (rabbits, deer, etc.) appropriate to each biome.
+- [X] Improve performance of overworld lighting
+- [X] Detect & Disarm Traps (Hazards) Actions
+- [ ] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
+- [ ] Add a mode to include skill and attack check values in the log.
+- [ ] Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
+- [ ] Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.
 - [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
-- [ ] Detect & Disarm Traps (Hazards) Actions
-- [ ] Add rivers to the game, including one near the starting town
-- [ ] Add a mill and a miller to the starting town, who can grind grains into flour
+- [ ] Add rivers to the game, including one near the starting town. where rivers and roads intersect, bridges should exist.
+- [ ] Add a mill and a miller to the starting town, who can grind grains into flour. the mill must be directly adjacent to a river.
 - [ ] Add a butcher to the starting town
 - [ ] Add a baker to the starting town
 - [ ] Add a weaver to the starting town - can teach the player how to make cloth

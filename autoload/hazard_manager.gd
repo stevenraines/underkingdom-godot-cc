@@ -240,7 +240,7 @@ func _trigger_hazard(hazard: Dictionary, entity) -> Dictionary:
 	return result
 
 
-## Try to detect hidden hazard at position
+## Try to detect hidden hazard at position (passive detection on movement)
 ## Returns true if hazard was detected
 func try_detect_hazard(pos: Vector2i, perception: int) -> bool:
 	if not active_hazards.has(pos):
@@ -264,6 +264,43 @@ func try_detect_hazard(pos: Vector2i, perception: int) -> bool:
 	return false
 
 
+## Active trap detection with D&D-style skill check
+## Roll: d20 + ability_modifier + skill + bonuses vs DC
+## Returns: {detected: bool, message: String, hazard_name: String}
+func try_active_detect_hazard(pos: Vector2i, ability_modifier: int, traps_skill: int, bonus: int = 0) -> Dictionary:
+	if not active_hazards.has(pos):
+		return {"detected": false, "message": "You find nothing suspicious.", "hazard_name": ""}
+
+	var hazard: Dictionary = active_hazards[pos]
+	var hazard_def: Dictionary = hazard.definition
+	var hazard_name: String = hazard_def.get("name", "trap").to_lower()
+
+	# Already detected
+	if hazard.detected:
+		return {"detected": false, "message": "You already know about the %s here." % hazard_name, "hazard_name": hazard_name}
+
+	# Not hidden - already visible
+	if not hazard_def.get("hidden", false):
+		return {"detected": false, "message": "The %s is already visible." % hazard_name, "hazard_name": hazard_name}
+
+	# Already disarmed
+	if hazard.disarmed:
+		return {"detected": false, "message": "There's a disarmed trap here.", "hazard_name": hazard_name}
+
+	var detection_difficulty: int = hazard.config.get("detection_difficulty", hazard_def.get("detection_difficulty", 15))
+
+	# D&D-style skill check: d20 + ability modifier + skill + bonuses vs DC
+	var dice_roll: int = randi_range(1, 20)
+	var total_roll: int = dice_roll + ability_modifier + traps_skill + bonus
+
+	if total_roll >= detection_difficulty:
+		hazard.detected = true
+		hazard_detected.emit(hazard.hazard_id, pos)
+		return {"detected": true, "message": "You discover a hidden %s! (rolled %d)" % [hazard_name, dice_roll], "hazard_name": hazard_name}
+
+	return {"detected": false, "message": "You sense something, but can't quite pinpoint it... (rolled %d)" % dice_roll, "hazard_name": hazard_name}
+
+
 ## Try to disarm a hazard at position using player's traps skill
 ## Returns result dictionary: {success, message, triggered}
 func try_disarm_hazard_with_player(pos: Vector2i, player) -> Dictionary:
@@ -279,24 +316,22 @@ func try_disarm_hazard_with_player(pos: Vector2i, player) -> Dictionary:
 	if hazard.disarmed:
 		return {"success": false, "message": "Already disarmed."}
 
-	# Calculate disarm chance
-	# Formula: 50% + (DEX * 2) + traps_skill - (difficulty * 10)
-	var disarm_difficulty: int = hazard.config.get("disarm_difficulty", hazard.config.get("detection_difficulty", 5))
+	# Roll d20 + DEX modifier + traps_skill vs disarm DC (like D&D skill checks)
+	var disarm_difficulty: int = hazard.config.get("disarm_difficulty", hazard_def.get("disarm_difficulty", 15))
 	var dex = player.get_effective_attribute("DEX") if player.has_method("get_effective_attribute") else 10
+	var dex_modifier: int = int((dex - 10) / 2.0)  # D&D-style modifier
 	var traps_skill = player.skills.get("traps", 0) if "skills" in player else 0
-	var success_chance = 50 + (dex * 2) + traps_skill - (disarm_difficulty * 10)
-	success_chance = clamp(success_chance, 5, 95)
 
-	# Roll for success
-	var roll = randf() * 100.0
+	var dice_roll: int = randi_range(1, 20)
+	var total_roll: int = dice_roll + dex_modifier + traps_skill
 
-	if roll < success_chance:
+	if total_roll >= disarm_difficulty:
 		hazard.disarmed = true
 		hazard_disarmed.emit(hazard.hazard_id, pos)
-		return {"success": true, "message": "You successfully disarm the %s." % hazard_def.name.to_lower()}
+		return {"success": true, "message": "You successfully disarm the %s. (rolled %d)" % [hazard_def.name.to_lower(), dice_roll]}
 	else:
 		# Failed - trigger hazard!
-		return {"success": false, "message": "You fail to disarm the trap!", "triggered": true}
+		return {"success": false, "message": "You fail to disarm the trap! (rolled %d)" % dice_roll, "triggered": true}
 
 
 ## Try to disarm a hazard at position (legacy - uses raw skill value)

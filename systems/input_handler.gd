@@ -47,6 +47,9 @@ var _selected_seed_for_planting: Item = null  # The seed selected for planting
 var _available_seeds: Array = []  # All plantable seeds available
 var _current_seed_index: int = 0  # Index into _available_seeds for cycling
 
+# Trap disarm mode
+var _awaiting_disarm_trap_direction: bool = false  # Waiting for player to specify direction to disarm
+
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
 
@@ -277,6 +280,41 @@ func _unhandled_input(event: InputEvent) -> void:
 	if look_mode_active and event is InputEventKey and event.pressed and not event.echo:
 		_handle_look_input(event)
 		return
+
+	# If awaiting disarm trap direction, handle directional input
+	if _awaiting_disarm_trap_direction and event is InputEventKey and event.pressed and not event.echo:
+		var direction = Vector2i.ZERO
+
+		match event.keycode:
+			KEY_UP, KEY_W:
+				direction = Vector2i.UP
+			KEY_DOWN, KEY_S:
+				direction = Vector2i.DOWN
+			KEY_LEFT, KEY_A:
+				direction = Vector2i.LEFT
+			KEY_RIGHT, KEY_D:
+				direction = Vector2i.RIGHT
+			KEY_ESCAPE:
+				_awaiting_disarm_trap_direction = false
+				ui_blocking_input = false
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("Cancelled disarm", Color(0.7, 0.7, 0.7))
+				get_viewport().set_input_as_handled()
+				return
+
+		if direction != Vector2i.ZERO:
+			_awaiting_disarm_trap_direction = false
+			ui_blocking_input = false
+			get_viewport().set_input_as_handled()
+			var target_pos = player.position + direction
+			if HazardManager.has_visible_hazard(target_pos):
+				_try_disarm_trap_at(target_pos)
+			else:
+				var game = get_parent()
+				if game and game.has_method("_add_message"):
+					game._add_message("There's no visible trap in that direction.", Color(0.7, 0.7, 0.7))
+			return
 
 	# If awaiting harvest direction, handle directional input
 	if _awaiting_harvest_direction and event is InputEventKey and event.pressed and not event.echo:
@@ -658,6 +696,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_X:  # X key - toggle door (open/close)
 			action_taken = _try_toggle_door()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_N and event.shift_pressed:  # Shift+N - disarm trap
+			_start_disarm_trap_mode()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_N and not event.shift_pressed:  # N key - search for traps
+			_start_detect_trap_mode()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_Y:  # Y key - pick/lock a lock
 			action_taken = _try_lockpick()
 			get_viewport().set_input_as_handled()
@@ -933,6 +977,115 @@ func _exit_harvesting_mode() -> void:
 ## Check if currently in harvesting mode (for status bar)
 func is_harvesting() -> bool:
 	return _harvesting_active
+
+## Search for traps in all directions around player
+## Range is 2 + traps skill
+func _start_detect_trap_mode() -> void:
+	var game = get_parent()
+
+	# Calculate detection range: base 2 + traps skill
+	var traps_skill = player.skills.get("traps", 0)
+	var detection_range = 2 + traps_skill
+
+	# Calculate D&D-style modifiers
+	var wis = player.get_effective_attribute("WIS") if player.has_method("get_effective_attribute") else player.attributes.get("WIS", 10)
+	var wis_modifier: int = int((wis - 10) / 2.0)  # D&D-style: (ability - 10) / 2
+	var active_search_bonus: int = 5  # Bonus for actively searching vs passive detection
+
+	# Search all tiles within range
+	var detected_traps: Array[String] = []
+	var sensed_count: int = 0
+
+	for dx in range(-detection_range, detection_range + 1):
+		for dy in range(-detection_range, detection_range + 1):
+			# Skip player's own tile
+			if dx == 0 and dy == 0:
+				continue
+
+			# Check if within circular range (Chebyshev distance)
+			if max(abs(dx), abs(dy)) > detection_range:
+				continue
+
+			var target_pos = player.position + Vector2i(dx, dy)
+			var result = HazardManager.try_active_detect_hazard(target_pos, wis_modifier, traps_skill, active_search_bonus)
+
+			if result.detected:
+				detected_traps.append(result.hazard_name)
+			elif result.hazard_name != "":
+				# Found a trap but failed the check
+				sensed_count += 1
+
+	# Report results
+	if game and game.has_method("_add_message"):
+		if detected_traps.size() > 0:
+			var trap_list = ", ".join(detected_traps)
+			game._add_message("You discover: %s!" % trap_list, Color(0.6, 1.0, 0.6))
+			# Refresh hazard rendering so newly detected traps are visible
+			if game.has_method("_render_hazards"):
+				game._render_hazards(player.position)
+		elif sensed_count > 0:
+			game._add_message("You sense something nearby, but can't pinpoint it...", Color(1.0, 0.8, 0.5))
+		else:
+			game._add_message("You find nothing suspicious nearby.", Color(0.7, 0.7, 0.7))
+
+	# This action costs a turn
+	TurnManager.advance_turn()
+
+## Start disarm trap mode - check current position or prompt for direction
+func _start_disarm_trap_mode() -> void:
+	var game = get_parent()
+
+	# First check if there's a visible trap at player's current position
+	var current_pos = player.position
+	if HazardManager.has_visible_hazard(current_pos):
+		_try_disarm_trap_at(current_pos)
+		return
+
+	# Check adjacent positions for visible traps
+	var adjacent_traps: Array[Vector2i] = []
+	for dir in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		var check_pos = current_pos + dir
+		if HazardManager.has_visible_hazard(check_pos):
+			adjacent_traps.append(check_pos)
+
+	if adjacent_traps.size() == 1:
+		# Only one adjacent trap - disarm it directly
+		_try_disarm_trap_at(adjacent_traps[0])
+		return
+	elif adjacent_traps.size() > 1:
+		# Multiple adjacent traps - prompt for direction
+		if game and game.has_method("_add_message"):
+			game._add_message("Disarm trap in which direction? (Arrow keys or WASD)", Color(1.0, 0.6, 0.6))
+		ui_blocking_input = true
+		_awaiting_disarm_trap_direction = true
+		return
+
+	# No visible traps nearby
+	if game and game.has_method("_add_message"):
+		game._add_message("There are no visible traps nearby to disarm.", Color(0.7, 0.7, 0.7))
+
+## Try to disarm a trap at the given position
+func _try_disarm_trap_at(pos: Vector2i) -> void:
+	var game = get_parent()
+
+	var result = HazardManager.try_disarm_hazard_with_player(pos, player)
+
+	if game and game.has_method("_add_message"):
+		var color = Color(0.6, 1.0, 0.6) if result.success else Color(1.0, 0.5, 0.5)
+		game._add_message(result.message, color)
+
+	# Refresh hazard rendering to show grey disarmed trap
+	if result.success and game.has_method("_render_hazards"):
+		game._render_hazards(player.position)
+
+	# If disarm failed and triggered the trap, apply damage
+	if result.get("triggered", false):
+		var hazard_result = HazardManager.check_hazard_trigger(pos, player)
+		if hazard_result.get("triggered", false):
+			player._apply_hazard_damage(hazard_result)
+
+	# This action costs a turn
+	TurnManager.advance_turn()
 
 ## Start fishing mode - player will be prompted for direction
 func _start_fishing_mode() -> void:
@@ -1988,7 +2141,10 @@ func _get_feature_description(feature: Dictionary) -> String:
 func _get_hazard_description(hazard: Dictionary) -> String:
 	var definition = hazard.get("definition", {})
 	var desc = definition.get("description", "A dangerous hazard.")
-	return str(desc) if desc != null else "A dangerous hazard."
+	desc = str(desc) if desc != null else "A dangerous hazard."
+	if hazard.get("disarmed", false):
+		desc += " (disarmed)"
+	return desc
 
 
 ## Get description for a harvestable resource

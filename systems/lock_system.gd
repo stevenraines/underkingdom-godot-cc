@@ -75,26 +75,25 @@ static func try_pick_lock(lock_level: int, player) -> Dictionary:
 		result.message = "You need lockpicks to pick this lock."
 		return result
 
-	# Calculate success chance
-	# Formula: base 50% + (DEX * 2) + (level * 3) + lockpicking_skill - (lock_level * 10)
+	# D&D-style skill check: d20 + DEX modifier + skill vs DC (lock_level * 2 + 10)
 	var dex = player.get_effective_attribute("DEX")
-	var player_level = player.get("level") if "level" in player else 1
+	var dex_modifier: int = int((dex - 10) / 2.0)  # D&D-style modifier
 	var lockpicking_skill = player.skills.get("lockpicking", 0) if "skills" in player else 0
-	var base_chance = 50 + (dex * 2) + (player_level * 3) + lockpicking_skill - (lock_level * 10)
-	var final_chance = clamp(base_chance, 5, 95)
+	var dc: int = lock_level * 2 + 10  # DC scales with lock level
 
-	# Roll
-	var roll = randf() * 100.0
+	# Roll d20 + modifiers
+	var dice_roll: int = randi_range(1, 20)
+	var total_roll: int = dice_roll + dex_modifier + lockpicking_skill
 
-	if roll < final_chance:
+	if total_roll >= dc:
 		result.success = true
 		result.result = LockResult.PICK_SUCCESS
-		result.message = "You successfully pick the lock."
+		result.message = "You successfully pick the lock. (rolled %d)" % dice_roll
 	else:
 		result.success = false
 		result.result = LockResult.PICK_FAILED
 		result.lockpick_broken = true
-		result.message = "The lockpick breaks!"
+		result.message = "The lockpick breaks! (rolled %d)" % dice_roll
 
 		# Consume lockpick
 		_consume_lockpick(lockpick, player.inventory)
@@ -118,27 +117,26 @@ static func try_lock_with_pick(lock_level: int, player) -> Dictionary:
 		result.message = "You need lockpicks to re-lock this."
 		return result
 
-	# Calculate success chance (half difficulty)
+	# D&D-style skill check (easier - DC is halved for re-locking)
 	@warning_ignore("integer_division")
-	var effective_level = lock_level / 2
 	var dex = player.get_effective_attribute("DEX")
-	var player_level = player.get("level") if "level" in player else 1
+	var dex_modifier: int = int((dex - 10) / 2.0)  # D&D-style modifier
 	var lockpicking_skill = player.skills.get("lockpicking", 0) if "skills" in player else 0
-	var base_chance = 50 + (dex * 2) + (player_level * 3) + lockpicking_skill - (effective_level * 10)
-	var final_chance = clamp(base_chance, 5, 95)
+	var dc: int = lock_level + 5  # Re-locking is easier (half the picking DC)
 
-	# Roll
-	var roll = randf() * 100.0
+	# Roll d20 + modifiers
+	var dice_roll: int = randi_range(1, 20)
+	var total_roll: int = dice_roll + dex_modifier + lockpicking_skill
 
-	if roll < final_chance:
+	if total_roll >= dc:
 		result.success = true
 		result.result = LockResult.SUCCESS
-		result.message = "You re-lock the mechanism."
+		result.message = "You re-lock the mechanism. (rolled %d)" % dice_roll
 	else:
 		result.success = false
 		result.result = LockResult.PICK_FAILED
 		result.lockpick_broken = true
-		result.message = "The lockpick breaks!"
+		result.message = "The lockpick breaks! (rolled %d)" % dice_roll
 
 		# Consume lockpick
 		_consume_lockpick(lockpick, player.inventory)

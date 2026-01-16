@@ -1,32 +1,32 @@
 # Feature ideas to flesh out with Claude
 
-* Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items and creatures, etc)
-* Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type
-* Add game animals (rabbits, deer, etc.) appropriate to each biome.
-* Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
-* Detect & Disarm Traps (Hazards) Actions
-* Add rivers to the game, including one near the starting town
-* Add a mill and a miller to the starting town, who can grind grains into flour
-* Add a butcher to the starting town
-* Add a baker to the starting town
-* Add a weaver to the starting town - can teach the player how to make cloth
-* Add a tailor ot the starting town who can teach the player how to create cloth clothes
-* Add a dyer to the starting town, who teaches making dyes, sells dye pot an premade dyes - player should be able to dye clothes, 
-* Add a cobbler to the town who teaches making shows and sells components and tools for shoe-making
-* Add a brewer to the starting town who sells beer and teaches brewing skill
-* Add a vintner to the starting town who sells wine and teaches wine making & distillation
-* Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
-* Towns should not have fixed layouts. Layouts should be randomly generated based on the seeds
-* Stealth mechanic
-* Pick pocket mechanic
-* NPC's go about daily activities related to their profession
-* NPCs only buy certain types of items
-* Animal companions 
-* Familiars (ritual to summon, animal companion with bonus abilities)
-* Quests
-* Hirelings
-* Playable character races with different abilities
-* Playable Character Classes with starting skill levels and special abilities
-* Character Customization at game start (point assignment for scores, classes, races)
-* Multiplayer implementation
+- Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items and creatures, etc)
+- Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type
+- [x] Add game animals (rabbits, deer, etc.) appropriate to each biome.
+- Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
+- Detect & Disarm Traps (Hazards) Actions
+- Add rivers to the game, including one near the starting town
+- Add a mill and a miller to the starting town, who can grind grains into flour
+- Add a butcher to the starting town
+- Add a baker to the starting town
+- Add a weaver to the starting town - can teach the player how to make cloth
+- Add a tailor ot the starting town who can teach the player how to create cloth clothes
+- Add a dyer to the starting town, who teaches making dyes, sells dye pot an premade dyes - player should be able to dye clothes, 
+- Add a cobbler to the town who teaches making shows and sells components and tools for shoe-making
+- Add a brewer to the starting town who sells beer and teaches brewing skill
+- Add a vintner to the starting town who sells wine and teaches wine making & distillation
+- Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
+- Towns should not have fixed layouts. Layouts should be randomly generated based on the seeds
+- Stealth mechanic
+- Pick pocket mechanic
+- NPC's go about daily activities related to their profession
+- NPCs only buy certain types of items
+- Animal companions 
+- Familiars (ritual to summon, animal companion with bonus abilities)
+- Quests
+- Hirelings
+- Playable character races with different abilities
+- Playable Character Classes with starting skill levels and special abilities
+- Character Customization at game start (point assignment for scores, classes, races)
+- Multiplayer implementation
 

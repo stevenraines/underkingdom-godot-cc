@@ -1074,6 +1074,10 @@ func _try_disarm_trap_at(pos: Vector2i) -> void:
 		var color = Color(0.6, 1.0, 0.6) if result.success else Color(1.0, 0.5, 0.5)
 		game._add_message(result.message, color)
 
+	# Refresh hazard rendering to show grey disarmed trap
+	if result.success and game.has_method("_render_hazards"):
+		game._render_hazards(player.position)
+
 	# If disarm failed and triggered the trap, apply damage
 	if result.get("triggered", false):
 		var hazard_result = HazardManager.check_hazard_trigger(pos, player)

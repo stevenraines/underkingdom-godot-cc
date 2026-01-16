@@ -175,6 +175,63 @@ static func transform_tile(origin: Vector2i, col: int, depth: int, direction: in
 		_:
 			return origin
 
+## Fast FOV for daytime overworld - simple fill with wall occlusion
+## Much faster than recursive shadowcasting when full visibility is needed
+static func calculate_daytime_fov(origin: Vector2i, fov_range: int, map: GameMap) -> Array[Vector2i]:
+	var visible: Array[Vector2i] = []
+	var range_squared = fov_range * fov_range
+
+	# Simple square iteration - much faster than recursive shadowcasting
+	for dx in range(-fov_range, fov_range + 1):
+		for dy in range(-fov_range, fov_range + 1):
+			# Check if within circular range (squared distance)
+			if dx * dx + dy * dy > range_squared:
+				continue
+
+			var pos = origin + Vector2i(dx, dy)
+
+			# Check wall occlusion via simple raycast
+			if _is_blocked_by_wall(origin, pos, map):
+				continue
+
+			visible.append(pos)
+
+	return visible
+
+## Check if a wall blocks line of sight between two points (Bresenham's line)
+static func _is_blocked_by_wall(from: Vector2i, to: Vector2i, map: GameMap) -> bool:
+	# Same position is never blocked
+	if from == to:
+		return false
+
+	var dx = abs(to.x - from.x)
+	var dy = abs(to.y - from.y)
+	var x = from.x
+	var y = from.y
+	var sx = 1 if from.x < to.x else -1
+	var sy = 1 if from.y < to.y else -1
+	var err = dx - dy
+
+	while true:
+		var e2 = 2 * err
+		if e2 > -dy:
+			err -= dy
+			x += sx
+		if e2 < dx:
+			err += dx
+			y += sy
+
+		# Check if we reached the target
+		if x == to.x and y == to.y:
+			return false
+
+		# Check if this intermediate tile blocks vision
+		var check_pos = Vector2i(x, y)
+		if not map.is_transparent(check_pos):
+			return true
+
+	return false
+
 ## Adjust perception range based on time of day
 static func _adjust_range_for_time(base_range: int) -> int:
 	var time = TurnManager.time_of_day
@@ -191,9 +248,6 @@ static func _adjust_range_for_time(base_range: int) -> int:
 ## This is the main function to call from game.gd
 ## Returns tiles that are currently visible (in LOS AND illuminated)
 static func calculate_visibility(origin: Vector2i, perception_range: int, light_radius: int, map: GameMap) -> Array[Vector2i]:
-	# First, calculate raw FOV (line of sight)
-	var los_tiles = calculate_fov(origin, perception_range, map)
-
 	# Get map info for fog of war
 	var map_id = map.map_id if map else ""
 	var chunk_based = map.chunk_based if map else false
@@ -207,12 +261,20 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	# Check sun light (0 in dungeons, varies by time on overworld)
 	var sun_radius = LightingSystemClass.get_sun_light_radius(is_underground)
 
+	# Calculate FOV based on lighting conditions
+	var los_tiles: Array[Vector2i]
+
+	# FAST PATH: Daytime overworld - use simplified FOV without recursive shadowcasting
 	if sun_radius >= 999:
-		# Full daylight on overworld - all tiles in LOS are visible
+		los_tiles = calculate_daytime_fov(origin, perception_range, map)
 		FogOfWarSystemClass.set_visible_tiles(los_tiles)
 		FogOfWarSystemClass.mark_many_explored(map_id, los_tiles, chunk_based)
+		cached_fov = los_tiles
 		cached_visible = los_tiles
 		return los_tiles
+
+	# SLOW PATH: Night/dungeons - use full recursive shadowcasting
+	los_tiles = calculate_fov(origin, perception_range, map)
 
 	# Night/twilight/dungeon - need to check illumination from light sources
 	# Use dictionary for O(1) deduplication

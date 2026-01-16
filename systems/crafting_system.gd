@@ -49,6 +49,9 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 	var total_roll: int = dice_roll + int_modifier + crafting_skill
 	var success: bool = total_roll >= dc
 
+	# Build roll breakdown string for messages
+	var roll_info = _format_d20_roll(dice_roll, int_modifier, "INT", crafting_skill, total_roll, dc)
+
 	# Consume ingredients (regardless of success/failure)
 	if not recipe.consume_ingredients(player.inventory):
 		result.message = "Failed to consume ingredients"
@@ -76,7 +79,7 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 				EventBus.recipe_discovered.emit(recipe)
 
 			result.success = true
-			result.message = "Successfully crafted %s!" % recipe.get_display_name()
+			result.message = "Successfully crafted %s! %s" % [recipe.get_display_name(), roll_info]
 
 			EventBus.craft_succeeded.emit(recipe, result.result_item)
 		else:
@@ -84,7 +87,7 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 			push_error("CraftingSystem: ItemManager failed to create " + recipe.result_item_id)
 	else:
 		# Failed craft
-		result.message = "Failed to craft %s. Components were consumed." % recipe.get_display_name()
+		result.message = "Failed to craft %s. %s Components were consumed." % [recipe.get_display_name(), roll_info]
 		EventBus.craft_failed.emit(recipe)
 
 	EventBus.craft_attempted.emit(recipe, success)
@@ -287,3 +290,14 @@ static func _consume_workstation_tool_durability(workstation_type: String, inven
 			elif item.durability == -1:
 				# Infinite durability
 				return
+
+
+## Format d20 roll breakdown for display (grey colored)
+## Returns: "[X (Roll) +Y (ATTR) +Z (Skill) = total vs DC N]"
+static func _format_d20_roll(dice_roll: int, modifier: int, attr_name: String, skill: int, total: int, dc: int) -> String:
+	var parts: Array[String] = ["%d (Roll)" % dice_roll]
+	parts.append("%+d (%s)" % [modifier, attr_name])
+	if skill > 0:
+		parts.append("+%d (Skill)" % skill)
+	parts.append("= %d vs DC %d" % [total, dc])
+	return "[color=gray][%s][/color]" % " ".join(parts)

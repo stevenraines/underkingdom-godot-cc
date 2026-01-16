@@ -121,25 +121,34 @@ static func get_attack_message(result: Dictionary, is_player_attacker: bool) -> 
 	var attacker = result.attacker_name
 	var defender = result.defender_name
 	var weapon = result.get("weapon_name", "")
-	
+
 	# Build weapon phrase for player attacks
 	var weapon_phrase = ""
 	if is_player_attacker and weapon != "":
 		weapon_phrase = " with your %s" % weapon
-	
+
+	# Build roll info string (grey colored)
+	var roll_info = _format_attack_roll(result.roll, result.hit_chance)
+
 	if result.hit:
 		if result.defender_died:
 			if is_player_attacker:
-				return "You kill the %s%s!" % [defender, weapon_phrase]
+				return "You kill the %s%s! %s" % [defender, weapon_phrase, roll_info]
 			else:
 				return "The %s kills you!" % attacker
 		else:
 			if is_player_attacker:
-				return "You hit the %s%s for %d damage." % [defender, weapon_phrase, result.damage]
+				return "You hit the %s%s for %d damage. %s" % [defender, weapon_phrase, result.damage, roll_info]
 			else:
 				return "The %s hits you for %d damage." % [attacker, result.damage]
 	else:
 		if is_player_attacker:
-			return "You miss the %s%s." % [defender, weapon_phrase]
+			return "You miss the %s%s. %s" % [defender, weapon_phrase, roll_info]
 		else:
 			return "The %s misses you." % attacker
+
+
+## Format attack roll breakdown for display (d100 system)
+## Returns: "[X (Roll) vs Y% (Hit Chance)]" in grey
+static func _format_attack_roll(roll: int, hit_chance: int) -> String:
+	return "[color=gray][%d (Roll) vs %d%% (Hit Chance)][/color]" % [roll, hit_chance]

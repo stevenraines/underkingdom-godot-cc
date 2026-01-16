@@ -20,6 +20,7 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		"critical": false,
 		"roll": 0,
 		"hit_chance": 0,
+		"range_penalty": 0,
 		"weapon_name": weapon.name,
 		"ammo_name": ammo.name if ammo else "",
 		"distance": 0,
@@ -48,6 +49,14 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		result.hit = false
 		result.error = "No line of sight to target"
 		return result
+
+	# Calculate range penalty for display
+	@warning_ignore("integer_division")
+	var half_range = effective_range / 2
+	var range_penalty = 0
+	if distance > half_range:
+		range_penalty = (distance - half_range) * 5
+	result.range_penalty = range_penalty
 
 	# Calculate hit chance with range penalty
 	var hit_chance = calculate_ranged_accuracy(attacker, target, weapon, distance, effective_range)
@@ -318,28 +327,40 @@ static func get_ranged_attack_message(result: Dictionary, is_player_attacker: bo
 	# Determine the projectile name (ammo for ranged weapons, weapon for thrown)
 	var projectile = ammo if ammo != "" else weapon
 
+	# Build roll info string (grey colored)
+	var roll_info = _format_ranged_roll(result.roll, result.hit_chance, result.get("range_penalty", 0))
+
 	if result.hit:
 		if result.defender_died:
 			if is_player_attacker:
 				if is_thrown:
-					return "Your %s kills the %s!" % [projectile, defender]
+					return "Your %s kills the %s! %s" % [projectile, defender, roll_info]
 				else:
-					return "Your %s kills the %s!" % [projectile, defender]
+					return "Your %s kills the %s! %s" % [projectile, defender, roll_info]
 			else:
 				return "The %s kills you with a ranged attack!" % attacker
 		else:
 			if is_player_attacker:
 				if is_thrown:
-					return "Your %s hits the %s for %d damage." % [projectile, defender, result.damage]
+					return "Your %s hits the %s for %d damage. %s" % [projectile, defender, result.damage, roll_info]
 				else:
-					return "Your %s hits the %s for %d damage." % [projectile, defender, result.damage]
+					return "Your %s hits the %s for %d damage. %s" % [projectile, defender, result.damage, roll_info]
 			else:
 				return "The %s hits you for %d damage from range." % [attacker, result.damage]
 	else:
 		if is_player_attacker:
 			if is_thrown:
-				return "You throw a %s at the %s but miss." % [projectile, defender]
+				return "You throw a %s at the %s but miss. %s" % [projectile, defender, roll_info]
 			else:
-				return "Your %s misses the %s." % [projectile, defender]
+				return "Your %s misses the %s. %s" % [projectile, defender, roll_info]
 		else:
 			return "The %s's shot misses you." % attacker
+
+
+## Format ranged attack roll breakdown for display (d100 system with range penalty)
+## Returns: "[X (Roll) vs Y% (Hit Chance)]" or with range penalty in grey
+static func _format_ranged_roll(roll: int, hit_chance: int, range_penalty: int) -> String:
+	if range_penalty > 0:
+		return "[color=gray][%d (Roll) vs %d%% (Hit Chance, -%d%% Range)][/color]" % [roll, hit_chance, range_penalty]
+	else:
+		return "[color=gray][%d (Roll) vs %d%% (Hit Chance)][/color]" % [roll, hit_chance]

@@ -8,6 +8,7 @@
 - [X] Include skill and attack check values (roll, ability modifier, skill bonus, other bonuses)  in the log so players can see their roll
 - [X] Fix chests not giving treasure
 - [ ] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
+- [ ] loot drops shouls be based on the scale of the creature. Review https://dungeonmastertools.github.io/treasure.html and the related pages to improve how loot tables work to make them more realistic
 
 - [ ] Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
 - [ ] Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.

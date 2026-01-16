@@ -64,10 +64,17 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 	return result
 
 ## Calculate attacker's accuracy
-## Formula: 50% + (DEX × 2)%
+## Formula: 50% + (DEX × 2)% + weapon_skill_bonus%
 static func get_accuracy(entity: Entity) -> int:
 	var dex = entity.attributes.get("DEX", 10)
-	return 50 + (dex * 2)
+	var base_accuracy = 50 + (dex * 2)
+
+	# Add weapon skill bonus if entity has the method
+	var skill_bonus = 0
+	if entity.has_method("get_weapon_skill_bonus"):
+		skill_bonus = entity.get_weapon_skill_bonus()
+
+	return base_accuracy + skill_bonus
 
 ## Calculate defender's evasion
 ## Formula: 5% + (DEX × 1)%

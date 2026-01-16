@@ -1,0 +1,9 @@
+{
+  "id": "harvesting",
+  "name": "Harvesting",
+  "description": "Efficiency in gathering resources from the environment.",
+  "category": "action",
+  "bonus_type": "yield",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

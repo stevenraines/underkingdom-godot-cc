@@ -1,0 +1,10 @@
+{
+  "id": "daggers",
+  "name": "Daggers",
+  "description": "Proficiency with daggers, knives, and small blades.",
+  "category": "weapon",
+  "weapon_subtypes": ["dagger", "knife"],
+  "bonus_type": "hit_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

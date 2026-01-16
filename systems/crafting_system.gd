@@ -39,8 +39,9 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 		result.message = "Missing requirements: " + ", ".join(missing)
 		return result
 
-	# Calculate success chance
-	var success_chance = calculate_success_chance(recipe.difficulty, player.attributes["INT"])
+	# Calculate success chance (with crafting skill bonus)
+	var crafting_skill = player.skills.get("crafting", 0)
+	var success_chance = calculate_success_chance(recipe.difficulty, player.attributes["INT"], crafting_skill)
 
 	# Roll for success
 	var roll = randf()
@@ -172,11 +173,13 @@ static func get_discovery_hint(recipe: Recipe, intelligence: int) -> String:
 ## Calculate success chance for crafting
 ## Base success = 100% - (difficulty - 1) * 10%
 ## INT bonus = (INT - 10) * 5%
+## Crafting skill bonus = crafting_skill * 1%
 ## Clamped to 50%-100%
-static func calculate_success_chance(difficulty: int, intelligence: int) -> float:
+static func calculate_success_chance(difficulty: int, intelligence: int, crafting_skill: int = 0) -> float:
 	var base_success = 1.0 - (difficulty - 1) * 0.10
 	var int_bonus = (intelligence - 10) * 0.05
-	var final_success = base_success + int_bonus
+	var skill_bonus = crafting_skill * 0.01  # +1% per skill level
+	var final_success = base_success + int_bonus + skill_bonus
 	return clampf(final_success, 0.5, 1.0)
 
 ## Check if there are enemies nearby (within specified range)

@@ -558,11 +558,17 @@ func _deserialize_player(player_data: Dictionary):
 	player.available_skill_points = player_data.get("available_skill_points", 0)
 	player.available_ability_points = player_data.get("available_ability_points", 0)
 
-	# Restore skills (merge with defaults to handle old saves)
+	# Restore skills (merge with defaults, migrate old skill names)
 	if player_data.has("skills"):
 		for skill_name in player_data.skills:
+			# Try direct match first
 			if player.skills.has(skill_name):
 				player.skills[skill_name] = player_data.skills[skill_name]
+			else:
+				# Try migrating old skill names to new IDs
+				var migrated_id = _migrate_skill_name(skill_name)
+				if migrated_id != "" and player.skills.has(migrated_id):
+					player.skills[migrated_id] = player_data.skills[skill_name]
 
 	# Restore known recipes (clear and append to maintain Array[String] type)
 	player.known_recipes.clear()
@@ -802,6 +808,32 @@ func _deserialize_harvest(harvest_data: Dictionary):
 func _deserialize_farming(farming_data: Dictionary):
 	FarmingSystemClass.deserialize(farming_data)
 	print("SaveManager: Farming state deserialized")
+
+
+## Migrate old skill names to new skill IDs
+## Returns empty string if no migration available
+func _migrate_skill_name(old_name: String) -> String:
+	# Map old skill names to new lowercase IDs
+	var migration_map = {
+		# Old D&D-style skills to new action skills
+		"Crafting": "crafting",
+		"Sleight of Hand": "lockpicking",  # Closest match
+		"Survival": "harvesting",  # Closest match
+		# Old names that might be capitalized
+		"Lockpicking": "lockpicking",
+		"Harvesting": "harvesting",
+		"Traps": "traps",
+		# Weapon skills (in case of capitalization issues)
+		"Swords": "swords",
+		"Axes": "axes",
+		"Maces": "maces",
+		"Daggers": "daggers",
+		"Bows": "bows",
+		"Crossbows": "crossbows",
+		"Thrown": "thrown"
+	}
+	return migration_map.get(old_name, "")
+
 
 # ===== HELPER CLASSES =====
 

@@ -1,0 +1,10 @@
+{
+  "id": "crossbows",
+  "name": "Crossbows",
+  "description": "Proficiency with crossbows and similar mechanical ranged weapons.",
+  "category": "weapon",
+  "weapon_subtypes": ["crossbow"],
+  "bonus_type": "hit_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

@@ -1,0 +1,11 @@
+{
+  "id": "thrown",
+  "name": "Thrown",
+  "description": "Proficiency with throwing knives, axes, and other thrown weapons.",
+  "category": "weapon",
+  "weapon_subtypes": ["thrown"],
+  "attack_types": ["thrown"],
+  "bonus_type": "hit_chance",
+  "bonus_per_level": 1,
+  "max_level": 20
+}

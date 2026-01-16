@@ -44,6 +44,7 @@ LootTableManager="*res://autoload/loot_table_manager.gd"
 SpellManager="*res://autoload/spell_manager.gd"
 IdentificationManager="*res://autoload/identification_manager.gd"
 RitualManager="*res://autoload/ritual_manager.gd"
+SkillManager="*res://autoload/skill_manager.gd"
 
 [debug]
 

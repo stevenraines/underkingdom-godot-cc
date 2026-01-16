@@ -1,0 +1,20 @@
+{
+  "id": "gold_ore",
+  "name": "Gold Ore",
+  "description": "Raw gold ore. Can be smelted into gold ingots.",
+  "category": "material",
+  "subtype": "ore",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true,
+    "smeltable": true
+  },
+  "weight": 1.5,
+  "value": 40,
+  "max_stack": 10,
+  "ascii_char": "o",
+  "ascii_color": "#FFD700"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "iron_vein",
+  "display_name": "iron ore vein",
+  "ascii_char": "◊",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false,
+  "harvestable_resource_id": "iron_vein",
+  "color": "#8B8B8B"
+}

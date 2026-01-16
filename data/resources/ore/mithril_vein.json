@@ -1,0 +1,17 @@
+{
+  "id": "mithril_vein",
+  "name": "Mithril Vein",
+  "required_tools": [
+    {"tool_id": "pickaxe", "action_reduction": 2, "yield_bonus": 1}
+  ],
+  "tool_must_be_equipped": true,
+  "harvest_behavior": "destroy_permanent",
+  "stamina_cost": 35,
+  "harvest_actions": 8,
+  "yields": [
+    {"item_id": "mithril_ore", "min_count": 1, "max_count": 2}
+  ],
+  "replacement_tile": "wall",
+  "harvest_message": "Mined mithril ore with %tool%, got %yield%",
+  "progress_message": "Mining mithril vein... (%current%/%total%)"
+}

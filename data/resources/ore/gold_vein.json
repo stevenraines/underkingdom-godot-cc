@@ -1,0 +1,17 @@
+{
+  "id": "gold_vein",
+  "name": "Gold Vein",
+  "required_tools": [
+    {"tool_id": "pickaxe", "action_reduction": 1, "yield_bonus": 1}
+  ],
+  "tool_must_be_equipped": true,
+  "harvest_behavior": "destroy_permanent",
+  "stamina_cost": 30,
+  "harvest_actions": 6,
+  "yields": [
+    {"item_id": "gold_ore", "min_count": 1, "max_count": 3}
+  ],
+  "replacement_tile": "wall",
+  "harvest_message": "Mined gold ore with %tool%, got %yield%",
+  "progress_message": "Mining gold vein... (%current%/%total%)"
+}

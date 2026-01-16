@@ -7,6 +7,8 @@ extends RefCounted
 ##
 ## All generators must extend this class and implement the generate_floor method.
 
+const OreVeinGeneratorClass = preload("res://generation/ore_vein_generator.gd")
+
 
 ## Generate a single dungeon floor
 ## @param dungeon_def: Dictionary from DungeonManager (JSON data)
@@ -41,6 +43,27 @@ func _seeded_shuffle(arr: Array, rng: SeededRandom) -> Array:
 		result[i] = result[j]
 		result[j] = temp
 	return result
+
+
+## Helper: Place ore veins in the dungeon based on dungeon definition
+## Should be called after walls are added but before features/hazards
+## @param map: The generated map to add veins to
+## @param dungeon_def: Dungeon definition with optional ore_veins config
+## @param floor_number: Current floor depth (affects ore types available)
+## @param rng: SeededRandom for deterministic generation
+func _place_ore_veins(map: GameMap, dungeon_def: Dictionary, floor_number: int, rng: SeededRandom) -> void:
+	var ore_config: Dictionary = dungeon_def.get("ore_veins", {})
+	if ore_config.is_empty():
+		return
+
+	var base_count: int = ore_config.get("base_count", 0)
+	var per_floor: float = ore_config.get("per_floor", 0.0)
+	var max_veins: int = ore_config.get("max_veins", 10)
+
+	var vein_count: int = mini(int(base_count + floor_number * per_floor), max_veins)
+
+	if vein_count > 0:
+		OreVeinGeneratorClass.generate_veins(map, floor_number, vein_count, rng)
 
 
 ## Helper: Place features and hazards after basic generation is complete

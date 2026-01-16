@@ -1,0 +1,20 @@
+{
+  "id": "mithril_ore",
+  "name": "Mithril Ore",
+  "description": "Rare mithril ore. Can be smelted into mithril ingots.",
+  "category": "material",
+  "subtype": "ore",
+  "flags": {
+    "equippable": false,
+    "consumable": false,
+    "craftable": false,
+    "tool": false,
+    "crafting_material": true,
+    "smeltable": true
+  },
+  "weight": 0.5,
+  "value": 100,
+  "max_stack": 10,
+  "ascii_char": "o",
+  "ascii_color": "#7DF9FF"
+}

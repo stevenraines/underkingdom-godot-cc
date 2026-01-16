@@ -1,0 +1,10 @@
+{
+  "id": "silver_vein",
+  "display_name": "silver ore vein",
+  "ascii_char": "◊",
+  "walkable": false,
+  "transparent": false,
+  "is_fire_source": false,
+  "harvestable_resource_id": "silver_vein",
+  "color": "#C0C0C0"
+}

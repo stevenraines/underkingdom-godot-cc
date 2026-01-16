@@ -162,8 +162,9 @@ func _place_feature(map: GameMap, pos: Vector2i, feature_id: String, config: Dic
 		"state": {}
 	}
 
-	# Generate loot if applicable
-	if feature_def.get("can_contain_loot", false) and config.get("contains_loot", false):
+	# Generate loot if applicable (check contains_loot flag OR loot_table presence)
+	var should_have_loot = config.get("contains_loot", false) or config.has("loot_table")
+	if feature_def.get("can_contain_loot", false) and should_have_loot:
 		feature_data.state["loot"] = _generate_feature_loot(config, rng)
 
 	# Set enemy to summon if applicable
@@ -179,23 +180,18 @@ func _place_feature(map: GameMap, pos: Vector2i, feature_id: String, config: Dic
 	map.metadata.features.append(feature_data)
 
 
-## Generate loot for a feature
+## Generate loot for a feature using LootTableManager
 func _generate_feature_loot(config: Dictionary, rng: SeededRandom) -> Array:
-	var loot: Array = []
 	var loot_table: String = config.get("loot_table", "")
 
-	# Simple loot generation (can be expanded later)
-	if loot_table == "ancient_treasure":
-		# Ancient treasure always has gold
-		loot.append({"item_id": "gold_coin", "count": rng.randi_range(15, 60)})
-		# Chance for additional rare items
-		if rng.randf() < 0.3:
-			loot.append({"item_id": "ancient_artifact", "count": 1})
-	else:
-		# Default loot - always give something
-		loot.append({"item_id": "gold_coin", "count": rng.randi_range(5, 25)})
+	# Use LootTableManager if a loot table is specified
+	if loot_table != "":
+		var generated = LootTableManager.generate_loot(loot_table, rng)
+		if not generated.is_empty():
+			return generated
 
-	return loot
+	# Fallback: default loot if no loot table or generation failed
+	return [{"item_id": "gold_coin", "count": rng.randi_range(5, 25)}]
 
 
 ## Get all floor positions in map

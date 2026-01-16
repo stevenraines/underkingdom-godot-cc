@@ -2141,7 +2141,10 @@ func _get_feature_description(feature: Dictionary) -> String:
 func _get_hazard_description(hazard: Dictionary) -> String:
 	var definition = hazard.get("definition", {})
 	var desc = definition.get("description", "A dangerous hazard.")
-	return str(desc) if desc != null else "A dangerous hazard."
+	desc = str(desc) if desc != null else "A dangerous hazard."
+	if hazard.get("disarmed", false):
+		desc += " (disarmed)"
+	return desc
 
 
 ## Get description for a harvestable resource

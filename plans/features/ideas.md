@@ -1,12 +1,13 @@
 # Feature ideas to flesh out with Claude
 
 - [ ] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items and creatures, etc)
-- [ ] Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type
+- [ ] Weapn damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
 - [x] Add game animals (rabbits, deer, etc.) appropriate to each biome.
 - [X] Improve performance of overworld lighting
 - [X] Detect & Disarm Traps (Hazards) Actions
+- [ ] Include skill and attack check values (roll, ability modifier, skill bonus, other bonuses)  in the log so players can see their roll
+
 - [ ] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
-- [ ] Add a mode to include skill and attack check values in the log.
 - [ ] Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
 - [ ] Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.
 - [ ] Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather.
@@ -23,9 +24,9 @@
 - [ ] Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
 - [ ] Towns should not have fixed layouts. Layouts should be randomly generated based on the seeds
 - [ ] Stealth mechanic
-- [ ] Pick pocket mechanic
+- [ ] Pick pockets mechanic
 - [ ] NPC's go about daily activities related to their profession
-- [ ]  NPCs only buy certain types of items
+- [ ] NPCs only buy certain types of items
 - [ ] Animal companions 
 - [ ] Familiars (ritual to summon, animal companion with bonus abilities)
 - [ ] Quests
@@ -33,5 +34,7 @@
 - [ ] Playable character races with different abilities
 - [ ] Playable Character Classes with starting skill levels and special abilities
 - [ ] Character Customization at game start (point assignment for scores, classes, races)
+- [ ] Turn undead ability for cleric classes
+- [ ] 
 - [ ] Multiplayer implementation
 

@@ -3,20 +3,17 @@
 ## Version 1.2 Updates 
 ---
 
----
-## In Progress
-
+[x] Test mode Expansion
+    ~~Implement the following improvements to the Debug Mode~~
+    ~~* For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.~~
+    ~~* add options to spawn structures, crops, and resources~~
+    ~~* add option to convert a tile to another tile (select new tile, select direction, select distance)~~
+    ~~* add option to learn rituals~~
+- [/] Creature Types
+    Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
 ---
 ## Unplanned
 
-[ ] Test mode Expansion 
-    Implement the following improvements to the Debug Mode
-    * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
-    * add options to spawn structures, crops, and resources
-    * add option to convert a tile to another tile (select new tile, select direction, select distance)
-    * add option to learn rituals
-- [/] Creature Types
-    Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
 - [ ] Modify mine generation 
     so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation

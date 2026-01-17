@@ -32,3 +32,12 @@ func choice(array: Array):
 	if array.is_empty():
 		return null
 	return array[randi_range(0, array.size() - 1)]
+
+
+## Shuffle array in place using Fisher-Yates algorithm
+func shuffle_array(array: Array) -> void:
+	for i in range(array.size() - 1, 0, -1):
+		var j = randi_range(0, i)
+		var temp = array[i]
+		array[i] = array[j]
+		array[j] = temp

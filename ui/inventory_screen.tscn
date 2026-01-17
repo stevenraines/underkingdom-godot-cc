@@ -202,9 +202,14 @@ theme_override_font_sizes/font_size = 15
 text = "══ EQUIPMENT ══"
 horizontal_alignment = 1
 
-[node name="EquipmentList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel"]
+[node name="EquipmentScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="EquipmentList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 1
 
 [node name="VSeparator" type="VSeparator" parent="Panel/MarginContainer/VBoxContainer/ContentContainer"]

@@ -449,6 +449,8 @@ func _setup_debug_command_menu() -> void:
 		hud.add_child(debug_command_menu)
 		if debug_command_menu.has_signal("closed"):
 			debug_command_menu.closed.connect(_on_debug_menu_closed)
+		if debug_command_menu.has_signal("action_completed"):
+			debug_command_menu.action_completed.connect(_on_debug_action_completed)
 		print("[Game] Debug command menu scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load debug_command_menu.tscn scene")
@@ -1992,6 +1994,15 @@ func _on_help_screen_closed() -> void:
 ## Called when debug menu is closed
 func _on_debug_menu_closed() -> void:
 	input_handler.ui_blocking_input = false
+
+## Called when a debug action is completed (spawning, etc.)
+func _on_debug_action_completed() -> void:
+	input_handler.ui_blocking_input = false
+	# Refresh rendering to show spawned entities/items
+	_render_all_entities()
+	_render_ground_items()
+	renderer.render_entity(player.position, "@", Color.YELLOW)
+	_update_visibility()
 
 ## Called when world map is closed
 func _on_world_map_closed() -> void:

@@ -12,6 +12,7 @@
 ## In Progress
 
 - [/] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
+- [/] Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.)
 
 ---
 ## Unplanned

@@ -79,6 +79,10 @@ extends Control
 signal closed
 signal item_selected(item)
 
+# Node references (for scrollable lists)
+@onready var scroll_container: ScrollContainer = $ScrollContainer
+@onready var item_list: VBoxContainer = $ScrollContainer/ItemList
+
 # State
 var items: Array = []
 var selected_index: int = 0
@@ -106,7 +110,7 @@ func close() -> void:
 func _input(event: InputEvent) -> void:
     if not is_active:
         return
-    
+
     if event.is_action_pressed("ui_cancel"):
         close()
         get_viewport().set_input_as_handled()
@@ -122,7 +126,15 @@ func _input(event: InputEvent) -> void:
 
 func _update_display() -> void:
     # Rebuild visible list with selection highlight
-    pass
+    var children = item_list.get_children()
+    for i in range(children.size()):
+        var label = children[i] as Label
+        if i == selected_index:
+            label.text = "> %s" % items[i].name
+            # IMPORTANT: Auto-scroll to keep selected item visible
+            scroll_container.ensure_control_visible(label)
+        else:
+            label.text = "  %s" % items[i].name
 
 func _select_next() -> void:
     if items.size() > 0:
@@ -148,6 +160,51 @@ func _select_previous() -> void:
 - Never modify game state directly - emit signals for actions
 - Pause game logic while modal UI is open (if applicable)
 
+### NumberInput Component (for quantity/number entry)
+**IMPORTANT**: Never use LineEdit for number input in paused menus - it doesn't receive keyboard input while the game tree is paused. Always use the NumberInput component instead.
+
+**Location**: `ui/components/number_input.tscn`
+
+**Usage**:
+```gdscript
+@onready var quantity_input = $NumberInput
+
+func _ready():
+    quantity_input.value_submitted.connect(_on_value_submitted)
+    quantity_input.cancelled.connect(_on_cancelled)
+
+func _show_input():
+    quantity_input.visible = true
+    quantity_input.activate(default_value)  # Activates and sets initial value
+
+func _on_value_submitted(value: int):
+    # Handle the submitted value
+    var amount = value
+    quantity_input.visible = false
+    quantity_input.deactivate()
+
+func _on_cancelled():
+    quantity_input.visible = false
+    quantity_input.deactivate()
+
+# In your _input function, delegate to the component:
+func _input(event):
+    if quantity_input.is_active and event is InputEventKey and event.pressed:
+        if quantity_input.handle_input(event):
+            get_viewport().set_input_as_handled()
+```
+
+**Properties**:
+- `min_value` (int): Minimum allowed value (default: 1)
+- `max_value` (int): Maximum allowed value (default: 999)
+- `default_value` (int): Default value when activated (default: 1)
+- `max_digits` (int): Maximum digits allowed (default: 3)
+- `label_text` (String): Label shown before the input box
+
+**Signals**:
+- `value_submitted(value: int)` - Emitted when Enter is pressed
+- `cancelled()` - Emitted when Escape is pressed
+
 ## Quality Checklist
 
 Before completing any UI implementation, verify:
@@ -155,13 +212,14 @@ Before completing any UI implementation, verify:
 1. **Escape closes the UI** - Always implement cancel/close on Escape
 2. **Input is consumed** - Call `get_viewport().set_input_as_handled()` to prevent input bleeding
 3. **Selection wraps** - List navigation wraps from last to first and vice versa
-4. **Empty states handled** - Show appropriate message when lists are empty
-5. **Colors are consistent** - Use the established color palette
-6. **Key hints displayed** - Footer shows available actions with key bindings
-7. **Responsive to data changes** - Subscribe to relevant EventBus signals
-8. **Memory cleanup** - Disconnect signals in `_exit_tree()` if manually connected
-9. **Accessibility** - High contrast, clear visual feedback on selection
-10. **Testing** - Verify all navigation paths and edge cases
+4. **Auto-scroll in lists** - When navigating scrollable lists, always call `scroll_container.ensure_control_visible(selected_control)` to keep the selected item visible
+5. **Empty states handled** - Show appropriate message when lists are empty
+6. **Colors are consistent** - Use the established color palette
+7. **Key hints displayed** - Footer shows available actions with key bindings
+8. **Responsive to data changes** - Subscribe to relevant EventBus signals
+9. **Memory cleanup** - Disconnect signals in `_exit_tree()` if manually connected
+10. **Accessibility** - High contrast, clear visual feedback on selection
+11. **Testing** - Verify all navigation paths and edge cases
 
 ## Existing UI Reference
 
@@ -170,6 +228,7 @@ Study these existing UI implementations for patterns:
 - `ui/inventory_screen.tscn` - Item list with details panel
 - `ui/help_screen.gd` - Simple text display with keybinding info
 - `ui/shop_screen.tscn` - Two-column buy/sell interface (if exists)
+- `ui/components/number_input.tscn` - Keyboard number input that works while paused
 
 ## Common Mistakes to Avoid
 

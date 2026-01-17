@@ -1,0 +1,96 @@
+{
+  "variant_type": "enchantment",
+  "variants": {
+    "flaming": {
+      "name_suffix": "of Flame",
+      "description_modifier": "wreathed in magical fire",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5}
+      },
+      "overrides": {
+        "secondary_damage_type": "fire",
+        "secondary_damage_bonus": 3,
+        "ascii_color": "#FF4500"
+      },
+      "tier": 3
+    },
+    "frost": {
+      "name_suffix": "of Frost",
+      "description_modifier": "imbued with bitter cold",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5}
+      },
+      "overrides": {
+        "secondary_damage_type": "ice",
+        "secondary_damage_bonus": 3,
+        "ascii_color": "#00BFFF"
+      },
+      "tier": 3
+    },
+    "shocking": {
+      "name_suffix": "of Lightning",
+      "description_modifier": "crackling with electrical energy",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5}
+      },
+      "overrides": {
+        "secondary_damage_type": "lightning",
+        "secondary_damage_bonus": 3,
+        "ascii_color": "#FFFF00"
+      },
+      "tier": 3
+    },
+    "venomous": {
+      "name_suffix": "of Venom",
+      "description_modifier": "coated in virulent poison",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.0}
+      },
+      "overrides": {
+        "secondary_damage_type": "poison",
+        "secondary_damage_bonus": 2,
+        "ascii_color": "#32CD32"
+      },
+      "tier": 3
+    },
+    "corrosive": {
+      "name_suffix": "of Corrosion",
+      "description_modifier": "dripping with caustic acid",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.0}
+      },
+      "overrides": {
+        "secondary_damage_type": "acid",
+        "secondary_damage_bonus": 2,
+        "ascii_color": "#ADFF2F"
+      },
+      "tier": 3
+    },
+    "holy": {
+      "name_suffix": "of Radiance",
+      "description_modifier": "blessed with holy light",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 3.0}
+      },
+      "overrides": {
+        "secondary_damage_type": "radiant",
+        "secondary_damage_bonus": 4,
+        "ascii_color": "#FFD700"
+      },
+      "tier": 4
+    },
+    "necrotic": {
+      "name_suffix": "of Blight",
+      "description_modifier": "infused with dark energy",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 3.0}
+      },
+      "overrides": {
+        "secondary_damage_type": "necrotic",
+        "secondary_damage_bonus": 4,
+        "ascii_color": "#8B008B"
+      },
+      "tier": 4
+    }
+  }
+}

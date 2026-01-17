@@ -57,15 +57,23 @@ var stat_modifiers: Dictionary = {
 # Armor modifier (from buffs)
 var armor_modifier: int = 0
 
-# Elemental resistances: -100 (immune) to 0 (normal) to +100 (vulnerable)
+# Damage resistances: -100 (immune) to 0 (normal) to +100 (vulnerable)
 # Negative = resistance, Positive = vulnerability
+# Applies to all damage types: physical, elemental, and magic
 var elemental_resistances: Dictionary = {
+	# Physical damage types
+	"slashing": 0,
+	"piercing": 0,
+	"bludgeoning": 0,
+	# Elemental damage types
 	"fire": 0,
 	"ice": 0,
 	"lightning": 0,
 	"poison": 0,
+	"acid": 0,
+	# Magic damage types
 	"necrotic": 0,
-	"holy": 0
+	"radiant": 0
 }
 
 # Active magical effects (buffs/debuffs with duration)

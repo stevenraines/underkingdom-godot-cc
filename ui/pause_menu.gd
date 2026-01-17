@@ -69,6 +69,9 @@ func _input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				_close()
 				viewport.set_input_as_handled()
+			KEY_Q:
+				_on_main_menu_pressed()
+				viewport.set_input_as_handled()
 			KEY_UP:
 				_navigate(-1)
 				viewport.set_input_as_handled()
@@ -92,11 +95,11 @@ func open(save_mode: bool = true) -> void:
 	if mode == "load":
 		title_label.text = "◆ LOAD GAME ◆"
 		resume_button.visible = false
-		main_menu_button.text = "Back to Main Menu"
+		main_menu_button.text = "Back to Main Menu (Q)"
 	else:
 		title_label.text = "◆ GAME PAUSED ◆"
 		resume_button.visible = true
-		main_menu_button.text = "Main Menu"
+		main_menu_button.text = "Main Menu (Q)"
 
 	_refresh_slot_info()
 	_update_button_colors()

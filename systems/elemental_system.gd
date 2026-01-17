@@ -1,15 +1,51 @@
 class_name ElementalSystem
 extends RefCounted
 
-## ElementalSystem - Handles elemental damage types, resistances, and environmental combos
+## ElementalSystem - Handles all damage types, resistances, and environmental combos
 ##
-## Elements: fire, ice, lightning, poison, necrotic, holy, physical
+## Physical: slashing, piercing, bludgeoning
+## Elemental: fire, ice, lightning, poison, acid
+## Magic: necrotic, radiant
 ## Resistances: -100 (immune) to 0 (normal) to +100 (vulnerable)
 
-enum Element { FIRE, ICE, LIGHTNING, POISON, NECROTIC, HOLY, PHYSICAL }
+enum Element {
+	# Physical
+	SLASHING, PIERCING, BLUDGEONING,
+	# Elemental
+	FIRE, ICE, LIGHTNING, POISON, ACID,
+	# Magic
+	NECROTIC, RADIANT,
+	# Legacy/fallback
+	PHYSICAL
+}
 
-# Elemental interaction rules
+# All valid damage type strings
+const DAMAGE_TYPES = [
+	"slashing", "piercing", "bludgeoning",  # Physical
+	"fire", "ice", "lightning", "poison", "acid",  # Elemental
+	"necrotic", "radiant"  # Magic
+]
+
+# Damage type interaction rules
 const ELEMENT_INTERACTIONS = {
+	# Physical damage types
+	"slashing": {
+		"strong_vs": [],
+		"weak_vs": [],
+		"armor_effectiveness": 1.0  # Full armor applies
+	},
+	"piercing": {
+		"strong_vs": [],
+		"weak_vs": [],
+		"armor_effectiveness": 0.5  # Half armor applies (pierces armor)
+	},
+	"bludgeoning": {
+		"strong_vs": [],
+		"weak_vs": [],
+		"armor_effectiveness": 1.0,
+		"bonus_vs_skeletal": true  # Extra damage vs skeletons
+	},
+	# Elemental damage types
 	"fire": {
 		"strong_vs": ["ice"],
 		"weak_vs": [],
@@ -30,12 +66,18 @@ const ELEMENT_INTERACTIONS = {
 		"weak_vs": [],
 		"living_only": true  # No effect on undead/constructs
 	},
+	"acid": {
+		"strong_vs": [],
+		"weak_vs": [],
+		"corrodes_equipment": true
+	},
+	# Magic damage types
 	"necrotic": {
 		"strong_vs": [],
-		"weak_vs": ["holy"],
+		"weak_vs": ["radiant"],
 		"heals_undead": true
 	},
-	"holy": {
+	"radiant": {
 		"strong_vs": ["necrotic"],
 		"weak_vs": [],
 		"bonus_vs_undead": true
@@ -46,24 +88,38 @@ const ELEMENT_INTERACTIONS = {
 ## Get element enum from string name
 static func get_element_from_string(element_name: String) -> Element:
 	match element_name.to_lower():
+		# Physical
+		"slashing": return Element.SLASHING
+		"piercing": return Element.PIERCING
+		"bludgeoning": return Element.BLUDGEONING
+		# Elemental
 		"fire": return Element.FIRE
 		"ice", "cold": return Element.ICE
 		"lightning", "electric": return Element.LIGHTNING
 		"poison": return Element.POISON
+		"acid": return Element.ACID
+		# Magic
 		"necrotic", "dark": return Element.NECROTIC
-		"holy", "radiant": return Element.HOLY
+		"holy", "radiant": return Element.RADIANT
 		_: return Element.PHYSICAL
 
 
 ## Get element string from enum
 static func get_element_name(element: Element) -> String:
 	match element:
+		# Physical
+		Element.SLASHING: return "slashing"
+		Element.PIERCING: return "piercing"
+		Element.BLUDGEONING: return "bludgeoning"
+		# Elemental
 		Element.FIRE: return "fire"
 		Element.ICE: return "ice"
 		Element.LIGHTNING: return "lightning"
 		Element.POISON: return "poison"
+		Element.ACID: return "acid"
+		# Magic
 		Element.NECROTIC: return "necrotic"
-		Element.HOLY: return "holy"
+		Element.RADIANT: return "radiant"
 		_: return "physical"
 
 
@@ -253,12 +309,19 @@ static func _get_connected_water_tiles(start_pos: Vector2i) -> Array:
 ## Get the color associated with an element (for visual feedback)
 static func get_element_color(element: String) -> Color:
 	match element:
+		# Physical - neutral metallic colors
+		"slashing": return Color.SILVER
+		"piercing": return Color.LIGHT_GRAY
+		"bludgeoning": return Color.GRAY
+		# Elemental
 		"fire": return Color.ORANGE_RED
 		"ice", "cold": return Color.CYAN
 		"lightning", "electric": return Color.YELLOW
 		"poison": return Color.GREEN
+		"acid": return Color.LIME_GREEN
+		# Magic
 		"necrotic", "dark": return Color.PURPLE
-		"holy", "radiant": return Color.GOLD
+		"radiant", "holy": return Color.GOLD
 		_: return Color.WHITE
 
 

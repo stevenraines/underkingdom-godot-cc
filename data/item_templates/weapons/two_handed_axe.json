@@ -16,6 +16,7 @@
       "two_handed": true
     },
     "attack_type": "melee",
+    "damage_type": "slashing",
     "max_stack": 1
   },
   "base_stats": {
@@ -24,7 +25,7 @@
     "durability": 150,
     "damage_bonus": 8
   },
-  "applicable_variants": ["material", "quality", "origin"],
+  "applicable_variants": ["material", "quality", "origin", "enchantment"],
   "default_variants": {
     "material": "iron"
   },

@@ -21,6 +21,13 @@
   "behavior": "guardian",
   "base_damage": 7,
   "armor": 4,
+  "creature_type": "construct",
+  "elemental_resistances": {
+    "poison": -100,
+    "necrotic": -50,
+    "slashing": -25,
+    "piercing": -25
+  },
   "loot_table": "construct_common",
   "xp_value": 45,
   "spawn_biomes": [],

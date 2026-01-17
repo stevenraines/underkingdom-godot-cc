@@ -20,6 +20,14 @@
   "behavior": "aggressive",
   "base_damage": 4,
   "armor": 1,
+  "creature_type": "undead",
+  "elemental_resistances": {
+    "bludgeoning": 50,
+    "piercing": -25,
+    "slashing": -25,
+    "poison": -100,
+    "radiant": 50
+  },
   "loot_table": "undead_common",
   "xp_value": 15,
   "spawn_biomes": [],

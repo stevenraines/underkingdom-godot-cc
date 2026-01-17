@@ -42,6 +42,11 @@ var equip_slots: Array[String] = [] # Which slots this can equip to (e.g., ["mai
 var armor_value: int = 0            # Damage reduction when equipped
 var damage_bonus: int = 0           # Added to base damage when equipped
 
+# Damage type properties (for weapons and attacks)
+var damage_type: String = "bludgeoning"      # Primary damage type (slashing, piercing, bludgeoning, etc.)
+var secondary_damage_type: String = ""       # Optional secondary damage type (e.g., fire for enchanted weapons)
+var secondary_damage_bonus: int = 0          # Bonus damage for secondary type
+
 # Ranged weapon properties
 var attack_type: String = "melee"   # "melee", "ranged", or "thrown"
 var attack_range: int = 1           # Maximum attack distance in tiles
@@ -165,6 +170,11 @@ static func create_from_data(data: Dictionary) -> Item:
 	item.armor_value = data.get("armor_value", 0)
 	item.damage_bonus = data.get("damage_bonus", 0)
 
+	# Damage type properties
+	item.damage_type = data.get("damage_type", "bludgeoning")
+	item.secondary_damage_type = data.get("secondary_damage_type", "")
+	item.secondary_damage_bonus = data.get("secondary_damage_bonus", 0)
+
 	# Ranged weapon properties
 	item.attack_type = data.get("attack_type", "melee")
 	item.attack_range = data.get("attack_range", 1)
@@ -259,6 +269,9 @@ func duplicate_item() -> Item:
 	copy.equip_slots = equip_slots.duplicate()
 	copy.armor_value = armor_value
 	copy.damage_bonus = damage_bonus
+	copy.damage_type = damage_type
+	copy.secondary_damage_type = secondary_damage_type
+	copy.secondary_damage_bonus = secondary_damage_bonus
 	copy.attack_type = attack_type
 	copy.attack_range = attack_range
 	copy.ammunition_type = ammunition_type

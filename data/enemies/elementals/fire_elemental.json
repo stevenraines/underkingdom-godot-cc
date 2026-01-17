@@ -21,6 +21,11 @@
   "behavior": "aggressive",
   "base_damage": 10,
   "armor": 2,
+  "creature_type": "elemental",
+  "elemental_resistances": {
+    "fire": -100,
+    "ice": 100
+  },
   "loot_table": "elemental_common",
   "xp_value": 90,
   "spawn_biomes": [],

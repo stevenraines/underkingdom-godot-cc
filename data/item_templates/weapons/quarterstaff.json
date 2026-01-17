@@ -15,6 +15,7 @@
       "two_handed": true
     },
     "attack_type": "melee",
+    "damage_type": "bludgeoning",
     "max_stack": 1
   },
   "base_stats": {

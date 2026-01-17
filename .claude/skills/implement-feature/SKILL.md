@@ -9,10 +9,11 @@ Implements a feature defined in a plan file by creating a new branch and followi
 
 ## CRITICAL RULES
 
-1. **PLAN FILE IS THE SOURCE OF TRUTH** - Only implement what is written in `plans/features/<feature-name>.md`
-2. **NEVER ALTER THE PLAN SILENTLY** - Do not change the plan file without user approval
-3. **CLARIFYING QUESTIONS REQUIRE PLAN UPDATES** - If you ask a question and get an answer, update the plan file BEFORE continuing implementation
-4. **FOLLOW THE PLAN EXACTLY** - Do not add features, skip steps, or deviate from what the plan specifies
+1. **CREATE A NEW BRANCH FIRST** - ALWAYS create a new git branch BEFORE making ANY code changes. This is non-negotiable.
+2. **PLAN FILE IS THE SOURCE OF TRUTH** - Only implement what is written in `plans/features/<feature-name>.md`
+3. **NEVER ALTER THE PLAN SILENTLY** - Do not change the plan file without user approval
+4. **CLARIFYING QUESTIONS REQUIRE PLAN UPDATES** - If you ask a question and get an answer, update the plan file BEFORE continuing implementation
+5. **FOLLOW THE PLAN EXACTLY** - Do not add features, skip steps, or deviate from what the plan specifies
 
 ## Usage
 
@@ -33,9 +34,11 @@ First, locate and read the feature plan file:
 3. **If file does not exist, STOP and tell the user**
 4. Read the file to understand the feature requirements
 
-### 2. Create a Feature Branch
+### 2. Create a Feature Branch (MANDATORY - DO THIS FIRST)
 
-Create a new git branch from main:
+⚠️ **WARNING: NEVER skip this step. NEVER make code changes on main.**
+
+Create a new git branch from main BEFORE writing any code:
 
 ```bash
 git checkout main
@@ -45,6 +48,11 @@ git checkout -b feature/{feature-name}
 ```
 
 The branch name should be derived from the feature file name (e.g., `debug-test-mode` becomes `feature/debug-test-mode`).
+
+**Verify you are on the new branch before proceeding:**
+```bash
+git branch --show-current
+```
 
 ### 3. Review the Plan
 
@@ -103,6 +111,7 @@ After implementation:
 
 ## What NOT To Do
 
+- **DO NOT** make ANY code changes before creating a new branch - this is the #1 rule
 - **DO NOT** implement features not specified in the plan
 - **DO NOT** silently change the plan file
 - **DO NOT** skip implementation steps from the plan

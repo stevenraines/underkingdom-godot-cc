@@ -1998,7 +1998,8 @@ func _on_debug_menu_closed() -> void:
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
 	input_handler.ui_blocking_input = false
-	# Refresh rendering to show spawned entities/items
+	# Refresh rendering to show spawned entities/items and tile changes
+	_render_map()
 	_render_all_entities()
 	_render_ground_items()
 	renderer.render_entity(player.position, "@", Color.YELLOW)

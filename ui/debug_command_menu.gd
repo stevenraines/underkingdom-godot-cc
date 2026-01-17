@@ -1296,6 +1296,8 @@ func _do_toggle_god_mode() -> void:
 	GameManager.debug_god_mode = not GameManager.debug_god_mode
 	var status = "ENABLED" if GameManager.debug_god_mode else "DISABLED"
 	_show_message("God Mode: %s" % status)
+	# Refresh the tab to show updated status
+	_build_current_tab()
 
 func _do_teleport_town() -> void:
 	if not player or not MapManager.current_map:
@@ -1326,6 +1328,8 @@ func _do_reveal_map() -> void:
 	GameManager.debug_map_revealed = not GameManager.debug_map_revealed
 	var status = "ENABLED" if GameManager.debug_map_revealed else "DISABLED"
 	_show_message("Map Reveal: %s" % status)
+	# Refresh the tab to show updated status
+	_build_current_tab()
 
 # ============================================================================
 # UI building
@@ -1354,15 +1358,29 @@ func _build_current_tab() -> void:
 
 	for i in range(commands.size()):
 		var cmd = commands[i]
+		var display_text = _get_command_display_text(cmd)
 		var label = Label.new()
 		if i == selected_index:
-			label.text = "> %s" % cmd.text
+			label.text = "> %s" % display_text
 			label.add_theme_color_override("font_color", COLOR_SELECTED)
 		else:
-			label.text = "  %s" % cmd.text
+			label.text = "  %s" % display_text
 			label.add_theme_color_override("font_color", COLOR_COMMAND)
 		label.add_theme_font_size_override("font_size", 14)
 		current_tab_container.add_child(label)
+
+## Get display text for a command, with dynamic state for toggle commands
+func _get_command_display_text(cmd: Dictionary) -> String:
+	var action = cmd.get("action", "")
+	match action:
+		"toggle_god_mode":
+			var status = "[ON]" if GameManager.debug_god_mode else "[OFF]"
+			return "Toggle God Mode %s" % status
+		"reveal_map":
+			var status = "[ON]" if GameManager.debug_map_revealed else "[OFF]"
+			return "Reveal Map %s" % status
+		_:
+			return cmd.text
 
 func _get_tab_container(tab_index: int) -> VBoxContainer:
 	match tab_index:

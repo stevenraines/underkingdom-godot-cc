@@ -1,0 +1,22 @@
+{
+	"id": "wild_herb_feature",
+	"name": "Wild Herb",
+	"ascii_char": "\u269c",
+	"color": "#66CC66",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "gather",
+	"harvestable": true,
+	"removes_on_interact": true,
+	"renewable": true,
+	"respawn_turns": 3000,
+	"yields": [
+		{
+			"item_id": "herb",
+			"count_min": 1,
+			"count_max": 2,
+			"use_variant": true,
+			"variant_type": "herb_species"
+		}
+	]
+}

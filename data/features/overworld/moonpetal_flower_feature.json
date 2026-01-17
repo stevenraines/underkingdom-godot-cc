@@ -1,0 +1,20 @@
+{
+	"id": "moonpetal_flower_feature",
+	"name": "Moonpetal Flower",
+	"ascii_char": ",",
+	"color": "#CCCCFF",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "pick",
+	"harvestable": true,
+	"removes_on_interact": true,
+	"renewable": true,
+	"respawn_turns": 3000,
+	"yields": [
+		{
+			"item_id": "moonpetal",
+			"count_min": 1,
+			"count_max": 3
+		}
+	]
+}

@@ -79,6 +79,8 @@ var tab_commands: Dictionary = {
 		{"text": "Spawn Creature", "action": "spawn_creature"},
 		{"text": "Spawn Hazard", "action": "spawn_hazard"},
 		{"text": "Spawn Feature", "action": "spawn_feature"},
+		{"text": "Spawn Structure", "action": "spawn_structure"},
+		{"text": "Spawn Resource", "action": "spawn_resource"},
 	],
 	2: [  # Player tab
 		{"text": "Give Gold", "action": "give_gold"},
@@ -88,12 +90,14 @@ var tab_commands: Dictionary = {
 		{"text": "Max All Stats", "action": "max_stats"},
 		{"text": "Learn Spell", "action": "learn_spell"},
 		{"text": "Learn Recipe", "action": "learn_recipe"},
+		{"text": "Learn Ritual", "action": "learn_ritual"},
 		{"text": "Toggle God Mode", "action": "toggle_god_mode"},
 	],
 	3: [  # World tab
 		{"text": "Teleport to Town", "action": "teleport_town"},
 		{"text": "Teleport to Coordinates", "action": "teleport_coords"},
 		{"text": "Set Date/Time", "action": "set_datetime"},
+		{"text": "Convert Tile", "action": "convert_tile"},
 		{"text": "Reveal Map", "action": "reveal_map"},
 	],
 }
@@ -350,6 +354,12 @@ func _execute_spawn_with_distance() -> void:
 			_do_spawn_hazard(pending_item_id, target_pos)
 		"spawn_feature":
 			_do_spawn_feature(pending_item_id, target_pos)
+		"spawn_structure":
+			_do_spawn_structure(pending_item_id, target_pos)
+		"spawn_resource":
+			_do_spawn_resource(pending_item_id, target_pos)
+		"convert_tile":
+			_do_convert_tile(pending_item_id, target_pos)
 
 	distance_input.visible = false
 	distance_input.deactivate()
@@ -499,6 +509,10 @@ func _execute_tab_command(action: String) -> void:
 			_show_hazard_submenu()
 		"spawn_feature":
 			_show_feature_submenu()
+		"spawn_structure":
+			_show_structure_submenu()
+		"spawn_resource":
+			_show_resource_submenu()
 		"give_gold":
 			_show_gold_submenu()
 		"set_level":
@@ -513,6 +527,8 @@ func _execute_tab_command(action: String) -> void:
 			_show_spell_submenu()
 		"learn_recipe":
 			_show_recipe_submenu()
+		"learn_ritual":
+			_show_ritual_submenu()
 		"toggle_god_mode":
 			_do_toggle_god_mode()
 		"teleport_town":
@@ -521,6 +537,8 @@ func _execute_tab_command(action: String) -> void:
 			_show_teleport_coords_input()
 		"set_datetime":
 			_show_datetime_submenu()
+		"convert_tile":
+			_show_tile_submenu()
 		"reveal_map":
 			_do_reveal_map()
 
@@ -583,7 +601,16 @@ func _show_hazard_submenu() -> void:
 	for hazard_id in HazardManager.hazard_definitions:
 		var hazard_def = HazardManager.hazard_definitions[hazard_id]
 		var display_name = hazard_def.get("name", hazard_id)
-		items.append({"type": "command", "text": display_name, "id": hazard_id})
+		var difficulty = hazard_def.get("detection_difficulty", 0)
+		var text = "%s (DC %d)" % [display_name, difficulty] if difficulty > 0 else display_name
+		items.append({"type": "command", "text": text, "id": hazard_id, "difficulty": difficulty, "name": display_name})
+
+	# Sort by difficulty first, then alphabetically by name
+	items.sort_custom(func(a, b):
+		if a.difficulty != b.difficulty:
+			return a.difficulty < b.difficulty
+		return a.name < b.name
+	)
 
 	current_state = MenuState.SUBMENU
 	selected_index = 0
@@ -597,7 +624,10 @@ func _show_feature_submenu() -> void:
 	for feature_id in FeatureManager.feature_definitions:
 		var feature_def = FeatureManager.feature_definitions[feature_id]
 		var display_name = feature_def.get("name", feature_id)
-		items.append({"type": "command", "text": display_name, "id": feature_id})
+		items.append({"type": "command", "text": display_name, "id": feature_id, "name": display_name})
+
+	# Sort alphabetically by name
+	items.sort_custom(func(a, b): return a.name < b.name)
 
 	current_state = MenuState.SUBMENU
 	selected_index = 0
@@ -738,7 +768,6 @@ func _show_recipe_submenu() -> void:
 
 	var items: Array = []
 	var all_recipe_ids = RecipeManager.get_all_recipe_ids()
-	all_recipe_ids.sort()
 
 	for recipe_id in all_recipe_ids:
 		var recipe = RecipeManager.get_recipe(recipe_id)
@@ -746,24 +775,127 @@ func _show_recipe_submenu() -> void:
 			continue
 		var known = recipe_id in player.known_recipes
 		var display_name = recipe.get_display_name()
+		var difficulty = recipe.difficulty if recipe.difficulty else 1
 		var status_str = " [KNOWN]" if known else ""
-		var text = "%s%s" % [display_name, status_str]
+		var text = "%s (Diff %d)%s" % [display_name, difficulty, status_str]
 		items.append({
 			"type": "command",
 			"text": text,
 			"id": recipe_id,
 			"name": display_name,
+			"difficulty": difficulty,
 			"known": known
 		})
 
-	# Sort alphabetically by name
+	# Sort by difficulty first, then alphabetically by name
 	items.sort_custom(func(a, b):
+		if a.difficulty != b.difficulty:
+			return a.difficulty < b.difficulty
 		return a.name < b.name
 	)
 
 	current_state = MenuState.SUBMENU
 	selected_index = 0
 	_build_submenu("Learn Recipe", items)
+
+func _show_ritual_submenu() -> void:
+	pending_command = "learn_ritual"
+	menu_stack.append({"state": current_state, "index": selected_index, "title": "", "items": []})
+
+	if not player:
+		_show_message("Error: No player reference")
+		return
+
+	var items: Array = []
+	var all_rituals = RitualManager.get_all_rituals()
+
+	for ritual in all_rituals:
+		var known = ritual.id in player.known_rituals
+		var rarity_str = ritual.rarity.capitalize() if ritual.rarity else "Common"
+		var status_str = " [KNOWN]" if known else ""
+		var text = "%s (%s %s)%s" % [ritual.name, ritual.school.capitalize(), rarity_str, status_str]
+		items.append({
+			"type": "command",
+			"text": text,
+			"id": ritual.id,
+			"name": ritual.name,
+			"school": ritual.school,
+			"rarity": ritual.rarity,
+			"known": known
+		})
+
+	# Sort by rarity (common < uncommon < rare < very_rare), then school, then name
+	var rarity_order = {"common": 0, "uncommon": 1, "rare": 2, "very_rare": 3}
+	items.sort_custom(func(a, b):
+		var rarity_a = rarity_order.get(a.rarity, 0)
+		var rarity_b = rarity_order.get(b.rarity, 0)
+		if rarity_a != rarity_b:
+			return rarity_a < rarity_b
+		if a.school != b.school:
+			return a.school < b.school
+		return a.name < b.name
+	)
+
+	current_state = MenuState.SUBMENU
+	selected_index = 0
+	_build_submenu("Learn Ritual", items)
+
+func _show_structure_submenu() -> void:
+	pending_command = "spawn_structure"
+	menu_stack.append({"state": current_state, "index": selected_index, "title": "", "items": []})
+
+	var items: Array = []
+	for structure_id in StructureManager.structure_definitions:
+		var structure_def = StructureManager.structure_definitions[structure_id]
+		var display_name = structure_def.get("name", structure_id)
+		items.append({"type": "command", "text": display_name, "id": structure_id, "name": display_name})
+
+	# Sort alphabetically by name
+	items.sort_custom(func(a, b): return a.name < b.name)
+
+	current_state = MenuState.SUBMENU
+	selected_index = 0
+	_build_submenu("Select Structure", items)
+
+func _show_resource_submenu() -> void:
+	pending_command = "spawn_resource"
+	menu_stack.append({"state": current_state, "index": selected_index, "title": "", "items": []})
+
+	var items: Array = []
+	# Get resource definitions from HarvestSystem
+	var resource_defs = HarvestSystem._resource_definitions
+	for resource_id in resource_defs:
+		var resource = resource_defs[resource_id]
+		var display_name = resource.name if resource else resource_id
+		items.append({"type": "command", "text": display_name, "id": resource_id, "name": display_name})
+
+	# Sort alphabetically by name
+	items.sort_custom(func(a, b): return a.name < b.name)
+
+	current_state = MenuState.SUBMENU
+	selected_index = 0
+	_build_submenu("Select Resource", items)
+
+func _show_tile_submenu() -> void:
+	pending_command = "convert_tile"
+	menu_stack.append({"state": current_state, "index": selected_index, "title": "", "items": []})
+
+	var items: Array = []
+	var tile_types = TileTypeManager.get_all_tile_types()
+
+	for tile_id in tile_types:
+		var tile_def = TileTypeManager.get_tile_definition(tile_id)
+		var display_name = tile_def.get("display_name", tile_id.replace("_", " ").capitalize())
+		var ascii_char = tile_def.get("ascii_char", "?")
+		var text = "%s [%s]" % [display_name, ascii_char]
+		items.append({"type": "command", "text": text, "id": tile_id, "name": display_name})
+
+	# Sort alphabetically by name
+	items.sort_custom(func(a, b): return a.name < b.name)
+
+	current_state = MenuState.SUBMENU
+	selected_index = 0
+	_build_submenu("Select Tile Type", items)
 
 func _show_teleport_coords_input() -> void:
 	pending_command = "teleport_x"
@@ -868,11 +1000,12 @@ func _execute_submenu_selection(item: Dictionary) -> void:
 		"give":
 			_do_give_item(pending_item_id)
 			_go_back()
-		"spawn", "spawn_creature", "spawn_hazard", "spawn_feature":
+		"spawn", "spawn_creature", "spawn_hazard", "spawn_feature", "spawn_structure", "spawn_resource", "convert_tile":
 			# Need direction, then distance
 			current_state = MenuState.DIRECTION_SELECT
 			direction_prompt.visible = true
-			header.text = "Spawn: %s - Choose direction" % pending_item_name
+			var action_verb = "Convert to" if pending_command == "convert_tile" else "Spawn"
+			header.text = "%s: %s - Choose direction" % [action_verb, pending_item_name]
 		"learn_spell":
 			_do_learn_spell(pending_item_id)
 			# Refresh the submenu to show updated [KNOWN] status
@@ -882,6 +1015,11 @@ func _execute_submenu_selection(item: Dictionary) -> void:
 			_do_learn_recipe(pending_item_id)
 			# Refresh the submenu to show updated [KNOWN] status
 			_show_recipe_submenu()
+			menu_stack.pop_back()  # Remove duplicate stack entry
+		"learn_ritual":
+			_do_learn_ritual(pending_item_id)
+			# Refresh the submenu to show updated [KNOWN] status
+			_show_ritual_submenu()
 			menu_stack.pop_back()  # Remove duplicate stack entry
 		"set_datetime":
 			# Handle datetime submenu actions
@@ -1043,6 +1181,55 @@ func _do_spawn_feature(feature_id: String, pos: Vector2i) -> void:
 	}
 	_show_message("Spawned feature: %s at %v" % [feature_def.get("name", feature_id), pos])
 
+func _do_spawn_structure(structure_id: String, pos: Vector2i) -> void:
+	var structure = StructureManager.create_structure(structure_id, pos)
+	if structure:
+		var map_id = MapManager.current_map.map_id if MapManager.current_map else "overworld"
+		StructureManager.place_structure(map_id, structure)
+		_show_message("Spawned structure: %s at %v" % [structure.structure_name, pos])
+	else:
+		_show_message("Error: Could not create structure '%s'" % structure_id)
+
+func _do_spawn_resource(resource_id: String, pos: Vector2i) -> void:
+	# Resources are represented as tiles with harvestable_resource_id
+	# Create a tile of that resource type
+	var tile = GameTile.create(resource_id)
+	if tile:
+		MapManager.current_map.set_tile(pos, tile)
+		var resource = HarvestSystem.get_resource(resource_id)
+		var resource_name = resource.name if resource else resource_id
+		_show_message("Spawned resource: %s at %v" % [resource_name, pos])
+	else:
+		_show_message("Error: Could not create resource tile '%s'" % resource_id)
+
+func _do_convert_tile(tile_id: String, pos: Vector2i) -> void:
+	var tile = GameTile.create(tile_id)
+	if tile:
+		MapManager.current_map.set_tile(pos, tile)
+		var tile_def = TileTypeManager.get_tile_definition(tile_id)
+		var display_name = tile_def.get("display_name", tile_id) if tile_def else tile_id
+		_show_message("Converted tile at %v to %s" % [pos, display_name])
+		# Invalidate FOV cache since transparency may have changed
+		FOVSystem.invalidate_cache()
+	else:
+		_show_message("Error: Could not create tile '%s'" % tile_id)
+
+func _do_learn_ritual(ritual_id: String) -> void:
+	if not player:
+		_show_message("Error: No player reference")
+		return
+
+	if ritual_id in player.known_rituals:
+		_show_message("Already know this ritual!")
+		return
+
+	var ritual = RitualManager.get_ritual(ritual_id)
+	if ritual:
+		player.learn_ritual(ritual_id)
+		_show_message("Learned: %s" % ritual.name)
+	else:
+		_show_message("Error: Ritual not found")
+
 func _do_give_gold(amount: int) -> void:
 	if not player:
 		_show_message("Error: No player reference")
@@ -1109,6 +1296,8 @@ func _do_toggle_god_mode() -> void:
 	GameManager.debug_god_mode = not GameManager.debug_god_mode
 	var status = "ENABLED" if GameManager.debug_god_mode else "DISABLED"
 	_show_message("God Mode: %s" % status)
+	# Refresh the tab to show updated status
+	_build_current_tab()
 
 func _do_teleport_town() -> void:
 	if not player or not MapManager.current_map:
@@ -1139,6 +1328,8 @@ func _do_reveal_map() -> void:
 	GameManager.debug_map_revealed = not GameManager.debug_map_revealed
 	var status = "ENABLED" if GameManager.debug_map_revealed else "DISABLED"
 	_show_message("Map Reveal: %s" % status)
+	# Refresh the tab to show updated status
+	_build_current_tab()
 
 # ============================================================================
 # UI building
@@ -1167,15 +1358,29 @@ func _build_current_tab() -> void:
 
 	for i in range(commands.size()):
 		var cmd = commands[i]
+		var display_text = _get_command_display_text(cmd)
 		var label = Label.new()
 		if i == selected_index:
-			label.text = "> %s" % cmd.text
+			label.text = "> %s" % display_text
 			label.add_theme_color_override("font_color", COLOR_SELECTED)
 		else:
-			label.text = "  %s" % cmd.text
+			label.text = "  %s" % display_text
 			label.add_theme_color_override("font_color", COLOR_COMMAND)
 		label.add_theme_font_size_override("font_size", 14)
 		current_tab_container.add_child(label)
+
+## Get display text for a command, with dynamic state for toggle commands
+func _get_command_display_text(cmd: Dictionary) -> String:
+	var action = cmd.get("action", "")
+	match action:
+		"toggle_god_mode":
+			var status = "[ON]" if GameManager.debug_god_mode else "[OFF]"
+			return "Toggle God Mode %s" % status
+		"reveal_map":
+			var status = "[ON]" if GameManager.debug_map_revealed else "[OFF]"
+			return "Reveal Map %s" % status
+		_:
+			return cmd.text
 
 func _get_tab_container(tab_index: int) -> VBoxContainer:
 	match tab_index:
@@ -1283,10 +1488,18 @@ func _update_info_panel() -> void:
 			info_text = _get_hazard_info(item_id)
 		"spawn_feature":
 			info_text = _get_feature_info(item_id)
+		"spawn_structure":
+			info_text = _get_structure_info(item_id)
+		"spawn_resource":
+			info_text = _get_resource_info(item_id)
+		"convert_tile":
+			info_text = _get_tile_info(item_id)
 		"learn_spell":
 			info_text = _get_spell_info(item_id)
 		"learn_recipe":
 			info_text = _get_recipe_info(item_id)
+		"learn_ritual":
+			info_text = _get_ritual_info(item_id)
 
 	if info_text.is_empty():
 		info_panel.visible = false
@@ -1540,6 +1753,152 @@ func _get_recipe_info(recipe_id: String) -> String:
 	var difficulty_names = ["Trivial", "Easy", "Medium", "Hard", "Expert"]
 	var diff_idx = clampi(recipe.difficulty - 1, 0, difficulty_names.size() - 1)
 	lines.append("[color=gray]Difficulty: %s (%d)[/color]" % [difficulty_names[diff_idx], recipe.difficulty])
+
+	return "\n".join(lines)
+
+
+func _get_structure_info(structure_id: String) -> String:
+	var data = StructureManager.structure_definitions.get(structure_id, {})
+	if data.is_empty():
+		return ""
+
+	var lines: Array[String] = []
+	var structure_name = data.get("name", structure_id)
+	var desc = data.get("description", "")
+	var ascii_char = data.get("ascii_char", "#")
+	var color_hex = _get_color_hex(data)
+
+	lines.append("[color=#%s]%s[/color] [b]%s[/b]" % [color_hex, ascii_char, structure_name])
+	if desc:
+		lines.append("[i]%s[/i]" % desc)
+
+	var stats: Array[String] = []
+	if data.get("is_fire_source", false):
+		stats.append("[color=orange]Fire source[/color]")
+	if data.get("is_light_source", false):
+		stats.append("[color=yellow]Light source[/color]")
+	if data.get("is_shelter", false):
+		stats.append("[color=cyan]Provides shelter[/color]")
+	if data.has("warmth") and data.warmth != 0:
+		stats.append("☀ Warmth: %+.0f°F" % data.warmth)
+
+	if stats.size() > 0:
+		lines.append("[color=white]%s[/color]" % "  ".join(stats))
+
+	return "\n".join(lines)
+
+
+func _get_resource_info(resource_id: String) -> String:
+	var resource = HarvestSystem.get_resource(resource_id)
+	if not resource:
+		return ""
+
+	var lines: Array[String] = []
+	var resource_name = resource.name
+	var tile_def = TileTypeManager.get_tile_definition(resource_id)
+	var ascii_char = tile_def.get("ascii_char", "*") if tile_def else "*"
+	var color_hex = tile_def.get("ascii_color", "#00ff00").trim_prefix("#") if tile_def else "00ff00"
+
+	lines.append("[color=#%s]%s[/color] [b]%s[/b]" % [color_hex, ascii_char, resource_name])
+
+	# Tools required
+	if not resource.required_tools.is_empty():
+		var tool_names: Array[String] = []
+		for tool_req in resource.required_tools:
+			var item_data = ItemManager.get_item_data(tool_req.tool_id)
+			var tool_name = item_data.get("name", tool_req.tool_id) if item_data else tool_req.tool_id
+			tool_names.append(tool_name)
+		lines.append("[color=yellow]Tools: %s[/color]" % ", ".join(tool_names))
+
+	# Yields
+	if not resource.yields.is_empty():
+		var yield_names: Array[String] = []
+		for yield_data in resource.yields:
+			var item_id = yield_data.get("item_id", "")
+			var item_data = ItemManager.get_item_data(item_id)
+			var yield_name = item_data.get("name", item_id) if item_data else item_id
+			yield_names.append(yield_name)
+		lines.append("[color=white]Yields: %s[/color]" % ", ".join(yield_names))
+
+	# Behavior
+	var behavior_names = ["Permanent", "Renewable", "Infinite"]
+	if resource.harvest_behavior >= 0 and resource.harvest_behavior < behavior_names.size():
+		lines.append("[color=gray]Type: %s[/color]" % behavior_names[resource.harvest_behavior])
+
+	return "\n".join(lines)
+
+
+func _get_tile_info(tile_id: String) -> String:
+	var tile_def = TileTypeManager.get_tile_definition(tile_id)
+	if tile_def.is_empty():
+		return ""
+
+	var lines: Array[String] = []
+	var display_name = tile_def.get("display_name", tile_id.replace("_", " ").capitalize())
+	var ascii_char = tile_def.get("ascii_char", "?")
+	var color_hex = tile_def.get("ascii_color", "#ffffff").trim_prefix("#") if tile_def.has("ascii_color") else "ffffff"
+
+	lines.append("[color=#%s]%s[/color] [b]%s[/b]" % [color_hex, ascii_char, display_name])
+
+	var stats: Array[String] = []
+	if tile_def.get("walkable", true):
+		stats.append("[color=green]Walkable[/color]")
+	else:
+		stats.append("[color=red]Blocking[/color]")
+	if tile_def.get("transparent", true):
+		stats.append("[color=cyan]Transparent[/color]")
+	else:
+		stats.append("[color=gray]Opaque[/color]")
+	if tile_def.get("is_fire_source", false):
+		stats.append("[color=orange]Fire source[/color]")
+
+	if stats.size() > 0:
+		lines.append("%s" % "  ".join(stats))
+
+	# Harvestable resource
+	var harvestable = tile_def.get("harvestable_resource_id", "")
+	if harvestable:
+		var resource = HarvestSystem.get_resource(harvestable)
+		var resource_name = resource.name if resource else harvestable
+		lines.append("[color=yellow]Harvestable: %s[/color]" % resource_name)
+
+	return "\n".join(lines)
+
+
+func _get_ritual_info(ritual_id: String) -> String:
+	var ritual = RitualManager.get_ritual(ritual_id)
+	if not ritual:
+		return ""
+
+	var lines: Array[String] = []
+
+	# Header with colored ASCII char
+	var color_hex = ritual.ascii_color.trim_prefix("#") if ritual.ascii_color.begins_with("#") else ritual.ascii_color
+	var rarity_str = ritual.rarity.capitalize() if ritual.rarity else "Common"
+	lines.append("[color=#%s]%s[/color] [b]%s[/b] [color=gray](%s %s)[/color]" % [
+		color_hex, ritual.ascii_char, ritual.name, ritual.school.capitalize(), rarity_str
+	])
+
+	# Description
+	if ritual.description:
+		lines.append("[i]%s[/i]" % ritual.description)
+
+	# Stats
+	var stats: Array[String] = []
+	stats.append("⏱ Channeling: %d turns" % ritual.channeling_turns)
+
+	if stats.size() > 0:
+		lines.append("[color=white]%s[/color]" % "  ".join(stats))
+
+	# Components
+	if not ritual.components.is_empty():
+		var component_list = ritual.get_component_list()
+		lines.append("[color=yellow]Components: %s[/color]" % ", ".join(component_list))
+
+	# Requirements
+	var req_int = ritual.requirements.get("intelligence", 8)
+	if req_int > 8:
+		lines.append("[color=cyan]Requires: INT %d[/color]" % req_int)
 
 	return "\n".join(lines)
 

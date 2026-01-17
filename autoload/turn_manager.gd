@@ -54,6 +54,9 @@ func advance_turn() -> void:
 	# Process renewable resource respawns
 	HarvestSystem.process_renewable_resources()
 
+	# Process feature respawns (flora features)
+	FeatureManager.process_feature_respawns()
+
 	# Process crop growth and tilled soil decay
 	FarmingSystem.process_crop_growth()
 	FarmingSystem.process_tilled_soil_decay()

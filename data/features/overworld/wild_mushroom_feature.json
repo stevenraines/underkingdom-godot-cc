@@ -1,0 +1,22 @@
+{
+	"id": "wild_mushroom_feature",
+	"name": "Wild Mushroom",
+	"ascii_char": ",",
+	"color": "#A58B59",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "gather",
+	"harvestable": true,
+	"removes_on_interact": true,
+	"renewable": true,
+	"respawn_turns": 4000,
+	"yields": [
+		{
+			"item_id": "mushroom",
+			"count_min": 1,
+			"count_max": 2,
+			"use_variant": true,
+			"variant_type": "mushroom_species"
+		}
+	]
+}

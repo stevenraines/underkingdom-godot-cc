@@ -3,20 +3,26 @@
 ## Version 1.2 Updates 
 ---
 
----
-## In Progress
-
----
-## Unplanned
-
-[ ] Test mode Expansion 
-    Implement the following improvements to the Debug Mode
+[x] Test mode Expansion
+    Implement the following improvements to the Debug Mode~~
     * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
     * add options to spawn structures, crops, and resources
     * add option to convert a tile to another tile (select new tile, select direction, select distance)
     * add option to learn rituals
-- [/] Creature Types
+- [x] Make easily collected resources into features
+    Made flowers, herbs, and mushrooms collectable by walking over them. These are not collected if auto-pickup is off
+- [x] H for pickup
+    When auto-pickup is turned off, standing on an item and pressing H (harvest) will pick up the item.
+- [ ] Creature Types
     Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
+---
+## Unplanned
+- [ ] Allow enemies to use ranged weapons and spells.
+    Humanoid creatures should be able to use ranged weapons like bows and slings to attach players. Spell casting creatures (mages, demons, etc) should also be able to cast spells on players to hurt or hinder them. For instance, in addition to the combat spells, a wizard of sufficent level should be able to cast a Slow spell on the player that causes the player to only be able to act once every 2 turns until the spell ends or the player makes a successful save.
+- [ ] Creature interaction
+    Creatures in the world should interact with other creatures. For example, a deserter in the woods meets a wolf - they should interact in the same way with each other that either would with the player. 
+- [ ] Allies
+    Creatures should be able to allied with other creatures, For instance a pack of 3 goblins and 1 hobgoblin could be allies, working together against one or more "enemies". Spell casting creatures who are allies should be able to heal and buff their allies in addition to hurting enemies.
 - [ ] Modify mine generation 
     so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation

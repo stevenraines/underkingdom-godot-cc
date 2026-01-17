@@ -1,0 +1,22 @@
+{
+	"id": "wild_flower_feature",
+	"name": "Wild Flower",
+	"ascii_char": "*",
+	"color": "#FFCC33",
+	"blocking": false,
+	"interactable": true,
+	"interaction_verb": "pick",
+	"harvestable": true,
+	"removes_on_interact": true,
+	"renewable": true,
+	"respawn_turns": 3000,
+	"yields": [
+		{
+			"item_id": "flower",
+			"count_min": 1,
+			"count_max": 1,
+			"use_variant": true,
+			"variant_type": "flower_species"
+		}
+	]
+}

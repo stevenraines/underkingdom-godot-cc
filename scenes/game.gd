@@ -37,7 +37,7 @@ var rest_menu: Control = null
 var spell_list_screen: Control = null
 var ritual_menu: Control = null
 var debug_command_menu: Control = null
-var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
+# auto_pickup_enabled moved to GameManager for global access
 
 # Spell casting state (targeting handled by TargetingSystem)
 
@@ -681,9 +681,9 @@ func _render_hazard_at(pos: Vector2i) -> void:
 
 ## Auto-pickup items at the player's position
 func _auto_pickup_items() -> void:
-	if not player or not auto_pickup_enabled:
+	if not player or not GameManager.auto_pickup_enabled:
 		return
-	
+
 	var ground_items = EntityManager.get_ground_items_at(player.position)
 	for ground_item in ground_items:
 		if player.pickup_item(ground_item):
@@ -691,8 +691,8 @@ func _auto_pickup_items() -> void:
 
 ## Toggle auto-pickup on/off
 func toggle_auto_pickup() -> void:
-	auto_pickup_enabled = not auto_pickup_enabled
-	var status = "ON" if auto_pickup_enabled else "OFF"
+	GameManager.auto_pickup_enabled = not GameManager.auto_pickup_enabled
+	var status = "ON" if GameManager.auto_pickup_enabled else "OFF"
 	_add_message("Auto-pickup: %s" % status, Color(0.8, 0.8, 0.6))
 	_update_toggles_display()
 
@@ -1305,8 +1305,8 @@ func _update_survival_display() -> void:
 func _update_toggles_display() -> void:
 	var ability1 = $HUD/BottomBar/Abilities/Ability1
 	if ability1:
-		var autopickup_status = "[G] Auto-pickup: %s" % ("ON" if auto_pickup_enabled else "OFF")
-		var autopickup_color = Color(0.5, 0.9, 0.5) if auto_pickup_enabled else Color(0.6, 0.6, 0.6)
+		var autopickup_status = "[G] Auto-pickup: %s" % ("ON" if GameManager.auto_pickup_enabled else "OFF")
+		var autopickup_color = Color(0.5, 0.9, 0.5) if GameManager.auto_pickup_enabled else Color(0.6, 0.6, 0.6)
 		ability1.text = autopickup_status
 		ability1.add_theme_color_override("font_color", autopickup_color)
 
@@ -1998,7 +1998,8 @@ func _on_debug_menu_closed() -> void:
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
 	input_handler.ui_blocking_input = false
-	# Refresh rendering to show spawned entities/items
+	# Refresh rendering to show spawned entities/items and tile changes
+	_render_map()
 	_render_all_entities()
 	_render_ground_items()
 	renderer.render_entity(player.position, "@", Color.YELLOW)

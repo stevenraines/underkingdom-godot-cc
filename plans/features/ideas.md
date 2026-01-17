@@ -1,21 +1,22 @@
 # Feature ideas to flesh out with Claude
 
-## Version 1.1 Updates 
+## Version 1.2 Updates 
 ---
-- [X] Add explicit version number to UI.
-- [X] Add a release number to the game, shown on the main menu screen. This version should be auto incremented on every merge to main.
-- [X] Bug Fix: Player can no longer spawn inside of buildings
-- [X] UI: Added Q to Save Screen to exit to main menu with one key press.
-- [X] Weapon damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
 
 ---
 ## In Progress
 
-- [/] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
-
 ---
 ## Unplanned
 
+[ ] Test mode Expansion 
+    Implement the following improvements to the Debug Mode
+    * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
+    * add options to spawn structures, crops, and resources
+    * add option to convert a tile to another tile (select new tile, select direction, select distance)
+    * add option to learn rituals
+- [/] Creature Types
+    Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
 - [ ] Modify mine generation 
     so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation
@@ -88,8 +89,14 @@
     Turn undead ability for cleric classes
 - [ ] Sailing Mechanic
     Add sailing mechanic - player can board a boat at a dock
-- [ ] Multiplayer implementation
-
+- [ ] Luck Mechanic
+    Add a mechanic that gives the player a luck score that builds up overtime and is spent when the player is in imminent peril
+- [ ] Action Point Mechanic
+    Add an action point system, where the players earn action points that can be spent to roll back the last action (and its consequences) or re-roll a die
+ - [ ] Advantage Mechanic
+    Add an advantage system, where the players can have advantage over an enemy (if the creature is between the player and an ally, disabled via a condition, etc) and 2 d20 rolls are made on attack or casting a spell targeted at the creature. The higher of the two is used. There should be some indication in the targeted enemy text at the bottom that the player has advantage. Similalry, monsters should be able to have advantage of the player / npcs / familiars. The player should get a message in the log when a creature gains advantage over them.
 - [ ] Improve Lighting Performance:
     Simplify overworld daytime lighting
     No FOV in areas except for interiors of buildings. Players should see all external building walls.
+
+- [ ] Multiplayer implementation

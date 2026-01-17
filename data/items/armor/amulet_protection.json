@@ -16,6 +16,6 @@
   "max_stack": 1,
   "ascii_char": "o",
   "ascii_color": "#FFD700",
-  "equip_slots": ["accessory"],
+  "equip_slots": ["neck"],
   "armor_value": 1
 }

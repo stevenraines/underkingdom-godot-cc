@@ -10,7 +10,8 @@ signal closed()
 # Inscription dialog preload
 const InscriptionDialogScene = preload("res://ui/inscription_dialog.tscn")
 
-@onready var equipment_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentList
+@onready var equipment_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentScrollContainer/EquipmentList
+@onready var equipment_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentScrollContainer
 @onready var inventory_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer/InventoryList
 @onready var inventory_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/InventoryPanel/ScrollContainer
 @onready var weight_label: Label = $Panel/MarginContainer/VBoxContainer/HeaderPanel/WeightLabel
@@ -76,21 +77,25 @@ const COLOR_PANEL_ACTIVE = Color(0.8, 0.8, 0.5, 1.0)
 const COLOR_PANEL_INACTIVE = Color(0.5, 0.5, 0.4, 1.0)
 
 # Equipment slots in display order
-const EQUIPMENT_SLOTS = ["head", "torso", "hands", "legs", "feet", "main_hand", "off_hand", "accessory_1", "accessory_2"]
+const EQUIPMENT_SLOTS = ["head", "neck", "torso", "back", "hands", "legs", "feet", "main_hand", "off_hand", "accessory_1", "accessory_2"]
 const SLOT_DISPLAY_NAMES = {
 	"head": "Head",
-	"torso": "Torso", 
+	"neck": "Neck",
+	"torso": "Torso",
+	"back": "Back",
 	"hands": "Hands",
 	"legs": "Legs",
 	"feet": "Feet",
 	"main_hand": "Weapon",
 	"off_hand": "Off-Hand",
-	"accessory_1": "Ring 1",
-	"accessory_2": "Ring 2"
+	"accessory_1": "Ring (L)",
+	"accessory_2": "Ring (R)"
 }
 const SLOT_ICONS = {
 	"head": "○",
+	"neck": "◎",
 	"torso": "▣",
+	"back": ")",
 	"hands": "☐",
 	"legs": "║",
 	"feet": "⌐",
@@ -335,27 +340,32 @@ func _update_inventory_display() -> void:
 func _create_item_row() -> HBoxContainer:
 	var container = HBoxContainer.new()
 	container.add_theme_constant_override("separation", 8)
-	
+
 	var icon = Label.new()
 	icon.name = "Icon"
 	icon.custom_minimum_size = Vector2(20, 0)
 	icon.add_theme_font_size_override("font_size", 14)
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	container.add_child(icon)
-	
+
 	var name_label = Label.new()
 	name_label.name = "Name"
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 13)
 	container.add_child(name_label)
-	
+
 	var weight_label_item = Label.new()
 	weight_label_item.name = "Weight"
-	weight_label_item.custom_minimum_size = Vector2(50, 0)
+	weight_label_item.custom_minimum_size = Vector2(60, 0)  # Increased width to account for scrollbar
 	weight_label_item.add_theme_font_size_override("font_size", 12)
 	weight_label_item.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	container.add_child(weight_label_item)
-	
+
+	# Add spacer to keep weight clear of scrollbar
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(12, 0)  # Width of scrollbar
+	container.add_child(spacer)
+
 	return container
 
 func _update_selection() -> void:
@@ -386,6 +396,9 @@ func _update_selection() -> void:
 			_set_row_highlight(selected_row, true)
 			selected_slot = EQUIPMENT_SLOTS[equipment_index]
 			selected_item = player.inventory.get_equipped(selected_slot) if player and player.inventory else null
+			# Scroll to keep selected equipment slot visible
+			if equipment_scroll:
+				equipment_scroll.ensure_control_visible(selected_row)
 	else:
 		var children = inventory_list.get_children()
 		if inventory_index >= 0 and inventory_index < children.size():
@@ -658,6 +671,10 @@ func _equip_selected() -> void:
 
 ## Show items that can be equipped to a specific slot
 func _show_items_for_slot(slot: String) -> void:
+	# Reset slot picker state (in case we were previously in slot picker mode)
+	_pending_slot_picker_item = null
+	_slot_picker_index = 0
+
 	# Check if off_hand is blocked
 	if slot == "off_hand" and player.inventory.is_off_hand_blocked():
 		# Show message in tooltip
@@ -811,7 +828,7 @@ func _update_slot_selection_display() -> void:
 	item_name_label.text = "Select item for %s" % slot_name
 	item_name_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
 
-	# Build item list for description
+	# Build item list for description - show selected item with yellow highlight
 	var item_lines: Array[String] = []
 	for i in range(slot_selection_items.size()):
 		var item = slot_selection_items[i]
@@ -819,6 +836,10 @@ func _update_slot_selection_display() -> void:
 		item_lines.append("%s%s" % [marker, item.name])
 
 	item_desc_label.text = "\n".join(item_lines)
+	# Highlight the description in yellow when there's only one item (common case)
+	# or when showing the list
+	item_desc_label.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+
 	stat_line_1.text = "↑↓ Navigate"
 	stat_line_2.text = "Enter to equip"
 	stat_line_3.text = "ESC Cancel"

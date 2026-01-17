@@ -675,6 +675,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_F1 or (event.keycode == KEY_SLASH and event.shift_pressed) or event.unicode == 63:  # F1 or ? (Shift+/ or unicode 63) - help screen
 			_open_help_screen()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F12:  # F12 - debug command menu
+			_toggle_debug_menu()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_TAB:  # Tab key - cycle targets
 			_cycle_target()
 			get_viewport().set_input_as_handled()
@@ -1144,6 +1147,15 @@ func _open_help_screen() -> void:
 		game.open_help_screen()
 	else:
 		print("[InputHandler] ERROR: game or open_help_screen method not found")
+
+## Toggle debug command menu (F12)
+func _toggle_debug_menu() -> void:
+	print("[InputHandler] Toggling debug menu")
+	var game = get_parent()
+	if game and game.has_method("toggle_debug_menu"):
+		game.toggle_debug_menu()
+	else:
+		print("[InputHandler] ERROR: game or toggle_debug_menu method not found")
 
 ## Toggle fast travel screen
 func _toggle_fast_travel() -> void:

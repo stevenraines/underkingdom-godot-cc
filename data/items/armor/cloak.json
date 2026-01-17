@@ -16,7 +16,7 @@
   "ascii_char": ")",
   "ascii_color": "#556B2F",
   "durability": 50,
-  "equip_slots": ["accessory"],
+  "equip_slots": ["back"],
   "armor_value": 0,
   "warmth": 10
 }

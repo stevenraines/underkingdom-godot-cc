@@ -11,13 +11,14 @@ var items: Array[Item] = []
 # Equipment slots
 var equipment: Dictionary = {
 	"head": null,
+	"neck": null,
 	"torso": null,
+	"back": null,
 	"hands": null,
 	"legs": null,
 	"feet": null,
 	"main_hand": null,
 	"off_hand": null,
-	"neck": null,
 	"accessory_1": null,
 	"accessory_2": null
 }
@@ -31,13 +32,14 @@ var _owner: Entity = null
 # Equipment slot display names
 const SLOT_NAMES: Dictionary = {
 	"head": "Head",
+	"neck": "Neck",
 	"torso": "Torso",
+	"back": "Back",
 	"hands": "Hands",
 	"legs": "Legs",
 	"feet": "Feet",
 	"main_hand": "Main Hand",
 	"off_hand": "Off Hand",
-	"neck": "Neck",
 	"accessory_1": "Ring",
 	"accessory_2": "Ring"
 }

@@ -101,6 +101,10 @@ func _calculate_derived_stats() -> void:
 ## source: What caused the damage (e.g., enemy name, "Starvation", "Dehydration")
 ## method: How the damage was dealt (e.g., weapon name, "survival")
 func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
+	# Check for god mode (only applies to player)
+	if name == "Player" and GameManager.debug_god_mode:
+		return  # No damage in god mode
+
 	current_health = max(0, current_health - amount)
 	if current_health <= 0:
 		die()

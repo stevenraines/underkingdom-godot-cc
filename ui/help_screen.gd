@@ -113,6 +113,7 @@ func _build_help_content() -> void:
 	_add_keybind("Shift+M / K", "Spellbook (view & cast spells)")
 	_add_keybind("Z", "Fast travel to visited locations")
 	_add_keybind("? or F1", "This help screen")
+	_add_keybind("F12", "Debug commands (dev mode)")
 	_add_keybind("ESC", "Pause menu / close UI")
 	_add_keybind("1-3 (in menus)", "Quick-select save slots")
 	_add_spacer()

@@ -25,6 +25,10 @@ var visited_locations: Dictionary = {}
 # Player settings
 var auto_open_doors: bool = true  # Automatically open doors when walking into them
 
+# Debug flags
+var debug_god_mode: bool = false  # Player takes no damage
+var debug_map_revealed: bool = false  # All tiles visible (FOV bypassed)
+
 func _ready() -> void:
 	# Load harvestable resources
 	_HarvestSystem.load_resources()

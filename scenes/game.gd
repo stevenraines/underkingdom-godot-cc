@@ -36,6 +36,7 @@ var fast_travel_screen: Control = null
 var rest_menu: Control = null
 var spell_list_screen: Control = null
 var ritual_menu: Control = null
+var debug_command_menu: Control = null
 var auto_pickup_enabled: bool = true  # Toggle for automatic item pickup
 
 # Spell casting state (targeting handled by TargetingSystem)
@@ -138,6 +139,9 @@ func _ready() -> void:
 
 	# Create ritual menu
 	_setup_ritual_menu()
+
+	# Create debug command menu
+	_setup_debug_command_menu()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -434,6 +438,20 @@ func _setup_ritual_menu() -> void:
 		print("[Game] Ritual menu scene instantiated and added to HUD")
 	else:
 		print("[Game] ERROR: Could not load ritual_menu.tscn scene")
+
+## Setup debug command menu
+func _setup_debug_command_menu() -> void:
+	print("[Game] Setting up debug command menu from scene...")
+	var DebugCommandMenuScene = load("res://ui/debug_command_menu.tscn")
+	if DebugCommandMenuScene:
+		debug_command_menu = DebugCommandMenuScene.instantiate()
+		debug_command_menu.name = "DebugCommandMenu"
+		hud.add_child(debug_command_menu)
+		if debug_command_menu.has_signal("closed"):
+			debug_command_menu.closed.connect(_on_debug_menu_closed)
+		print("[Game] Debug command menu scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load debug_command_menu.tscn scene")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -1775,6 +1793,19 @@ func open_help_screen() -> void:
 	else:
 		print("[Game] ERROR: help_screen is null")
 
+## Toggle debug command menu (called from F12 key)
+func toggle_debug_menu() -> void:
+	print("[Game] toggle_debug_menu called - debug_command_menu: ", debug_command_menu)
+	if debug_command_menu:
+		if debug_command_menu.visible:
+			debug_command_menu.close()
+			input_handler.ui_blocking_input = false
+		else:
+			debug_command_menu.open()
+			input_handler.ui_blocking_input = true
+	else:
+		print("[Game] ERROR: debug_command_menu is null")
+
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
 	# Resume normal gameplay
@@ -1956,6 +1987,10 @@ func _on_level_up_screen_closed() -> void:
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+## Called when debug menu is closed
+func _on_debug_menu_closed() -> void:
 	input_handler.ui_blocking_input = false
 
 ## Called when world map is closed

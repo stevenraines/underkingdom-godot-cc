@@ -46,6 +46,7 @@ IdentificationManager="*res://autoload/identification_manager.gd"
 RitualManager="*res://autoload/ritual_manager.gd"
 SkillManager="*res://autoload/skill_manager.gd"
 CreatureTypeManager="*res://autoload/creature_type_manager.gd"
+RaceManager="*res://autoload/race_manager.gd"
 
 [debug]
 

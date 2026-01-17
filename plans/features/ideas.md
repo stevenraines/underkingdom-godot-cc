@@ -2,7 +2,12 @@
 
 ## Version 1.2 Updates 
 ---
-
+- [x] Playable character races 
+    Allow for different fantasy races (classic D&D) with different abilities
+- [ ] Playable Character Classes 
+    Allow the player to choose a starting character class as in traditional roguelikes with with starting skill levels and special abilities. Allow a random choice that auto-chooses for the player
+- [ ] Character Customization Sheet
+    Character Customization at game start (point assignment for scores, assigment of skill points, classes, races)
 - [x] Test mode Expansion
     Implement the following improvements to the Debug Mode~~
     * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
@@ -11,22 +16,26 @@
     * add option to learn rituals
 - [x] Make easily collected resources into features
     Made flowers, herbs, and mushrooms collectable by walking over them. These are not collected if auto-pickup is off
-- [x] H for pickup
+- [x] Rename Character sheet Weather tab to Environment as it contains dates 
+- [x] H is for pickup
     When auto-pickup is turned off, standing on an item and pressing H (harvest) will pick up the item.
 - [x] Creature Types
     Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
-- [X] Resistance / Vulnerability cues
+- [x] Resistance / Vulnerability cues
     When a creature has immunity or resistance to an attack or action, the log should indicate a cue to the player, like "Your axe seems to do less damage that usual."
+
 ---
 ## Unplanned
-- [ ] Enemy abilities
-    Some creatures should have special abilities - trolls have regenreation, dragons breath fire, etc. Implement a system to support special abilities that can be defined through data configuration
+- [ ] Enemy traits
+    Some creatures should have special abilities like the racial traits players have - trolls have regenreation, dragons breath fire, etc. Implement a system to support special abilities that can be defined through data configuration
 - [ ] Allow enemies to use ranged weapons and spells.
     Humanoid creatures should be able to use ranged weapons like bows and slings to attach players. Spell casting creatures (mages, demons, etc) should also be able to cast spells on players to hurt or hinder them. For instance, in addition to the combat spells, a wizard of sufficent level should be able to cast a Slow spell on the player that causes the player to only be able to act once every 2 turns until the spell ends or the player makes a successful save.
 - [ ] Creature interaction
     Creatures in the world should interact with other creatures. For example, a deserter in the woods meets a wolf - they should interact in the same way with each other that either would with the player. 
 - [ ] Allies
     Creatures should be able to allied with other creatures, For instance a pack of 3 goblins and 1 hobgoblin could be allies, working together against one or more "enemies". Spell casting creatures who are allies should be able to heal and buff their allies in addition to hurting enemies.
+- [ ] Magic Item: Scroll of Recall
+    Add a consumable item used to instantly teleport a character to a safe location (nearest town), allowing for emergency escapes. This should work even if the player is in a dungeon
 - [ ] Modify mine generation 
     so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation
@@ -65,6 +74,7 @@
     Add a brewer to the city who sells beer and teaches brewing skill
 - [ ] NPC: Vintner
     Add a vintner outside of the city town who sells wine and teaches wine making & distillation
+- [ ] Craft: Fisherman, tailor, or weaver can teach receipe for cord.
 - [ ] NPCs: Wandering Traders:
     Add wandering traders who appear along roads and offer goods for sale.
 - [ ] NPCs: Non-trade NPCs
@@ -87,16 +97,12 @@
     Add a multi-tiered currency system (pp, gp, ep, sp, cp)
 - [ ] Alcohol Effects
     Add alcohol effects using traditional roguelikes.
+- [ ] Some spells require components
+    Come spells may have required components. Without these components in inventory the spell cannot be cast. If the player has the components and casts the spell, the components are consumed and removed from the player's inventory. This occurs regardless of whether the spell succeeds or fails.
 - [ ] Quests
 - [ ] Hirelings
-- [ ] Playable character races 
-    Allow for different fantasy races (classic D&D) with different abilities
-- [ ] Playable Character Classes 
-    Allow the player to choose a starting character class as in traditional roguelikes with with starting skill levels and special abilities
-- [ ] Character Customization Sheet
-    Character Customization at game start (point assignment for scores, assigment of skill points, classes, races)
 - [ ] Turn Undead
-    Turn undead ability for cleric classes
+    Turn undead ability for cleric classes, using traditional roguelike patterns
 - [ ] Sailing Mechanic
     Add sailing mechanic - player can board a boat at a dock
 - [ ] Luck Mechanic
@@ -105,6 +111,8 @@
     Add an action point system, where the players earn action points that can be spent to roll back the last action (and its consequences) or re-roll a die
  - [ ] Advantage Mechanic
     Add an advantage system, where the players can have advantage over an enemy (if the creature is between the player and an ally, disabled via a condition, etc) and 2 d20 rolls are made on attack or casting a spell targeted at the creature. The higher of the two is used. There should be some indication in the targeted enemy text at the bottom that the player has advantage. Similalry, monsters should be able to have advantage of the player / npcs / familiars. The player should get a message in the log when a creature gains advantage over them.
+- [ ] Add Racial Variants
+    Allow players to select racial variants for races that have them (Dark Elf, Wood Elf, High Elf, etc.)
 - [ ] Improve Lighting Performance:
     Simplify overworld daytime lighting
     No FOV in areas except for interiors of buildings. Players should see all external building walls.

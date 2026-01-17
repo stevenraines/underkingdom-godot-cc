@@ -166,6 +166,9 @@ func _ready() -> void:
 		player.position = _find_valid_spawn_position()
 		MapManager.current_map.entities.append(player)
 
+		# Apply selected race from GameManager
+		player.apply_race(GameManager.player_race)
+
 		# Give player some starter items
 		_give_starter_items()
 
@@ -218,7 +221,8 @@ func _ready() -> void:
 
 	# Calculate initial visibility (FOV + lighting)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
-	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
+	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
+	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
 	renderer.update_fov(visible_tiles, player.position)
 
 	# Connect signals
@@ -1908,9 +1912,11 @@ func _on_weather_changed(_old_weather: String, _new_weather: String, message: St
 ## Called when time of day changes - refresh FOV/lighting and handle shop door locking
 func _on_time_of_day_changed(new_time: String) -> void:
 	# Refresh FOV and lighting since sun position affects visibility
+	# Also recalculates racial bonuses like darkvision that depend on time of day
 	if player and MapManager.current_map:
 		var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
-		var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
+		var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
+		var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
 		renderer.update_fov(visible_tiles, player.position)
 
 	# Handle shop door locking on overworld
@@ -2318,7 +2324,8 @@ func _update_visibility() -> void:
 
 	# Calculate visibility (LOS-based, for entities)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
-	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, player.perception_range, player_light_radius, MapManager.current_map)
+	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
+	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
 
 	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer
 	renderer.update_fov(visible_tiles, player.position)

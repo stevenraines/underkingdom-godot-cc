@@ -1,0 +1,33 @@
+{
+  "id": "human",
+  "name": "Human",
+  "description": "Versatile and adaptable, humans excel through determination and ambition. Their shorter lifespans drive them to achieve greatness quickly.",
+  "ascii_color": "#FFCC66",
+  "stat_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "CON": 0,
+    "INT": 0,
+    "WIS": 0,
+    "CHA": 0
+  },
+  "bonus_stat_points": 2,
+  "traits": [
+    {
+      "id": "versatile",
+      "name": "Versatile",
+      "description": "+2 bonus stat points to distribute",
+      "type": "passive",
+      "effect": {}
+    },
+    {
+      "id": "ambitious",
+      "name": "Ambitious",
+      "description": "+10% experience gain",
+      "type": "passive",
+      "effect": {
+        "xp_bonus": 10
+      }
+    }
+  ]
+}

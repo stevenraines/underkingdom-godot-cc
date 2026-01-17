@@ -49,6 +49,18 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 	var roll = randi_range(1, 100)
 	result.roll = roll
 
+	# Check for Lucky trait reroll on miss (Halfling)
+	if roll > hit_chance:
+		if attacker.has_method("has_racial_trait") and attacker.has_racial_trait("lucky"):
+			if attacker.has_method("can_use_racial_ability") and attacker.can_use_racial_ability("lucky"):
+				# Reroll the attack
+				var reroll = randi_range(1, 100)
+				attacker.use_racial_ability("lucky")
+				EventBus.message_logged.emit("Lucky! Rerolling attack... (%d -> %d)" % [roll, reroll])
+				roll = reroll
+				result.roll = roll
+				result.lucky_reroll = true
+
 	if roll <= hit_chance:
 		result.hit = true
 
@@ -94,10 +106,16 @@ static func get_accuracy(entity: Entity) -> int:
 	return base_accuracy + skill_bonus
 
 ## Calculate defender's evasion
-## Formula: 5% + (DEX × 1)%
+## Formula: 5% + (DEX × 1)% + racial bonuses
 static func get_evasion(entity: Entity) -> int:
 	var dex = entity.attributes.get("DEX", 10)
-	return 5 + dex
+	var base_evasion = 5 + dex
+
+	# Add racial evasion bonus (e.g., Halfling Nimble)
+	if entity.has_method("get_racial_evasion_bonus"):
+		base_evasion += entity.get_racial_evasion_bonus()
+
+	return base_evasion
 
 ## Calculate damage for an attack (legacy - used for backwards compatibility)
 ## Formula: Base Damage + STR modifier - Armor

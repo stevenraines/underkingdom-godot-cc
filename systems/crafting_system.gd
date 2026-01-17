@@ -39,18 +39,23 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 		result.message = "Missing requirements: " + ", ".join(missing)
 		return result
 
-	# D&D-style skill check: d20 + INT modifier + crafting skill vs DC
+	# D&D-style skill check: d20 + INT modifier + crafting skill + racial bonus vs DC
 	var crafting_skill = player.skills.get("crafting", 0)
 	var int_val = player.get_effective_attribute("INT") if player.has_method("get_effective_attribute") else player.attributes.get("INT", 10)
 	var int_modifier: int = int((int_val - 10) / 2.0)
 	var dc: int = recipe.difficulty * 2 + 8  # DC scales with difficulty
 
+	# Get racial crafting bonus (e.g., Gnome Tinkerer)
+	var racial_bonus: int = 0
+	if "crafting_bonus" in player:
+		racial_bonus = player.crafting_bonus
+
 	var dice_roll: int = randi_range(1, 20)
-	var total_roll: int = dice_roll + int_modifier + crafting_skill
+	var total_roll: int = dice_roll + int_modifier + crafting_skill + racial_bonus
 	var success: bool = total_roll >= dc
 
 	# Build roll breakdown string for messages
-	var roll_info = _format_d20_roll(dice_roll, int_modifier, "INT", crafting_skill, total_roll, dc)
+	var roll_info = _format_d20_roll(dice_roll, int_modifier, "INT", crafting_skill + racial_bonus, total_roll, dc)
 
 	# Consume ingredients (regardless of success/failure)
 	if not recipe.consume_ingredients(player.inventory):

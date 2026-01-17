@@ -1,0 +1,36 @@
+{
+  "id": "half_orc",
+  "name": "Half-Orc",
+  "description": "Fierce and powerful, half-orcs channel their rage into devastating combat prowess. They often struggle between their human and orcish heritage.",
+  "ascii_color": "#669966",
+  "stat_modifiers": {
+    "STR": 2,
+    "DEX": 0,
+    "CON": 1,
+    "INT": -1,
+    "WIS": 0,
+    "CHA": -1
+  },
+  "bonus_stat_points": 0,
+  "traits": [
+    {
+      "id": "aggressive",
+      "name": "Aggressive",
+      "description": "+1 base melee damage",
+      "type": "passive",
+      "effect": {
+        "melee_damage_bonus": 1
+      }
+    },
+    {
+      "id": "relentless",
+      "name": "Relentless Endurance",
+      "description": "Once per rest, survive a killing blow with 1 HP",
+      "type": "active",
+      "uses_per_rest": 1,
+      "effect": {
+        "death_save": true
+      }
+    }
+  ]
+}

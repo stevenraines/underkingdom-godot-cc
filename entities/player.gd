@@ -162,6 +162,17 @@ var death_cause: String = ""  # What killed the player (enemy name, "Starvation"
 var death_method: String = ""  # Weapon/method used (if applicable)
 var death_location: String = ""  # Where death occurred
 
+# Race system
+var race_id: String = "human"  # Selected race ID
+var racial_traits: Dictionary = {}  # Trait state: {trait_id: {uses_remaining: int, active: bool}}
+var racial_stat_modifiers: Dictionary = {}  # Racial stat bonuses: {stat_name: modifier}
+
+# Racial trait bonuses (applied from passive traits)
+var trap_detection_bonus: int = 0  # Keen Senses (Elf)
+var crafting_bonus: int = 0  # Tinkerer (Gnome)
+var spell_success_bonus: int = 0  # Arcane Affinity (Gnome)
+var harvest_bonuses: Dictionary = {}  # Stonecunning (Dwarf) - {resource_type: bonus}
+
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
 	_setup_player()
@@ -211,6 +222,187 @@ func _on_item_equipped(_item, _slot: String) -> void:
 ## Called when an item is unequipped
 func _on_item_unequipped(_item, _slot: String) -> void:
 	_recalculate_effect_modifiers()
+
+
+# =============================================================================
+# RACE SYSTEM
+# =============================================================================
+
+## Apply race bonuses to player attributes
+## Should be called during character creation, after race is selected
+func apply_race(new_race_id: String) -> void:
+	race_id = new_race_id
+
+	# Store racial stat modifiers (don't modify base attributes)
+	racial_stat_modifiers = RaceManager.get_stat_modifiers(race_id).duplicate()
+	print("[Player] Racial stat modifiers: %s" % racial_stat_modifiers)
+
+	# Apply bonus stat points (e.g., Human Versatile trait)
+	var bonus_points = RaceManager.get_bonus_stat_points(race_id)
+	if bonus_points > 0:
+		available_ability_points += bonus_points
+		print("[Player] Granted %d bonus ability points from race" % bonus_points)
+
+	# Apply trait effects
+	var race_traits = RaceManager.get_traits(race_id)
+	for race_trait in race_traits:
+		_apply_racial_trait(race_trait)
+
+	# Recalculate derived stats after attribute changes
+	_calculate_derived_stats()
+
+	# Update perception based on effective WIS (includes racial modifier)
+	perception_range = 5 + int(get_effective_attribute("WIS") / 2.0)
+
+	# Apply racial color (optional - tint player)
+	var race_color_str = RaceManager.get_race_color(race_id)
+	if not race_color_str.is_empty():
+		color = Color(race_color_str)
+
+	print("[Player] Applied race '%s' - Stats: %s" % [race_id, RaceManager.format_stat_modifiers(race_id)])
+
+
+## Apply a single racial trait
+func _apply_racial_trait(trait_data: Dictionary) -> void:
+	var trait_id = trait_data.get("id", "")
+	var trait_type = trait_data.get("type", "passive")
+
+	# Initialize trait state
+	var uses_per_rest = trait_data.get("uses_per_rest", -1)  # -1 = unlimited
+	racial_traits[trait_id] = {
+		"uses_remaining": uses_per_rest,
+		"active": true
+	}
+
+	# Apply passive effects
+	if trait_type == "passive":
+		var effect = trait_data.get("effect", {})
+		_apply_passive_trait_effect(effect)
+
+
+## Apply passive trait effects (resistances, bonuses, etc.)
+func _apply_passive_trait_effect(effect: Dictionary) -> void:
+	# Elemental resistances (e.g., Dwarf poison resistance)
+	if effect.has("elemental_resistance"):
+		for element in effect.elemental_resistance:
+			var value = effect.elemental_resistance[element]
+			elemental_resistances[element] = elemental_resistances.get(element, 0) + value
+
+	# Melee damage bonus (e.g., Half-Orc Aggressive)
+	if effect.has("melee_damage_bonus"):
+		base_damage += effect.melee_damage_bonus
+
+	# Trap detection bonus (e.g., Elf Keen Senses)
+	if effect.has("trap_detection_bonus"):
+		trap_detection_bonus += effect.trap_detection_bonus
+
+	# Crafting bonus (e.g., Gnome Tinkerer)
+	if effect.has("crafting_bonus"):
+		crafting_bonus += effect.crafting_bonus
+
+	# Spell success bonus (e.g., Gnome Arcane Affinity)
+	if effect.has("spell_success_bonus"):
+		spell_success_bonus += effect.spell_success_bonus
+
+	# Harvest bonuses (e.g., Dwarf Stonecunning)
+	if effect.has("harvest_bonus"):
+		for resource_type in effect.harvest_bonus:
+			var value = effect.harvest_bonus[resource_type]
+			harvest_bonuses[resource_type] = harvest_bonuses.get(resource_type, 0) + value
+
+
+## Check if player has a specific racial trait
+func has_racial_trait(trait_id: String) -> bool:
+	return racial_traits.has(trait_id) and racial_traits[trait_id].active
+
+
+## Use a racial ability (for active traits with limited uses)
+## Returns true if ability was used successfully
+func use_racial_ability(trait_id: String) -> bool:
+	if not racial_traits.has(trait_id):
+		return false
+
+	var trait_state = racial_traits[trait_id]
+
+	# Check if uses remaining (unlimited = -1)
+	if trait_state.uses_remaining == 0:
+		return false
+
+	# Decrement uses if not unlimited
+	if trait_state.uses_remaining > 0:
+		trait_state.uses_remaining -= 1
+
+	EventBus.racial_ability_used.emit(self, trait_id)
+	return true
+
+
+## Check if a racial ability has uses remaining
+func can_use_racial_ability(trait_id: String) -> bool:
+	if not racial_traits.has(trait_id):
+		return false
+
+	var trait_state = racial_traits[trait_id]
+	return trait_state.uses_remaining != 0  # -1 (unlimited) or positive
+
+
+## Reset racial ability uses (called on rest)
+func reset_racial_abilities() -> void:
+	var all_traits = RaceManager.get_traits(race_id)
+	for trait_data in all_traits:
+		var tid = trait_data.get("id", "")
+		if racial_traits.has(tid):
+			var uses_per_rest = trait_data.get("uses_per_rest", -1)
+			racial_traits[tid].uses_remaining = uses_per_rest
+			EventBus.racial_ability_recharged.emit(self, tid)
+
+
+## Override to include racial stat modifiers in effective attribute calculation
+func get_effective_attribute(attr_name: String) -> int:
+	var base_value = attributes.get(attr_name, 10)
+	var racial_mod = racial_stat_modifiers.get(attr_name, 0)
+	var temp_mod = stat_modifiers.get(attr_name, 0)
+	return max(1, base_value + racial_mod + temp_mod)
+
+
+## Get effective perception range (with racial bonuses like darkvision)
+func get_effective_perception_range() -> int:
+	var base = perception_range
+
+	# Apply darkvision bonus during night
+	if has_racial_trait("darkvision"):
+		var darkvision_trait = RaceManager.get_trait(race_id, "darkvision")
+		var effect = darkvision_trait.get("effect", {})
+		var dark_bonus = effect.get("perception_bonus_dark", 0)
+
+		# Check if currently in darkness (night time)
+		if TurnManager.time_of_day in ["night", "midnight"]:
+			base += dark_bonus
+
+	return base
+
+
+## Get evasion bonus from racial traits (e.g., Halfling Nimble)
+func get_racial_evasion_bonus() -> int:
+	var bonus = 0
+
+	if has_racial_trait("nimble"):
+		var nimble_trait = RaceManager.get_trait(race_id, "nimble")
+		var effect = nimble_trait.get("effect", {})
+		bonus += effect.get("evasion_bonus", 0)
+
+	return bonus
+
+
+## Get XP bonus multiplier from racial traits (e.g., Human Ambitious)
+func get_racial_xp_bonus() -> int:
+	var bonus = 0
+
+	if has_racial_trait("ambitious"):
+		var ambitious_trait = RaceManager.get_trait(race_id, "ambitious")
+		var effect = ambitious_trait.get("effect", {})
+		bonus += effect.get("xp_bonus", 0)
+
+	return bonus
 
 
 ## Attempt to attack a target entity
@@ -1237,6 +1429,11 @@ func gain_experience(amount: int) -> void:
 	if amount <= 0:
 		return
 
+	# Apply racial XP bonus (e.g., Human Ambitious +10%)
+	var xp_bonus = get_racial_xp_bonus()
+	if xp_bonus > 0:
+		amount = int(amount * (100.0 + xp_bonus) / 100.0)
+
 	experience += amount
 
 	# Check for level-up(s)
@@ -1430,6 +1627,15 @@ func _get_current_location() -> String:
 func take_damage(amount: int, source: String = "Unknown", method: String = "") -> void:
 	# Check if this damage will kill us BEFORE applying it
 	var will_die = (current_health - amount) <= 0
+
+	# Check for Relentless Endurance (Half-Orc trait) before lethal damage
+	if will_die and has_racial_trait("relentless") and can_use_racial_ability("relentless"):
+		# Survive with 1 HP
+		var blocked_damage = current_health - 1
+		amount = blocked_damage if blocked_damage > 0 else 0
+		use_racial_ability("relentless")
+		EventBus.message_logged.emit("Relentless Endurance! You refuse to fall, surviving with 1 HP!")
+		will_die = false
 
 	# Record death cause BEFORE calling super, because super.take_damage() calls die()
 	# which emits entity_died signal synchronously - game.gd reads death_cause immediately

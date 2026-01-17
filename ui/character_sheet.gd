@@ -10,6 +10,8 @@ signal closed
 @onready var tab_container: TabContainer = $Panel/MarginContainer/VBoxContainer/TabContainer
 @onready var progression_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression
 @onready var progression_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Progression/ScrollMargin/ContentBox
+@onready var traits_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Traits
+@onready var traits_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Traits/ScrollMargin/ContentBox
 @onready var abilities_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities
 @onready var abilities_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Abilities/ScrollMargin/ContentBox
 @onready var skills_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Skills
@@ -18,8 +20,8 @@ signal closed
 @onready var combat_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Combat/ScrollMargin/ContentBox
 @onready var survival_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival
 @onready var survival_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Survival/ScrollMargin/ContentBox
-@onready var weather_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Weather
-@onready var weather_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Weather/ScrollMargin/ContentBox
+@onready var weather_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Environment
+@onready var weather_content: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Environment/ScrollMargin/ContentBox
 
 var player = null  # Player instance
 var current_scroll_container: ScrollContainer = null  # Track which tab is active for scrolling
@@ -42,8 +44,9 @@ func _ready() -> void:
 func open(p_player) -> void:
 	player = p_player
 
-	# Populate all 6 tabs
+	# Populate all 7 tabs
 	_populate_progression_tab()
+	_populate_traits_tab()
 	_populate_abilities_tab()
 	_populate_skills_tab()
 	_populate_combat_tab()
@@ -67,6 +70,13 @@ func _populate_progression_tab() -> void:
 		child.queue_free()
 	current_content_box = progression_content
 	_add_progression_section()
+
+## Populate the Traits tab
+func _populate_traits_tab() -> void:
+	for child in traits_content.get_children():
+		child.queue_free()
+	current_content_box = traits_content
+	_add_traits_section()
 
 ## Populate the Abilities tab
 func _populate_abilities_tab() -> void:
@@ -105,9 +115,7 @@ func _populate_weather_tab() -> void:
 
 ## Add the attributes section (STR, DEX, CON, INT, WIS, CHA)
 func _add_attributes_section() -> void:
-	var section_header = _create_section_header("== ATTRIBUTES ==")
-	abilities_content.add_child(section_header)
-
+	_add_spacer()
 	var attributes = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
 	var attribute_names = {
 		"STR": "Strength",
@@ -120,7 +128,9 @@ func _add_attributes_section() -> void:
 
 	for attr in attributes:
 		var base_value = player.attributes.get(attr, 10)
-		var modifier = player.stat_modifiers.get(attr, 0)
+		var racial_mod = player.racial_stat_modifiers.get(attr, 0)
+		var temp_mod = player.stat_modifiers.get(attr, 0)
+		var total_mod = racial_mod + temp_mod
 		var effective = player.get_effective_attribute(attr)
 
 		var stat_line = HBoxContainer.new()
@@ -135,10 +145,10 @@ func _add_attributes_section() -> void:
 
 		# Value display (right-aligned)
 		var value_label = Label.new()
-		if modifier != 0:
-			var modifier_text = "+%d" % modifier if modifier > 0 else "%d" % modifier
+		if total_mod != 0:
+			var modifier_text = "+%d" % total_mod if total_mod > 0 else "%d" % total_mod
 			value_label.text = "%d %s = %d" % [base_value, modifier_text, effective]
-			value_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4) if modifier > 0 else Color(1.0, 0.5, 0.5))
+			value_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4) if total_mod > 0 else Color(1.0, 0.5, 0.5))
 		else:
 			value_label.text = "%d" % effective
 			value_label.add_theme_color_override("font_color", COLOR_VALUE)
@@ -152,9 +162,7 @@ func _add_attributes_section() -> void:
 
 ## Add the skills section
 func _add_skills_section() -> void:
-	var section_header = _create_section_header("== SKILLS ==")
-	skills_content.add_child(section_header)
-
+	_add_spacer()
 	# Get skill names sorted alphabetically
 	var skill_names = player.skills.keys()
 	skill_names.sort()
@@ -173,9 +181,10 @@ func _add_skills_section() -> void:
 
 		var skill_line = HBoxContainer.new()
 
-		# Skill name (left-aligned)
+		# Skill name (left-aligned) - convert to proper case
 		var name_label = Label.new()
-		name_label.text = "%s:" % skill_name
+		var friendly_name = skill_name.capitalize().replace("_", " ")
+		name_label.text = "%s:" % friendly_name
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.add_theme_color_override("font_color", COLOR_LABEL)
 		name_label.add_theme_font_size_override("font_size", 14)
@@ -200,9 +209,7 @@ func _add_skills_section() -> void:
 
 ## Add the combat section
 func _add_combat_section() -> void:
-	var section_header = _create_section_header("== COMBAT ==")
-	combat_content.add_child(section_header)
-
+	_add_spacer()
 	# Health
 	_add_stat_line("Health", "%d / %d" % [player.current_health, player.max_health],
 		_get_health_color(float(player.current_health) / float(player.max_health)))
@@ -236,9 +243,7 @@ func _add_combat_section() -> void:
 
 ## Add the survival section
 func _add_survival_section() -> void:
-	var section_header = _create_section_header("== SURVIVAL ==")
-	survival_content.add_child(section_header)
-
+	_add_spacer()
 	if not player.survival:
 		_add_stat_line("Status", "No survival data", Color(0.7, 0.7, 0.7))
 		return
@@ -279,11 +284,9 @@ func _add_survival_section() -> void:
 		_add_stat_line("Carry Weight", "%.1f / %.1f kg (%.0f%%)" % [weight, max_weight, percent],
 			_get_encumbrance_color(percent))
 
-## Add the weather section
+## Add the environment section (weather, date, time)
 func _add_weather_section() -> void:
-	var section_header = _create_section_header("== WEATHER ==")
-	weather_content.add_child(section_header)
-
+	_add_spacer()
 	# Current date and time
 	var date_str = CalendarManager.get_short_date_string()
 	var time_str = TurnManager.get_time_of_day()
@@ -353,12 +356,17 @@ func _get_season_color(season: String) -> Color:
 
 ## Add the progression section
 func _add_progression_section() -> void:
-	var section_header = _create_section_header("== PROGRESSION ==")
-	progression_content.add_child(section_header)
-
+	_add_spacer()
 	# Character Name
 	var char_name = GameManager.character_name if GameManager.character_name != "" else "Unknown"
 	_add_stat_line("Name", char_name, Color(0.9, 0.9, 0.6))
+
+	# Race
+	var race_id = player.race_id if player.race_id != "" else "human"
+	var race_name = RaceManager.get_race_name(race_id)
+	var race_color_hex = RaceManager.get_race_color(race_id)
+	var race_color = Color.from_string(race_color_hex, Color(0.9, 0.9, 0.6))
+	_add_stat_line("Race", race_name, race_color)
 
 	# Level
 	_add_stat_line("Level", "%d" % player.level, Color(1.0, 0.85, 0.3))
@@ -441,6 +449,73 @@ func _add_progression_section() -> void:
 
 	# Known Recipes
 	_add_stat_line("Recipes Known", "%d" % player.known_recipes.size(), Color(0.8, 0.8, 0.6))
+
+## Add the traits section (for Traits tab)
+func _add_traits_section() -> void:
+	_add_spacer()
+	var race_id = player.race_id if player.race_id != "" else "human"
+	var race_name = RaceManager.get_race_name(race_id)
+	var traits = RaceManager.get_traits(race_id)
+
+	# Race name label
+	var race_label = Label.new()
+	race_label.text = race_name
+	race_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	race_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.5))
+	race_label.add_theme_font_size_override("font_size", 16)
+	traits_content.add_child(race_label)
+	_add_spacer()
+
+	if traits.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No racial traits"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		empty_label.add_theme_font_size_override("font_size", 14)
+		traits_content.add_child(empty_label)
+		return
+
+	for trait_def in traits:
+		var trait_id = trait_def.get("id", "")
+		var trait_name = trait_def.get("name", "Unknown")
+		var trait_desc = trait_def.get("description", "")
+		var trait_type = trait_def.get("type", "passive")
+
+		# Create a container for each trait
+		var trait_container = VBoxContainer.new()
+		trait_container.add_theme_constant_override("separation", 2)
+
+		# Trait name line with type indicator
+		var name_line = HBoxContainer.new()
+
+		var name_label = Label.new()
+		if trait_type == "active":
+			# Show uses remaining for active traits
+			var uses_remaining = 0
+			var uses_per_rest = trait_def.get("uses_per_rest", 1)
+			if player.racial_traits.has(trait_id):
+				uses_remaining = player.racial_traits[trait_id].get("uses_remaining", 0)
+			name_label.text = "◆ %s [%d/%d uses]" % [trait_name, uses_remaining, uses_per_rest]
+			name_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.5))  # Orange for active
+		else:
+			name_label.text = "◇ %s" % trait_name
+			name_label.add_theme_color_override("font_color", Color(0.7, 0.9, 0.7))  # Green for passive
+
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.add_theme_font_size_override("font_size", 14)
+		name_line.add_child(name_label)
+		trait_container.add_child(name_line)
+
+		# Trait description (wrapped)
+		if trait_desc != "":
+			var desc_label = Label.new()
+			desc_label.text = "  %s" % trait_desc
+			desc_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+			desc_label.add_theme_font_size_override("font_size", 12)
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			trait_container.add_child(desc_label)
+
+		traits_content.add_child(trait_container)
 
 ## Helper: Add a stat line with label and value
 func _add_stat_line(label_text: String, value_text: String, value_color: Color) -> void:
@@ -536,15 +611,17 @@ func _on_tab_changed(tab_index: int) -> void:
 	match tab_index:
 		0:  # Progression tab
 			current_scroll_container = progression_scroll
-		1:  # Abilities tab
+		1:  # Traits tab
+			current_scroll_container = traits_scroll
+		2:  # Abilities tab
 			current_scroll_container = abilities_scroll
-		2:  # Skills tab
+		3:  # Skills tab
 			current_scroll_container = skills_scroll
-		3:  # Combat tab
+		4:  # Combat tab
 			current_scroll_container = combat_scroll
-		4:  # Survival tab
+		5:  # Survival tab
 			current_scroll_container = survival_scroll
-		5:  # Weather tab
+		6:  # Environment tab
 			current_scroll_container = weather_scroll
 		_:
 			current_scroll_container = progression_scroll

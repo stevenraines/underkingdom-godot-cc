@@ -1801,7 +1801,7 @@ func toggle_debug_menu() -> void:
 			debug_command_menu.close()
 			input_handler.ui_blocking_input = false
 		else:
-			debug_command_menu.open()
+			debug_command_menu.open(player)
 			input_handler.ui_blocking_input = true
 	else:
 		print("[Game] ERROR: debug_command_menu is null")

@@ -24,6 +24,9 @@ var submenu_title: String = ""
 var pending_command: String = ""
 var pending_item_id: String = ""
 
+# Player reference (set when menu opens)
+var player: Player = null
+
 # Colors
 const COLOR_CATEGORY = Color(0.9, 0.5, 0.3, 1)
 const COLOR_COMMAND = Color(0.8, 0.8, 0.8, 1)
@@ -113,7 +116,18 @@ func _handle_direction_input(event: InputEventKey, viewport: Viewport) -> void:
 		_execute_with_direction(direction)
 		viewport.set_input_as_handled()
 
-func open() -> void:
+func open(p: Player = null) -> void:
+	# Get player reference - try passed parameter, then traverse tree
+	if p:
+		player = p
+	else:
+		# Try to get player from game scene (parent of HUD, which is our parent)
+		var hud = get_parent()
+		if hud:
+			var game = hud.get_parent()
+			if game and "player" in game:
+				player = game.player
+
 	current_state = MenuState.MAIN
 	selected_index = 0
 	menu_stack.clear()
@@ -237,7 +251,7 @@ func _show_creature_submenu() -> void:
 	all_enemy_ids.sort()
 
 	for enemy_id in all_enemy_ids:
-		var enemy_data = EntityManager.get_enemy_data(enemy_id)
+		var enemy_data = EntityManager.get_enemy_definition(enemy_id)
 		var display_name = enemy_data.get("name", enemy_id) if enemy_data else enemy_id
 		items.append({"type": "command", "text": display_name, "id": enemy_id})
 
@@ -335,8 +349,8 @@ func _execute_amount_selection(item: Dictionary) -> void:
 	_go_back()
 
 func _execute_with_direction(direction: Vector2i) -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	var target_pos = player.position + direction
@@ -359,8 +373,8 @@ func _execute_with_direction(direction: Vector2i) -> void:
 # ============================================================================
 
 func _do_give_item(item_id: String) -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	var item = ItemManager.create_item(item_id)
@@ -369,6 +383,8 @@ func _do_give_item(item_id: String) -> void:
 			_show_message("Added: %s" % item.name)
 		else:
 			_show_message("Inventory full!")
+	else:
+		_show_message("Error: Could not create item '%s'" % item_id)
 
 func _do_spawn_item(item_id: String, pos: Vector2i) -> void:
 	var item = ItemManager.create_item(item_id)
@@ -408,24 +424,24 @@ func _do_spawn_feature(feature_id: String, pos: Vector2i) -> void:
 	_show_message("Spawned feature: %s at %v" % [feature_def.get("name", feature_id), pos])
 
 func _do_give_gold(amount: int) -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	player.gold += amount
 	_show_message("Added %d gold (Total: %d)" % [amount, player.gold])
 
 func _do_set_level(level: int) -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	player.level = level
 	_show_message("Level set to %d" % level)
 
 func _do_max_stats() -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	player.current_health = player.max_health
@@ -438,8 +454,8 @@ func _do_max_stats() -> void:
 	_show_message("All stats maxed!")
 
 func _do_learn_all_spells() -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	var count = 0
@@ -451,8 +467,8 @@ func _do_learn_all_spells() -> void:
 	_show_message("Learned %d spells!" % count)
 
 func _do_learn_all_recipes() -> void:
-	var player = _get_player()
 	if not player:
+		_show_message("Error: No player reference")
 		return
 
 	var count = 0
@@ -469,8 +485,8 @@ func _do_toggle_god_mode() -> void:
 	_show_message("God Mode: %s" % status)
 
 func _do_teleport_town() -> void:
-	var player = _get_player()
 	if not player or not MapManager.current_map:
+		_show_message("Error: No player or map")
 		return
 
 	if MapManager.current_map.has_meta("town_center"):
@@ -556,12 +572,6 @@ func _update_selection() -> void:
 # ============================================================================
 # Helpers
 # ============================================================================
-
-func _get_player():
-	var game = get_tree().get_first_node_in_group("game")
-	if game and "player" in game:
-		return game.player
-	return null
 
 func _show_message(text: String) -> void:
 	EventBus.message_logged.emit("[DEBUG] %s" % text, Color(0.9, 0.5, 0.3))

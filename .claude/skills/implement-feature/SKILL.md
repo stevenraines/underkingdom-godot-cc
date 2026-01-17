@@ -14,6 +14,7 @@ Implements a feature defined in a plan file by creating a new branch and followi
 3. **NEVER ALTER THE PLAN SILENTLY** - Do not change the plan file without user approval
 4. **CLARIFYING QUESTIONS REQUIRE PLAN UPDATES** - If you ask a question and get an answer, update the plan file BEFORE continuing implementation
 5. **FOLLOW THE PLAN EXACTLY** - Do not add features, skip steps, or deviate from what the plan specifies
+6. **WRITE AND RUN TESTS** - Always write tests for new functionality and verify they pass before committing
 
 ## Usage
 
@@ -101,7 +102,39 @@ Follow the plan's implementation phases:
 5. Do not add extra features not in the plan
 6. Do not skip steps that are in the plan
 
-### 6. Commit the Changes
+### 6. Write and Run Tests (MANDATORY)
+
+⚠️ **The feature is NOT complete until tests pass.**
+
+After implementation:
+
+1. **Write unit tests** for new functionality in `tests/unit/`
+   - Test all public functions/methods
+   - Test error cases and edge cases
+   - Test that commands don't throw errors
+2. **Run the tests** to verify everything works:
+   ```bash
+   godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
+   ```
+3. **Fix any failures** before proceeding to commit
+4. If tests reveal bugs, fix them BEFORE committing
+
+**Example test structure:**
+```gdscript
+extends GutTest
+
+func test_feature_does_something() -> void:
+    # Given: Setup
+    var obj = MyClass.new()
+
+    # When: Action
+    var result = obj.do_something()
+
+    # Then: Assert
+    assert_eq(result, expected_value, "Description of what should happen")
+```
+
+### 7. Commit the Changes
 
 After implementation:
 
@@ -117,6 +150,8 @@ After implementation:
 - **DO NOT** skip implementation steps from the plan
 - **DO NOT** add "improvements" beyond what the plan specifies
 - **DO NOT** proceed with ambiguous requirements - ask first, update plan, then implement
+- **DO NOT** commit without writing and running tests first
+- **DO NOT** consider a feature complete if tests are failing
 
 ## Example
 
@@ -130,7 +165,9 @@ Claude will:
 4. If unclear: Ask questions → Get answers → Update plan file → Continue
 5. Create a todo list matching the plan's phases
 6. Implement exactly what the plan specifies
-7. Commit the changes
+7. Write tests for the new functionality
+8. Run tests and fix any failures
+9. Commit the changes
 ```
 
 ## Notes

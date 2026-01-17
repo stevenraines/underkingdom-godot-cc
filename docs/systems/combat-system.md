@@ -188,6 +188,18 @@ CombatSystem.are_cardinally_adjacent(pos1: Vector2i, pos2: Vector2i) -> bool
 CombatSystem.get_attack_message(result: Dictionary, is_player_attacker: bool) -> String
 ```
 
+### Resistance/Vulnerability Cues
+
+When attacks hit, flavorful cues are appended to indicate resistance or vulnerability:
+
+| Condition | Player Attacking | Enemy Attacking |
+|-----------|------------------|-----------------|
+| Immunity | "Your attack seems to have no effect!" | "The attack has no effect on you!" |
+| Resistance | "It seems to shrug off some of the damage." | "You resist some of the damage." |
+| Vulnerability | "It recoils - the attack is especially effective!" | "The attack is especially painful!" |
+
+Cues are colored: gray for resistance/immunity (player), cyan for player resistance, yellow for vulnerability (player), red for vulnerability (enemy).
+
 ## Integration with Other Systems
 
 - **SurvivalSystem**: Attacks cost 3 stamina (STAMINA_COST_ATTACK constant)

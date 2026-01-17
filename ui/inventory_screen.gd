@@ -76,20 +76,22 @@ const COLOR_PANEL_ACTIVE = Color(0.8, 0.8, 0.5, 1.0)
 const COLOR_PANEL_INACTIVE = Color(0.5, 0.5, 0.4, 1.0)
 
 # Equipment slots in display order
-const EQUIPMENT_SLOTS = ["head", "torso", "hands", "legs", "feet", "main_hand", "off_hand", "accessory_1", "accessory_2"]
+const EQUIPMENT_SLOTS = ["head", "neck", "torso", "hands", "legs", "feet", "main_hand", "off_hand", "accessory_1", "accessory_2"]
 const SLOT_DISPLAY_NAMES = {
 	"head": "Head",
-	"torso": "Torso", 
+	"neck": "Neck",
+	"torso": "Torso",
 	"hands": "Hands",
 	"legs": "Legs",
 	"feet": "Feet",
 	"main_hand": "Weapon",
 	"off_hand": "Off-Hand",
-	"accessory_1": "Ring 1",
-	"accessory_2": "Ring 2"
+	"accessory_1": "Ring (L)",
+	"accessory_2": "Ring (R)"
 }
 const SLOT_ICONS = {
 	"head": "○",
+	"neck": "◎",
 	"torso": "▣",
 	"hands": "☐",
 	"legs": "║",

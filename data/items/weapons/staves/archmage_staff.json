@@ -13,6 +13,7 @@
   },
   "equip_slots": ["main_hand"],
   "damage_bonus": 8,
+  "damage_type": "bludgeoning",
   "attack_type": "melee",
   "weight": 2.5,
   "value": 1500,

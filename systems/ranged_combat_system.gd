@@ -6,6 +6,8 @@ extends RefCounted
 ## Supports bows, crossbows, slings (with ammunition) and thrown weapons.
 ## Includes line-of-sight checking, range validation, and ammo recovery.
 
+const ElementalSystemClass = preload("res://systems/elemental_system.gd")
+
 ## Attempt a ranged attack from attacker to target
 ## weapon: The ranged weapon being used
 ## ammo: The ammunition being consumed (null for thrown weapons)
@@ -27,7 +29,12 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		"ammo_recovered": false,
 		"recovery_position": Vector2i.ZERO,
 		"is_ranged": true,
-		"is_thrown": weapon.is_thrown_weapon()
+		"is_thrown": weapon.is_thrown_weapon(),
+		"damage_type": weapon.damage_type if weapon.damage_type != "" else "piercing",
+		"secondary_damage": 0,
+		"secondary_damage_type": weapon.secondary_damage_type if weapon.secondary_damage_type != "" else "",
+		"resisted": false,
+		"vulnerable": false
 	}
 
 	# Calculate distance
@@ -69,17 +76,23 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 	if roll <= hit_chance:
 		result.hit = true
 
-		# Calculate damage
-		var damage = calculate_ranged_damage(attacker, weapon, ammo)
-		result.damage = damage
+		# Calculate damage with damage types
+		var damage_result = calculate_ranged_damage_with_types(attacker, target, weapon, ammo)
+		result.damage = damage_result.primary_damage
+		result.secondary_damage = damage_result.secondary_damage
+		result.resisted = damage_result.resisted
+		result.vulnerable = damage_result.vulnerable
+
+		# Total damage is primary + secondary
+		var total_damage = result.damage + result.secondary_damage
 
 		# Apply damage to target
 		# Pass source and weapon for death tracking
 		var source = attacker.name if attacker else "Unknown"
 		var method = weapon.name if weapon else "Projectile"
 
-		if target.has_method("take_damage"):
-			target.take_damage(damage, source, method)
+		if target.has_method("take_damage") and total_damage > 0:
+			target.take_damage(total_damage, source, method)
 
 		# Check if target died
 		if not target.is_alive:
@@ -145,7 +158,7 @@ static func calculate_ranged_accuracy(attacker: Entity, target: Entity, weapon: 
 	return hit_chance
 
 
-## Calculate damage for ranged attacks
+## Calculate damage for ranged attacks (legacy - backwards compatibility)
 ## Formula: Weapon damage + Ammo damage + (STR/2 for thrown weapons)
 static func calculate_ranged_damage(attacker: Entity, weapon: Item, ammo: Item = null) -> int:
 	var damage = weapon.damage_bonus
@@ -162,6 +175,64 @@ static func calculate_ranged_damage(attacker: Entity, weapon: Item, ammo: Item =
 
 	# Minimum 1 damage
 	return maxi(1, damage)
+
+
+## Calculate ranged damage with damage type system
+## Returns dictionary with primary_damage, secondary_damage, resisted, vulnerable flags
+static func calculate_ranged_damage_with_types(attacker: Entity, target: Entity, weapon: Item, ammo: Item = null) -> Dictionary:
+	var result = {
+		"primary_damage": 0,
+		"secondary_damage": 0,
+		"resisted": false,
+		"vulnerable": false
+	}
+
+	# Base damage from weapon
+	var base_damage = weapon.damage_bonus
+
+	# Add ammo damage bonus if present
+	if ammo:
+		base_damage += ammo.damage_bonus
+
+	# Thrown weapons get STR bonus
+	if weapon.is_thrown_weapon():
+		var str_stat = attacker.attributes.get("STR", 10)
+		@warning_ignore("integer_division")
+		base_damage += (str_stat - 10) / 2
+
+	# Determine damage type (ranged weapons default to piercing)
+	var damage_type = weapon.damage_type if weapon.damage_type != "" else "piercing"
+	var secondary_damage_type = weapon.secondary_damage_type if weapon.secondary_damage_type != "" else ""
+	var secondary_damage_bonus = weapon.secondary_damage_bonus if weapon.secondary_damage_bonus > 0 else 0
+
+	# Ranged attacks typically bypass armor (projectiles find gaps)
+	# But piercing already has armor bypass built in, so we just use base damage
+
+	# Apply damage type resistance/vulnerability for primary damage
+	var primary_result = ElementalSystemClass.calculate_elemental_damage(base_damage, damage_type, target, attacker)
+	result.primary_damage = primary_result.final_damage
+
+	# Track resistance/vulnerability for messaging
+	if primary_result.resisted or primary_result.immune:
+		result.resisted = true
+	if primary_result.vulnerable:
+		result.vulnerable = true
+
+	# Handle secondary damage type (e.g., fire on enchanted arrows)
+	if secondary_damage_type != "" and secondary_damage_bonus > 0:
+		var secondary_result = ElementalSystemClass.calculate_elemental_damage(secondary_damage_bonus, secondary_damage_type, target, attacker)
+		result.secondary_damage = secondary_result.final_damage
+
+		if secondary_result.resisted or secondary_result.immune:
+			result.resisted = true
+		if secondary_result.vulnerable:
+			result.vulnerable = true
+
+	# Ensure minimum 1 damage if we hit (unless fully immune)
+	if result.primary_damage == 0 and result.secondary_damage == 0 and not result.resisted:
+		result.primary_damage = 1
+
+	return result
 
 
 ## Check if there's a clear line of sight between two positions

@@ -17,5 +17,6 @@
   "ascii_color": "#8B5A2B",
   "durability": 50,
   "equip_slots": ["main_hand", "off_hand"],
-  "damage_bonus": 2
+  "damage_bonus": 2,
+  "damage_type": "bludgeoning"
 }

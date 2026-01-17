@@ -225,6 +225,185 @@ func test_get_attack_message_enemy_miss() -> void:
 
 
 # =============================================================================
+# Test: calculate_damage_with_types()
+# =============================================================================
+
+func test_calculate_damage_with_types_bludgeoning() -> void:
+	# Given: Attacker with base damage 5, STR 12, defender with 2 armor
+	var attacker = _create_mock_entity({"STR": 12})
+	attacker.base_damage = 5
+	var defender = _create_mock_entity({})
+	defender.armor = 2
+
+	# Weapon with bludgeoning damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "bludgeoning"
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Damage = 5 + 1 (STR mod) - 2 (armor) = 4
+	# STR modifier = (12 - 10) / 2 = 1
+	assert_eq(result.primary_damage, 4, "Bludgeoning damage should be 4")
+	assert_eq(result.secondary_damage, 0, "No secondary damage")
+
+
+func test_calculate_damage_with_types_piercing_bypasses_armor() -> void:
+	# Given: Attacker with base damage 5, STR 10, defender with 4 armor
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 5
+	var defender = _create_mock_entity({})
+	defender.armor = 4
+
+	# Weapon with piercing damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "piercing"
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Piercing bypasses 50% armor
+	# Effective armor = 4 / 2 = 2
+	# Damage = 5 + 0 (STR mod) - 2 (effective armor) = 3
+	assert_eq(result.primary_damage, 3, "Piercing should bypass 50% of armor")
+
+
+func test_calculate_damage_with_types_slashing_full_armor() -> void:
+	# Given: Attacker with base damage 5, STR 10, defender with 4 armor
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 5
+	var defender = _create_mock_entity({})
+	defender.armor = 4
+
+	# Weapon with slashing damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "slashing"
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Full armor applies
+	# Damage = 5 + 0 (STR mod) - 4 (armor) = 1
+	assert_eq(result.primary_damage, 1, "Slashing should apply full armor")
+
+
+func test_calculate_damage_with_types_secondary_fire_damage() -> void:
+	# Given: Attacker with base damage 5, defender with no armor/resistance
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 5
+	var defender = _create_mock_entity({})
+	defender.armor = 0
+
+	# Enchanted weapon with fire secondary damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "slashing"
+	weapon.secondary_damage_type = "fire"
+	weapon.secondary_damage_bonus = 3
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Primary = 5, Secondary = 3
+	assert_eq(result.primary_damage, 5, "Primary slashing damage should be 5")
+	assert_eq(result.secondary_damage, 3, "Secondary fire damage should be 3")
+
+
+func test_calculate_damage_with_types_resistant_to_primary() -> void:
+	# Given: Defender with 50% fire resistance
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 10
+	var defender = _create_mock_entity({})
+	defender.armor = 0
+	defender.elemental_resistances["fire"] = -50  # -50 = 50% resistant
+
+	# Weapon with fire damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "fire"
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: 50% resistance = 50% damage
+	assert_eq(result.primary_damage, 5, "50% fire resistance should halve damage")
+	assert_true(result.resisted, "Should be marked as resisted")
+
+
+func test_calculate_damage_with_types_vulnerable_to_secondary() -> void:
+	# Given: Defender with 50% ice vulnerability
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 6
+	var defender = _create_mock_entity({})
+	defender.armor = 0
+	defender.elemental_resistances["ice"] = 50  # +50 = 50% vulnerable
+
+	# Weapon with frost secondary damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "slashing"
+	weapon.secondary_damage_type = "ice"
+	weapon.secondary_damage_bonus = 4
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Primary = 6, Secondary = 4 * 1.5 = 6
+	assert_eq(result.primary_damage, 6, "Primary slashing damage should be 6")
+	assert_eq(result.secondary_damage, 6, "Secondary ice damage should be 6 (4 * 1.5)")
+	assert_true(result.vulnerable, "Should be marked as vulnerable")
+
+
+func test_calculate_damage_with_types_immune_to_damage() -> void:
+	# Given: Defender immune to fire
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 10
+	var defender = _create_mock_entity({})
+	defender.armor = 0
+	defender.elemental_resistances["fire"] = -100  # -100 = immune
+
+	# Weapon with fire damage
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "fire"
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Immune = 0 damage
+	assert_eq(result.primary_damage, 0, "Immune should deal 0 damage")
+	assert_true(result.resisted, "Should be marked as resisted")
+
+
+func test_calculate_damage_with_types_null_weapon_defaults_bludgeoning() -> void:
+	# Given: Unarmed attack (no weapon)
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 2
+	var defender = _create_mock_entity({})
+	defender.armor = 0
+
+	# When: Calculating damage with null weapon
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, null)
+
+	# Then: Default to bludgeoning, damage = 2
+	assert_eq(result.primary_damage, 2, "Unarmed should deal base damage")
+	assert_eq(result.secondary_damage, 0, "No secondary damage")
+
+
+func test_calculate_damage_with_types_minimum_one_damage() -> void:
+	# Given: Low damage vs high armor, not resisted
+	var attacker = _create_mock_entity({"STR": 10})
+	attacker.base_damage = 1
+	var defender = _create_mock_entity({})
+	defender.armor = 10  # High armor
+
+	var weapon = MockWeapon.new()
+	weapon.damage_type = "slashing"
+
+	# When: Calculating damage
+	var result = CombatSystemClass.calculate_damage_with_types(attacker, defender, weapon)
+
+	# Then: Minimum 1 damage when not resisted
+	assert_eq(result.primary_damage, 1, "Should deal minimum 1 damage when not resisted")
+
+
+# =============================================================================
 # Helper: Create mock entity for testing
 # =============================================================================
 
@@ -254,11 +433,38 @@ class MockEntity extends RefCounted:
 	var is_alive: bool = true
 	var current_health: int = 10
 	var max_health: int = 10
+	var creature_type: String = "humanoid"
+	var elemental_resistances: Dictionary = {
+		"slashing": 0,
+		"piercing": 0,
+		"bludgeoning": 0,
+		"fire": 0,
+		"ice": 0,
+		"lightning": 0,
+		"poison": 0,
+		"acid": 0,
+		"necrotic": 0,
+		"radiant": 0
+	}
 
-	func take_damage(amount: int) -> void:
+	func take_damage(amount: int, _source: String = "", _method: String = "") -> void:
 		current_health -= amount
 		if current_health <= 0:
 			is_alive = false
 
 	func get_effective_attribute(attr_name: String) -> int:
 		return attributes.get(attr_name, 10)
+
+	func heal(amount: int) -> void:
+		current_health = min(current_health + amount, max_health)
+
+	func get_active_effects() -> Array:
+		return []
+
+
+class MockWeapon extends RefCounted:
+	var name: String = "Mock Weapon"
+	var damage_type: String = "bludgeoning"
+	var secondary_damage_type: String = ""
+	var secondary_damage_bonus: int = 0
+	var damage_bonus: int = 0

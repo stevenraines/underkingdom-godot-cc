@@ -6,6 +6,8 @@ extends RefCounted
 ## Handles attack resolution, damage calculation, and combat formulas.
 ## All combat in the game flows through this system.
 
+const ElementalSystemClass = preload("res://systems/elemental_system.gd")
+
 ## Attempt an attack from attacker to defender
 ## Returns a dictionary with attack results
 static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
@@ -18,32 +20,47 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		"critical": false,
 		"roll": 0,
 		"hit_chance": 0,
-		"weapon_name": ""
+		"weapon_name": "",
+		"damage_type": "bludgeoning",
+		"secondary_damage": 0,
+		"secondary_damage_type": "",
+		"resisted": false,
+		"vulnerable": false
 	}
-	
-	# Get equipped weapon name if attacker has inventory
+
+	# Get equipped weapon if attacker has inventory
+	var weapon = null
 	if attacker.has_method("get_component") or "inventory" in attacker:
 		var inventory = attacker.get("inventory")
 		if inventory and inventory.equipment.get("main_hand"):
-			result.weapon_name = inventory.equipment["main_hand"].name
-	
+			weapon = inventory.equipment["main_hand"]
+			result.weapon_name = weapon.name
+			result.damage_type = weapon.damage_type if weapon.damage_type != "" else "bludgeoning"
+			result.secondary_damage_type = weapon.secondary_damage_type if weapon.secondary_damage_type != "" else ""
+
 	# Calculate hit chance
 	var accuracy = get_accuracy(attacker)
 	var evasion = get_evasion(defender)
 	var hit_chance = clampi(accuracy - evasion, 5, 95)  # Always 5-95% chance
-	
+
 	result.hit_chance = hit_chance
-	
+
 	# Roll for hit (1-100)
 	var roll = randi_range(1, 100)
 	result.roll = roll
-	
+
 	if roll <= hit_chance:
 		result.hit = true
-		
-		# Calculate and apply damage
-		var damage = calculate_damage(attacker, defender)
-		result.damage = damage
+
+		# Calculate and apply damage with damage types
+		var damage_result = calculate_damage_with_types(attacker, defender, weapon)
+		result.damage = damage_result.primary_damage
+		result.secondary_damage = damage_result.secondary_damage
+		result.resisted = damage_result.resisted
+		result.vulnerable = damage_result.vulnerable
+
+		# Total damage is primary + secondary
+		var total_damage = result.damage + result.secondary_damage
 
 		# Apply damage to defender
 		# Pass source and method for death tracking
@@ -51,16 +68,16 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		var natural_weapon = attacker.get("natural_weapon") if attacker else null
 		var method = result.weapon_name if result.weapon_name != "" else (natural_weapon if natural_weapon else "")
 
-		if defender.has_method("take_damage"):
-			defender.take_damage(damage, source, method)
+		if defender.has_method("take_damage") and total_damage > 0:
+			defender.take_damage(total_damage, source, method)
 
 		# Check if defender died
 		if not defender.is_alive:
 			result.defender_died = true
-	
+
 	# Emit attack signal
 	EventBus.attack_performed.emit(attacker, defender, result)
-	
+
 	return result
 
 ## Calculate attacker's accuracy
@@ -82,7 +99,7 @@ static func get_evasion(entity: Entity) -> int:
 	var dex = entity.attributes.get("DEX", 10)
 	return 5 + dex
 
-## Calculate damage for an attack
+## Calculate damage for an attack (legacy - used for backwards compatibility)
 ## Formula: Base Damage + STR modifier - Armor
 ## STR modifier: +1 per 2 STR above 10
 static func calculate_damage(attacker: Entity, defender: Entity) -> int:
@@ -90,21 +107,94 @@ static func calculate_damage(attacker: Entity, defender: Entity) -> int:
 	var base_damage = attacker.base_damage
 	if attacker.has_method("get_weapon_damage"):
 		base_damage = attacker.get_weapon_damage()
-	
+
 	# STR modifier: +1 per 2 points above 10
 	var str_stat = attacker.get_effective_attribute("STR") if attacker.has_method("get_effective_attribute") else attacker.attributes.get("STR", 10)
 	@warning_ignore("integer_division")
 	var str_modifier = (str_stat - 10) / 2
-	
+
 	# Armor reduction - check if defender has get_total_armor method (Player)
 	var armor = defender.armor
 	if defender.has_method("get_total_armor"):
 		armor = defender.get_total_armor()
-	
+
 	# Calculate total damage (minimum 1)
 	var damage = maxi(1, base_damage + str_modifier - armor)
-	
+
 	return damage
+
+
+## Calculate damage with damage type system
+## Returns dictionary with primary_damage, secondary_damage, resisted, vulnerable flags
+static func calculate_damage_with_types(attacker: Entity, defender: Entity, weapon) -> Dictionary:
+	var result = {
+		"primary_damage": 0,
+		"secondary_damage": 0,
+		"resisted": false,
+		"vulnerable": false
+	}
+
+	# Get base weapon damage
+	var base_damage = attacker.base_damage
+	if attacker.has_method("get_weapon_damage"):
+		base_damage = attacker.get_weapon_damage()
+
+	# STR modifier: +1 per 2 points above 10
+	var str_stat = attacker.get_effective_attribute("STR") if attacker.has_method("get_effective_attribute") else attacker.attributes.get("STR", 10)
+	@warning_ignore("integer_division")
+	var str_modifier = (str_stat - 10) / 2
+
+	# Get armor - check if defender has get_total_armor method (Player)
+	var armor = defender.armor
+	if defender.has_method("get_total_armor"):
+		armor = defender.get_total_armor()
+
+	# Determine damage type
+	var damage_type = "bludgeoning"  # Default for unarmed
+	var secondary_damage_type = ""
+	var secondary_damage_bonus = 0
+
+	if weapon:
+		damage_type = weapon.damage_type if weapon.damage_type != "" else "bludgeoning"
+		secondary_damage_type = weapon.secondary_damage_type if weapon.secondary_damage_type != "" else ""
+		secondary_damage_bonus = weapon.secondary_damage_bonus if weapon.secondary_damage_bonus > 0 else 0
+
+	# Apply armor based on damage type
+	# Piercing weapons bypass 50% of armor
+	var effective_armor = armor
+	if damage_type == "piercing":
+		@warning_ignore("integer_division")
+		effective_armor = armor / 2
+
+	# Calculate raw physical damage before resistance
+	var raw_damage = maxi(0, base_damage + str_modifier - effective_armor)
+
+	# Apply damage type resistance/vulnerability for primary damage
+	var primary_result = ElementalSystemClass.calculate_elemental_damage(raw_damage, damage_type, defender, attacker)
+	result.primary_damage = primary_result.final_damage
+
+	# Track resistance/vulnerability for messaging
+	if primary_result.resisted or primary_result.immune:
+		result.resisted = true
+	if primary_result.vulnerable:
+		result.vulnerable = true
+
+	# Handle secondary damage type (e.g., fire on an enchanted sword)
+	if secondary_damage_type != "" and secondary_damage_bonus > 0:
+		# Secondary damage doesn't get STR modifier or armor reduction
+		var secondary_result = ElementalSystemClass.calculate_elemental_damage(secondary_damage_bonus, secondary_damage_type, defender, attacker)
+		result.secondary_damage = secondary_result.final_damage
+
+		if secondary_result.resisted or secondary_result.immune:
+			result.resisted = true
+		if secondary_result.vulnerable:
+			result.vulnerable = true
+
+	# Ensure minimum 1 damage if we hit (unless fully immune)
+	if result.primary_damage == 0 and result.secondary_damage == 0 and not result.resisted:
+		result.primary_damage = 1
+
+	return result
 
 ## Check if two positions are adjacent (including diagonals)
 static func are_adjacent(pos1: Vector2i, pos2: Vector2i) -> bool:

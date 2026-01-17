@@ -16,6 +16,7 @@
       "throwable": true
     },
     "attack_type": "melee",
+    "damage_type": "piercing",
     "attack_range": 2,
     "max_stack": 1
   },
@@ -26,7 +27,7 @@
     "damage_bonus": 5,
     "recovery_chance": 0.7
   },
-  "applicable_variants": ["material", "quality", "origin"],
+  "applicable_variants": ["material", "quality", "origin", "enchantment"],
   "default_variants": {
     "material": "iron"
   },

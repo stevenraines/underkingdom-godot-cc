@@ -20,6 +20,13 @@
   "behavior": "aggressive",
   "base_damage": 3,
   "armor": 0,
+  "creature_type": "ooze",
+  "elemental_resistances": {
+    "slashing": -50,
+    "piercing": -50,
+    "fire": 50,
+    "acid": -100
+  },
   "loot_table": "ooze_common",
   "xp_value": 25,
   "spawn_biomes": [],

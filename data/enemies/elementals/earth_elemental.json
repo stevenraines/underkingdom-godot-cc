@@ -21,6 +21,11 @@
   "behavior": "guardian",
   "base_damage": 10,
   "armor": 6,
+  "creature_type": "elemental",
+  "elemental_resistances": {
+    "piercing": -50,
+    "lightning": 50
+  },
   "loot_table": "elemental_common",
   "xp_value": 80,
   "spawn_biomes": [],

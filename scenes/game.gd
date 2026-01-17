@@ -1644,6 +1644,11 @@ func _is_valid_spawn_position(pos: Vector2i) -> bool:
 	if not MapManager.current_map.is_walkable(pos):
 		return false
 
+	# Don't spawn inside buildings (shops, etc.)
+	var tile = MapManager.current_map.get_tile(pos)
+	if tile and tile.is_interior:
+		return false
+
 	# Check not occupied by enemy
 	var blocking_entity = EntityManager.get_blocking_entity_at(pos)
 	if blocking_entity != null:

@@ -1,0 +1,35 @@
+{
+  "id": "gnome",
+  "name": "Gnome",
+  "description": "Curious and inventive, gnomes possess natural arcane talent and quick minds. Their enthusiasm for discovery sometimes leads them into trouble.",
+  "ascii_color": "#CC66CC",
+  "stat_modifiers": {
+    "STR": -1,
+    "DEX": 0,
+    "CON": 0,
+    "INT": 2,
+    "WIS": 0,
+    "CHA": 0
+  },
+  "bonus_stat_points": 0,
+  "traits": [
+    {
+      "id": "arcane_affinity",
+      "name": "Arcane Affinity",
+      "description": "+10% spell success chance",
+      "type": "passive",
+      "effect": {
+        "spell_success_bonus": 10
+      }
+    },
+    {
+      "id": "tinkerer",
+      "name": "Tinkerer",
+      "description": "+1 to crafting skill checks",
+      "type": "passive",
+      "effect": {
+        "crafting_bonus": 1
+      }
+    }
+  ]
+}

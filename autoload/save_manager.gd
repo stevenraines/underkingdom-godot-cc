@@ -211,6 +211,15 @@ func _serialize_player() -> Dictionary:
 
 	return {
 		"position": {"x": player.position.x, "y": player.position.y},
+		"race_id": player.race_id,
+		"racial_traits": player.racial_traits.duplicate(true),
+		"racial_stat_modifiers": player.racial_stat_modifiers.duplicate(),
+		"racial_bonuses": {
+			"trap_detection_bonus": player.trap_detection_bonus,
+			"crafting_bonus": player.crafting_bonus,
+			"spell_success_bonus": player.spell_success_bonus,
+			"harvest_bonuses": player.harvest_bonuses.duplicate()
+		},
 		"attributes": {
 			"STR": player.attributes["STR"],
 			"DEX": player.attributes["DEX"],
@@ -529,6 +538,35 @@ func _deserialize_player(player_data: Dictionary):
 
 	# Position
 	player.position = Vector2i(player_data.position.x, player_data.position.y)
+
+	# Race (with backwards compatibility - default to human for old saves)
+	player.race_id = player_data.get("race_id", "human")
+	if player_data.has("racial_traits"):
+		player.racial_traits = player_data.racial_traits.duplicate(true)
+	else:
+		# Initialize racial traits for old saves
+		player.racial_traits = {}
+
+	# Racial stat modifiers (with backwards compatibility for old saves)
+	if player_data.has("racial_stat_modifiers"):
+		player.racial_stat_modifiers = player_data.racial_stat_modifiers.duplicate()
+	else:
+		# Re-apply from race manager for old saves without this field
+		player.racial_stat_modifiers = RaceManager.get_stat_modifiers(player.race_id).duplicate()
+
+	# Racial bonuses (with backwards compatibility for old saves)
+	if player_data.has("racial_bonuses"):
+		var bonuses = player_data.racial_bonuses
+		player.trap_detection_bonus = bonuses.get("trap_detection_bonus", 0)
+		player.crafting_bonus = bonuses.get("crafting_bonus", 0)
+		player.spell_success_bonus = bonuses.get("spell_success_bonus", 0)
+		player.harvest_bonuses = bonuses.get("harvest_bonuses", {}).duplicate()
+	else:
+		# Old save - re-apply race effects to set bonuses
+		player.trap_detection_bonus = 0
+		player.crafting_bonus = 0
+		player.spell_success_bonus = 0
+		player.harvest_bonuses = {}
 
 	# Attributes
 	for attr in player_data.attributes.keys():

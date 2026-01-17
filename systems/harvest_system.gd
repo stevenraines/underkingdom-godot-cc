@@ -339,12 +339,17 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 	# Generate yields
 	var total_yields: Dictionary = {}  # unique_key -> {item_id, count, use_variant, variant_type}
 	var yield_messages: Array[String] = []
-	var yield_bonus = tool_check.yield_bonus  # Bonus from preferred tool
+	var base_yield_bonus = tool_check.yield_bonus  # Bonus from preferred tool
 
 	# Add harvesting skill bonus (+1 yield per 2 skill levels)
 	var harvesting_skill = player.skills.get("harvesting", 0) if player else 0
 	@warning_ignore("integer_division")
-	yield_bonus += harvesting_skill / 2
+	base_yield_bonus += harvesting_skill / 2
+
+	# Get racial harvest bonuses (e.g., Dwarf Stonecunning)
+	var racial_harvest_bonuses: Dictionary = {}
+	if player and "harvest_bonuses" in player:
+		racial_harvest_bonuses = player.harvest_bonuses
 
 	for yield_data in resource.yields:
 		var item_id = yield_data.get("item_id", "")
@@ -357,6 +362,11 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 		# Check if we get this yield (probability)
 		if randf() > chance:
 			continue
+
+		# Calculate total yield bonus (base + racial bonus for this item type)
+		var yield_bonus = base_yield_bonus
+		if racial_harvest_bonuses.has(item_id):
+			yield_bonus += racial_harvest_bonuses[item_id]
 
 		# Generate random count + tool's yield bonus
 		var range_size = max_count - min_count + 1

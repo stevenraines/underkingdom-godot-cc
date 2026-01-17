@@ -1,0 +1,40 @@
+{
+  "id": "dwarf",
+  "name": "Dwarf",
+  "description": "Stout and resilient, dwarves are master craftsmen with unmatched endurance. Their connection to stone and earth runs deep.",
+  "ascii_color": "#CC9966",
+  "stat_modifiers": {
+    "STR": 1,
+    "DEX": 0,
+    "CON": 2,
+    "INT": 0,
+    "WIS": 0,
+    "CHA": -1
+  },
+  "bonus_stat_points": 0,
+  "traits": [
+    {
+      "id": "poison_resistance",
+      "name": "Poison Resistance",
+      "description": "+50% resistance to poison damage",
+      "type": "passive",
+      "effect": {
+        "elemental_resistance": {
+          "poison": -50
+        }
+      }
+    },
+    {
+      "id": "stonecunning",
+      "name": "Stonecunning",
+      "description": "+1 to mining yield",
+      "type": "passive",
+      "effect": {
+        "harvest_bonus": {
+          "stone": 1,
+          "iron_ore": 1
+        }
+      }
+    }
+  ]
+}

@@ -15,6 +15,9 @@ var selected_index: int = 0
 const SELECT_COLOR: Color = Color(0.6, 0.9, 0.6, 1)
 const UNSELECT_COLOR: Color = Color(0.7, 0.7, 0.7, 1)
 
+# Character creation state
+var pending_character_name: String = ""
+
 func _ready() -> void:
 	print("Main menu loaded")
 	# Ensure game is not paused (in case we came from death screen or other paused state)
@@ -62,6 +65,13 @@ func _ready() -> void:
 	world_name_dialog.world_name_entered.connect(_on_world_name_entered)
 	world_name_dialog.cancelled.connect(_on_world_name_cancelled)
 
+	# Setup race selection dialog
+	var RaceSelectionDialogScene = load("res://ui/race_selection_dialog.tscn")
+	var race_selection_dialog = RaceSelectionDialogScene.instantiate()
+	add_child(race_selection_dialog)
+	race_selection_dialog.race_selected.connect(_on_race_selected)
+	race_selection_dialog.cancelled.connect(_on_race_cancelled)
+
 func _on_button_mouse_entered(idx: int) -> void:
 	selected_index = idx
 	update_selection()
@@ -78,6 +88,11 @@ func _input(event) -> void:
 	# Don't process input if world name dialog is visible
 	var dialog = get_node_or_null("WorldNameDialog")
 	if dialog and dialog.visible:
+		return
+
+	# Don't process input if race selection dialog is visible
+	var race_dialog = get_node_or_null("RaceSelectionDialog")
+	if race_dialog and race_dialog.visible:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -102,16 +117,31 @@ func _on_start_button_pressed() -> void:
 		dialog.open()
 
 func _on_world_name_entered(character_name: String) -> void:
-	print("Starting new game with character name: '%s'..." % character_name)
-	print("Character name hash: %d" % character_name.hash())
-	# Store the character name in GameManager before changing scene
-	GameManager.start_new_game(character_name)
-	print("After start_new_game - World seed: %d, Character name: '%s'" % [GameManager.world_seed, GameManager.character_name])
-	get_tree().change_scene_to_file("res://scenes/game.tscn")
+	print("Character name entered: '%s' - Opening race selection..." % character_name)
+	# Store character name temporarily, then open race selection
+	pending_character_name = character_name
+	var race_dialog = get_node("RaceSelectionDialog")
+	if race_dialog:
+		race_dialog.open()
 
 func _on_world_name_cancelled() -> void:
 	print("World name dialog cancelled")
 	# Just return to main menu, nothing to do
+
+func _on_race_selected(race_id: String) -> void:
+	print("Starting new game with character: '%s', race: '%s'..." % [pending_character_name, race_id])
+	print("Character name hash: %d" % pending_character_name.hash())
+	# Start game with both character name and race
+	GameManager.start_new_game(pending_character_name, race_id)
+	print("After start_new_game - World seed: %d, Character: '%s', Race: %s" % [GameManager.world_seed, GameManager.character_name, GameManager.player_race])
+	get_tree().change_scene_to_file("res://scenes/game.tscn")
+
+func _on_race_cancelled() -> void:
+	print("Race selection cancelled - returning to character name dialog")
+	# Return to character name dialog
+	var dialog = get_node("WorldNameDialog")
+	if dialog:
+		dialog.open()
 
 func _get_most_recent_save_slot() -> int:
 	var best_slot: int = -1

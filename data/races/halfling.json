@@ -1,0 +1,36 @@
+{
+  "id": "halfling",
+  "name": "Halfling",
+  "description": "Small but brave, halflings are naturally lucky and surprisingly agile. They value comfort and good food, but rise to challenges when needed.",
+  "ascii_color": "#99CC66",
+  "stat_modifiers": {
+    "STR": -1,
+    "DEX": 2,
+    "CON": 0,
+    "INT": 0,
+    "WIS": 0,
+    "CHA": 1
+  },
+  "bonus_stat_points": 0,
+  "traits": [
+    {
+      "id": "lucky",
+      "name": "Lucky",
+      "description": "Once per rest, reroll a failed attack",
+      "type": "active",
+      "uses_per_rest": 1,
+      "effect": {
+        "reroll_type": "attack"
+      }
+    },
+    {
+      "id": "nimble",
+      "name": "Nimble",
+      "description": "+5% evasion chance",
+      "type": "passive",
+      "effect": {
+        "evasion_bonus": 5
+      }
+    }
+  ]
+}

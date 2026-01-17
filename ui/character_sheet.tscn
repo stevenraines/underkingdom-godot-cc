@@ -99,6 +99,23 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = ExtResource("2_theme")
 
+[node name="Traits" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Traits"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_right = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Traits/ScrollMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("2_theme")
+
 [node name="Abilities" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
 visible = false
 layout_mode = 2
@@ -167,18 +184,18 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = ExtResource("2_theme")
 
-[node name="Weather" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+[node name="Environment" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
 visible = false
 layout_mode = 2
 theme = ExtResource("2_theme")
 
-[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Weather"]
+[node name="ScrollMargin" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Environment"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_right = 12
 
-[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Weather/ScrollMargin"]
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Environment/ScrollMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

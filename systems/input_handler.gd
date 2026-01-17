@@ -1013,6 +1013,10 @@ func _start_detect_trap_mode() -> void:
 	var wis_modifier: int = int((wis - 10) / 2.0)  # D&D-style: (ability - 10) / 2
 	var active_search_bonus: int = 5  # Bonus for actively searching vs passive detection
 
+	# Add racial trap detection bonus (e.g., Elf Keen Senses)
+	if "trap_detection_bonus" in player:
+		active_search_bonus += player.trap_detection_bonus
+
 	# Search all tiles within range
 	var detected_traps: Array[String] = []
 	var sensed_count: int = 0

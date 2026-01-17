@@ -77,6 +77,12 @@ signal wild_magic_triggered(caster, effect: Dictionary)
 @warning_ignore("unused_signal")
 signal cantrip_cast(caster, spell)
 
+# Racial ability signals
+@warning_ignore("unused_signal")
+signal racial_ability_used(entity: Entity, trait_id: String)
+@warning_ignore("unused_signal")
+signal racial_ability_recharged(entity: Entity, trait_id: String)
+
 # Magical effect signals (buffs/debuffs)
 @warning_ignore("unused_signal")
 signal effect_applied(entity: Entity, effect: Dictionary)

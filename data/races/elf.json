@@ -1,0 +1,35 @@
+{
+  "id": "elf",
+  "name": "Elf",
+  "description": "Graceful and perceptive, elves possess keen senses and a natural affinity for magic. Their long lives grant them patience and wisdom.",
+  "ascii_color": "#66CCFF",
+  "stat_modifiers": {
+    "STR": 0,
+    "DEX": 2,
+    "CON": -1,
+    "INT": 1,
+    "WIS": 0,
+    "CHA": 0
+  },
+  "bonus_stat_points": 0,
+  "traits": [
+    {
+      "id": "darkvision",
+      "name": "Darkvision",
+      "description": "+2 perception range in darkness",
+      "type": "passive",
+      "effect": {
+        "perception_bonus_dark": 2
+      }
+    },
+    {
+      "id": "keen_senses",
+      "name": "Keen Senses",
+      "description": "+1 to trap detection",
+      "type": "passive",
+      "effect": {
+        "trap_detection_bonus": 1
+      }
+    }
+  ]
+}

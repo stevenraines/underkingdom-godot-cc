@@ -238,5 +238,36 @@ Study these existing UI implementations for patterns:
 4. **Direct state modification** - Always go through managers/signals
 5. **Missing null checks** - Always validate data before display
 6. **Ignoring the HUD** - Make sure new UI doesn't obscure vital info permanently
+7. **Multiple children in MarginContainer** - MarginContainer should have ONE child. Put all content inside a single VBoxContainer/HBoxContainer. Multiple siblings at the same level causes overlapping/broken layouts
+8. **Using Label for BBCode text** - Use RichTextLabel with `bbcode_enabled = true` when you need formatting like `[b]bold[/b]` or `[color=red]colored[/color]` text. Regular Label nodes render BBCode tags literally
+
+## Scene File Layout Guidelines
+
+When creating `.tscn` scene files, follow this container hierarchy:
+
+**CORRECT Structure:**
+```
+Panel
+└── MarginContainer
+    └── MainVBox (VBoxContainer)  # SINGLE child of MarginContainer
+        ├── TitleLabel
+        ├── HSeparator
+        ├── ContentHBox (HBoxContainer)
+        │   ├── LeftPanel
+        │   └── RightPanel
+        ├── HSeparator
+        └── ButtonsContainer
+```
+
+**INCORRECT Structure (causes layout overlap):**
+```
+Panel
+└── MarginContainer
+    ├── VBoxContainer       # WRONG: Multiple children
+    ├── HBoxContainer       # These will overlap!
+    └── VBoxContainer2
+```
+
+**Rule**: MarginContainer's layout only applies to its first child. Additional children get stacked at the same position, causing visual overlap.
 
 When implementing UI, always consider the player experience: Is it intuitive? Does it follow established patterns? Can the player easily understand how to interact with it? Maintain the roguelike aesthetic while ensuring usability.

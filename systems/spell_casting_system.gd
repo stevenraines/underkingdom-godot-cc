@@ -181,6 +181,11 @@ static func _check_spell_failure(caster, spell) -> Dictionary:
 	var int_bonus = max(0, (caster_int - spell.get_min_intelligence())) * 0.01
 	failure_chance = max(0.0, failure_chance - int_bonus)
 
+	# Apply racial spell success bonus (e.g., Gnome Arcane Affinity)
+	if "spell_success_bonus" in caster:
+		var racial_bonus = caster.spell_success_bonus / 100.0
+		failure_chance = max(0.0, failure_chance - racial_bonus)
+
 	# Apply casting focus bonus (staves)
 	if caster.has_method("get_casting_bonuses"):
 		var casting_bonuses = caster.get_casting_bonuses()

@@ -6,16 +6,12 @@
 - [X] Add a release number to the game, shown on the main menu screen. This version should be auto incremented on every merge to main.
 - [X] Bug Fix: Player can no longer spawn inside of buildings
 - [X] UI: Added Q to Save Screen to exit to main menu with one key press.
+- [X] Weapon damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
+
 ---
 ## In Progress
 
-- [/] Weapon damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
-
----
-## Planned
-
-- [X] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
-
+- [/] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
 
 ---
 ## Unplanned

@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "a",
   "ascii_color": "#FFD700",
+  "creature_type": "humanoid",
   "stats": {
     "health": 9,
     "str": 10,
@@ -14,17 +15,29 @@
     "wis": 14,
     "cha": 11
   },
-  "yields": [
-    {"item_id": "holy_symbol", "min_count": 1, "max_count": 1, "chance": 0.4},
-    {"item_id": "gold_coin", "min_count": 2, "max_count": 8, "chance": 0.5}
-  ],
-  "behavior": "aggressive",
   "base_damage": 3,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "holy_symbol",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.4
+    },
+    {
+      "item_id": "gold_coin",
+      "min_count": 2,
+      "max_count": 8,
+      "chance": 0.5
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "priest_common",
   "xp_value": 15,
   "spawn_biomes": [],
-  "spawn_dungeons": ["temple_ruins"],
+  "spawn_dungeons": [
+    "temple_ruins"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 60,
   "min_spawn_level": 1,

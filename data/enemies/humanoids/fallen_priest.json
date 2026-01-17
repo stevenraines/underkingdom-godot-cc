@@ -5,6 +5,7 @@
   "cr": 2,
   "ascii_char": "P",
   "ascii_color": "#4B0082",
+  "creature_type": "humanoid",
   "stats": {
     "health": 30,
     "str": 10,
@@ -14,17 +15,29 @@
     "wis": 14,
     "cha": 12
   },
-  "yields": [
-    {"item_id": "unholy_symbol", "min_count": 1, "max_count": 1, "chance": 0.5},
-    {"item_id": "dark_tome", "min_count": 1, "max_count": 1, "chance": 0.2}
-  ],
-  "behavior": "aggressive",
   "base_damage": 6,
   "armor": 2,
+  "yields": [
+    {
+      "item_id": "unholy_symbol",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.5
+    },
+    {
+      "item_id": "dark_tome",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.2
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "priest_rare",
   "xp_value": 75,
   "spawn_biomes": [],
-  "spawn_dungeons": ["temple_ruins"],
+  "spawn_dungeons": [
+    "temple_ruins"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 160,
   "min_spawn_level": 8,

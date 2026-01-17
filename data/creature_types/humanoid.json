@@ -1,0 +1,9 @@
+{
+  "id": "humanoid",
+  "name": "Humanoid",
+  "description": "Intelligent bipedal creatures",
+  "ascii_color": "#FFFFFF",
+  "base_resistances": {},
+  "special_rules": {},
+  "subtypes": {}
+}

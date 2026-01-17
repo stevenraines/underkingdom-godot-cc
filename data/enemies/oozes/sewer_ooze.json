@@ -5,6 +5,7 @@
   "cr": 0.5,
   "ascii_char": "o",
   "ascii_color": "#556B2F",
+  "creature_type": "ooze",
   "stats": {
     "health": 20,
     "str": 8,
@@ -14,16 +15,23 @@
     "wis": 4,
     "cha": 1
   },
-  "yields": [
-    {"item_id": "toxic_residue", "min_count": 1, "max_count": 2, "chance": 0.7}
-  ],
-  "behavior": "aggressive",
   "base_damage": 3,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "toxic_residue",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.7
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "ooze_common",
   "xp_value": 20,
   "spawn_biomes": [],
-  "spawn_dungeons": ["sewers"],
+  "spawn_dungeons": [
+    "sewers"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 80,
   "min_spawn_level": 2,

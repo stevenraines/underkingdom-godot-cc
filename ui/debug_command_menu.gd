@@ -570,22 +570,33 @@ func _show_creature_submenu() -> void:
 	var items: Array = []
 	var all_enemy_ids = EntityManager.get_all_enemy_ids()
 
-	# Build items with CR data for sorting
+	# Build items with CR and creature type data for sorting
 	for enemy_id in all_enemy_ids:
 		var enemy_data = EntityManager.get_enemy_definition(enemy_id)
 		if not enemy_data:
 			continue
 		var display_name = enemy_data.get("name", enemy_id)
 		var cr = enemy_data.get("cr", 0)  # CR stored as "cr" in JSON
-		# Show CR in the display text (format as fraction for values < 1)
+		var creature_type = enemy_data.get("creature_type", "humanoid")
+		var type_abbrev = CreatureTypeManager.get_type_abbreviation(creature_type)
+		# Show CR and creature type in the display text
 		var cr_str = _format_cr(cr)
-		var text = "%s (CR %s)" % [display_name, cr_str]
-		items.append({"type": "command", "text": text, "id": enemy_id, "cr": cr, "name": display_name})
+		var text = "%s (CR %s) [%s]" % [display_name, cr_str, type_abbrev]
+		items.append({
+			"type": "command",
+			"text": text,
+			"id": enemy_id,
+			"cr": cr,
+			"name": display_name,
+			"creature_type": creature_type
+		})
 
-	# Sort by CR ascending, then by name alphabetically
+	# Sort by CR ascending, then by creature type, then by name alphabetically
 	items.sort_custom(func(a, b):
 		if a.cr != b.cr:
 			return a.cr < b.cr
+		if a.creature_type != b.creature_type:
+			return a.creature_type < b.creature_type
 		return a.name < b.name
 	)
 
@@ -1556,16 +1567,28 @@ func _get_creature_info(enemy_id: String) -> String:
 	var desc = data.get("description", "")
 	var ascii_char = data.get("ascii_char", "?")
 	var color_hex = _get_color_hex(data)
+	var creature_type = data.get("creature_type", "humanoid")
+	var element_subtype = data.get("element_subtype", "")
 
 	var cr_str = _format_cr(cr)
 	lines.append("[color=#%s]%s[/color] [b]%s[/b] [color=gray](CR %s)[/color]" % [color_hex, ascii_char, enemy_name, cr_str])
+
+	# Show creature type
+	var type_display = CreatureTypeManager.get_type_display_name(creature_type)
+	if element_subtype != "":
+		type_display = CreatureTypeManager.get_subtype_display_name(creature_type, element_subtype)
+	var type_color = CreatureTypeManager.get_type_color(creature_type)
+	lines.append("[color=%s]Type: %s[/color]" % [type_color, type_display])
+
 	if desc:
 		lines.append("[i]%s[/i]" % desc)
 
 	var stats: Array[String] = []
 	stats.append("♥ HP: %d" % hp)
 
-	if data.has("attack_damage"):
+	if data.has("base_damage"):
+		stats.append("⚔ Damage: %d" % data.base_damage)
+	elif data.has("attack_damage"):
 		stats.append("⚔ Damage: %d" % data.attack_damage)
 	if data.has("armor"):
 		stats.append("◈ Armor: %d" % data.armor)
@@ -1576,6 +1599,21 @@ func _get_creature_info(enemy_id: String) -> String:
 
 	if stats.size() > 0:
 		lines.append("[color=white]%s[/color]" % "  ".join(stats))
+
+	# Show resistances (merged from type + creature)
+	var creature_resistances = data.get("elemental_resistances", {})
+	var merged_resistances = CreatureTypeManager.get_merged_resistances(creature_type, element_subtype, creature_resistances)
+	var res_parts: Array[String] = []
+	for element in merged_resistances:
+		var value = merged_resistances[element]
+		if value <= -100:
+			res_parts.append("[color=#00ff00]%s: Immune[/color]" % element.capitalize())
+		elif value < 0:
+			res_parts.append("[color=#88ff88]%s: %d%%[/color]" % [element.capitalize(), value])
+		elif value > 0:
+			res_parts.append("[color=#ff8888]%s: +%d%%[/color]" % [element.capitalize(), value])
+	if res_parts.size() > 0:
+		lines.append("Resistances: %s" % ", ".join(res_parts))
 
 	# Show abilities if any
 	if data.has("abilities") and data.abilities.size() > 0:

@@ -5,6 +5,8 @@
   "cr": 5,
   "ascii_char": "F",
   "ascii_color": "#FF4500",
+  "creature_type": "elemental",
+  "element_subtype": "fire",
   "stats": {
     "health": 35,
     "str": 12,
@@ -14,22 +16,33 @@
     "wis": 10,
     "cha": 7
   },
-  "yields": [
-    {"item_id": "fire_essence", "min_count": 1, "max_count": 2, "chance": 0.7},
-    {"item_id": "ash", "min_count": 2, "max_count": 4, "chance": 0.9}
-  ],
-  "behavior": "aggressive",
   "base_damage": 10,
   "armor": 2,
-  "creature_type": "elemental",
   "elemental_resistances": {
     "fire": -100,
     "ice": 100
   },
+  "yields": [
+    {
+      "item_id": "fire_essence",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.7
+    },
+    {
+      "item_id": "ash",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 0.9
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "elemental_common",
   "xp_value": 90,
   "spawn_biomes": [],
-  "spawn_dungeons": ["wizard_tower"],
+  "spawn_dungeons": [
+    "wizard_tower"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 160,
   "min_spawn_level": 8,

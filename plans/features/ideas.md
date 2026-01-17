@@ -3,7 +3,7 @@
 ## Version 1.2 Updates 
 ---
 
-[x] Test mode Expansion
+- [x] Test mode Expansion
     Implement the following improvements to the Debug Mode~~
     * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
     * add options to spawn structures, crops, and resources
@@ -13,10 +13,14 @@
     Made flowers, herbs, and mushrooms collectable by walking over them. These are not collected if auto-pickup is off
 - [x] H for pickup
     When auto-pickup is turned off, standing on an item and pressing H (harvest) will pick up the item.
-- [ ] Creature Types
+- [x] Creature Types
     Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
+- [ ] Resistance / Vulnerability cues
+    When a creature has immunity or resistance to an attack or action, the log should indicate a cue to the player, like "Your axe seems to do less damage that usual."
 ---
 ## Unplanned
+- [ ] Enemy abilities
+    Some creatures should have special abilities - trolls have regenreation, dragons breath fire, etc. Implement a system to support special abilities that can be defined through data configuration
 - [ ] Allow enemies to use ranged weapons and spells.
     Humanoid creatures should be able to use ranged weapons like bows and slings to attach players. Spell casting creatures (mages, demons, etc) should also be able to cast spells on players to hurt or hinder them. For instance, in addition to the combat spells, a wizard of sufficent level should be able to cast a Slow spell on the player that causes the player to only be able to act once every 2 turns until the spell ends or the player makes a successful save.
 - [ ] Creature interaction

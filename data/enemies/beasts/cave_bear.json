@@ -5,6 +5,7 @@
   "cr": 2,
   "ascii_char": "U",
   "ascii_color": "#8B4513",
+  "creature_type": "beast",
   "stats": {
     "health": 45,
     "str": 18,
@@ -14,17 +15,29 @@
     "wis": 12,
     "cha": 6
   },
-  "yields": [
-    {"item_id": "bear_pelt", "min_count": 1, "max_count": 1, "chance": 0.8},
-    {"item_id": "raw_meat", "min_count": 2, "max_count": 4, "chance": 1.0}
-  ],
-  "behavior": "aggressive",
   "base_damage": 10,
   "armor": 2,
+  "yields": [
+    {
+      "item_id": "bear_pelt",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.8
+    },
+    {
+      "item_id": "raw_meat",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 1.0
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "beast_rare",
   "xp_value": 60,
   "spawn_biomes": [],
-  "spawn_dungeons": ["natural_cave"],
+  "spawn_dungeons": [
+    "natural_cave"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 150,
   "min_spawn_level": 15,

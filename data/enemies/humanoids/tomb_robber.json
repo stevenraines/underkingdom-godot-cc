@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "t",
   "ascii_color": "#8B7355",
+  "creature_type": "humanoid",
   "stats": {
     "health": 15,
     "str": 10,
@@ -14,18 +15,35 @@
     "wis": 10,
     "cha": 8
   },
-  "yields": [
-    {"item_id": "gold_coin", "min_count": 5, "max_count": 20, "chance": 0.8},
-    {"item_id": "torch", "min_count": 1, "max_count": 2, "chance": 0.5},
-    {"item_id": "lockpick", "min_count": 1, "max_count": 1, "chance": 0.3}
-  ],
-  "behavior": "aggressive",
   "base_damage": 4,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "gold_coin",
+      "min_count": 5,
+      "max_count": 20,
+      "chance": 0.8
+    },
+    {
+      "item_id": "torch",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.5
+    },
+    {
+      "item_id": "lockpick",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.3
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "thief_common",
   "xp_value": 18,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow"],
+  "spawn_dungeons": [
+    "burial_barrow"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 70,
   "min_spawn_level": 1,

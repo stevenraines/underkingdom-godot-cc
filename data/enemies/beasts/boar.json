@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "b",
   "ascii_color": "#8B4513",
+  "creature_type": "beast",
   "stats": {
     "health": 11,
     "str": 13,
@@ -14,16 +15,30 @@
     "wis": 9,
     "cha": 5
   },
-  "yields": [
-    {"item_id": "raw_meat", "min_count": 2, "max_count": 4, "chance": 1.0},
-    {"item_id": "boar_tusk", "min_count": 1, "max_count": 2, "chance": 0.5}
-  ],
-  "behavior": "aggressive",
   "base_damage": 4,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "raw_meat",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 1.0
+    },
+    {
+      "item_id": "boar_tusk",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.5
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "beast_common",
   "xp_value": 15,
-  "spawn_biomes": ["woodland", "forest", "grassland"],
+  "spawn_biomes": [
+    "woodland",
+    "forest",
+    "grassland"
+  ],
   "spawn_dungeons": [],
   "spawn_density_overworld": 500,
   "spawn_density_dungeon": 0,

@@ -5,6 +5,7 @@
   "cr": 0.5,
   "ascii_char": "C",
   "ascii_color": "#2F4F4F",
+  "creature_type": "beast",
   "stats": {
     "health": 35,
     "str": 16,
@@ -14,17 +15,32 @@
     "wis": 10,
     "cha": 4
   },
-  "yields": [
-    {"item_id": "crocodile_hide", "min_count": 1, "max_count": 1, "chance": 0.7},
-    {"item_id": "raw_meat", "min_count": 2, "max_count": 4, "chance": 0.9}
-  ],
-  "behavior": "aggressive",
   "base_damage": 8,
   "armor": 3,
+  "yields": [
+    {
+      "item_id": "crocodile_hide",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.7
+    },
+    {
+      "item_id": "raw_meat",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 0.9
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "beast_common",
   "xp_value": 45,
-  "spawn_biomes": ["swamp", "marsh"],
-  "spawn_dungeons": ["sewers"],
+  "spawn_biomes": [
+    "swamp",
+    "marsh"
+  ],
+  "spawn_dungeons": [
+    "sewers"
+  ],
   "spawn_density_overworld": 200,
   "spawn_density_dungeon": 140,
   "min_spawn_level": 5,

@@ -5,6 +5,7 @@
   "cr": 4,
   "ascii_char": "D",
   "ascii_color": "#FF4500",
+  "creature_type": "aberration",
   "stats": {
     "health": 45,
     "str": 16,
@@ -14,17 +15,30 @@
     "wis": 10,
     "cha": 12
   },
-  "yields": [
-    {"item_id": "demon_essence", "min_count": 1, "max_count": 2, "chance": 0.6},
-    {"item_id": "infernal_shard", "min_count": 1, "max_count": 1, "chance": 0.3}
-  ],
-  "behavior": "aggressive",
   "base_damage": 10,
   "armor": 3,
+  "yields": [
+    {
+      "item_id": "demon_essence",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.6
+    },
+    {
+      "item_id": "infernal_shard",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.3
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "demon_common",
   "xp_value": 80,
   "spawn_biomes": [],
-  "spawn_dungeons": ["wizard_tower", "temple_ruins"],
+  "spawn_dungeons": [
+    "wizard_tower",
+    "temple_ruins"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 180,
   "min_spawn_level": 5,

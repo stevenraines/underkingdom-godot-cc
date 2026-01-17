@@ -5,6 +5,7 @@
   "cr": 0.125,
   "ascii_char": "i",
   "ascii_color": "#8B0000",
+  "creature_type": "beast",
   "stats": {
     "health": 2,
     "str": 4,
@@ -14,16 +15,28 @@
     "wis": 8,
     "cha": 6
   },
-  "yields": [
-    {"item_id": "stirge_wing", "min_count": 1, "max_count": 2, "chance": 0.6}
-  ],
-  "behavior": "aggressive",
   "base_damage": 2,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "stirge_wing",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.6
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "beast_common",
   "xp_value": 8,
-  "spawn_biomes": ["swamp", "marsh"],
-  "spawn_dungeons": ["natural_cave", "burial_barrow", "sewers"],
+  "spawn_biomes": [
+    "swamp",
+    "marsh"
+  ],
+  "spawn_dungeons": [
+    "natural_cave",
+    "burial_barrow",
+    "sewers"
+  ],
   "spawn_density_overworld": 300,
   "spawn_density_dungeon": 40,
   "min_spawn_level": 1,

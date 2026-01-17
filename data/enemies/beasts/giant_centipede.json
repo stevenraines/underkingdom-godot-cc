@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "c",
   "ascii_color": "#8B0000",
+  "creature_type": "beast",
   "stats": {
     "health": 4,
     "str": 5,
@@ -14,17 +15,31 @@
     "wis": 7,
     "cha": 3
   },
-  "yields": [
-    {"item_id": "chitin", "min_count": 1, "max_count": 2, "chance": 0.6},
-    {"item_id": "venom_sac", "min_count": 1, "max_count": 1, "chance": 0.2}
-  ],
-  "behavior": "aggressive",
   "base_damage": 2,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "chitin",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.6
+    },
+    {
+      "item_id": "venom_sac",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.2
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "insect_common",
   "xp_value": 10,
   "spawn_biomes": [],
-  "spawn_dungeons": ["natural_cave", "burial_barrow", "abandoned_mine"],
+  "spawn_dungeons": [
+    "natural_cave",
+    "burial_barrow",
+    "abandoned_mine"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 50,
   "min_spawn_level": 1,

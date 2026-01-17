@@ -4,9 +4,7 @@
   "description": "A ghostly wolf bound to your service.",
   "ascii_char": "w",
   "ascii_color": "#88AAFF",
-  "base_health": 20,
-  "base_damage": 6,
-  "armor": 0,
+  "creature_type": "beast",
   "attributes": {
     "STR": 12,
     "DEX": 14,
@@ -15,6 +13,9 @@
     "WIS": 10,
     "CHA": 6
   },
+  "base_health": 20,
+  "base_damage": 6,
+  "armor": 0,
   "behavior": "summoned",
   "faction": "player"
 }

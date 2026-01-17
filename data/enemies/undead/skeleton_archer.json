@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "s",
   "ascii_color": "#D3D3D3",
+  "creature_type": "undead",
   "stats": {
     "health": 13,
     "str": 8,
@@ -14,22 +15,35 @@
     "wis": 8,
     "cha": 3
   },
-  "yields": [
-    {"item_id": "bone", "min_count": 1, "max_count": 2, "chance": 0.8},
-    {"item_id": "arrow", "min_count": 3, "max_count": 8, "chance": 0.6}
-  ],
-  "behavior": "aggressive",
   "base_damage": 4,
   "armor": 1,
-  "attack_type": "ranged",
-  "attack_range": 6,
-  "ammunition_type": "arrow",
+  "yields": [
+    {
+      "item_id": "bone",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.8
+    },
+    {
+      "item_id": "arrow",
+      "min_count": 3,
+      "max_count": 8,
+      "chance": 0.6
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "undead_common",
   "xp_value": 20,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow", "military_compound"],
+  "spawn_dungeons": [
+    "burial_barrow",
+    "military_compound"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 90,
   "min_spawn_level": 2,
-  "max_spawn_level": 15
+  "max_spawn_level": 15,
+  "attack_type": "ranged",
+  "attack_range": 6,
+  "ammunition_type": "arrow"
 }

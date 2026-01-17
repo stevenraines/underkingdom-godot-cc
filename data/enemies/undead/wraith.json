@@ -5,6 +5,7 @@
   "cr": 5,
   "ascii_char": "W",
   "ascii_color": "#2F4F4F",
+  "creature_type": "undead",
   "stats": {
     "health": 67,
     "str": 6,
@@ -14,17 +15,30 @@
     "wis": 14,
     "cha": 15
   },
-  "yields": [
-    {"item_id": "ectoplasm", "min_count": 2, "max_count": 4, "chance": 0.9},
-    {"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.2}
-  ],
-  "behavior": "aggressive",
   "base_damage": 10,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "ectoplasm",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 0.9
+    },
+    {
+      "item_id": "soul_gem",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.2
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "undead_rare",
   "xp_value": 200,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow", "temple_ruins"],
+  "spawn_dungeons": [
+    "burial_barrow",
+    "temple_ruins"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 200,
   "min_spawn_level": 10,

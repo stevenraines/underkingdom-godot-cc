@@ -1,0 +1,15 @@
+{
+  "id": "ooze",
+  "name": "Ooze",
+  "description": "Amorphous creatures that dissolve organic matter",
+  "ascii_color": "#32CD32",
+  "base_resistances": {
+    "slashing": -50,
+    "piercing": -50,
+    "acid": -100
+  },
+  "special_rules": {
+    "immune_to_mind_control": true
+  },
+  "subtypes": {}
+}

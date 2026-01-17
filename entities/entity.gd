@@ -39,8 +39,9 @@ var is_alive: bool = true
 var base_damage: int = 1  # Unarmed/natural weapon damage
 var armor: int = 0  # Damage reduction
 
-# Creature type for mind control immunity (humanoid, animal, undead, construct)
+# Creature type for mind control immunity and damage resistances
 var creature_type: String = "humanoid"
+var element_subtype: String = ""  # Optional subtype (fire, ice, earth, air) for elementals
 var faction: String = "neutral"  # player, enemy, neutral, hostile_to_all
 var ai_state: String = "normal"  # normal, fleeing, berserk, idle
 

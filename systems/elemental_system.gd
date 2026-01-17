@@ -3,6 +3,9 @@ extends RefCounted
 
 ## ElementalSystem - Handles all damage types, resistances, and environmental combos
 ##
+## Uses CreatureTypeManager for data-driven creature type resistances.
+## Note: CreatureTypeManager is an autoload singleton, accessible globally.
+##
 ## Physical: slashing, piercing, bludgeoning
 ## Elemental: fire, ice, lightning, poison, acid
 ## Magic: necrotic, radiant
@@ -129,6 +132,11 @@ static func get_element_name(element: Element) -> String:
 ## target: Entity receiving damage
 ## source: Entity dealing damage (can be null)
 ## Returns: Final damage after modifiers
+##
+## Resistance precedence (handled by CreatureTypeManager):
+## 1. Per-creature elemental_resistances (highest priority)
+## 2. Element subtype resistances (e.g., fire elemental fire immunity)
+## 3. Creature type base resistances (e.g., undead poison immunity)
 static func calculate_elemental_damage(base_damage: int, element: String, target, source = null) -> Dictionary:
 	var result = {
 		"final_damage": base_damage,
@@ -142,21 +150,49 @@ static func calculate_elemental_damage(base_damage: int, element: String, target
 	if not target:
 		return result
 
-	# Get resistance value (negative = resistance, positive = vulnerability)
-	var resistance = _get_entity_resistance(target, element)
-
-	# Special creature type interactions
+	# Get creature type info from target
 	var creature_type = target.creature_type if "creature_type" in target else "humanoid"
+	var element_subtype = target.element_subtype if "element_subtype" in target else ""
+	var creature_resistances = target.elemental_resistances if "elemental_resistances" in target else {}
 
-	# Poison immunity for undead/constructs
-	if element == "poison" and creature_type in ["undead", "construct"]:
+	# Get merged resistances from CreatureTypeManager (type + subtype + per-creature)
+	var merged_resistances = CreatureTypeManager.get_merged_resistances(
+		creature_type,
+		element_subtype,
+		creature_resistances
+	)
+
+	# Get resistance value for this element
+	var resistance = merged_resistances.get(element, 0)
+
+	# Add equipment bonuses (if the entity has equipment)
+	if "equipment" in target and target.equipment:
+		for slot in target.equipment:
+			var item = target.equipment[slot]
+			if item and "elemental_resistance" in item:
+				if element in item.elemental_resistance:
+					resistance += item.elemental_resistance[element]
+
+	# Add buff/debuff modifiers
+	if target.has_method("get_active_effects"):
+		for effect in target.get_active_effects():
+			if effect.get("type") == "elemental_resistance" and effect.get("element") == element:
+				resistance += effect.get("modifier", 0)
+
+	# Clamp resistance to valid range
+	resistance = clampi(resistance, -100, 100)
+
+	# Check special rules from CreatureTypeManager (data-driven)
+
+	# Poison immunity check
+	if element == "poison" and CreatureTypeManager.has_special_rule(creature_type, "immune_to_poison"):
 		result.final_damage = 0
 		result.immune = true
 		result.message = "%s is immune to poison!" % target.name
 		return result
 
-	# Necrotic heals undead
-	if element == "necrotic" and creature_type == "undead":
+	# Necrotic heals undead check
+	if element == "necrotic" and CreatureTypeManager.has_special_rule(creature_type, "heals_from_necrotic"):
 		result.final_damage = 0
 		result.healed = true
 		if target.has_method("heal"):
@@ -164,15 +200,16 @@ static func calculate_elemental_damage(base_damage: int, element: String, target
 		result.message = "%s absorbs the necrotic energy!" % target.name
 		return result
 
-	# Holy bonus vs undead
-	var holy_bonus = 0
-	if element == "holy" and creature_type == "undead":
-		holy_bonus = int(base_damage * 0.5)
+	# Radiant/holy bonus vs undead (data-driven bonus percentage)
+	var radiant_bonus = 0
+	if element in ["radiant", "holy"] and CreatureTypeManager.has_special_rule(creature_type, "vulnerable_to_radiant"):
+		var bonus_percent = CreatureTypeManager.get_special_rule_value(creature_type, "radiant_vulnerability_bonus", 50)
+		radiant_bonus = int(base_damage * bonus_percent / 100.0)
 
 	# Calculate resistance modifier
 	# -100 = immune (0%), 0 = normal (100%), +100 = double (200%)
 	var modifier = 1.0 + (resistance / 100.0)
-	var final_damage = int((base_damage + holy_bonus) * modifier)
+	var final_damage = int((base_damage + radiant_bonus) * modifier)
 	final_damage = max(0, final_damage)
 
 	result.final_damage = final_damage

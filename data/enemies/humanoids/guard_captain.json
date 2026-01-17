@@ -5,6 +5,7 @@
   "cr": 3,
   "ascii_char": "C",
   "ascii_color": "#FFD700",
+  "creature_type": "humanoid",
   "stats": {
     "health": 40,
     "str": 16,
@@ -14,18 +15,36 @@
     "wis": 12,
     "cha": 14
   },
-  "yields": [
-    {"item_id": "steel_sword", "min_count": 1, "max_count": 1, "chance": 0.5},
-    {"item_id": "plate_armor", "min_count": 1, "max_count": 1, "chance": 0.25},
-    {"item_id": "gold_coin", "min_count": 20, "max_count": 50, "chance": 0.8}
-  ],
-  "behavior": "guardian",
   "base_damage": 10,
   "armor": 5,
+  "yields": [
+    {
+      "item_id": "steel_sword",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.5
+    },
+    {
+      "item_id": "plate_armor",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.25
+    },
+    {
+      "item_id": "gold_coin",
+      "min_count": 20,
+      "max_count": 50,
+      "chance": 0.8
+    }
+  ],
+  "behavior": "guardian",
   "loot_table": "captain_rare",
   "xp_value": 80,
   "spawn_biomes": [],
-  "spawn_dungeons": ["military_compound", "ancient_fort"],
+  "spawn_dungeons": [
+    "military_compound",
+    "ancient_fort"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 180,
   "min_spawn_level": 5,

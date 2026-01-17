@@ -5,6 +5,7 @@
   "cr": 0.5,
   "ascii_char": "s",
   "ascii_color": "#4682B4",
+  "creature_type": "humanoid",
   "stats": {
     "health": 25,
     "str": 14,
@@ -14,17 +15,30 @@
     "wis": 10,
     "cha": 10
   },
-  "yields": [
-    {"item_id": "iron_sword", "min_count": 1, "max_count": 1, "chance": 0.4},
-    {"item_id": "chain_mail", "min_count": 1, "max_count": 1, "chance": 0.2}
-  ],
-  "behavior": "guardian",
   "base_damage": 6,
   "armor": 4,
+  "yields": [
+    {
+      "item_id": "iron_sword",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.4
+    },
+    {
+      "item_id": "chain_mail",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.2
+    }
+  ],
+  "behavior": "guardian",
   "loot_table": "soldier_common",
   "xp_value": 35,
   "spawn_biomes": [],
-  "spawn_dungeons": ["military_compound", "ancient_fort"],
+  "spawn_dungeons": [
+    "military_compound",
+    "ancient_fort"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 100,
   "min_spawn_level": 1,

@@ -5,6 +5,7 @@
   "cr": 4,
   "ascii_char": "G",
   "ascii_color": "#FFD700",
+  "creature_type": "aberration",
   "stats": {
     "health": 50,
     "str": 16,
@@ -14,17 +15,29 @@
     "wis": 16,
     "cha": 14
   },
-  "yields": [
-    {"item_id": "divine_essence", "min_count": 1, "max_count": 2, "chance": 0.6},
-    {"item_id": "holy_symbol", "min_count": 1, "max_count": 1, "chance": 0.2}
-  ],
-  "behavior": "guardian",
   "base_damage": 10,
   "armor": 4,
+  "yields": [
+    {
+      "item_id": "divine_essence",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.6
+    },
+    {
+      "item_id": "holy_symbol",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.2
+    }
+  ],
+  "behavior": "guardian",
   "loot_table": "divine_rare",
   "xp_value": 100,
   "spawn_biomes": [],
-  "spawn_dungeons": ["temple_ruins"],
+  "spawn_dungeons": [
+    "temple_ruins"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 180,
   "min_spawn_level": 6,

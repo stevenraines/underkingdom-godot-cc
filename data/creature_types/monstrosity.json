@@ -1,0 +1,9 @@
+{
+  "id": "monstrosity",
+  "name": "Monstrosity",
+  "description": "Unnatural creatures that are not classified elsewhere",
+  "ascii_color": "#800080",
+  "base_resistances": {},
+  "special_rules": {},
+  "subtypes": {}
+}

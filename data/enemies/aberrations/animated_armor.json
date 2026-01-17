@@ -5,6 +5,7 @@
   "cr": 1,
   "ascii_char": "A",
   "ascii_color": "#708090",
+  "creature_type": "aberration",
   "stats": {
     "health": 33,
     "str": 14,
@@ -14,17 +15,30 @@
     "wis": 3,
     "cha": 1
   },
-  "yields": [
-    {"item_id": "iron_ore", "min_count": 2, "max_count": 4, "chance": 0.9},
-    {"item_id": "arcane_dust", "min_count": 1, "max_count": 1, "chance": 0.3}
-  ],
-  "behavior": "guardian",
   "base_damage": 6,
   "armor": 6,
+  "yields": [
+    {
+      "item_id": "iron_ore",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 0.9
+    },
+    {
+      "item_id": "arcane_dust",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.3
+    }
+  ],
+  "behavior": "guardian",
   "loot_table": "construct_common",
   "xp_value": 40,
   "spawn_biomes": [],
-  "spawn_dungeons": ["wizard_tower", "ancient_fort"],
+  "spawn_dungeons": [
+    "wizard_tower",
+    "ancient_fort"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 100,
   "min_spawn_level": 1,

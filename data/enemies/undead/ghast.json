@@ -5,6 +5,7 @@
   "cr": 2,
   "ascii_char": "G",
   "ascii_color": "#5F9EA0",
+  "creature_type": "undead",
   "stats": {
     "health": 36,
     "str": 16,
@@ -14,17 +15,29 @@
     "wis": 10,
     "cha": 8
   },
-  "yields": [
-    {"item_id": "ghoul_claw", "min_count": 2, "max_count": 4, "chance": 0.8},
-    {"item_id": "ectoplasm", "min_count": 1, "max_count": 2, "chance": 0.5}
-  ],
-  "behavior": "pack",
   "base_damage": 8,
   "armor": 2,
+  "yields": [
+    {
+      "item_id": "ghoul_claw",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 0.8
+    },
+    {
+      "item_id": "ectoplasm",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.5
+    }
+  ],
+  "behavior": "pack",
   "loot_table": "undead_rare",
   "xp_value": 75,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow"],
+  "spawn_dungeons": [
+    "burial_barrow"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 140,
   "min_spawn_level": 5,

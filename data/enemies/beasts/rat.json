@@ -5,6 +5,7 @@
   "cr": 0,
   "ascii_char": "r",
   "ascii_color": "#8B4513",
+  "creature_type": "beast",
   "stats": {
     "health": 5,
     "str": 3,
@@ -14,20 +15,30 @@
     "wis": 8,
     "cha": 2
   },
-  "yields": [
-    {"item_id": "raw_meat", "min_count": 0, "max_count": 1, "chance": 0.5}
-  ],
-  "behavior": "aggressive",
   "base_damage": 1,
   "armor": 0,
-  "feared_components": ["fire"],
-  "fear_distance": 3,
+  "yields": [
+    {
+      "item_id": "raw_meat",
+      "min_count": 0,
+      "max_count": 1,
+      "chance": 0.5
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "rat_common",
   "xp_value": 3,
   "spawn_biomes": [],
-  "spawn_dungeons": ["sewers", "burial_barrow"],
+  "spawn_dungeons": [
+    "sewers",
+    "burial_barrow"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 40,
   "min_spawn_level": 1,
-  "max_spawn_level": 10
+  "max_spawn_level": 10,
+  "feared_components": [
+    "fire"
+  ],
+  "fear_distance": 3
 }

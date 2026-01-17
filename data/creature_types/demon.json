@@ -1,0 +1,15 @@
+{
+  "id": "demon",
+  "name": "Demon",
+  "description": "Fiendish beings from the lower planes",
+  "ascii_color": "#FF3333",
+  "base_resistances": {
+    "fire": -50,
+    "radiant": 50,
+    "necrotic": -25
+  },
+  "special_rules": {
+    "resistant_to_fire": true
+  },
+  "subtypes": {}
+}

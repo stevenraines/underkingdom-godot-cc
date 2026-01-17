@@ -83,6 +83,7 @@ static func create(enemy_data: Dictionary) -> Enemy:
 
 	# Creature type for elemental damage rules
 	enemy.creature_type = enemy_data.get("creature_type", "humanoid")
+	enemy.element_subtype = enemy_data.get("element_subtype", "")
 
 	# Elemental resistances
 	if enemy_data.has("elemental_resistances"):

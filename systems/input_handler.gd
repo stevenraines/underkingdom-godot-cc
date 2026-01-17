@@ -956,8 +956,26 @@ func _try_interact_npc() -> void:
 		EventBus.emit_signal("message_logged", "There's nobody here to talk to.")
 
 ## Start harvest mode - player will be prompted for direction
+## If standing on a harvestable feature (flora), gather it directly
 func _start_harvest_mode() -> void:
 	var game = get_parent()
+
+	# First check if there's a harvestable feature at the player's position
+	if FeatureManager.has_interactable_feature(player.position):
+		var feature = FeatureManager.get_feature_at(player.position)
+		var feature_def = feature.get("definition", {})
+		if feature_def.get("harvestable", false):
+			# Gather the feature directly
+			var result = player.interact_with_feature()
+			if result.get("success", false):
+				TurnManager.advance_turn()
+				if game and game.has_method("_render_all_entities"):
+					game._render_all_entities()
+				if game and game.has_method("_update_visibility"):
+					game._update_visibility()
+			return
+
+	# No feature at position, prompt for harvest direction (for trees, rocks, etc.)
 	if game and game.has_method("_add_message"):
 		game._add_message("Harvest which direction? (Arrow keys or WASD)", Color(1.0, 1.0, 0.6))
 
@@ -1737,6 +1755,8 @@ func _fire_at_target() -> void:
 	if game and game.has_method("_render_all_entities"):
 		game._render_all_entities()
 		game._render_ground_items()
+	if game and game.has_method("_update_visibility"):
+		game._update_visibility()
 
 
 ## Get all valid targets within perception range

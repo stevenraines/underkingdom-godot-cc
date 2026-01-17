@@ -15,6 +15,7 @@ const _FarmingSystem = preload("res://systems/farming_system.gd")
 const _FOVSystem = preload("res://systems/fov_system.gd")
 const _LockSystem = preload("res://systems/lock_system.gd")
 const _RitualSystem = preload("res://systems/ritual_system.gd")
+const _ItemFactory = preload("res://items/item_factory.gd")
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -272,8 +273,16 @@ func move(direction: Vector2i) -> bool:
 	# Check for non-blocking interactable features at new position (like inscriptions)
 	if FeatureManager.has_interactable_feature(new_pos):
 		var feature = FeatureManager.get_feature_at(new_pos)
-		if not feature.get("definition", {}).get("blocking", false):
-			_interact_with_feature_at(new_pos)
+		var feature_def = feature.get("definition", {})
+		if not feature_def.get("blocking", false):
+			# For harvestable features (flora), respect auto_pickup setting
+			if feature_def.get("harvestable", false):
+				if GameManager.auto_pickup_enabled:
+					_interact_with_feature_at(new_pos)
+				# else: player must manually gather with H key
+			else:
+				# Non-harvestable features (inscriptions, etc.) always auto-interact
+				_interact_with_feature_at(new_pos)
 
 	return true
 
@@ -437,16 +446,31 @@ func _interact_with_feature_at(pos: Vector2i) -> Dictionary:
 
 
 ## Collect loot from a feature
+## Supports variant items via variant_name field
 func _collect_feature_loot(items: Array) -> void:
 	for item_data in items:
 		var item_id = item_data.get("item_id", "")
 		var count = item_data.get("count", 1)
+		var variant_name = item_data.get("variant_name", "")
 
 		if item_id == "gold_coin":
 			gold += count
 			EventBus.message_logged.emit("Found %d gold!" % count)
 		else:
-			var item = ItemManager.create_item(item_id, count)
+			var item: Item = null
+
+			# Create item with variant if specified
+			if not variant_name.is_empty():
+				# Determine variant type from item_id (mushroom -> mushroom_species, etc.)
+				var variant_type = _get_variant_type_for_item(item_id)
+				if not variant_type.is_empty():
+					item = _ItemFactory.create_item(item_id, {variant_type: variant_name}, count)
+				else:
+					# Fallback to regular item creation
+					item = ItemManager.create_item(item_id, count)
+			else:
+				item = ItemManager.create_item(item_id, count)
+
 			if item and inventory:
 				if inventory.add_item(item):
 					EventBus.item_picked_up.emit(item)
@@ -454,6 +478,22 @@ func _collect_feature_loot(items: Array) -> void:
 					# Inventory full - drop on ground
 					EntityManager.spawn_ground_item(item, position)
 					EventBus.message_logged.emit("Inventory full! Item dropped.")
+
+
+## Get the variant type for a base item ID
+## Maps item IDs to their corresponding variant types
+func _get_variant_type_for_item(item_id: String) -> String:
+	match item_id:
+		"mushroom":
+			return "mushroom_species"
+		"flower":
+			return "flower_species"
+		"herb":
+			return "herb_species"
+		"fish":
+			return "fish_species"
+		_:
+			return ""
 
 ## Process survival systems for a turn
 func process_survival_turn(turn_number: int) -> Dictionary:

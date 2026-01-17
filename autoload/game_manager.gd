@@ -24,6 +24,7 @@ var visited_locations: Dictionary = {}
 
 # Player settings
 var auto_open_doors: bool = true  # Automatically open doors when walking into them
+var auto_pickup_enabled: bool = true  # Automatically pick up items and gather features when walking
 
 # Debug flags
 var debug_god_mode: bool = false  # Player takes no damage

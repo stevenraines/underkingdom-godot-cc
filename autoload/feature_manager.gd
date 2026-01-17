@@ -1,10 +1,10 @@
 extends Node
 class_name FeatureManagerClass
-## Manages dungeon features - interactive objects placed during generation
+## Manages dungeon and overworld features - interactive objects placed during generation
 ##
-## Features are loaded from JSON files in data/features/
+## Features are loaded from JSON files in data/features/ (recursively)
 ## Each feature can contain loot, summon enemies, provide hints, or have
-## other interactive effects.
+## other interactive effects. Supports variant system for harvested items.
 
 const FEATURE_DATA_PATH = "res://data/features"
 const _LockSystem = preload("res://systems/lock_system.gd")
@@ -25,26 +25,37 @@ var feature_definitions: Dictionary = {}
 ## Current dungeon's hints (loaded from dungeon definition)
 var current_dungeon_hints: Array = []
 
+## Track features scheduled for respawn
+## Key: respawn_turn, Value: Array of {feature_id, position, biome_id, map_id}
+var respawning_features: Dictionary = {}
+
 
 func _ready() -> void:
-	_load_feature_definitions()
+	_load_feature_definitions_recursive(FEATURE_DATA_PATH)
 	print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
 
 
-## Load all feature definitions from JSON files
-func _load_feature_definitions() -> void:
-	var dir = DirAccess.open(FEATURE_DATA_PATH)
+## Load all feature definitions recursively from JSON files
+func _load_feature_definitions_recursive(path: String) -> void:
+	var dir = DirAccess.open(path)
 	if not dir:
-		push_error("[FeatureManager] Failed to open feature data directory: " + FEATURE_DATA_PATH)
+		push_error("[FeatureManager] Failed to open feature data directory: " + path)
 		return
 
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 
 	while file_name != "":
-		if file_name.ends_with(".json"):
-			var file_path = FEATURE_DATA_PATH + "/" + file_name
-			_load_feature_file(file_path)
+		if file_name.begins_with("."):
+			file_name = dir.get_next()
+			continue
+
+		var full_path = path + "/" + file_name
+		if dir.current_is_dir():
+			# Recursively load from subdirectory
+			_load_feature_definitions_recursive(full_path)
+		elif file_name.ends_with(".json"):
+			_load_feature_file(full_path)
 		file_name = dir.get_next()
 
 	dir.list_dir_end()
@@ -242,23 +253,43 @@ func interact_with_feature(pos: Vector2i, player = null) -> Dictionary:
 	# Default message - can be overwritten by specific effects
 	result.message = "You %s the %s." % [verb, feature_name]
 
-	# Handle harvestable yields (like mushrooms, crystals, ore)
+	# Handle harvestable yields (like mushrooms, crystals, ore) with variant support
 	if feature_def.get("harvestable", false) and feature_def.has("yields"):
 		var yields: Array = feature_def.get("yields", [])
 		var harvested_items: Array = []
+		# Get biome for variant selection (stored in feature state or look up from position)
+		var biome_id: String = feature.state.get("biome_id", "")
+		if biome_id.is_empty():
+			biome_id = _get_biome_at_position(pos)
+
 		for yield_data in yields:
 			var item_id: String = yield_data.get("item_id", "")
 			var count_min: int = yield_data.get("count_min", 1)
 			var count_max: int = yield_data.get("count_max", 1)
 			var count: int = randi_range(count_min, count_max)
 			if not item_id.is_empty() and count > 0:
-				harvested_items.append({"item_id": item_id, "count": count})
+				var harvest_data: Dictionary = {"item_id": item_id, "count": count}
+
+				# Check for variant support
+				var use_variant: bool = yield_data.get("use_variant", false)
+				var variant_type: String = yield_data.get("variant_type", "")
+				if use_variant and not variant_type.is_empty():
+					var variant_name = _select_variant_for_biome(variant_type, biome_id)
+					if not variant_name.is_empty():
+						harvest_data["variant_name"] = variant_name
+
+				harvested_items.append(harvest_data)
+
 		if not harvested_items.is_empty():
 			result.effects.append({"type": "harvest", "items": harvested_items})
-			var total_items: int = 0
+			var item_names: Array = []
 			for hi in harvested_items:
-				total_items += hi.count
-			result.message = "You %s the %s and gather %d item(s)." % [verb, feature_name, total_items]
+				# Build display name
+				var display_name = hi.item_id.replace("_", " ")
+				if hi.has("variant_name"):
+					display_name = hi.variant_name.replace("_", " ")
+				item_names.append("%d %s" % [hi.count, display_name])
+			result.message = "You %s the %s and gather %s." % [verb, feature_name, ", ".join(item_names)]
 
 	# Handle loot
 	if feature.state.has("loot") and not feature.state.loot.is_empty():
@@ -302,12 +333,19 @@ func _remove_feature(pos: Vector2i) -> void:
 
 	var feature: Dictionary = active_features[pos]
 	var feature_id: String = feature.get("feature_id", "")
+	var feature_def: Dictionary = feature.get("definition", {})
+	var biome_id: String = feature.state.get("biome_id", "")
 
 	# Remove from active features
 	active_features.erase(pos)
 
 	# Remove from map metadata
 	var map = MapManager.current_map
+
+	# Schedule respawn for renewable features
+	if feature_def.get("renewable", false):
+		var map_id = map.map_id if map else "overworld"
+		schedule_feature_respawn(feature_id, pos, biome_id, map_id)
 	if map and map.metadata.has("features"):
 		var features: Array = map.metadata.features
 		for i in range(features.size() - 1, -1, -1):
@@ -556,3 +594,157 @@ func _parse_vector2i(value: String) -> Vector2i:
 		push_warning("[FeatureManager] Failed to parse Vector2i from string: %s" % value)
 		return Vector2i.ZERO
 	return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
+
+
+# =============================================================================
+# VARIANT SUPPORT
+# =============================================================================
+
+## Get biome ID at a world position
+func _get_biome_at_position(pos: Vector2i) -> String:
+	var world_seed = GameManager.world_seed if GameManager.world_seed else 12345
+	var biome = BiomeGenerator.get_biome_at(pos.x, pos.y, world_seed)
+	if biome:
+		return biome.get("id", "woodland")
+	return "woodland"
+
+
+## Select an appropriate variant for the given biome
+## Prefers variants that match the biome, falls back to any variant
+func _select_variant_for_biome(variant_type: String, biome_id: String) -> String:
+	var variants: Dictionary = VariantManager.get_variants_of_type(variant_type)
+	if variants.is_empty():
+		return ""
+
+	# Collect variants that match this biome
+	var biome_variants: Array[String] = []
+	var all_variants: Array[String] = []
+
+	for variant_name in variants:
+		all_variants.append(variant_name)
+		var variant_data: Dictionary = variants[variant_name]
+		var biomes: Array = variant_data.get("biomes", [])
+		if biomes.is_empty() or biome_id in biomes:
+			biome_variants.append(variant_name)
+
+	# Prefer biome-appropriate variants, fall back to all variants
+	var candidate_list = biome_variants if not biome_variants.is_empty() else all_variants
+	if candidate_list.is_empty():
+		return ""
+
+	# Random selection
+	return candidate_list[randi() % candidate_list.size()]
+
+
+# =============================================================================
+# OVERWORLD FEATURE SPAWNING
+# =============================================================================
+
+## Spawn an overworld feature at position
+## Called by ResourceSpawner/WorldChunk when generating flora
+func spawn_overworld_feature(feature_id: String, pos: Vector2i, biome_id: String = "", map: GameMap = null) -> void:
+	if not feature_definitions.has(feature_id):
+		push_warning("[FeatureManager] Unknown feature type for overworld spawn: %s" % feature_id)
+		return
+
+	var feature_def: Dictionary = feature_definitions[feature_id]
+
+	# Use current map if not specified
+	if map == null:
+		map = MapManager.current_map
+	if map == null:
+		push_warning("[FeatureManager] No map available for overworld feature spawn")
+		return
+
+	# Create feature instance data
+	var feature_data: Dictionary = {
+		"feature_id": feature_id,
+		"position": pos,
+		"definition": feature_def,
+		"config": {},
+		"interacted": false,
+		"state": {
+			"biome_id": biome_id  # Store biome for variant selection
+		}
+	}
+
+	# Store in active features
+	active_features[pos] = feature_data
+
+	# Store in map metadata for persistence
+	if not map.metadata.has("features"):
+		map.metadata["features"] = []
+	map.metadata.features.append(feature_data)
+
+
+## Get the ascii char for a feature type (used for rendering)
+func get_feature_ascii_char(feature_id: String) -> String:
+	var feature_def = feature_definitions.get(feature_id, {})
+	return feature_def.get("ascii_char", "?")
+
+
+## Get the color for a feature type (used for rendering)
+func get_feature_color(feature_id: String) -> Color:
+	var feature_def = feature_definitions.get(feature_id, {})
+	return feature_def.get("color", Color.WHITE)
+
+
+# =============================================================================
+# RESPAWN SYSTEM
+# =============================================================================
+
+## Schedule a feature for respawn after interaction
+func schedule_feature_respawn(feature_id: String, pos: Vector2i, biome_id: String, map_id: String) -> void:
+	var feature_def = feature_definitions.get(feature_id, {})
+	if not feature_def.get("renewable", false):
+		return
+
+	var respawn_turns: int = feature_def.get("respawn_turns", 3000)
+	var respawn_turn: int = TurnManager.current_turn + respawn_turns
+
+	if not respawning_features.has(respawn_turn):
+		respawning_features[respawn_turn] = []
+
+	respawning_features[respawn_turn].append({
+		"feature_id": feature_id,
+		"position": pos,
+		"biome_id": biome_id,
+		"map_id": map_id
+	})
+
+	print("[FeatureManager] Scheduled respawn for %s at %v in %d turns" % [feature_id, pos, respawn_turns])
+
+
+## Process respawns (called by TurnManager each turn)
+func process_feature_respawns() -> void:
+	var current_turn = TurnManager.current_turn
+	var current_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+
+	# Find any features ready to respawn
+	var turns_to_remove: Array = []
+
+	for respawn_turn in respawning_features:
+		if current_turn >= respawn_turn:
+			for respawn_data in respawning_features[respawn_turn]:
+				# Only respawn if we're on the same map
+				if respawn_data.map_id == current_map_id:
+					var pos = respawn_data.position
+					# Handle position as string or Vector2i
+					if pos is String:
+						pos = _parse_vector2i(pos)
+
+					# Check if position is clear (no entity or feature there)
+					if not active_features.has(pos):
+						spawn_overworld_feature(
+							respawn_data.feature_id,
+							pos,
+							respawn_data.biome_id,
+							MapManager.current_map
+						)
+						print("[FeatureManager] Respawned %s at %v" % [respawn_data.feature_id, pos])
+
+			turns_to_remove.append(respawn_turn)
+
+	# Clean up processed respawns
+	for turn_key in turns_to_remove:
+		respawning_features.erase(turn_key)

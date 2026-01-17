@@ -87,40 +87,25 @@ static func spawn_resources(map: GameMap, seed_value: int) -> void:
 				tile.harvestable_resource_id = "rock"
 				continue  # Don't spawn flora in same spot
 
-			# Try to spawn herb based on biome density
+			# Try to spawn herb based on biome density (now spawned as features)
 			var herb_density = biome.get("herb_density", 0.0)
 			if herb_density > 0 and rng.randf() < herb_density:
-				var chunk_coords = Vector2i(x / 32, y / 32)
-				resources.append(ResourceInstance.new("wild_herb", pos, chunk_coords))
-
-				# Herbs are walkable but harvestable
-				tile.ascii_char = "⚜"
-				tile.color = Color(0.4, 0.8, 0.4)  # Light green
-				tile.harvestable_resource_id = "wild_herb"
+				var biome_id = biome.get("id", "woodland")
+				FeatureManager.spawn_overworld_feature("wild_herb_feature", pos, biome_id, map)
 				continue  # Don't spawn other flora in same spot
 
-			# Try to spawn flower based on biome density
+			# Try to spawn flower based on biome density (now spawned as features)
 			var flower_density = biome.get("flower_density", 0.0)
 			if flower_density > 0 and rng.randf() < flower_density:
-				var chunk_coords = Vector2i(x / 32, y / 32)
-				resources.append(ResourceInstance.new("wild_flower", pos, chunk_coords))
-
-				# Flowers are walkable but harvestable
-				tile.ascii_char = "*"
-				tile.color = Color(1.0, 0.8, 0.3)  # Yellow/orange
-				tile.harvestable_resource_id = "wild_flower"
+				var biome_id = biome.get("id", "woodland")
+				FeatureManager.spawn_overworld_feature("wild_flower_feature", pos, biome_id, map)
 				continue  # Don't spawn other flora in same spot
 
-			# Try to spawn mushroom based on biome density
+			# Try to spawn mushroom based on biome density (now spawned as features)
 			var mushroom_density = biome.get("mushroom_density", 0.0)
 			if mushroom_density > 0 and rng.randf() < mushroom_density:
-				var chunk_coords = Vector2i(x / 32, y / 32)
-				resources.append(ResourceInstance.new("wild_mushroom", pos, chunk_coords))
-
-				# Mushrooms are walkable but harvestable
-				tile.ascii_char = ","
-				tile.color = Color(0.65, 0.4, 0.2)  # Brown
-				tile.harvestable_resource_id = "wild_mushroom"
+				var biome_id = biome.get("id", "woodland")
+				FeatureManager.spawn_overworld_feature("wild_mushroom_feature", pos, biome_id, map)
 
 	# Store resources in map metadata
 	map.set_meta("resources", resources)
@@ -183,20 +168,12 @@ static func process_respawns(map: GameMap) -> void:
 						tile.walkable = false
 						tile.transparent = false
 						tile.ascii_char = "T"
+						tile.harvestable_resource_id = resource.resource_id
 					elif resource.resource_id == "rock":
 						tile.walkable = false
 						tile.transparent = false
 						tile.ascii_char = "◆"
-					# Flora doesn't block movement
-					elif resource.resource_id == "wild_herb":
-						tile.ascii_char = "⚜"
-						tile.color = Color(0.4, 0.8, 0.4)  # Light green
-					elif resource.resource_id == "wild_flower":
-						tile.ascii_char = "*"
-						tile.color = Color(1.0, 0.8, 0.3)  # Yellow/orange
-					elif resource.resource_id == "wild_mushroom":
-						tile.ascii_char = ","
-						tile.color = Color(0.65, 0.4, 0.2)  # Brown
-					tile.harvestable_resource_id = resource.resource_id
+						tile.harvestable_resource_id = resource.resource_id
+					# Note: Flora (herbs, flowers, mushrooms) is now handled as features by FeatureManager
 
 				print("[ResourceSpawner] Respawned %s at %v" % [resource.resource_id, resource.position])

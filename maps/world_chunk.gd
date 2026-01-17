@@ -151,40 +151,25 @@ func generate(world_seed: int) -> void:
 					tile.color = Color.WHITE
 					continue  # Don't spawn flora in same spot
 
-				# Try to spawn herb
+				# Try to spawn herb (now spawned as features for auto-pickup)
 				var herb_density = biome.get("herb_density", 0.0)
 				if herb_density > 0 and rng.randf() < herb_density:
-					var resource_instance = ResourceSpawner.ResourceInstance.new("wild_herb", world_pos, chunk_coords)
-					resources.append(resource_instance)
-
-					# Herbs are walkable but harvestable
-					tile.ascii_char = "⚜"
-					tile.harvestable_resource_id = "wild_herb"
-					tile.color = Color(0.4, 0.8, 0.4)  # Light green
+					var biome_id = biome.get("id", "woodland")
+					FeatureManager.spawn_overworld_feature("wild_herb_feature", world_pos, biome_id, map)
 					continue  # Don't spawn other flora in same spot
 
-				# Try to spawn flower
+				# Try to spawn flower (now spawned as features for auto-pickup)
 				var flower_density = biome.get("flower_density", 0.0)
 				if flower_density > 0 and rng.randf() < flower_density:
-					var resource_instance = ResourceSpawner.ResourceInstance.new("wild_flower", world_pos, chunk_coords)
-					resources.append(resource_instance)
-
-					# Flowers are walkable but harvestable
-					tile.ascii_char = "*"
-					tile.harvestable_resource_id = "wild_flower"
-					tile.color = Color(1.0, 0.8, 0.2)  # Yellow/gold
+					var biome_id = biome.get("id", "woodland")
+					FeatureManager.spawn_overworld_feature("wild_flower_feature", world_pos, biome_id, map)
 					continue  # Don't spawn other flora in same spot
 
-				# Try to spawn mushroom
+				# Try to spawn mushroom (now spawned as features for auto-pickup)
 				var mushroom_density = biome.get("mushroom_density", 0.0)
 				if mushroom_density > 0 and rng.randf() < mushroom_density:
-					var resource_instance = ResourceSpawner.ResourceInstance.new("wild_mushroom", world_pos, chunk_coords)
-					resources.append(resource_instance)
-
-					# Mushrooms are walkable but harvestable
-					tile.ascii_char = ","
-					tile.harvestable_resource_id = "wild_mushroom"
-					tile.color = Color(0.65, 0.4, 0.2)  # Brown
+					var biome_id = biome.get("id", "woodland")
+					FeatureManager.spawn_overworld_feature("wild_mushroom_feature", world_pos, biome_id, map)
 
 	# Generate town structures for any towns whose center is in this chunk
 	_generate_towns_in_chunk(towns_data, world_seed)

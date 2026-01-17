@@ -1,22 +1,16 @@
 # Feature ideas to flesh out with Claude
 
-## 01/15/2026 Updates 
+## Version 1.1 Updates 
 ---
-- [x] Add game animals (rabbits, deer, etc.) appropriate to each biome.
-- [X] Improve performance of overworld lighting
-- [X] Detect & Disarm Traps (N / SHIFT-N)
-- [X] Include skill and attack check values (roll, ability modifier, skill bonus, other bonuses)  in the log so players can see their roll
-- [X] Fix chests not giving treasure
-- [X] Add a mining mechanic. In dungeons, a vein of ore should sometimes run through the dungeon so that it intersects a corridor or room. Players should be able to mine out that vein to collect ore. Base this on the mining mechanic for other roguelikes.
-- [X] fix bug - Saltmere is not always placed next to the ocean, as inland water is considered ocean instead of fresh water.
-
+- [X] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
+- [X] Add explicit version number to UI.
 ---
 ## In Progress
 
 
 ## Not Implemented
 
-- [ ] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
+
 - [ ] Weapon damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
 - [ ] Add a release number to the game, shown on the main menu screen. This version should be auto incremented on every merge to main.
 

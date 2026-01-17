@@ -5,6 +5,7 @@
   "cr": 0,
   "ascii_char": "g",
   "ascii_color": "#D3D3D3",
+  "creature_type": "beast",
   "stats": {
     "health": 12,
     "str": 10,
@@ -14,15 +15,28 @@
     "wis": 10,
     "cha": 5
   },
-  "yields": [
-    {"item_id": "raw_meat", "min_count": 2, "max_count": 3, "chance": 1.0},
-    {"item_id": "leather", "min_count": 1, "max_count": 1, "chance": 0.6}
-  ],
-  "behavior": "passive",
   "base_damage": 1,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "raw_meat",
+      "min_count": 2,
+      "max_count": 3,
+      "chance": 1.0
+    },
+    {
+      "item_id": "leather",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.6
+    }
+  ],
+  "behavior": "passive",
   "xp_value": 8,
-  "spawn_biomes": ["mountains", "rocky_hills"],
+  "spawn_biomes": [
+    "mountains",
+    "rocky_hills"
+  ],
   "spawn_dungeons": [],
   "spawn_density_overworld": 700,
   "spawn_density_dungeon": 0,

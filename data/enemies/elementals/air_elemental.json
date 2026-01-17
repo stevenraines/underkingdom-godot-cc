@@ -5,6 +5,8 @@
   "cr": 5,
   "ascii_char": "A",
   "ascii_color": "#87CEEB",
+  "creature_type": "elemental",
+  "element_subtype": "air",
   "stats": {
     "health": 32,
     "str": 14,
@@ -14,16 +16,23 @@
     "wis": 10,
     "cha": 6
   },
-  "yields": [
-    {"item_id": "air_essence", "min_count": 1, "max_count": 2, "chance": 0.7}
-  ],
-  "behavior": "aggressive",
   "base_damage": 9,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "air_essence",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.7
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "elemental_common",
   "xp_value": 90,
   "spawn_biomes": [],
-  "spawn_dungeons": ["wizard_tower"],
+  "spawn_dungeons": [
+    "wizard_tower"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 160,
   "min_spawn_level": 8,

@@ -5,6 +5,7 @@
   "cr": 1,
   "ascii_char": "S",
   "ascii_color": "#800080",
+  "creature_type": "monstrosity",
   "stats": {
     "health": 16,
     "str": 10,
@@ -14,17 +15,34 @@
     "wis": 10,
     "cha": 2
   },
-  "yields": [
-    {"item_id": "spider_silk", "min_count": 1, "max_count": 3, "chance": 0.7},
-    {"item_id": "venom_sac", "min_count": 1, "max_count": 1, "chance": 0.3}
-  ],
-  "behavior": "aggressive",
   "base_damage": 4,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "spider_silk",
+      "min_count": 1,
+      "max_count": 3,
+      "chance": 0.7
+    },
+    {
+      "item_id": "venom_sac",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.3
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "spider_common",
   "xp_value": 20,
-  "spawn_biomes": ["forest", "woodland"],
-  "spawn_dungeons": ["natural_cave", "burial_barrow", "abandoned_mine"],
+  "spawn_biomes": [
+    "forest",
+    "woodland"
+  ],
+  "spawn_dungeons": [
+    "natural_cave",
+    "burial_barrow",
+    "abandoned_mine"
+  ],
   "spawn_density_overworld": 80,
   "spawn_density_dungeon": 100,
   "min_spawn_level": 5,

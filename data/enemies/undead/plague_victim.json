@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "p",
   "ascii_color": "#9ACD32",
+  "creature_type": "undead",
   "stats": {
     "health": 12,
     "str": 8,
@@ -14,16 +15,23 @@
     "wis": 4,
     "cha": 2
   },
-  "yields": [
-    {"item_id": "plague_sample", "min_count": 1, "max_count": 1, "chance": 0.4}
-  ],
-  "behavior": "aggressive",
   "base_damage": 3,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "plague_sample",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.4
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "undead_common",
   "xp_value": 15,
   "spawn_biomes": [],
-  "spawn_dungeons": ["sewers"],
+  "spawn_dungeons": [
+    "sewers"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 70,
   "min_spawn_level": 3,

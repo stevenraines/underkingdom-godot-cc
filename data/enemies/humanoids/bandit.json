@@ -5,6 +5,7 @@
   "cr": 0.125,
   "ascii_char": "h",
   "ascii_color": "#8B0000",
+  "creature_type": "humanoid",
   "stats": {
     "health": 18,
     "str": 12,
@@ -14,17 +15,33 @@
     "wis": 8,
     "cha": 8
   },
-  "yields": [
-    {"item_id": "gold_coin", "min_count": 5, "max_count": 15, "chance": 1.0},
-    {"item_id": "leather_armor", "min_count": 1, "max_count": 1, "chance": 0.7}
-  ],
-  "behavior": "aggressive",
   "base_damage": 5,
   "armor": 2,
+  "yields": [
+    {
+      "item_id": "gold_coin",
+      "min_count": 5,
+      "max_count": 15,
+      "chance": 1.0
+    },
+    {
+      "item_id": "leather_armor",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.7
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "bandit_common",
   "xp_value": 25,
-  "spawn_biomes": ["woodland", "forest", "grassland"],
-  "spawn_dungeons": ["ancient_fort"],
+  "spawn_biomes": [
+    "woodland",
+    "forest",
+    "grassland"
+  ],
+  "spawn_dungeons": [
+    "ancient_fort"
+  ],
   "spawn_density_overworld": 200,
   "spawn_density_dungeon": 100,
   "min_spawn_level": 1,

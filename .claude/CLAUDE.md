@@ -412,6 +412,7 @@ res://
 - Features: `data/features/` → FeatureManager
 - Hazards: `data/hazards/` → HazardManager
 - Spells: `data/spells/` → SpellManager
+- Creature Types: `data/creature_types/` → CreatureTypeManager
 
 **JSON file template:**
 ```json
@@ -499,6 +500,7 @@ The `*` prefix makes the autoload a singleton that's accessible globally by name
 - MapManager, ChunkManager, BiomeManager, DungeonManager, EntityManager
 - ItemManager, RecipeManager, StructureManager, SaveManager, VariantManager
 - WeatherManager, LootTableManager, SpellManager, IdentificationManager, RitualManager
+- SkillManager, CreatureTypeManager
 
 **Common Mistake:**
 ```gdscript
@@ -733,6 +735,7 @@ docs/
 | `resource-spawner.md` | `systems/resource_spawner.gd` | Resource placement |
 | `recipe-manager.md` | `autoload/recipe_manager.gd` | Recipe loading |
 | `spell-manager.md` | `autoload/spell_manager.gd` | Spell loading and requirements |
+| `creature-type-manager.md` | `autoload/creature_type_manager.gd` | Creature type definitions and resistances |
 | `magic-system.md` | (overview) | Magic system overview |
 
 ### Data Documentation Files

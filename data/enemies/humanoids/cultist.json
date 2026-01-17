@@ -5,6 +5,7 @@
   "cr": 0.125,
   "ascii_char": "c",
   "ascii_color": "#800000",
+  "creature_type": "humanoid",
   "stats": {
     "health": 14,
     "str": 10,
@@ -14,17 +15,30 @@
     "wis": 8,
     "cha": 10
   },
-  "yields": [
-    {"item_id": "cultist_robe", "min_count": 1, "max_count": 1, "chance": 0.4},
-    {"item_id": "ritual_dagger", "min_count": 1, "max_count": 1, "chance": 0.2}
-  ],
-  "behavior": "aggressive",
   "base_damage": 4,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "cultist_robe",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.4
+    },
+    {
+      "item_id": "ritual_dagger",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.2
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "cultist_common",
   "xp_value": 20,
   "spawn_biomes": [],
-  "spawn_dungeons": ["temple_ruins", "burial_barrow"],
+  "spawn_dungeons": [
+    "temple_ruins",
+    "burial_barrow"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 90,
   "min_spawn_level": 1,

@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "w",
   "ascii_color": "#A0A0A0",
+  "creature_type": "beast",
   "stats": {
     "health": 18,
     "str": 10,
@@ -14,21 +15,32 @@
     "wis": 10,
     "cha": 6
   },
-  "yields": [
-    {"item_id": "raw_meat", "min_count": 1, "max_count": 3}
-  ],
-  "behavior": "pack",
   "base_damage": 4,
   "armor": 0,
-  "feared_components": ["fire"],
-  "fear_distance": 4,
+  "yields": [
+    {
+      "item_id": "raw_meat",
+      "min_count": 1,
+      "max_count": 3
+    }
+  ],
+  "behavior": "pack",
   "loot_table": "beast_common",
   "xp_value": 30,
-  "spawn_biomes": ["woodland", "forest", "grassland", "tundra"],
+  "spawn_biomes": [
+    "woodland",
+    "forest",
+    "grassland",
+    "tundra"
+  ],
   "spawn_dungeons": [],
   "spawn_density_overworld": 400,
   "spawn_density_dungeon": 0,
   "min_spawn_level": 0,
   "max_spawn_level": 0,
+  "feared_components": [
+    "fire"
+  ],
+  "fear_distance": 4,
   "min_distance_from_town": 20
 }

@@ -5,6 +5,7 @@
   "cr": 1,
   "ascii_char": "p",
   "ascii_color": "#4682B4",
+  "creature_type": "undead",
   "stats": {
     "health": 22,
     "str": 1,
@@ -14,16 +15,25 @@
     "wis": 10,
     "cha": 11
   },
-  "yields": [
-    {"item_id": "ectoplasm", "min_count": 1, "max_count": 2, "chance": 0.7}
-  ],
-  "behavior": "aggressive",
   "base_damage": 5,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "ectoplasm",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.7
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "undead_common",
   "xp_value": 40,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow", "temple_ruins", "wizard_tower"],
+  "spawn_dungeons": [
+    "burial_barrow",
+    "temple_ruins",
+    "wizard_tower"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 90,
   "min_spawn_level": 4,

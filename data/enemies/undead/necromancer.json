@@ -5,7 +5,7 @@
   "cr": 5,
   "ascii_char": "N",
   "ascii_color": "#660066",
-  "creature_type": "humanoid",
+  "creature_type": "undead",
   "stats": {
     "health": 45,
     "str": 9,
@@ -15,23 +15,41 @@
     "wis": 14,
     "cha": 12
   },
-  "spellcaster": {
-    "max_mana": 80,
-    "spells": ["drain_life", "summon_skeleton", "weakness"]
-  },
-  "yields": [
-    {"item_id": "mana_crystal", "min_count": 1, "max_count": 3, "chance": 0.6},
-    {"item_id": "arcane_essence", "min_count": 1, "max_count": 1, "chance": 0.25}
-  ],
-  "behavior": "spellcaster_defensive",
   "base_damage": 5,
   "armor": 1,
+  "yields": [
+    {
+      "item_id": "mana_crystal",
+      "min_count": 1,
+      "max_count": 3,
+      "chance": 0.6
+    },
+    {
+      "item_id": "arcane_essence",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.25
+    }
+  ],
+  "behavior": "spellcaster_defensive",
   "loot_table": "necromancer_loot",
   "xp_value": 120,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow", "crypt", "dark_sanctum"],
+  "spawn_dungeons": [
+    "burial_barrow",
+    "crypt",
+    "dark_sanctum"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 30,
   "min_spawn_level": 8,
-  "max_spawn_level": 50
+  "max_spawn_level": 50,
+  "spellcaster": {
+    "max_mana": 80,
+    "spells": [
+      "drain_life",
+      "summon_skeleton",
+      "weakness"
+    ]
+  }
 }

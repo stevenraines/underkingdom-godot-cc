@@ -5,6 +5,7 @@
   "cr": 2,
   "ascii_char": "&",
   "ascii_color": "#A0A0A0",
+  "creature_type": "construct",
   "stats": {
     "health": 35,
     "str": 16,
@@ -14,17 +15,30 @@
     "wis": 10,
     "cha": 4
   },
-  "yields": [
-    {"item_id": "stone", "min_count": 2, "max_count": 5, "chance": 1.0},
-    {"item_id": "spirit_essence", "min_count": 1, "max_count": 1, "chance": 0.3}
-  ],
-  "behavior": "guardian",
   "base_damage": 8,
   "armor": 5,
+  "yields": [
+    {
+      "item_id": "stone",
+      "min_count": 2,
+      "max_count": 5,
+      "chance": 1.0
+    },
+    {
+      "item_id": "spirit_essence",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.3
+    }
+  ],
+  "behavior": "guardian",
   "loot_table": "construct_common",
   "xp_value": 50,
   "spawn_biomes": [],
-  "spawn_dungeons": ["temple_ruins", "wizard_tower"],
+  "spawn_dungeons": [
+    "temple_ruins",
+    "wizard_tower"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 120,
   "min_spawn_level": 3,

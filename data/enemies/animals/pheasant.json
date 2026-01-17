@@ -5,6 +5,7 @@
   "cr": 0,
   "ascii_char": "p",
   "ascii_color": "#CD853F",
+  "creature_type": "beast",
   "stats": {
     "health": 4,
     "str": 3,
@@ -14,15 +15,29 @@
     "wis": 9,
     "cha": 4
   },
-  "yields": [
-    {"item_id": "raw_meat", "min_count": 1, "max_count": 1, "chance": 1.0},
-    {"item_id": "feather", "min_count": 1, "max_count": 3, "chance": 0.6}
-  ],
-  "behavior": "passive",
   "base_damage": 0,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "raw_meat",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 1.0
+    },
+    {
+      "item_id": "feather",
+      "min_count": 1,
+      "max_count": 3,
+      "chance": 0.6
+    }
+  ],
+  "behavior": "passive",
   "xp_value": 5,
-  "spawn_biomes": ["grassland", "woodland", "marsh"],
+  "spawn_biomes": [
+    "grassland",
+    "woodland",
+    "marsh"
+  ],
   "spawn_dungeons": [],
   "spawn_density_overworld": 400,
   "spawn_density_dungeon": 0,

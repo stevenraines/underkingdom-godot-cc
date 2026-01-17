@@ -5,6 +5,7 @@
   "cr": 0.5,
   "ascii_char": "b",
   "ascii_color": "#2F4F4F",
+  "creature_type": "monstrosity",
   "stats": {
     "health": 22,
     "str": 12,
@@ -14,16 +15,25 @@
     "wis": 6,
     "cha": 2
   },
-  "yields": [
-    {"item_id": "chitin", "min_count": 1, "max_count": 3, "chance": 0.7}
-  ],
-  "behavior": "aggressive",
   "base_damage": 5,
   "armor": 4,
+  "yields": [
+    {
+      "item_id": "chitin",
+      "min_count": 1,
+      "max_count": 3,
+      "chance": 0.7
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "insect_common",
   "xp_value": 30,
   "spawn_biomes": [],
-  "spawn_dungeons": ["natural_cave", "abandoned_mine", "sewers"],
+  "spawn_dungeons": [
+    "natural_cave",
+    "abandoned_mine",
+    "sewers"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 120,
   "min_spawn_level": 5,

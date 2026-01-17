@@ -5,6 +5,7 @@
   "cr": 0.25,
   "ascii_char": "z",
   "ascii_color": "#556B2F",
+  "creature_type": "undead",
   "stats": {
     "health": 22,
     "str": 13,
@@ -14,16 +15,25 @@
     "wis": 6,
     "cha": 5
   },
-  "yields": [
-    {"item_id": "rotten_flesh", "min_count": 1, "max_count": 2, "chance": 0.7}
-  ],
-  "behavior": "aggressive",
   "base_damage": 4,
   "armor": 0,
+  "yields": [
+    {
+      "item_id": "rotten_flesh",
+      "min_count": 1,
+      "max_count": 2,
+      "chance": 0.7
+    }
+  ],
+  "behavior": "aggressive",
   "loot_table": "undead_common",
   "xp_value": 20,
   "spawn_biomes": [],
-  "spawn_dungeons": ["burial_barrow", "sewers", "temple_ruins"],
+  "spawn_dungeons": [
+    "burial_barrow",
+    "sewers",
+    "temple_ruins"
+  ],
   "spawn_density_overworld": 0,
   "spawn_density_dungeon": 70,
   "min_spawn_level": 1,

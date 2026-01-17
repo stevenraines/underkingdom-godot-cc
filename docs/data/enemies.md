@@ -36,8 +36,64 @@ Enemy definitions specify all hostile creatures in the game including their stat
 | `max_spawn_level` | int | 50 | Latest floor to spawn | DungeonManager |
 | `feared_components` | array | [] | Components that cause fear | Enemy AI |
 | `fear_distance` | int | 0 | Fear reaction distance | Enemy AI |
+| `creature_type` | string | "humanoid" | Creature classification for resistances | CreatureTypeManager |
+| `element_subtype` | string | "" | Elemental subtype (fire, ice, etc.) | CreatureTypeManager |
+| `elemental_resistances` | object | {} | Per-creature damage resistances | ElementalSystem |
 
 ## Property Details
+
+### `creature_type`
+**Type**: string
+**Default**: "humanoid"
+
+Classification used for type-level damage resistances and special rules. Valid types:
+- `humanoid` - Intelligent bipedal creatures
+- `undead` - Reanimated corpses (immune to poison, heals from necrotic)
+- `construct` - Animated objects (immune to poison)
+- `elemental` - Elemental beings (immune to poison)
+- `demon` - Fiendish beings (resistant to fire)
+- `ooze` - Amorphous creatures (resistant to physical)
+- `beast` - Natural animals
+- `aberration` - Alien beings
+- `monstrosity` - Unnatural creatures
+
+```json
+"creature_type": "undead"
+```
+
+### `element_subtype`
+**Type**: string
+**Default**: ""
+
+Optional subtype for elemental creatures. Provides additional resistances:
+- `fire` - Immune to fire, vulnerable to ice
+- `ice` - Immune to ice, vulnerable to fire
+- `earth` - Resistant to piercing/bludgeoning
+- `air` - Resistant to lightning
+
+```json
+"creature_type": "elemental",
+"element_subtype": "fire"
+```
+
+### `elemental_resistances`
+**Type**: object
+**Default**: {}
+
+Per-creature damage resistance overrides. Values from -100 (immune) to +100 (vulnerable).
+
+```json
+"elemental_resistances": {
+  "fire": -100,
+  "ice": 100,
+  "poison": -100
+}
+```
+
+Resistance precedence (highest priority wins):
+1. Per-creature `elemental_resistances`
+2. Element subtype resistances
+3. Creature type base resistances
 
 ### `stats`
 **Type**: object

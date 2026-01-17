@@ -5,6 +5,7 @@
   "cr": 1,
   "ascii_char": "W",
   "ascii_color": "#696969",
+  "creature_type": "beast",
   "stats": {
     "health": 37,
     "str": 17,
@@ -14,22 +15,39 @@
     "wis": 12,
     "cha": 7
   },
-  "yields": [
-    {"item_id": "wolf_pelt", "min_count": 1, "max_count": 1, "chance": 0.9},
-    {"item_id": "raw_meat", "min_count": 2, "max_count": 4, "chance": 1.0}
-  ],
-  "behavior": "pack",
   "base_damage": 7,
   "armor": 1,
-  "feared_components": ["fire"],
-  "fear_distance": 5,
+  "yields": [
+    {
+      "item_id": "wolf_pelt",
+      "min_count": 1,
+      "max_count": 1,
+      "chance": 0.9
+    },
+    {
+      "item_id": "raw_meat",
+      "min_count": 2,
+      "max_count": 4,
+      "chance": 1.0
+    }
+  ],
+  "behavior": "pack",
   "loot_table": "beast_common",
   "xp_value": 50,
-  "spawn_biomes": ["woodland", "forest", "tundra", "snow"],
+  "spawn_biomes": [
+    "woodland",
+    "forest",
+    "tundra",
+    "snow"
+  ],
   "spawn_dungeons": [],
   "spawn_density_overworld": 300,
   "spawn_density_dungeon": 0,
   "min_spawn_level": 0,
   "max_spawn_level": 0,
+  "feared_components": [
+    "fire"
+  ],
+  "fear_distance": 5,
   "min_distance_from_town": 35
 }

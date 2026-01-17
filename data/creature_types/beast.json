@@ -1,0 +1,11 @@
+{
+  "id": "beast",
+  "name": "Beast",
+  "description": "Natural animals and wildlife",
+  "ascii_color": "#8B4513",
+  "base_resistances": {},
+  "special_rules": {
+    "susceptible_to_animal_handling": true
+  },
+  "subtypes": {}
+}

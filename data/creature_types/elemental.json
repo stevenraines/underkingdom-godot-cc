@@ -1,0 +1,42 @@
+{
+  "id": "elemental",
+  "name": "Elemental",
+  "description": "Beings of pure elemental energy from the elemental planes",
+  "ascii_color": "#00FFFF",
+  "base_resistances": {
+    "poison": -100
+  },
+  "special_rules": {
+    "immune_to_poison": true,
+    "immune_to_mind_control": true
+  },
+  "subtypes": {
+    "fire": {
+      "name": "Fire Elemental",
+      "resistances": {
+        "fire": -100,
+        "ice": 100
+      }
+    },
+    "ice": {
+      "name": "Ice Elemental",
+      "resistances": {
+        "ice": -100,
+        "fire": 100
+      }
+    },
+    "earth": {
+      "name": "Earth Elemental",
+      "resistances": {
+        "piercing": -50,
+        "bludgeoning": -25
+      }
+    },
+    "air": {
+      "name": "Air Elemental",
+      "resistances": {
+        "lightning": -25
+      }
+    }
+  }
+}

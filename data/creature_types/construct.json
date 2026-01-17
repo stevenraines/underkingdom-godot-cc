@@ -1,0 +1,15 @@
+{
+  "id": "construct",
+  "name": "Construct",
+  "description": "Artificially created beings animated by magic",
+  "ascii_color": "#9370DB",
+  "base_resistances": {
+    "poison": -100,
+    "necrotic": -50
+  },
+  "special_rules": {
+    "immune_to_poison": true,
+    "immune_to_mind_control": true
+  },
+  "subtypes": {}
+}

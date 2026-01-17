@@ -1,31 +1,22 @@
 # Feature ideas to flesh out with Claude
 
-## Version 1.1 Updates 
+## Version 1.2 Updates 
 ---
-- [X] Add explicit version number to UI.
-- [X] Add a release number to the game, shown on the main menu screen. This version should be auto incremented on every merge to main.
-- [X] Bug Fix: Player can no longer spawn inside of buildings
-- [X] UI: Added Q to Save Screen to exit to main menu with one key press.
-- [X] Weapon damage types & resistances - reference https://scrollforinitiative.com/2023/08/19/a-complete-guide-to-the-13-damage-types-in-dd-part-one/ for the types to implement. Creatures should be able to have vulnerabilty, resistance, or immunity to these just like the implementation for various types of magic. Magic items always deal magic damage as their type. for examples, skeletons should have resistance to piercing weapons but vulnerability to bludgeoning weapons. Fire based creatures should be immune to fire attacks, etc.
 
 ---
 ## In Progress
 
-- [/] Test mode (CMD) where the player can perform actions to help debug the system (give players items, increase level, gold, spawn items, hazards, features, creatures, etc)
-
-```
-continue
-then 
-- add options to spawn structures, crops, and resources
-- add option to convert a tile to another tile (select new tile, select direction, select distance)
-- add option to learn rituals
-```
-
-- [/] Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
-
 ---
 ## Unplanned
 
+[ ] Test mode Expansion 
+    Implement the following improvements to the Debug Mode
+    * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
+    * add options to spawn structures, crops, and resources
+    * add option to convert a tile to another tile (select new tile, select direction, select distance)
+    * add option to learn rituals
+- [/] Creature Types
+    Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
 - [ ] Modify mine generation 
     so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation

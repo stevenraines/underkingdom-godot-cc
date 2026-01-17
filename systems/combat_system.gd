@@ -220,6 +220,9 @@ static func get_attack_message(result: Dictionary, is_player_attacker: bool) -> 
 	# Build roll info string (grey colored)
 	var roll_info = _format_attack_roll(result.roll, result.hit_chance)
 
+	# Get resistance/vulnerability cue
+	var cue = _get_resistance_cue(result, is_player_attacker)
+
 	if result.hit:
 		if result.defender_died:
 			if is_player_attacker:
@@ -228,14 +231,47 @@ static func get_attack_message(result: Dictionary, is_player_attacker: bool) -> 
 				return "The %s kills you!" % attacker
 		else:
 			if is_player_attacker:
-				return "You hit the %s%s for %d damage. %s" % [defender, weapon_phrase, result.damage, roll_info]
+				var base_msg = "You hit the %s%s for %d damage. %s" % [defender, weapon_phrase, result.damage, roll_info]
+				return base_msg + cue
 			else:
-				return "The %s hits you for %d damage." % [attacker, result.damage]
+				var base_msg = "The %s hits you for %d damage." % [attacker, result.damage]
+				return base_msg + cue
 	else:
 		if is_player_attacker:
 			return "You miss the %s%s. %s" % [defender, weapon_phrase, roll_info]
 		else:
 			return "The %s misses you." % attacker
+
+
+## Get a flavorful cue for resistance, immunity, or vulnerability
+## Returns empty string if no special resistance applies
+static func _get_resistance_cue(result: Dictionary, is_player_attacker: bool) -> String:
+	var total_damage = result.get("damage", 0) + result.get("secondary_damage", 0)
+	var resisted = result.get("resisted", false)
+	var vulnerable = result.get("vulnerable", false)
+
+	# Immunity - no damage dealt despite a hit
+	if total_damage == 0 and resisted:
+		if is_player_attacker:
+			return " [color=gray]Your attack seems to have no effect![/color]"
+		else:
+			return " [color=cyan]The attack has no effect on you![/color]"
+
+	# Resistance - reduced damage
+	if resisted:
+		if is_player_attacker:
+			return " [color=gray]It seems to shrug off some of the damage.[/color]"
+		else:
+			return " [color=cyan]You resist some of the damage.[/color]"
+
+	# Vulnerability - increased damage
+	if vulnerable:
+		if is_player_attacker:
+			return " [color=yellow]It recoils - the attack is especially effective![/color]"
+		else:
+			return " [color=red]The attack is especially painful![/color]"
+
+	return ""
 
 
 ## Format attack roll breakdown for display (d100 system)

@@ -253,6 +253,16 @@ Targets must meet all criteria:
 | `damage_bonus` | Added to weapon damage |
 | `recovery_chance` | 0.0-1.0 recovery probability |
 
+## Resistance/Vulnerability Cues
+
+When ranged attacks hit, flavorful cues are appended to indicate resistance or vulnerability:
+
+| Condition | Player Attacking | Enemy Attacking |
+|-----------|------------------|-----------------|
+| Immunity | "Your attack seems to have no effect!" | "The attack has no effect on you!" |
+| Resistance | "It seems to shrug off some of the damage." | "You resist some of the damage." |
+| Vulnerability | "It recoils - the attack is especially effective!" | "The attack is especially painful!" |
+
 ## Related Documentation
 
 - [Combat System](./combat-system.md) - Melee combat mechanics

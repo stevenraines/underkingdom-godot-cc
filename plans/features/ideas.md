@@ -15,7 +15,7 @@
     When auto-pickup is turned off, standing on an item and pressing H (harvest) will pick up the item.
 - [x] Creature Types
     Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
-- [ ] Resistance / Vulnerability cues
+- [X] Resistance / Vulnerability cues
     When a creature has immunity or resistance to an attack or action, the log should indicate a cue to the player, like "Your axe seems to do less damage that usual."
 ---
 ## Unplanned

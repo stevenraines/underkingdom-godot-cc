@@ -19,5 +19,6 @@
   "durability": 100,
   "tool_type": "pickaxe",
   "equip_slots": ["main_hand"],
-  "damage_bonus": 2
+  "damage_bonus": 2,
+	"damage_type": "piercing"
 }

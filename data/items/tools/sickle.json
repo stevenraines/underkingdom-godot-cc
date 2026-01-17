@@ -19,5 +19,6 @@
   "durability": 80,
   "tool_type": "sickle",
   "equip_slots": ["main_hand"],
-  "damage_bonus": 1
+  "damage_bonus": 1,
+	"damage_type": "slashing"
 }

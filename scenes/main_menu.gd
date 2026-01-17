@@ -8,6 +8,7 @@ extends Control
 @onready var start_button: Button = $VBoxContainer/StartButton
 @onready var load_button: Button = $VBoxContainer/LoadButton
 @onready var quit_button: Button = $VBoxContainer/QuitButton
+@onready var version_label: Label = $VersionLabel
 
 var buttons: Array = []
 var selected_index: int = 0
@@ -18,6 +19,9 @@ func _ready() -> void:
 	print("Main menu loaded")
 	# Ensure game is not paused (in case we came from death screen or other paused state)
 	get_tree().paused = false
+
+	# Load and display version from config file
+	_load_version()
 
 	# Load ASCII art from file into Title RichTextLabel
 	var logo_path := "res://ui/underkingdom_logo.txt"
@@ -146,3 +150,25 @@ func _on_continue_button_pressed() -> void:
 func _on_quit_button_pressed() -> void:
 	print("Quitting game...")
 	get_tree().quit()
+
+func _load_version() -> void:
+	var version_path := "res://version.json"
+	if FileAccess.file_exists(version_path):
+		var f := FileAccess.open(version_path, FileAccess.READ)
+		if f:
+			var json_text := f.get_as_text()
+			f.close()
+			var json := JSON.new()
+			var error := json.parse(json_text)
+			if error == OK:
+				var data: Dictionary = json.data
+				var version_str: String = str(data.get("version", "0.0.0"))
+				var build_str: String = str(data.get("build", ""))
+				if build_str != "":
+					version_label.text = "v%s-%s" % [version_str, build_str]
+				else:
+					version_label.text = "v%s" % version_str
+			else:
+				version_label.text = "v?.?.?"
+	else:
+		version_label.text = "v?.?.?"

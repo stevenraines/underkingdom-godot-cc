@@ -27,6 +27,11 @@ var blocked_direction: Vector2i = Vector2i.ZERO  # Stop continuous movement if b
 var wait_timer: float = 0.0
 var is_initial_wait_press: bool = true
 
+# Sprint mode - allows double movement before enemies act
+var sprint_mode: bool = false  # Whether sprint is toggled on
+var sprint_moves_remaining: int = 0  # Moves left in current sprint (2 per turn when sprinting)
+const SPRINT_STAMINA_MULTIPLIER: int = 4  # Stamina cost multiplier when sprinting
+
 # Harvest mode
 var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
 var _harvesting_active: bool = false  # Currently in continuous harvesting mode
@@ -205,16 +210,19 @@ func _process(delta: float) -> void:
 		is_initial_wait_press = true
 
 	# Check for held movement keys
+	# Skip movement if Shift is held (Shift+key combos are handled in _unhandled_input)
 	var direction = Vector2i.ZERO
+	var shift_held = Input.is_key_pressed(KEY_SHIFT)
 
-	if Input.is_action_pressed("ui_up"):
-		direction = Vector2i.UP
-	elif Input.is_action_pressed("ui_down"):
-		direction = Vector2i.DOWN
-	elif Input.is_action_pressed("ui_left"):
-		direction = Vector2i.LEFT
-	elif Input.is_action_pressed("ui_right"):
-		direction = Vector2i.RIGHT
+	if not shift_held:
+		if Input.is_action_pressed("ui_up"):
+			direction = Vector2i.UP
+		elif Input.is_action_pressed("ui_down"):
+			direction = Vector2i.DOWN
+		elif Input.is_action_pressed("ui_left"):
+			direction = Vector2i.LEFT
+		elif Input.is_action_pressed("ui_right"):
+			direction = Vector2i.RIGHT
 
 	if direction != Vector2i.ZERO:
 		# Don't continue if we're blocked in this direction
@@ -223,9 +231,10 @@ func _process(delta: float) -> void:
 
 		move_timer -= delta
 		if move_timer <= 0.0:
-			var action_taken = _try_move_or_attack(direction)
-			if action_taken:
-				TurnManager.advance_turn()
+			var result = _try_move_or_attack(direction)
+			if result.action_taken:
+				if result.advance_turn:
+					TurnManager.advance_turn()
 				blocked_direction = Vector2i.ZERO  # Clear block on successful move/attack
 			else:
 				# Movement failed (obstacle) - stop continuous movement in this direction
@@ -240,40 +249,79 @@ func _process(delta: float) -> void:
 		blocked_direction = Vector2i.ZERO  # Clear block when key released
 
 ## Try to move or attack in a direction
-func _try_move_or_attack(direction: Vector2i) -> bool:
+## Returns Dictionary with {action_taken: bool, advance_turn: bool}
+func _try_move_or_attack(direction: Vector2i) -> Dictionary:
 	var target_pos = player.position + direction
 
 	# Check for blocking entity at target position
 	var blocking_entity = EntityManager.get_blocking_entity_at(target_pos)
 
 	if blocking_entity and blocking_entity is Enemy:
-		# Attack the enemy (always consumes turn)
+		# Attack the enemy - this interrupts sprint
+		_disable_sprint()
 		player.attack(blocking_entity)
-		return true
+		return {"action_taken": true, "advance_turn": true}
 	elif blocking_entity and blocking_entity is NPC:
 		# Check if NPC is inside their shop (both player and NPC on interior tiles)
 		var npc_tile = MapManager.current_map.get_tile(target_pos) if MapManager.current_map else null
 		var player_tile = MapManager.current_map.get_tile(player.position) if MapManager.current_map else null
 
 		if npc_tile and npc_tile.is_interior and player_tile and player_tile.is_interior:
-			# Both inside building - trigger NPC interaction
+			# Both inside building - trigger NPC interaction (interrupts sprint)
+			_disable_sprint()
 			blocking_entity.interact(player)
-			return true
+			return {"action_taken": true, "advance_turn": true}
 		else:
 			# Outside shop - show blocked message
 			EventBus.message_logged.emit("Your path is blocked by %s." % blocking_entity.name)
-			return false
+			return {"action_taken": false, "advance_turn": false}
 	else:
-		# Try to move
-		var moved = player.move(direction)
-		if moved:
-			return true
+		# Try to move - handle sprint mode
+		var moved = _try_move_with_sprint(direction)
+		if moved.success:
+			return {"action_taken": true, "advance_turn": moved.advance_turn}
 
 		# Movement failed - check if blocked by harvestable resource with appropriate tool
+		# Auto-harvest interrupts sprint
 		if _try_auto_harvest_on_bump(target_pos, direction):
-			return true
+			_disable_sprint()
+			return {"action_taken": true, "advance_turn": true}
 
-		return false
+		return {"action_taken": false, "advance_turn": false}
+
+## Try to move, handling sprint mode stamina and turn logic
+## Returns {success: bool, advance_turn: bool}
+func _try_move_with_sprint(direction: Vector2i) -> Dictionary:
+	# Calculate stamina cost - 4x when sprinting
+	var stamina_cost = player.survival.STAMINA_COST_MOVE if player.survival else 1
+	if sprint_mode:
+		stamina_cost *= SPRINT_STAMINA_MULTIPLIER
+
+	# Consume extra stamina before moving if sprinting
+	if sprint_mode and player.survival:
+		# Consume the extra stamina (3x more, since move() consumes 1x)
+		var extra_cost = stamina_cost - player.survival.STAMINA_COST_MOVE
+		if extra_cost > 0:
+			player.survival.consume_stamina(extra_cost)
+
+	# Try the actual move
+	var moved = player.move(direction)
+	if not moved:
+		return {"success": false, "advance_turn": false}
+
+	# Movement succeeded
+	if sprint_mode:
+		sprint_moves_remaining -= 1
+		# Only advance turn after both sprint moves (or if counter reaches 0)
+		if sprint_moves_remaining <= 0:
+			sprint_moves_remaining = 2  # Reset for next turn
+			return {"success": true, "advance_turn": true}
+		else:
+			# First sprint move - don't advance turn yet
+			return {"success": true, "advance_turn": false}
+	else:
+		# Normal movement - always advance turn
+		return {"success": true, "advance_turn": true}
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:
@@ -642,6 +690,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_O:  # O key - toggle auto-open doors
 			_toggle_auto_open_doors()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_S and event.shift_pressed:  # Shift+S - toggle sprint mode
+			_toggle_sprint()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_COMMA:  # , - manual pickup
 			_try_pickup_item()
 			action_taken = true
@@ -940,6 +991,38 @@ func _toggle_auto_open_doors() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_auto_open_doors"):
 		game.toggle_auto_open_doors()
+
+## Toggle sprint mode on/off
+func _toggle_sprint() -> void:
+	sprint_mode = not sprint_mode
+	var game = get_parent()
+
+	if sprint_mode:
+		# Start sprinting - set up for double moves
+		sprint_moves_remaining = 2
+		if game and game.has_method("_add_message"):
+			game._add_message("Sprint mode ON - move twice per turn (4x stamina)", Color(0.9, 0.8, 0.3))
+	else:
+		# Stop sprinting
+		sprint_moves_remaining = 0
+		if game and game.has_method("_add_message"):
+			game._add_message("Sprint mode OFF", Color(0.7, 0.7, 0.7))
+
+	EventBus.sprint_mode_changed.emit(sprint_mode)
+
+## Check if currently sprinting (for status bar)
+func is_sprinting() -> bool:
+	return sprint_mode
+
+## Disable sprint mode (called when non-move action is taken)
+func _disable_sprint() -> void:
+	if sprint_mode:
+		sprint_mode = false
+		sprint_moves_remaining = 0
+		var game = get_parent()
+		if game and game.has_method("_add_message"):
+			game._add_message("Sprint interrupted", Color(0.7, 0.7, 0.7))
+		EventBus.sprint_mode_changed.emit(false)
 
 ## Try to pick up an item at the player's position
 func _try_pickup_item() -> void:

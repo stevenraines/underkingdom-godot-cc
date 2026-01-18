@@ -282,14 +282,17 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	# Calculate FOV based on lighting conditions
 	var los_tiles: Array[Vector2i]
 
-	# FAST PATH: Daytime overworld - use simplified FOV without recursive shadowcasting
+	# SUPER FAST PATH: Daytime overworld - skip FOV calculation entirely
+	# During daytime outdoors, all exterior tiles are visible without LOS calculation
+	# The renderer handles showing exterior tiles and hiding interior tiles
 	if sun_radius >= 999:
-		los_tiles = calculate_daytime_fov(origin, perception_range, map)
-		FogOfWarSystemClass.set_visible_tiles(los_tiles)
-		FogOfWarSystemClass.mark_many_explored(map_id, los_tiles, chunk_based)
-		cached_fov = los_tiles
-		cached_visible = los_tiles
-		return los_tiles
+		# Return minimal array (just player origin) - renderer handles the rest
+		var minimal: Array[Vector2i] = [origin]
+		FogOfWarSystemClass.set_visible_tiles(minimal)
+		# Don't mark tiles explored here - renderer will do it per visible tile
+		cached_fov = minimal
+		cached_visible = minimal
+		return minimal
 
 	# SLOW PATH: Night/dungeons - use full recursive shadowcasting
 	los_tiles = calculate_fov(origin, perception_range, map)

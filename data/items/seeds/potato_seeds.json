@@ -1,6 +1,6 @@
 {
   "id": "potato_seeds",
-  "name": "Potato Seeds",
+  "name": "Seed Potatoes",
   "description": "Seed potatoes for planting potato crops",
   "type": "seed",
   "crop_id": "potato_crop",

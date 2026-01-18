@@ -48,6 +48,7 @@
     }
   },
   "starting_equipment": [
-    {"item_id": "iron_sword", "count": 1}
+    {"item_id": "iron_sword", "count": 1},
+    {"item_id": "shield", "count": 1}
   ]
 }

@@ -4,14 +4,10 @@
     {"id": "breeches", "count": 1, "equip": true},
     {"id": "tunic", "count": 1, "equip": true},
     {"id": "ration", "count": 3},
-    {"id": "pickaxe", "count": 1},
     {"id": "waterskin_full", "count": 1},
     {"template_id": "knife", "variants": {"material": "flint"}, "count": 1},
     {"template_id": "hatchet", "variants": {"material": "iron"}, "count": 1,  "equip": true},
     {"id": "flint", "count": 1},
     {"id": "cord", "count": 3},
-    {"id": "short_bow", "count": 1},
-    {"id": "arrow", "count": 10},
-    {"id": "lockpick", "count": 5},
     {"id": "torch", "count": 3}
 ]

@@ -1201,21 +1201,9 @@ func has_spellbook() -> bool:
 		return false
 	return inventory.has_item_with_flag("spellbook")
 
-## Check if player knows a specific spell (includes cantrips if requirements met)
+## Check if player knows a specific spell
 func knows_spell(spell_id: String) -> bool:
-	# Check if it's a learned spell
-	if spell_id in known_spells:
-		return true
-
-	# Check if it's a cantrip (auto-known with spellbook and 8+ INT)
-	if has_spellbook():
-		var player_int = get_effective_attribute("INT")
-		if player_int >= 8:
-			var spell = SpellManager.get_spell(spell_id)
-			if spell and spell.level == 0:
-				return true
-
-	return false
+	return spell_id in known_spells
 
 ## Learn a new spell (requires spellbook)
 ## Returns true if spell was successfully learned
@@ -1232,19 +1220,9 @@ func learn_spell(spell_id: String) -> bool:
 	print("Player learned spell: ", spell_id)
 	return true
 
-## Get all spells the player knows (includes cantrips automatically)
+## Get all spells the player knows
 func get_known_spells() -> Array:
 	var result: Array = []
-
-	# Add cantrips if player has spellbook and 8+ INT
-	if has_spellbook():
-		var player_int = get_effective_attribute("INT")
-		if player_int >= 8:
-			var cantrips = SpellManager.get_cantrips()
-			for cantrip in cantrips:
-				result.append(cantrip)
-
-	# Add learned spells
 	for spell_id in known_spells:
 		var spell = SpellManager.get_spell(spell_id)
 		if spell:
@@ -1254,17 +1232,6 @@ func get_known_spells() -> Array:
 ## Get spells the player can currently cast (knows spell + meets requirements)
 func get_castable_spells() -> Array:
 	var result: Array = []
-
-	# Add castable cantrips if player has spellbook and 8+ INT
-	if has_spellbook():
-		var player_int = get_effective_attribute("INT")
-		if player_int >= 8:
-			var cantrips = SpellManager.get_cantrips()
-			for cantrip in cantrips:
-				if SpellManager.can_cast(self, cantrip).can_cast:
-					result.append(cantrip)
-
-	# Add castable learned spells
 	for spell_id in known_spells:
 		var spell = SpellManager.get_spell(spell_id)
 		if spell and SpellManager.can_cast(self, spell).can_cast:

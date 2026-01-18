@@ -11,8 +11,6 @@
     Start the player's first turn at the beginning of Day, not Dawn.
 - [ ] Feature: Tree Variety
     Support different kinds of trees (e.g. oak, yew, maple, alder, pine, fir, apple, cherry, pear, willow, magnolia, mangrove, olive, almond, spruce) The types of trees should vary by biome / elevation. Use the variant mechanic to define tree types. Trees should grow in clusters - but the occasional other tree may grow in a group. Some trees bear fruit. The fruit should be harvestable as a renewable resource seasonally. Some trees are also flowering (magnolia) and flowers should be harvestable like fruit. The player should still have the option to cut down the tree and receive wood of the tree type.
-- [ ] Feature: Sprint
-    The player may invoke a "Sprint" mode, which allows the player to move (and only move) twice before creatures take their turn. Taking any action other than moving turns off sprint mode. Sprint mode on/off should be shown in the bottom of the UI. Moving in sprint mode drains stamina at 4x the normal rate.
 - [ ] Weapon and Armor Proficiency
     Players should be able to use any weapon, but if they are not trained in int they should have a -2 penalty to hit. All characters should be trained to use basic bludgeoning weapons (clubs, staves), slings, knives, and axes. But Swords, two-handed axes, bows, crossbows, require proficency (by the type or classification.) Similarly, wearing clothing or leather armor can be done by anyone but once more advanced armor (including a shield) is involved, the player mus tbe proficent (medium armor, heavy armor, shield) there should be a -2 penalty. Implement both of these by extending restrictions system designed for character classes.
 - [ ] Enemy traits

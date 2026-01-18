@@ -140,6 +140,13 @@ func get_starting_equipment(class_id: String) -> Array:
 	return cls.get("starting_equipment", [])
 
 
+## Get starting spells for a class
+## Returns array of spell IDs that the class knows at game start
+func get_starting_spells(class_id: String) -> Array:
+	var cls = get_class_def(class_id)
+	return cls.get("starting_spells", [])
+
+
 ## Get display name for a class
 func get_class_name(class_id: String) -> String:
 	var cls = get_class_def(class_id)

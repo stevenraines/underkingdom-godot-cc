@@ -1641,11 +1641,14 @@ func _spawn_recovered_ammo(result: Dictionary) -> void:
 func _cycle_target() -> void:
 	var game = get_parent()
 
-	# Check if player has a ranged weapon equipped
-	var weapon = _get_equipped_ranged_weapon()
-	if not weapon:
+	# Check if player can perform any ranged action (ranged weapon, spells, or magic items)
+	var has_ranged_weapon = _get_equipped_ranged_weapon() != null
+	var can_cast_spells = player and player.has_spellbook() and not player.get_known_spells().is_empty()
+	var has_ranged_magic_item = _has_ranged_magic_item()
+
+	if not has_ranged_weapon and not can_cast_spells and not has_ranged_magic_item:
 		if game and game.has_method("_add_message"):
-			game._add_message("No ranged weapon equipped.", Color(0.9, 0.6, 0.4))
+			game._add_message("No ranged attack capability.", Color(0.9, 0.6, 0.4))
 		return
 
 	# Get all valid targets in perception range
@@ -1779,6 +1782,9 @@ func _get_valid_targets_in_range() -> Array[Entity]:
 	if not player:
 		return targets
 
+	# Get current map for visibility check
+	var current_map = MapManager.current_map
+
 	for entity in EntityManager.entities:
 		if entity == player:
 			continue
@@ -1794,6 +1800,10 @@ func _get_valid_targets_in_range() -> Array[Entity]:
 		if distance < 1:
 			continue  # Can't target adjacent (melee range)
 
+		# Check if entity is visible (handles daytime outdoors mode)
+		if not FogOfWarSystemClass.is_position_visible(entity.position, current_map, player.position):
+			continue
+
 		targets.append(entity)
 
 	# Sort by distance (closest first)
@@ -1802,6 +1812,24 @@ func _get_valid_targets_in_range() -> Array[Entity]:
 	)
 
 	return targets
+
+
+## Check if player has any ranged magic items (scrolls with ranged spells, wands)
+func _has_ranged_magic_item() -> bool:
+	if not player or not player.inventory:
+		return false
+
+	# Check for wands
+	for item in player.inventory.items:
+		if item.subtype == "wand" and item.charges > 0:
+			return true
+		# Check for scrolls with ranged spells
+		if item.subtype == "scroll" and item.spell_id != "":
+			var spell = SpellManager.get_spell(item.spell_id)
+			if spell and spell.get_targeting_mode() in ["ranged", "touch"]:
+				return true
+
+	return false
 
 
 ## Set the current target and emit signal
@@ -1918,6 +1946,9 @@ func _get_visible_objects() -> Array:
 	if not player:
 		return objects
 
+	# Get current map for visibility check
+	var current_map = MapManager.current_map
+
 	# Add visible entities (enemies, NPCs, ground items)
 	for entity in EntityManager.entities:
 		if entity == player:
@@ -1929,8 +1960,8 @@ func _get_visible_objects() -> Array:
 		if distance > player.perception_range:
 			continue
 
-		# Check if entity is currently visible (in FOV and illuminated)
-		if not FogOfWarSystemClass.is_visible(entity.position):
+		# Check if entity is currently visible (handles daytime outdoors mode)
+		if not FogOfWarSystemClass.is_position_visible(entity.position, current_map, player.position):
 			continue
 
 		# Handle different entity types

@@ -532,7 +532,7 @@ func _add_traits_section() -> void:
 func _add_class_abilities_section() -> void:
 	var cls_id = player.class_id if player.class_id != "" else "adventurer"
 	var cls_name = ClassManager.get_class_name(cls_id)
-	var abilities = ClassManager.get_abilities(cls_id)
+	var abilities = ClassManager.get_feats(cls_id)
 
 	# Class name label
 	var class_label = Label.new()
@@ -570,8 +570,8 @@ func _add_class_abilities_section() -> void:
 			# Show uses remaining for active abilities
 			var uses_remaining = 0
 			var uses_per_rest = ability_def.get("uses_per_rest", 1)
-			if player.class_abilities.has(ability_id):
-				uses_remaining = player.class_abilities[ability_id].get("uses_remaining", 0)
+			if player.class_feats.has(ability_id):
+				uses_remaining = player.class_feats[ability_id].get("uses_remaining", 0)
 			name_label.text = "◆ %s [%d/%d uses]" % [ability_name, uses_remaining, uses_per_rest]
 			name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.5))  # Yellow for active
 		else:

@@ -12,10 +12,12 @@
     Some classes have restrictions (spell casting not allowed, spells can't be cast in heavy armor, etc.)
 - [x] Feature: Feats (K key)
     Character classes come with active, proactive, and passive classed-based feats that give them special abilities.
-- [ ] UI/UX: Help Menu Redesign
-    Reorganize Help menu into tabs for easier viewing.
 - [ ] Feature: Character Customization Sheet
-    Character Customization at game start after tace and class selection (point assignment for scores, assigment of skill points, etc)
+    Character Customization at game start after race and class selection (point assignment for scores, assigment of skill points, etc)
+- [x] Compatability:
+    Old Save Games set player to Human Adventurer
+- [x] UI/UX: Help Menu Redesign
+    Reorganize Help menu into tabs for easier viewing.
 - [x] Feature: Test mode Expansion
     Implement the following improvements to the Debug Mode:
     * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.

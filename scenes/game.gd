@@ -722,6 +722,11 @@ func _render_ground_item_at(pos: Vector2i) -> void:
 ## Render a feature at a specific position if one exists
 func _render_feature_at(pos: Vector2i) -> void:
 	if FeatureManager.active_features.has(pos):
+		# Skip rendering on non-walkable tiles (walls)
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(pos)
+			if tile == null or not tile.walkable:
+				return
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
@@ -1598,6 +1603,11 @@ func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		# Skip rendering at player position
 		if pos == skip_pos:
 			continue
+		# Skip rendering on non-walkable tiles (walls)
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(pos)
+			if tile == null or not tile.walkable:
+				continue
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")

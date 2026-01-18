@@ -5,9 +5,7 @@
 
 ---
 ## Unplanned
-- [ ] Craft: Fisherman, tailor, or weaver can teach receipe for cord.
-- [ ] Turn Undead
-    Turn undead ability for cleric class, using traditional roguelike patterns
+
 - [ ] Save transportability
     Add the ability to download a saved game as a JSON file and load it into a different instance of the game
 - [ ] Feature: Initial Spawn Time - Day
@@ -26,7 +24,7 @@
     Creatures should be able to allied with other creatures, For instance a pack of 3 goblins and 1 hobgoblin could be allies, working together against one or more "enemies". Spell casting creatures who are allies should be able to heal and buff their allies in addition to hurting enemies.
 - [ ] Magic Item: Scroll of Recall
     Add a consumable item used to instantly teleport a character to a safe location (nearest town), allowing for emergency escapes. This should work even if the player is in a dungeon
-- [ ] Caves in Mines
+- [ ] Caves intersect Mines
     Change mine generation so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation
     Modify dungeon generators so they have a layout in the overworld similar to buildings but appropriate to the shape the structure would have above ground  For instance, a fort or tower should have structure above ground. The barrow should have a crypt and be surrounded by tombstones, etc. Structures that can be above ground should have up stairs inside the structure as well as down (e.g. towers)
@@ -64,6 +62,8 @@
     Add a vintner outside of the city town who sells wine and teaches wine making & distillation
 - [ ] NPCs: Wandering Traders:
     Add wandering traders who appear along roads and offer goods for sale.
+- [ ] Craft: Cord
+    Fisherman, tailor, or weaver can teach receipe for cord.
 - [ ] NPCs: Non-trade NPCs
     Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
 - [ ] Town layouts vary by seed

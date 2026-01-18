@@ -661,6 +661,9 @@ static func get_valid_spell_targets(caster, spell) -> Array[Entity]:
 	var spell_range = spell.get_range()
 	var requires_los = spell.requires_los()
 
+	# Get current map for visibility check
+	var current_map = MapManager.current_map
+
 	# Get all entities within range
 	for entity in EntityManager.entities:
 		if entity == caster:
@@ -669,9 +672,9 @@ static func get_valid_spell_targets(caster, spell) -> Array[Entity]:
 		if not entity.is_alive:
 			continue
 
-		# Check if target is currently visible (in FOV and illuminated)
+		# Check if target is currently visible (handles daytime outdoors mode)
 		# This prevents targeting enemies behind walls or in unexplored areas
-		if not FogOfWarSystemClass.is_visible(entity.position):
+		if not FogOfWarSystemClass.is_position_visible(entity.position, current_map, caster.position):
 			continue
 
 		# Check range

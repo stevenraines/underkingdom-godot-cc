@@ -50,6 +50,8 @@
     }
   },
   "starting_equipment": [
-    {"item_id": "wooden_staff", "count": 1}
-  ]
+    {"item_id": "wooden_staff", "count": 1},
+    {"item_id": "spellbook", "count": 1}
+  ],
+  "starting_spells": ["light", "ray_of_frost", "spark"]
 }

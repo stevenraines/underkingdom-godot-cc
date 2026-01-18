@@ -6,7 +6,7 @@
   "level": 0,
   "mana_cost": 0,
   "requirements": {
-    "character_level": 1,
+    "character_level": 0,
     "intelligence": 8
   },
   "targeting": {

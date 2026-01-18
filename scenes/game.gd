@@ -556,6 +556,11 @@ func _give_starter_items() -> void:
 				if item.is_equippable() and item.item_type == "weapon":
 					player.equip_item(item)
 
+	# Teach class starting spells (requires spellbook in inventory)
+	var starting_spells = ClassManager.get_starting_spells(GameManager.player_class)
+	for spell_id in starting_spells:
+		player.learn_spell(spell_id)
+
 	# Give player some starter recipes for testing
 	player.learn_recipe("bandage")
 	player.learn_recipe("flint_knife")

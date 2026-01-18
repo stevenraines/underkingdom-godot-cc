@@ -198,9 +198,15 @@ func get_weighted_enemies_for_biome(biome_id: String) -> Array:
 
 ## Spawn an enemy at a position
 ## Optional source_chunk parameter tracks which chunk spawned this enemy for cleanup
+## Returns null if position is already occupied by another blocking entity
 func spawn_enemy(enemy_id: String, pos: Vector2i, source_chunk: Vector2i = Vector2i(-999, -999)) -> Enemy:
 	if not enemy_id in enemy_definitions:
 		push_error("Unknown enemy ID: " + enemy_id)
+		return null
+
+	# Prevent spawning on occupied tiles
+	if get_blocking_entity_at(pos):
+		push_warning("[EntityManager] Cannot spawn %s at %v - position occupied" % [enemy_id, pos])
 		return null
 
 	var enemy = Enemy.create(enemy_definitions[enemy_id])

@@ -48,6 +48,39 @@ static func set_visible_tiles(visible_tiles: Array) -> void:
 static func is_visible(world_pos: Vector2i) -> bool:
 	return currently_visible.has(world_pos)
 
+
+## Check if a position is visible, accounting for daytime outdoors mode
+## Use this for gameplay checks (targeting, look command, etc.)
+static func is_position_visible(world_pos: Vector2i, map, player_pos: Vector2i) -> bool:
+	# First check standard visibility
+	if currently_visible.has(world_pos):
+		return true
+
+	# Check if we're in daytime outdoors mode
+	if not map:
+		return false
+
+	const FOVSystemClass = preload("res://systems/fov_system.gd")
+	const RangedCombatSystemClass = preload("res://systems/ranged_combat_system.gd")
+
+	if not FOVSystemClass.is_daytime_outdoors(map):
+		return false  # Not daytime outdoors, standard visibility only
+
+	# During daytime outdoors, check if position is in perception range and has LOS
+	var perception_range = 20  # Default perception range
+	var distance = max(abs(world_pos.x - player_pos.x), abs(world_pos.y - player_pos.y))
+	if distance > perception_range:
+		return false
+
+	# Check if target is in an interior tile (requires LOS even during daytime)
+	var tile = map.get_tile(world_pos)
+	if tile and tile.is_interior:
+		# Interior tiles require LOS
+		return RangedCombatSystemClass.has_line_of_sight(player_pos, world_pos)
+
+	# Outdoor tiles during daytime - just need LOS for entities
+	return RangedCombatSystemClass.has_line_of_sight(player_pos, world_pos)
+
 ## Get tile visibility state
 ## Returns: "visible", "explored", or "unexplored"
 static func get_tile_state(map_id: String, world_pos: Vector2i, chunk_based: bool = false) -> String:

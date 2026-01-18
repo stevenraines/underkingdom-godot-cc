@@ -323,33 +323,49 @@ func _populate_spell_details(spell) -> void:
 
 	# Stats column - spell properties
 	var stats: Array[String] = []
+	var stat_colors: Array[Color] = []
 
 	# School and level
 	var school_name = spell.school.capitalize()
 	var level_text = "Cantrip" if spell.level == 0 else "Level %d" % spell.level
 	stats.append("%s - %s" % [school_name, level_text])
+	stat_colors.append(SCHOOL_COLORS.get(spell.school, COLOR_NORMAL))
 
 	# Mana cost
 	stats.append("Mana Cost: %d" % spell.mana_cost)
+	stat_colors.append(COLOR_MANA)
 
-	# Targeting
-	var targeting_mode = spell.get_targeting_mode()
-	var range_val = spell.get_range()
-	var target_text = targeting_mode.capitalize()
-	if range_val > 0:
-		target_text += " (Range: %d)" % range_val
-	stats.append("Target: %s" % target_text)
+	# Effect info based on spell type
+	if spell.is_damage_spell():
+		var damage = SpellManager.calculate_spell_damage(spell, player)
+		var damage_info = spell.get_damage()
+		var damage_type = damage_info.get("type", "magical").capitalize()
+		stats.append("Damage: %d %s" % [damage, damage_type])
+		stat_colors.append(Color(1.0, 0.5, 0.4))  # Red-orange for damage
+	elif spell.is_heal_spell():
+		var healing = SpellManager.calculate_spell_healing(spell, player)
+		stats.append("Healing: %d HP" % healing)
+		stat_colors.append(Color(0.4, 1.0, 0.5))  # Green for healing
+	else:
+		# Targeting for utility spells
+		var targeting_mode = spell.get_targeting_mode()
+		var range_val = spell.get_range()
+		var target_text = targeting_mode.capitalize()
+		if range_val > 0:
+			target_text += " (Range: %d)" % range_val
+		stats.append("Target: %s" % target_text)
+		stat_colors.append(Color(0.7, 0.7, 0.7))
 
 	# Assign stats to lines
 	if stat_line_1:
 		stat_line_1.text = stats[0] if stats.size() > 0 else ""
-		stat_line_1.add_theme_color_override("font_color", SCHOOL_COLORS.get(spell.school, COLOR_NORMAL))
+		stat_line_1.add_theme_color_override("font_color", stat_colors[0] if stat_colors.size() > 0 else COLOR_NORMAL)
 	if stat_line_2:
 		stat_line_2.text = stats[1] if stats.size() > 1 else ""
-		stat_line_2.add_theme_color_override("font_color", COLOR_MANA)
+		stat_line_2.add_theme_color_override("font_color", stat_colors[1] if stat_colors.size() > 1 else COLOR_MANA)
 	if stat_line_3:
 		stat_line_3.text = stats[2] if stats.size() > 2 else ""
-		stat_line_3.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		stat_line_3.add_theme_color_override("font_color", stat_colors[2] if stat_colors.size() > 2 else Color(0.7, 0.7, 0.7))
 
 	# Requirements column - check if player meets them
 	_update_requirements_display(spell)

@@ -17,5 +17,9 @@
     }
   ],
   "restrictions": {},
-  "starting_equipment": []
+  "starting_equipment": [
+    {"item_id": "lockpick", "count": 5},
+    {"item_id": "short_bow", "count": 1},
+    {"item_id": "arrow", "count": 30}
+  ]
 }

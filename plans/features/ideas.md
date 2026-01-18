@@ -5,9 +5,6 @@
 
 ---
 ## Unplanned
-- [ ] Improve Lighting Performance:
-    Simplify overworld daytime lighting
-    No FOV in areas except for interiors of buildings. Players should see all external building walls.
 - [ ] Save transportability
     Add the ability to download a saved game as a JSON file and load it into a different instance of the game
 - [ ] Feature: Initial Spawn Time - Day

@@ -49,6 +49,6 @@
   },
   "starting_equipment": [
     {"item_id": "short_bow", "count": 1},
-    {"item_id": "arrow", "count": 20}
+    {"item_id": "arrow", "count": 30}
   ]
 }

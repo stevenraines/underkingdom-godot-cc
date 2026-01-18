@@ -54,6 +54,7 @@
   },
   "starting_equipment": [
     {"item_id": "iron_dagger", "count": 1},
-    {"item_id": "lockpicks", "count": 1}
+    {"item_id": "lockpick", "count": 5}
+ 
   ]
 }

@@ -131,6 +131,19 @@ func get_special_rule_value(creature_type: String, rule_name: String, default_va
 	return type_def.get(rule_name, default_value)
 
 
+## Get default loot tables for a creature type
+## Returns array of loot table IDs that all creatures of this type inherit
+func get_default_loot_tables(creature_type: String) -> Array[String]:
+	var result: Array[String] = []
+	var type_def = get_creature_type(creature_type)
+	if type_def.is_empty():
+		return result
+	var default_tables = type_def.get("default_loot_tables", [])
+	for table_id in default_tables:
+		result.append(table_id)
+	return result
+
+
 ## Get display name for a creature type
 func get_type_display_name(creature_type: String) -> String:
 	var type_def = get_creature_type(creature_type)

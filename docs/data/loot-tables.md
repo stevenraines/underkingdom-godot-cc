@@ -1,12 +1,14 @@
 # Loot Tables Data Format
 
 **Location**: `data/loot_tables/`
-**File Count**: 5 files
 **Loaded By**: LootTableManager
 
 ## Overview
 
-Loot tables define what items drop from enemies and containers. Each table specifies guaranteed drops (always included) and chance-based drops (probability rolls). Loot tables are referenced by enemy definitions, dungeon features, and container configurations.
+Loot tables define what items drop from enemies and containers. The system supports:
+- **Multiple loot tables per entity** - Creature type defaults + entity-specific tables
+- **CR-based scaling** - Currency and gems scale with Challenge Rating
+- **Guaranteed and chance drops** - Always-drop and probability-based items
 
 ## JSON Schema
 
@@ -34,7 +36,8 @@ Each entry in `guaranteed_drops` or `drops`:
   "item_id": "gold_coin",
   "min_count": 1,
   "max_count": 10,
-  "chance": 0.5
+  "chance": 0.5,
+  "cr_scales": true
 }
 ```
 
@@ -46,206 +49,210 @@ Each entry in `guaranteed_drops` or `drops`:
 | `min_count` | int | No | Minimum quantity (default: 1) |
 | `max_count` | int | No | Maximum quantity (default: 1) |
 | `chance` | float | No* | Drop probability 0.0-1.0 |
+| `cr_scales` | bool | No | If true, quantity scales with CR (default: false) |
 
 *`chance` only used in `drops` array, ignored in `guaranteed_drops`.
 
-## Guaranteed vs Chance Drops
+## CR-Based Scaling
 
-### Guaranteed Drops
-Items that **always** drop. Quantity is random within range.
+Items marked with `"cr_scales": true` have their quantities multiplied based on the entity's CR:
 
-```json
-"guaranteed_drops": [
-  {"item_id": "gold_coin", "min_count": 5, "max_count": 20}
-]
-```
+| CR Band | CR Range | Multiplier |
+|---------|----------|------------|
+| 0 | 0-4 | 1.0x |
+| 1 | 5-10 | 2.0x |
+| 2 | 11-16 | 5.0x |
+| 3 | 17+ | 10.0x |
 
-Result: Always drops 5-20 gold coins.
+Example: A CR 8 undead with `"gold_coin", "min_count": 5, "max_count": 10, "cr_scales": true` will drop 10-20 gold coins (2x multiplier).
 
-### Chance Drops
-Items that **may** drop based on probability.
+## Creature Type Defaults
 
-```json
-"drops": [
-  {"item_id": "gem", "min_count": 1, "max_count": 1, "chance": 0.3}
-]
-```
-
-Result: 30% chance to drop 1 gem.
-
-## Probability Format
-
-**CRITICAL**: Use decimal format (0.0-1.0), not percentages.
-
-| Desired Chance | Correct | Incorrect |
-|----------------|---------|-----------|
-| 50% | `0.5` | `50` |
-| 100% | `1.0` | `100` |
-| 10% | `0.1` | `10` |
-| 85% | `0.85` | `85` |
-
-## Complete Examples
-
-### Enemy Loot (Chance Only)
+Each creature type can define default loot tables that all creatures of that type inherit:
 
 ```json
+// data/creature_types/undead.json
 {
-  "id": "undead_common",
-  "name": "Undead Common Loot",
-  "description": "Common drops from undead creatures like skeletons and wights",
-  "drops": [
-    {"item_id": "bone", "min_count": 1, "max_count": 3, "chance": 0.8},
-    {"item_id": "gold_coin", "min_count": 1, "max_count": 10, "chance": 0.3},
-    {"item_id": "rusty_sword", "min_count": 1, "max_count": 1, "chance": 0.1},
-    {"item_id": "tattered_cloth", "min_count": 1, "max_count": 2, "chance": 0.4}
-  ]
+  "id": "undead",
+  "default_loot_tables": ["undead_common"],
+  ...
 }
 ```
 
-### Treasure (Guaranteed + Chance)
+Creatures automatically roll on their creature type's default tables, plus any entity-specific tables.
+
+## Loot Table Categories
+
+### Creature Type Tables
+
+| ID | Creature Type | Contents |
+|----|---------------|----------|
+| `beast_common` | Beasts/Animals | Bone, feather (organic only) |
+| `humanoid_common` | Humanoids | Gold, supplies, keys |
+| `humanoid_armed` | Armed humanoids | Ammunition |
+| `humanoid_mage` | Spellcasters | Scrolls, potions, gems |
+| `undead_common` | Undead | Bone, gold, cloth |
+| `undead_boss` | Undead bosses | Gold, gems, artifacts |
+| `elemental_common` | Elementals | Gems, soul gems |
+| `construct_common` | Constructs | Metal, gems |
+| `demon_common` | Demons | Soul gems, gold |
+| `ooze_common` | Oozes | Swallowed treasure |
+| `monstrosity_common` | Monstrosities | Mixed organic/treasure |
+| `aberration_common` | Aberrations | Gems, scrolls |
+
+### CR Treasure Tables
+
+| ID | CR Range | Contents |
+|----|----------|----------|
+| `cr_0_4_treasure` | 0-4 | Small gold, basic items |
+| `cr_5_10_treasure` | 5-10 | Gold, gems, potions |
+| `cr_11_16_treasure` | 11-16 | Large gold, rare items |
+| `cr_17_plus_treasure` | 17+ | Legendary treasure |
+
+### Container Tables
+
+| ID | Purpose |
+|----|---------|
+| `ancient_treasure` | Chests, burial sites |
+| `shop_general` | General store inventory |
+| `shop_blacksmith` | Blacksmith inventory |
+
+## Enemy Loot Configuration
+
+### New Format (Recommended)
+
+Use `loot_tables` array for multiple tables:
 
 ```json
 {
-  "id": "ancient_treasure",
-  "name": "Ancient Treasure",
-  "description": "Treasure found in ancient chests and burial sites",
-  "guaranteed_drops": [
-    {"item_id": "gold_coin", "min_count": 15, "max_count": 60}
-  ],
-  "drops": [
-    {"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.3},
-    {"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.4},
-    {"item_id": "ancient_scroll", "min_count": 1, "max_count": 1, "chance": 0.2},
-    {"item_id": "cursed_ring", "min_count": 1, "max_count": 1, "chance": 0.1}
-  ]
+  "id": "barrow_lord",
+  "creature_type": "undead",
+  "cr": 6,
+  "loot_tables": ["undead_boss"],
+  ...
 }
 ```
 
-### Animal Loot
+This enemy will roll on:
+1. `undead_common` (from creature type default)
+2. `undead_boss` (entity-specific)
 
-```json
-{
-  "id": "beast_common",
-  "name": "Beast Common Loot",
-  "description": "Drops from animal enemies",
-  "drops": [
-    {"item_id": "raw_meat", "min_count": 1, "max_count": 2, "chance": 0.9},
-    {"item_id": "animal_hide", "min_count": 1, "max_count": 1, "chance": 0.7},
-    {"item_id": "bone", "min_count": 1, "max_count": 2, "chance": 0.5}
-  ]
-}
-```
+### Legacy Format (Backward Compatible)
 
-### Boss Loot
-
-```json
-{
-  "id": "undead_boss",
-  "name": "Undead Boss Loot",
-  "description": "Drops from powerful undead bosses",
-  "guaranteed_drops": [
-    {"item_id": "gold_coin", "min_count": 50, "max_count": 200},
-    {"item_id": "ancient_key", "min_count": 1, "max_count": 1}
-  ],
-  "drops": [
-    {"item_id": "legendary_weapon", "min_count": 1, "max_count": 1, "chance": 0.2},
-    {"item_id": "rare_armor", "min_count": 1, "max_count": 1, "chance": 0.3},
-    {"item_id": "soul_gem", "min_count": 1, "max_count": 3, "chance": 0.5}
-  ]
-}
-```
-
-## Current Loot Tables
-
-| ID | Purpose | Guaranteed | Chance Drops |
-|----|---------|------------|--------------|
-| `rat_common` | Rat enemies | None | Meat, gold |
-| `beast_common` | Animal enemies | None | Meat, hide, bone |
-| `undead_common` | Undead enemies | None | Bone, gold, cloth |
-| `undead_boss` | Undead bosses | Gold, key | Weapons, armor |
-| `ancient_treasure` | Treasure chests | Gold | Artifacts, gems |
-
-## Generation Algorithm
-
-```gdscript
-func generate_loot(table_id, rng):
-    var loot = []
-
-    # Guaranteed drops - always included
-    for drop in table.guaranteed_drops:
-        var count = random_range(drop.min_count, drop.max_count)
-        loot.append({item_id: drop.item_id, count: count})
-
-    # Chance drops - roll for each
-    for drop in table.drops:
-        if random_float() < drop.chance:
-            var count = random_range(drop.min_count, drop.max_count)
-            loot.append({item_id: drop.item_id, count: count})
-
-    return loot
-```
-
-## Usage References
-
-### Enemy Definitions
+Single `loot_table` string still works:
 
 ```json
 {
   "id": "skeleton",
-  "loot_table": "undead_common"
+  "creature_type": "undead",
+  "loot_table": "undead_common",
+  ...
 }
 ```
 
-### Dungeon Features
+### Minimal Format
+
+Creatures can rely entirely on creature type defaults:
 
 ```json
-"room_features": [
-  {
-    "feature_id": "treasure_chest",
-    "loot_table": "ancient_treasure"
-  }
-]
+{
+  "id": "skeleton",
+  "creature_type": "undead",
+  ...
+}
 ```
 
-### Dungeon Floor Loot
+This skeleton will only roll on `undead_common` (from creature type default).
+
+## Complete Examples
+
+### Humanoid Loot with Arms
 
 ```json
-"loot_tables": [
-  {
-    "item_id": "ancient_gold",
-    "chance": 0.3,
-    "count_range": [10, 50]
-  }
-]
+{
+  "id": "humanoid_armed",
+  "name": "Armed Humanoid Loot",
+  "description": "Drops from armed humanoids. Only creatures with arms can carry weapons.",
+  "drops": [
+    {"item_id": "iron_arrow", "min_count": 3, "max_count": 10, "chance": 0.2},
+    {"item_id": "bolt", "min_count": 2, "max_count": 8, "chance": 0.15}
+  ]
+}
 ```
 
-## Expected Drop Calculation
+### Spellcaster Loot with CR Scaling
 
-For chance-based items, expected drops per kill/open:
-
+```json
+{
+  "id": "humanoid_mage",
+  "name": "Humanoid Mage Loot",
+  "description": "Drops from intelligent spellcasters. Gold and gems scale with CR.",
+  "drops": [
+    {"item_id": "gold_coin", "min_count": 5, "max_count": 30, "chance": 0.8, "cr_scales": true},
+    {"item_id": "mana_potion", "min_count": 1, "max_count": 2, "chance": 0.35},
+    {"item_id": "scroll_spark", "min_count": 1, "max_count": 1, "chance": 0.12},
+    {"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.15, "cr_scales": true}
+  ]
+}
 ```
-Expected = chance × average_count
-Average Count = (min_count + max_count) / 2
+
+### Legendary Treasure
+
+```json
+{
+  "id": "cr_17_plus_treasure",
+  "name": "Legendary CR Treasure",
+  "description": "Legendary treasure for CR 17+ creatures.",
+  "guaranteed_drops": [
+    {"item_id": "gold_coin", "min_count": 100, "max_count": 500, "cr_scales": true}
+  ],
+  "drops": [
+    {"item_id": "gem", "min_count": 3, "max_count": 10, "chance": 0.7, "cr_scales": true},
+    {"item_id": "soul_gem", "min_count": 1, "max_count": 3, "chance": 0.4, "cr_scales": true},
+    {"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.2}
+  ]
+}
 ```
 
-Example: 30% chance for 1-10 gold
+## Generation Algorithm
+
+```gdscript
+func generate_loot_for_entity(entity, rng):
+    var all_loot = []
+    var cr = entity.cr
+
+    # Get all tables: creature type defaults + entity-specific
+    var tables = get_loot_tables_for_entity(entity)
+
+    # Roll on each table with CR scaling
+    for table_id in tables:
+        var table_loot = generate_loot_with_scaling(table_id, cr, rng)
+        all_loot.append_array(table_loot)
+
+    # Combine duplicate items
+    return combine_loot(all_loot)
 ```
-Expected = 0.3 × 5.5 = 1.65 gold per drop
-```
 
-## Validation Rules
+## Design Guidelines
 
-1. `id` must be unique across all loot tables
-2. `id` should use snake_case format
-3. `item_id` must match an item in ItemManager
-4. `chance` must be 0.0-1.0 (decimal, not percentage)
-5. `min_count` must be ≤ `max_count`
-6. `min_count` must be ≥ 1
-7. Don't put `chance` in guaranteed_drops (ignored)
+### Which Creatures Get Which Loot
 
-## Best Practices
+| Creature Type | Gold | Weapons | Magic Items | Organic |
+|---------------|------|---------|-------------|---------|
+| Beasts/Animals | No | No | No | Yes |
+| Humanoids (armed) | Yes | Yes | If intelligent | Some |
+| Humanoids (mage) | Yes | Staves | Yes | No |
+| Undead | Yes* | If armed | If intelligent | Bone |
+| Elementals | Gems | No | No | No |
+| Constructs | Some | No | Gems | Metal |
+| Demons | Yes | If armed | Yes | No |
+| Oozes | Yes* | No | No | No |
+| Monstrosities | Some* | No | Rare | Some |
+| Aberrations | Gems | Rare | Some | No |
 
-### Balance Guidelines
+*Swallowed treasure from victims
+
+### Probability Guidelines
 
 | Drop Type | Recommended Chance |
 |-----------|-------------------|
@@ -256,20 +263,22 @@ Expected = 0.3 × 5.5 = 1.65 gold per drop
 | Rare items | 0.05-0.1 |
 | Very rare items | 0.01-0.05 |
 
-### Quantity Guidelines
+## Validation Rules
 
-| Item Type | Recommended Range |
-|-----------|------------------|
-| Currency | 1-20 (scales with difficulty) |
-| Consumables | 1-3 |
-| Materials | 1-5 |
-| Equipment | 1 (always) |
-| Rare items | 1 (always) |
+1. `id` must be unique across all loot tables
+2. `id` should use snake_case format
+3. `item_id` must match an item in ItemManager
+4. `chance` must be 0.0-1.0 (decimal, not percentage)
+5. `min_count` must be <= `max_count`
+6. `min_count` must be >= 1
+7. Don't put `chance` in guaranteed_drops (ignored)
+8. Use `cr_scales` for currency and gems
 
 ## Related Documentation
 
 - [Loot Table Manager](../systems/loot-table-manager.md) - System mechanics
-- [Enemies Data](./enemies.md) - Enemy loot_table property
+- [Creature Types Data](./creature-types.md) - Default loot tables
+- [Enemies Data](./enemies.md) - Enemy loot_tables property
 - [Features Data](./features.md) - Container loot
 - [Dungeons Data](./dungeons.md) - Floor loot config
 - [Items Data](./items.md) - Item definitions

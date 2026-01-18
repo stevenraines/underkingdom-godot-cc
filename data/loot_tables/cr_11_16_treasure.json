@@ -1,0 +1,15 @@
+{
+	"id": "cr_11_16_treasure",
+	"name": "High CR Treasure",
+	"description": "Valuable treasure for CR 11-16 creatures. Large gold amounts, rare gems, scrolls, magic items.",
+	"drops": [
+		{"item_id": "gold_coin", "min_count": 50, "max_count": 200, "chance": 0.8, "cr_scales": true},
+		{"item_id": "gem", "min_count": 2, "max_count": 5, "chance": 0.4, "cr_scales": true},
+		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.15, "cr_scales": true},
+		{"item_id": "healing_potion", "min_count": 1, "max_count": 2, "chance": 0.25},
+		{"item_id": "mana_potion", "min_count": 1, "max_count": 2, "chance": 0.2},
+		{"item_id": "scroll_lightning_bolt", "min_count": 1, "max_count": 1, "chance": 0.1},
+		{"item_id": "scroll_heal", "min_count": 1, "max_count": 1, "chance": 0.12},
+		{"item_id": "ancient_scroll", "min_count": 1, "max_count": 1, "chance": 0.08}
+	]
+}

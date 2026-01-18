@@ -3,6 +3,7 @@
   "name": "Construct",
   "description": "Artificially created beings animated by magic",
   "ascii_color": "#9370DB",
+  "default_loot_tables": ["construct_common"],
   "base_resistances": {
     "poison": -100,
     "necrotic": -50

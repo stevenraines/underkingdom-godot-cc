@@ -722,6 +722,11 @@ func _render_ground_item_at(pos: Vector2i) -> void:
 ## Render a feature at a specific position if one exists
 func _render_feature_at(pos: Vector2i) -> void:
 	if FeatureManager.active_features.has(pos):
+		# Skip rendering on non-walkable tiles (walls)
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(pos)
+			if tile == null or not tile.walkable:
+				return
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
@@ -942,17 +947,16 @@ func _on_entity_died(entity: Entity) -> void:
 						else:
 							total_yields[item_id] = count
 
-			# Process loot table (referenced loot table for additional drops)
-			if entity.loot_table != "":
-				var loot_drops = LootTableManager.generate_loot(entity.loot_table)
-				for drop in loot_drops:
-					var item_id = drop.get("item_id", "")
-					var count = drop.get("count", 1)
-					if item_id != "" and count > 0:
-						if item_id in total_yields:
-							total_yields[item_id] += count
-						else:
-							total_yields[item_id] = count
+			# Process loot tables (creature type defaults + entity-specific, with CR scaling)
+			var loot_drops = LootTableManager.generate_loot_for_entity(entity)
+			for drop in loot_drops:
+				var item_id = drop.get("item_id", "")
+				var count = drop.get("count", 1)
+				if item_id != "" and count > 0:
+					if item_id in total_yields:
+						total_yields[item_id] += count
+					else:
+						total_yields[item_id] = count
 
 			# Create and spawn items as ground items
 			for item_id in total_yields:
@@ -1599,6 +1603,11 @@ func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		# Skip rendering at player position
 		if pos == skip_pos:
 			continue
+		# Skip rendering on non-walkable tiles (walls)
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(pos)
+			if tile == null or not tile.walkable:
+				continue
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")

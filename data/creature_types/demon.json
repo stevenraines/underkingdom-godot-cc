@@ -3,6 +3,7 @@
   "name": "Demon",
   "description": "Fiendish beings from the lower planes",
   "ascii_color": "#FF3333",
+  "default_loot_tables": ["demon_common"],
   "base_resistances": {
     "fire": -50,
     "radiant": 50,

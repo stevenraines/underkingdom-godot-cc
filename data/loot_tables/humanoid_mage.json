@@ -1,0 +1,16 @@
+{
+	"id": "humanoid_mage",
+	"name": "Humanoid Mage Loot",
+	"description": "Drops from humanoid spellcasters. May carry scrolls, potions, and magical components.",
+	"drops": [
+		{"item_id": "gold_coin", "min_count": 5, "max_count": 30, "chance": 0.8, "cr_scales": true},
+		{"item_id": "mana_potion", "min_count": 1, "max_count": 2, "chance": 0.35},
+		{"item_id": "healing_potion", "min_count": 1, "max_count": 1, "chance": 0.25},
+		{"item_id": "scroll_spark", "min_count": 1, "max_count": 1, "chance": 0.12},
+		{"item_id": "scroll_heal", "min_count": 1, "max_count": 1, "chance": 0.1},
+		{"item_id": "scroll_shield", "min_count": 1, "max_count": 1, "chance": 0.08},
+		{"item_id": "scroll_flame_bolt", "min_count": 1, "max_count": 1, "chance": 0.06},
+		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.15, "cr_scales": true},
+		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.05}
+	]
+}

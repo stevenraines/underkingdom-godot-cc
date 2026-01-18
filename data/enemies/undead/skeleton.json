@@ -28,7 +28,6 @@
     "poison": -100,
     "radiant": 50
   },
-  "loot_table": "undead_common",
   "xp_value": 15,
   "spawn_biomes": [],
   "spawn_dungeons": ["burial_barrow", "temple_ruins"],

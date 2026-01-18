@@ -32,7 +32,7 @@
     }
   ],
   "behavior": "guardian",
-  "loot_table": "undead_boss",
+  "loot_tables": ["undead_boss"],
   "xp_value": 500,
   "spawn_biomes": [],
   "spawn_dungeons": [

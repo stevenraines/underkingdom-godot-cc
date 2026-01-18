@@ -6,64 +6,100 @@
 
 ## Overview
 
-The Loot Table Manager handles procedural loot generation from enemies and containers. It loads loot table definitions from JSON files and provides deterministic item drops using seeded randomness. Loot tables support both guaranteed drops and probability-based drops.
+The Loot Table Manager handles procedural loot generation from enemies and containers. It supports:
+- **Multiple loot tables per entity** via creature type defaults and entity-specific tables
+- **CR-based scaling** for currency and gems based on creature Challenge Rating
+- **Seeded randomness** for deterministic dungeon loot
 
 ## Key Concepts
 
 - **Loot Tables**: JSON definitions specifying possible drops
-- **Guaranteed Drops**: Items that always drop (100% chance)
-- **Chance Drops**: Items with probability-based drops
+- **Creature Type Defaults**: Inherited from creature type definitions
+- **Entity-Specific Tables**: Additional tables defined per-enemy
+- **CR Scaling**: Items marked `cr_scales: true` scale with Challenge Rating
 - **Seeded Generation**: Deterministic loot for consistent regeneration
 
-## Core Functionality
+## Core API
 
-### Loading Tables
-
-```gdscript
-LootTableManager.loot_tables: Dictionary  # {table_id: definition}
-```
-
-All JSON files in `data/loot_tables/` are loaded at startup.
-
-### Generating Loot
+### Entity-Based Generation (Recommended)
 
 ```gdscript
-var drops = LootTableManager.generate_loot(table_id, rng)
+# Generate loot for an entity with CR scaling
+var drops = LootTableManager.generate_loot_for_entity(entity)
 # Returns: [{item_id: String, count: int}, ...]
+
+# Get all loot tables for an entity
+var tables = LootTableManager.get_loot_tables_for_entity(entity)
+# Returns: ["undead_common", "undead_boss"] (creature type + entity-specific)
 ```
 
-### Checking Tables
+### Single Table Generation
+
+```gdscript
+# Generate from single table with CR scaling
+var drops = LootTableManager.generate_loot_with_scaling(table_id, cr, rng)
+
+# Generate from single table (no scaling, legacy)
+var drops = LootTableManager.generate_loot(table_id, rng)
+```
+
+### Utility
 
 ```gdscript
 var exists = LootTableManager.has_loot_table(table_id)
 ```
 
-## Loot Generation Process
+## CR-Based Scaling
 
-1. Lookup table by ID
-2. Process guaranteed drops (always included)
-3. Process chance drops (roll for each)
-4. Return array of {item_id, count} dictionaries
+Items marked with `cr_scales: true` have quantities multiplied by CR band:
 
-### Guaranteed Drops
-
-Every item in `guaranteed_drops` is always included:
+| CR Band | CR Range | Multiplier |
+|---------|----------|------------|
+| 0 | 0-4 | 1.0x |
+| 1 | 5-10 | 2.0x |
+| 2 | 11-16 | 5.0x |
+| 3 | 17+ | 10.0x |
 
 ```gdscript
-for drop in guaranteed_drops:
-    count = random_range(min_count, max_count)
-    loot.append({item_id, count})
+const CR_MULTIPLIERS = {
+    0: 1.0,   # CR 0-4
+    1: 2.0,   # CR 5-10
+    2: 5.0,   # CR 11-16
+    3: 10.0   # CR 17+
+}
+
+func _get_cr_band(cr: int) -> int:
+    if cr >= 17: return 3
+    elif cr >= 11: return 2
+    elif cr >= 5: return 1
+    else: return 0
 ```
 
-### Chance Drops
+## Loot Table Resolution
 
-Each item in `drops` is rolled independently:
+When `generate_loot_for_entity()` is called:
+
+1. **Get creature type defaults** from `CreatureTypeManager.get_default_loot_tables()`
+2. **Add entity-specific tables** from `entity.loot_tables` array
+3. **Roll on each table** with CR scaling applied
+4. **Combine duplicate items** into single entries
 
 ```gdscript
-for drop in drops:
-    if random_float() < drop.chance:
-        count = random_range(min_count, max_count)
-        loot.append({item_id, count})
+func get_loot_tables_for_entity(entity) -> Array[String]:
+    var result: Array[String] = []
+
+    # Get creature type defaults
+    var type_defaults = CreatureTypeManager.get_default_loot_tables(entity.creature_type)
+    for table_id in type_defaults:
+        if has_loot_table(table_id):
+            result.append(table_id)
+
+    # Add entity-specific (no duplicates)
+    for table_id in entity.loot_tables:
+        if has_loot_table(table_id) and table_id not in result:
+            result.append(table_id)
+
+    return result
 ```
 
 ## Loot Table Structure
@@ -74,10 +110,10 @@ for drop in drops:
   "name": "Display Name",
   "description": "Description text",
   "guaranteed_drops": [
-    {"item_id": "gold_coin", "min_count": 5, "max_count": 20}
+    {"item_id": "gold_coin", "min_count": 5, "max_count": 20, "cr_scales": true}
   ],
   "drops": [
-    {"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.3}
+    {"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.3, "cr_scales": true}
   ]
 }
 ```
@@ -90,6 +126,7 @@ for drop in drops:
 | `min_count` | int | No | Minimum quantity (default: 1) |
 | `max_count` | int | No | Maximum quantity (default: 1) |
 | `chance` | float | No* | Drop probability 0.0-1.0 |
+| `cr_scales` | bool | No | Scale quantity with CR (default: false) |
 
 *`chance` only applies to entries in `drops`, not `guaranteed_drops`.
 
@@ -100,71 +137,46 @@ The system supports optional `SeededRandom` for deterministic generation:
 ```gdscript
 # Deterministic loot (same seed = same drops)
 var rng = SeededRandom.new(floor_seed)
-var loot = LootTableManager.generate_loot("undead_common", rng)
+var loot = LootTableManager.generate_loot_for_entity(entity, rng)
 
 # Non-deterministic (varies each call)
-var loot = LootTableManager.generate_loot("undead_common")
+var loot = LootTableManager.generate_loot_for_entity(entity)
 ```
-
-### Random Functions
-
-```gdscript
-_random_range(min, max, rng)  # Integer range
-_random_float(rng)            # Float 0.0-1.0
-```
-
-Both functions use `SeededRandom` if provided, otherwise global `randi_range()`/`randf()`.
 
 ## Current Loot Tables
 
-| ID | Name | Description |
-|----|------|-------------|
-| `rat_common` | Rat Common | Drops from rat enemies |
-| `beast_common` | Beast Common | Drops from animal enemies |
-| `undead_common` | Undead Common | Drops from undead enemies |
-| `undead_boss` | Undead Boss | Drops from undead bosses |
-| `ancient_treasure` | Ancient Treasure | Treasure chests and burial sites |
+### Creature Type Defaults
 
-## Example Loot Tables
+| ID | Creature Type | Contents |
+|----|---------------|----------|
+| `beast_common` | beast | Bone, feather |
+| `humanoid_common` | humanoid | Gold, supplies |
+| `humanoid_armed` | armed humanoid | Ammunition |
+| `humanoid_mage` | spellcaster | Scrolls, potions, gems |
+| `undead_common` | undead | Bone, gold, cloth |
+| `elemental_common` | elemental | Gems, soul gems |
+| `construct_common` | construct | Metal, gems |
+| `demon_common` | demon | Soul gems, gold |
+| `ooze_common` | ooze | Swallowed treasure |
+| `monstrosity_common` | monstrosity | Mixed organic/treasure |
+| `aberration_common` | aberration | Gems, scrolls |
 
-### Enemy Loot (Chance Only)
+### Special Tables
 
-```json
-{
-  "id": "undead_common",
-  "name": "Undead Common Loot",
-  "description": "Common drops from undead creatures",
-  "drops": [
-    {"item_id": "bone", "min_count": 1, "max_count": 3, "chance": 0.8},
-    {"item_id": "gold_coin", "min_count": 1, "max_count": 10, "chance": 0.3},
-    {"item_id": "rusty_sword", "min_count": 1, "max_count": 1, "chance": 0.1},
-    {"item_id": "tattered_cloth", "min_count": 1, "max_count": 2, "chance": 0.4}
-  ]
-}
-```
-
-### Treasure (Guaranteed + Chance)
-
-```json
-{
-  "id": "ancient_treasure",
-  "name": "Ancient Treasure",
-  "description": "Treasure found in ancient chests",
-  "guaranteed_drops": [
-    {"item_id": "gold_coin", "min_count": 15, "max_count": 60}
-  ],
-  "drops": [
-    {"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.3},
-    {"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.4},
-    {"item_id": "ancient_scroll", "min_count": 1, "max_count": 1, "chance": 0.2},
-    {"item_id": "cursed_ring", "min_count": 1, "max_count": 1, "chance": 0.1}
-  ]
-}
-```
+| ID | Purpose |
+|----|---------|
+| `undead_boss` | Undead boss creatures |
+| `ancient_treasure` | Treasure chests, burial sites |
+| `cr_0_4_treasure` | Low CR creatures |
+| `cr_5_10_treasure` | Mid CR creatures |
+| `cr_11_16_treasure` | High CR creatures |
+| `cr_17_plus_treasure` | Legendary creatures |
 
 ## Integration with Other Systems
 
-- **EntityManager**: Enemies reference loot tables via `loot_table` property
+- **CreatureTypeManager**: Provides default loot tables per creature type
+- **Enemy**: Has `loot_tables` array and `cr` for scaling
+- **EntityManager**: Enemies reference creature types
 - **FeatureManager**: Containers use loot tables for contents
 - **DungeonManager**: Passes floor RNG for deterministic drops
 - **ItemManager**: Creates actual Item instances from generated drops
@@ -174,9 +186,16 @@ Both functions use `SeededRandom` if provided, otherwise global `randi_range()`/
 ```
 Enemy dies
     ↓
-EntityManager gets enemy.loot_table
+game.gd calls LootTableManager.generate_loot_for_entity(entity)
     ↓
-LootTableManager.generate_loot(table_id, rng)
+Get creature type defaults: ["undead_common"]
+Add entity-specific: ["undead_boss"]
+    ↓
+For each table, generate_loot_with_scaling(table_id, cr, rng)
+    ↓
+Apply CR multipliers to items with cr_scales: true
+    ↓
+Combine duplicate items
     ↓
 Returns [{item_id, count}, ...]
     ↓
@@ -185,11 +204,6 @@ ItemManager creates Item instances
 GroundItems spawned at death location
 ```
 
-## Data Dependencies
-
-- **Loot Tables** (`data/loot_tables/`): Table definitions
-- **Items** (`data/items/`): Item IDs must exist in ItemManager
-
 ## Validation Rules
 
 1. `id` must be unique across all loot tables
@@ -197,10 +211,12 @@ GroundItems spawned at death location
 3. `chance` must be 0.0-1.0 (decimal, not percentage)
 4. `min_count` must be ≤ `max_count`
 5. Counts must be positive integers
+6. Use `cr_scales` for currency and gems
 
 ## Related Documentation
 
 - [Loot Tables Data](../data/loot-tables.md) - JSON file format
-- [Enemies Data](../data/enemies.md) - Enemy loot_table reference
+- [Creature Types Data](../data/creature-types.md) - Default loot tables
+- [Enemies Data](../data/enemies.md) - Enemy loot_tables property
 - [Feature Manager](./feature-manager.md) - Container loot generation
 - [Items Data](../data/items.md) - Item definitions

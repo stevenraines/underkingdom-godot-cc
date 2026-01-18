@@ -1,0 +1,17 @@
+{
+	"id": "humanoid_common",
+	"name": "Humanoid Common Loot",
+	"description": "Common drops from humanoid enemies. Intelligent bipeds carry coins, basic supplies, and may have weapons.",
+	"drops": [
+		{"item_id": "gold_coin", "min_count": 1, "max_count": 15, "chance": 0.7, "cr_scales": true},
+		{"item_id": "bandage", "min_count": 1, "max_count": 2, "chance": 0.25},
+		{"item_id": "ration", "min_count": 1, "max_count": 2, "chance": 0.3},
+		{"item_id": "torch", "min_count": 1, "max_count": 1, "chance": 0.15},
+		{"item_id": "cloth", "min_count": 1, "max_count": 2, "chance": 0.2},
+		{"item_id": "iron_key", "min_count": 1, "max_count": 1, "chance": 0.05},
+		{"item_id": "healing_potion", "min_count": 1, "max_count": 1, "chance": 0.08},
+		{"item_id": "lockpick", "min_count": 1, "max_count": 1, "chance": 0.04},
+		{"item_id": "rope", "min_count": 1, "max_count": 1, "chance": 0.1},
+		{"item_id": "gem", "min_count": 1, "max_count": 1, "chance": 0.03, "cr_scales": true}
+	]
+}

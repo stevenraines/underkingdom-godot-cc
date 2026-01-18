@@ -3,6 +3,7 @@
   "name": "Beast",
   "description": "Natural animals and wildlife",
   "ascii_color": "#8B4513",
+  "default_loot_tables": ["beast_common"],
   "base_resistances": {},
   "special_rules": {
     "susceptible_to_animal_handling": true

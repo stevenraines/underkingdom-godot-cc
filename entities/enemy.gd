@@ -15,9 +15,12 @@ var feared_components: Array[String] = []  # Component types to avoid (e.g., "fi
 var fear_distance: int = 4  # How close they'll get to feared components
 
 # Loot
-var loot_table: String = ""  # Reference to loot table ID
+var loot_tables: Array[String] = []  # References to loot table IDs
 var xp_value: int = 0
 var yields: Array[Dictionary] = []
+
+# CR (Challenge Rating) for loot scaling
+var cr: int = 0
 
 # AI state
 var target_position: Vector2i = Vector2i.ZERO
@@ -68,8 +71,17 @@ static func create(enemy_data: Dictionary) -> Enemy:
 
 	# AI properties
 	enemy.behavior_type = enemy_data.get("behavior", "wander")
-	enemy.loot_table = enemy_data.get("loot_table", "")
 	enemy.xp_value = enemy_data.get("xp_value", 10)
+	enemy.cr = enemy_data.get("cr", 0)
+
+	# Loot tables - support both legacy "loot_table" (string) and new "loot_tables" (array)
+	if enemy_data.has("loot_tables"):
+		var tables = enemy_data.get("loot_tables", [])
+		for table_id in tables:
+			enemy.loot_tables.append(table_id)
+	elif enemy_data.has("loot_table") and enemy_data.loot_table != "":
+		# Backward compatibility: convert single loot_table to array
+		enemy.loot_tables.append(enemy_data.loot_table)
 
 	# Feared components (convert from JSON array to typed array)
 	var feared_comps = enemy_data.get("feared_components", [])

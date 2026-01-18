@@ -3,6 +3,7 @@
   "name": "Aberration",
   "description": "Utterly alien beings from beyond normal reality",
   "ascii_color": "#8B008B",
+  "default_loot_tables": ["aberration_common"],
   "base_resistances": {},
   "special_rules": {
     "immune_to_mind_control": true

@@ -553,7 +553,9 @@ func _spawn_overworld_enemies(towns_data: Array, rng: SeededRandom) -> void:
 		if spawn_roll > 0.5:
 			spawn_count = 2
 			if spawn_roll > 0.8:
-				spawn_count = 3
+				spawn_count = 4
+				if spawn_roll > 0.95:
+					spawn_count = 8
 	var spawned: int = 0
 
 	# Shuffle positions for random placement

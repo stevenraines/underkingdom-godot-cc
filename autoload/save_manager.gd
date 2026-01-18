@@ -515,6 +515,13 @@ func _deserialize_world(world_data: Dictionary):
 	GameManager.character_name = world_data.get("character_name", GameManager.world_name)
 	TurnManager.current_turn = world_data.current_turn
 
+	# Restore time of day (affects lighting)
+	if world_data.has("time_of_day"):
+		TurnManager.time_of_day = world_data.time_of_day
+	else:
+		# Backwards compatibility: calculate from turn number
+		TurnManager._update_time_of_day()
+
 	# Restore last overworld position (for dungeon return)
 	if world_data.has("last_overworld_position"):
 		var pos_data = world_data.last_overworld_position

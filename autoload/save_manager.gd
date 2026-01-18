@@ -553,11 +553,13 @@ func _deserialize_player(player_data: Dictionary):
 	player.position = Vector2i(player_data.position.x, player_data.position.y)
 
 	# Race (with backwards compatibility - default to human for old saves)
+	var old_save_detected = false
 	player.race_id = player_data.get("race_id", "human")
 	if player_data.has("racial_traits"):
 		player.racial_traits = player_data.racial_traits.duplicate(true)
 	else:
-		# Initialize racial traits for old saves
+		# Old save detected - will re-apply race after loading
+		old_save_detected = true
 		player.racial_traits = {}
 
 	# Racial stat modifiers (with backwards compatibility for old saves)
@@ -590,7 +592,8 @@ func _deserialize_player(player_data: Dictionary):
 		# Backwards compatibility: rename old key
 		player.class_feats = player_data.class_abilities.duplicate(true)
 	else:
-		# Initialize class feats for old saves
+		# Old save detected - will re-apply class after loading
+		old_save_detected = true
 		player.class_feats = {}
 
 	# Class stat modifiers (with backwards compatibility for old saves)
@@ -687,6 +690,16 @@ func _deserialize_player(player_data: Dictionary):
 			player.active_effects.append(effect_data.duplicate(true))
 		# Recalculate stat modifiers from restored effects
 		player._recalculate_effect_modifiers()
+
+	# Re-apply race and class for old saves that didn't have these systems
+	if old_save_detected:
+		print("SaveManager: Old save detected - applying default race (human) and class (adventurer)")
+		# Apply race (defaults to human)
+		if player.has_method("apply_race"):
+			player.apply_race(player.race_id)
+		# Apply class (defaults to adventurer)
+		if player.has_method("apply_class"):
+			player.apply_class(player.class_id)
 
 	print("SaveManager: Player deserialized")
 

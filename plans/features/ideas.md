@@ -5,12 +5,14 @@
 
 ---
 ## Unplanned
+- [ ] Save transportability
+    Add the ability to download a saved game as a JSON file and load it into a different instance of the game
+- [ ] Feature: Initial Spawn Time - Day
+    Start the player's first turn at the beginning of Day, not Dawn.
 - [ ] Feature: Tree Variety
     Support different kinds of trees (e.g. oak, yew, maple, alder, pine, fir, apple, cherry, pear, willow, magnolia, mangrove, olive, almond, spruce) The types of trees should vary by biome / elevation. Use the variant mechanic to define tree types. Trees should grow in clusters - but the occasional other tree may grow in a group. Some trees bear fruit. The fruit should be harvestable as a renewable resource seasonally. Some trees are also flowering (magnolia) and flowers should be harvestable like fruit. The player should still have the option to cut down the tree and receive wood of the tree type.
 - [ ] Feature: Sprint
     The player may invoke a "Sprint" mode, which allows the player to move (and only move) twice before creatures take their turn. Taking any action other than moving turns off sprint mode. Sprint mode on/off should be shown in the bottom of the UI. Moving in sprint mode drains stamina at 4x the normal rate.
-- [ ] Tech: Reduce context usage with agents/skills
-    Review the CLAUDE.MD file and propose migrating sections to AGENTS files or SKILLS to reduce context usage.
 - [ ] Weapon and Armor Proficiency
     Players should be able to use any weapon, but if they are not trained in int they should have a -2 penalty to hit. All characters should be trained to use basic bludgeoning weapons (clubs, staves), slings, knives, and axes. But Swords, two-handed axes, bows, crossbows, require proficency (by the type or classification.) Similarly, wearing clothing or leather armor can be done by anyone but once more advanced armor (including a shield) is involved, the player mus tbe proficent (medium armor, heavy armor, shield) there should be a -2 penalty. Implement both of these by extending restrictions system designed for character classes.
 - [ ] Enemy traits
@@ -89,19 +91,16 @@
 - [ ] Quests
 - [ ] Hirelings
 - [ ] Turn Undead
-    Turn undead ability for cleric classes, using traditional roguelike patterns
+    Turn undead ability for cleric class, using traditional roguelike patterns
 - [ ] Sailing Mechanic
     Add sailing mechanic - player can board a boat at a dock
-- [ ] Luck Mechanic
-    Add a mechanic that gives the player a luck score that builds up overtime and is spent when the player is in imminent peril
+- [ ] Feat Advancement Mechanic
+    Every 4 levels, the player should be able to learn one new feat. This should come from the list of possible feats. For instance, Lucky should be something the player can add to their feats.
 - [ ] Action Point Mechanic
     Add an action point system, where the players earn action points that can be spent to roll back the last action (and its consequences) or re-roll a die
  - [ ] Advantage Mechanic
     Add an advantage system, where the players can have advantage over an enemy (if the creature is between the player and an ally, disabled via a condition, etc) and 2 d20 rolls are made on attack or casting a spell targeted at the creature. The higher of the two is used. There should be some indication in the targeted enemy text at the bottom that the player has advantage. Similalry, monsters should be able to have advantage of the player / npcs / familiars. The player should get a message in the log when a creature gains advantage over them.
 - [ ] Add Racial Variants
     Allow players to select racial variants for races that have them (Dark Elf, Wood Elf, High Elf, etc.)
-- [ ] Improve Lighting Performance:
-    Simplify overworld daytime lighting
-    No FOV in areas except for interiors of buildings. Players should see all external building walls.
-
 - [ ] Multiplayer implementation
+

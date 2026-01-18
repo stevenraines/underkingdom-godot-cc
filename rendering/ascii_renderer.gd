@@ -530,18 +530,34 @@ func _apply_fog_of_war_to_terrain() -> void:
 	# Check if we're in daytime outdoors mode (can skip many checks)
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 
+	# Check if player is currently inside a building or standing in a doorway
+	var player_tile = current_map.get_tile(player_position) if current_map else null
+	var player_on_door = player_tile and player_tile.tile_type == "door"
+	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
+
 	for pos in all_positions:
 		# Check if tile is visible based on current conditions
 		var is_terrain_visible: bool
+		var tile = current_map.get_tile(pos) if current_map else null
+		var is_interior_tile = tile and tile.is_interior
 
 		if is_daytime_outdoors:
-			# Daytime outdoors: all exterior tiles visible without FOV check
-			# Only interior tiles (inside buildings) are hidden
-			var tile = current_map.get_tile(pos)
-			is_terrain_visible = (tile == null) or not tile.is_interior
+			if is_interior_tile:
+				if player_inside_building:
+					# Player inside building: interior tiles visible with LOS
+					is_terrain_visible = _has_clear_los_to(pos)
+				else:
+					# Player outside: interior tiles completely hidden
+					is_terrain_visible = false
+			else:
+				# Exterior tiles always visible during daytime
+				is_terrain_visible = true
 		else:
 			# Night/dungeons: require LOS from FOV calculation
 			is_terrain_visible = visible_tiles_set.has(pos)
+			# Interior tiles ALSO require strict LOS (through open door)
+			if is_terrain_visible and is_interior_tile:
+				is_terrain_visible = _has_clear_los_to(pos)
 
 		var original_color = terrain_original_colors.get(pos, terrain_modulated_cells.get(pos, Color.WHITE))
 
@@ -554,15 +570,20 @@ func _apply_fog_of_war_to_terrain() -> void:
 			FogOfWarSystemClass.mark_explored(current_map_id, pos, is_chunk_based)
 			terrain_modulated_cells[pos] = original_color
 		else:
-			# Check explored state from fog of war system
-			var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
-			match tile_state:
-				"explored":
-					# Dark gray tint (lerp toward fog color)
-					terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
-				_:  # "unexplored"
-					# Very dark gray
-					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+			# Interior tiles are ALWAYS black when not visible (never show "explored" state)
+			# This prevents seeing building interiors from outside
+			if is_interior_tile and not player_inside_building:
+				terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+			else:
+				# Normal tiles show explored state
+				var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+				match tile_state:
+					"explored":
+						# Dark gray tint (lerp toward fog color)
+						terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+					_:  # "unexplored"
+						# Very dark gray
+						terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 
 	_mark_terrain_dirty()
 
@@ -640,13 +661,23 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 	# Check if we're in daytime outdoors mode
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 
+	# Check if player is inside a building or standing in a doorway
+	var player_tile = current_map.get_tile(player_position) if current_map else null
+	var player_on_door = player_tile and player_tile.tile_type == "door"
+	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
+
+	# Check if entity is on interior tile
+	var entity_tile = current_map.get_tile(pos) if current_map else null
+	var is_interior_tile = entity_tile and entity_tile.is_interior
+
 	if is_daytime_outdoors:
-		# Daytime outdoors: entities visible unless in interior with blocked LOS
-		if current_map:
-			var tile = current_map.get_tile(pos)
-			if tile and tile.is_interior:
-				# Interior tile - check if player has LOS (door must be open)
+		if is_interior_tile:
+			if player_inside_building:
+				# Player inside: can see interior entities with LOS
 				return _has_clear_los_to(pos)
+			else:
+				# Player outside: interior entities completely hidden
+				return false
 		return true  # Exterior entity always visible during day
 
 	# Night/dungeons: require LOS from FOV calculation
@@ -654,12 +685,8 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 		return false
 
 	# For interior tiles, do an additional Bresenham line-of-sight check
-	# This prevents corner-peeking issues with shadowcasting
-	if current_map:
-		var tile = current_map.get_tile(pos)
-		if tile and tile.is_interior:
-			# Do strict line-of-sight check for interior tiles
-			return _has_clear_los_to(pos)
+	if is_interior_tile:
+		return _has_clear_los_to(pos)
 
 	return true
 

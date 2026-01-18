@@ -203,14 +203,16 @@ static func _place_standard_building(tiles_dict: Dictionary, building_def: Dicti
 			var tile: GameTile
 			if is_door:
 				tile = GameTile.create("door_closed")  # Exterior doors start closed
-				tile.is_interior = true  # Mark doors as interior for FOV
+				# Exterior doors are NOT interior - they're part of the building boundary
+				# They block vision when closed, but should be visible from outside
 			elif is_wall:
 				tile = GameTile.create("wall")
-				tile.is_interior = true  # Mark walls as interior for FOV
+				# Perimeter walls are NOT interior - they should be visible from outside
+				# Only interior floors are marked as interior
 			else:
 				tile = GameTile.create("floor")
 				tile.color = Color.WHITE  # Indoor floor uses default color
-				tile.is_interior = true  # Mark as interior for temperature bonus
+				tile.is_interior = true  # Only interior floors are hidden from outside
 
 			tiles_dict[world_pos] = tile
 
@@ -243,7 +245,20 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 	var door_positions: Array[Vector2i] = []
 	var structure_placements: Array = []  # [{structure_id, position}]
 
-	# First pass: place all tiles and track door positions
+	# Build a set of all positions that will be part of the building
+	var building_positions: Dictionary = {}  # Using dict as set for O(1) lookup
+	for y in range(min(rotated_layout.size(), rotated_size.y)):
+		var row = rotated_layout[y]
+		for x in range(min(row.length(), rotated_size.x)):
+			var tile_char = row[x]
+			if tile_char != " ":
+				var world_pos = start + Vector2i(x, y)
+				building_positions[world_pos] = true
+
+	# Track wall positions for interior detection pass
+	var wall_positions: Array[Vector2i] = []
+
+	# First pass: place all tiles and track door/wall positions
 	for y in range(min(rotated_layout.size(), rotated_size.y)):
 		var row = rotated_layout[y]
 		for x in range(min(row.length(), rotated_size.x)):
@@ -279,14 +294,42 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 				if tile_char == "@":
 					npc_pos = world_pos
 
-				# Track door positions for second pass
+				# Track door positions for door pass
 				if tile_char == "+":
 					door_positions.append(world_pos)
 
-	# Second pass: lock interior doors (doors surrounded by interior tiles)
+				# Track wall positions for interior detection
+				if tile_char == "#":
+					wall_positions.append(world_pos)
+
+	# Second pass: mark interior walls and doors (tiles not adjacent to outside)
+	# A tile is "interior" if all 4 cardinal neighbors are part of the building
+	var cardinal_dirs = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+
+	# Check walls
+	for wall_pos in wall_positions:
+		var is_perimeter = false
+		for dir in cardinal_dirs:
+			var neighbor_pos = wall_pos + dir
+			if not building_positions.has(neighbor_pos):
+				is_perimeter = true
+				break
+		if not is_perimeter:
+			var wall_tile = tiles_dict[wall_pos]
+			wall_tile.is_interior = true
+
+	# Check doors - interior doors should be hidden AND locked
 	for door_pos in door_positions:
-		if _is_interior_door(tiles_dict, door_pos):
+		var is_perimeter_door = false
+		for dir in cardinal_dirs:
+			var neighbor_pos = door_pos + dir
+			if not building_positions.has(neighbor_pos):
+				is_perimeter_door = true
+				break
+		if not is_perimeter_door:
+			# Interior door - mark as interior (hidden) and lock it
 			var door_tile = tiles_dict[door_pos]
+			door_tile.is_interior = true
 			door_tile.is_open = false
 			door_tile.walkable = false
 			door_tile.transparent = false
@@ -376,19 +419,22 @@ static func _rotate_layout(layout: Array, door_facing: String) -> Array:
 	return rotated
 
 ## Convert layout character to tile
+## Note: Walls and doors are NOT marked as interior - they form the visible building boundary
+## Only floor tiles are marked as interior (hidden from outside during daytime)
 static func _char_to_tile(tile_char: String) -> GameTile:
 	match tile_char:
 		"#":
 			var tile = GameTile.create("wall")
-			tile.is_interior = true  # Mark walls as interior for FOV
+			# Walls are NOT interior - they should be visible from outside
+			# They still block vision, preventing seeing interior floors
 			return tile
 		"+":
 			var tile = GameTile.create("door_closed")  # Doors start closed
-			tile.is_interior = true  # Mark doors as interior for FOV
+			# Doors are NOT interior - visible from outside, block vision when closed
 			return tile
 		".":
 			var tile = GameTile.create("floor")
-			tile.is_interior = true  # Floor inside building
+			tile.is_interior = true  # Only floors are interior (hidden from outside)
 			return tile
 		"~":
 			return GameTile.create("water")

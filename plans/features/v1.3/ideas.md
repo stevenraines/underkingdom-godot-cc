@@ -7,7 +7,7 @@
 - [x] Feature: Extend day hours to be longer than night
     Daytime should last longer than night. 
 - [ ] Feature: Sprint
-    The player may invoke a "Sprint" mode, which allows the player to move (and only move) twice before creatures take their turn. Taking any action other than moving turns off sprint mode. Sprint mode on/off should be shown in the bottom of the UI. Moving in sprint mode drains stamina at 4x the normal rate.
+    The player may invoke a "Sprint" mode, which allows the player to move (and only move) twice before creatures take their turn. Taking any action other than moving turns off sprint mode. Sprint mode on/off should be shown in the bottom of the UI. Moving in sprint mode drains stamina at 4x the normal rate. make sure to add the sprint mode toggle key to the help screen
 - [ ] Feature: Default Harvest Interaction
     If the player runs into a harvestable item and has an appropriate item to harvest it equipped (e.g. Axe for a tree) OR has the required item in inventory (like filling a waterskin) turn on auto harvest and start the harvesting process.
 - [x] Content: Increase Overworld Creature Count

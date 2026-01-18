@@ -27,6 +27,11 @@ var blocked_direction: Vector2i = Vector2i.ZERO  # Stop continuous movement if b
 var wait_timer: float = 0.0
 var is_initial_wait_press: bool = true
 
+# Sprint mode - allows double movement before enemies act
+var sprint_mode: bool = false  # Whether sprint is toggled on
+var sprint_moves_remaining: int = 0  # Moves left in current sprint (2 per turn when sprinting)
+const SPRINT_STAMINA_MULTIPLIER: int = 4  # Stamina cost multiplier when sprinting
+
 # Harvest mode
 var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
 var _harvesting_active: bool = false  # Currently in continuous harvesting mode
@@ -642,6 +647,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_O:  # O key - toggle auto-open doors
 			_toggle_auto_open_doors()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_S and event.shift_pressed:  # Shift+S - toggle sprint mode
+			_toggle_sprint()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_COMMA:  # , - manual pickup
 			_try_pickup_item()
 			action_taken = true
@@ -940,6 +948,38 @@ func _toggle_auto_open_doors() -> void:
 	var game = get_parent()
 	if game and game.has_method("toggle_auto_open_doors"):
 		game.toggle_auto_open_doors()
+
+## Toggle sprint mode on/off
+func _toggle_sprint() -> void:
+	sprint_mode = not sprint_mode
+	var game = get_parent()
+
+	if sprint_mode:
+		# Start sprinting - set up for double moves
+		sprint_moves_remaining = 2
+		if game and game.has_method("_add_message"):
+			game._add_message("Sprint mode ON - move twice per turn (4x stamina)", Color(0.9, 0.8, 0.3))
+	else:
+		# Stop sprinting
+		sprint_moves_remaining = 0
+		if game and game.has_method("_add_message"):
+			game._add_message("Sprint mode OFF", Color(0.7, 0.7, 0.7))
+
+	EventBus.sprint_mode_changed.emit(sprint_mode)
+
+## Check if currently sprinting (for status bar)
+func is_sprinting() -> bool:
+	return sprint_mode
+
+## Disable sprint mode (called when non-move action is taken)
+func _disable_sprint() -> void:
+	if sprint_mode:
+		sprint_mode = false
+		sprint_moves_remaining = 0
+		var game = get_parent()
+		if game and game.has_method("_add_message"):
+			game._add_message("Sprint interrupted", Color(0.7, 0.7, 0.7))
+		EventBus.sprint_mode_changed.emit(false)
 
 ## Try to pick up an item at the player's position
 func _try_pickup_item() -> void:

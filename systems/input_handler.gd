@@ -265,7 +265,15 @@ func _try_move_or_attack(direction: Vector2i) -> bool:
 			return false
 	else:
 		# Try to move
-		return player.move(direction)
+		var moved = player.move(direction)
+		if moved:
+			return true
+
+		# Movement failed - check if blocked by harvestable resource with appropriate tool
+		if _try_auto_harvest_on_bump(target_pos, direction):
+			return true
+
+		return false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not player or not TurnManager.is_player_turn:
@@ -1007,6 +1015,44 @@ func _exit_harvesting_mode() -> void:
 ## Check if currently in harvesting mode (for status bar)
 func is_harvesting() -> bool:
 	return _harvesting_active
+
+## Try to auto-harvest when player bumps into a harvestable tile
+## Returns true if harvesting was started, false otherwise
+func _try_auto_harvest_on_bump(target_pos: Vector2i, direction: Vector2i) -> bool:
+	if not MapManager.current_map:
+		return false
+
+	var tile = MapManager.current_map.get_tile(target_pos)
+	if not tile or tile.harvestable_resource_id.is_empty():
+		return false
+
+	# Get the resource definition
+	var resource = HarvestSystemClass.get_resource(tile.harvestable_resource_id)
+	if not resource:
+		return false
+
+	# Check if player has the required tool
+	var tool_check = HarvestSystemClass.has_required_tool(player, resource)
+	if not tool_check.has_tool:
+		return false
+
+	# Player has the right tool - start harvesting automatically
+	var game = get_parent()
+	if game and game.has_method("_add_message"):
+		game._add_message("Auto-harvesting %s..." % resource.name, Color(0.6, 0.8, 0.6))
+
+	var harvest_result = _try_harvest(direction)
+	if harvest_result.success:
+		TurnManager.advance_turn()
+		# Enter continuous harvesting mode if harvest is still in progress
+		if not harvest_result.harvest_complete:
+			_harvesting_active = true
+			_harvest_direction = direction
+			_harvest_timer = initial_delay
+			EventBus.harvesting_mode_changed.emit(true)
+		return true
+
+	return false
 
 ## Search for traps in all directions around player
 ## Range is 2 + traps skill

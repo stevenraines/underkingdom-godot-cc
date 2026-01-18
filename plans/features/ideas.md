@@ -5,6 +5,10 @@
 
 ---
 ## Unplanned
+- [ ] Save transportability
+    Add the ability to download a saved game as a JSON file and load it into a different instance of the game
+- [ ] Feature: Initial Spawn Time - Day
+    Start the player's first turn at the beginning of Day, not Dawn.
 - [ ] Feature: Tree Variety
     Support different kinds of trees (e.g. oak, yew, maple, alder, pine, fir, apple, cherry, pear, willow, magnolia, mangrove, olive, almond, spruce) The types of trees should vary by biome / elevation. Use the variant mechanic to define tree types. Trees should grow in clusters - but the occasional other tree may grow in a group. Some trees bear fruit. The fruit should be harvestable as a renewable resource seasonally. Some trees are also flowering (magnolia) and flowers should be harvestable like fruit. The player should still have the option to cut down the tree and receive wood of the tree type.
 - [ ] Feature: Sprint
@@ -98,7 +102,5 @@
     Add an advantage system, where the players can have advantage over an enemy (if the creature is between the player and an ally, disabled via a condition, etc) and 2 d20 rolls are made on attack or casting a spell targeted at the creature. The higher of the two is used. There should be some indication in the targeted enemy text at the bottom that the player has advantage. Similalry, monsters should be able to have advantage of the player / npcs / familiars. The player should get a message in the log when a creature gains advantage over them.
 - [ ] Add Racial Variants
     Allow players to select racial variants for races that have them (Dark Elf, Wood Elf, High Elf, etc.)
-- [ ] Improve Lighting Performance:
-    Simplify overworld daytime lighting
-    No FOV in areas except for interiors of buildings. Players should see all external building walls.
 - [ ] Multiplayer implementation
+

@@ -3,6 +3,7 @@
   "name": "Ooze",
   "description": "Amorphous creatures that dissolve organic matter",
   "ascii_color": "#32CD32",
+  "default_loot_tables": ["ooze_common"],
   "base_resistances": {
     "slashing": -50,
     "piercing": -50,

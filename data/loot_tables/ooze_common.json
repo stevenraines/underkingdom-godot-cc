@@ -1,0 +1,11 @@
+{
+	"id": "ooze_common",
+	"name": "Ooze Common Loot",
+	"description": "Items recovered from ooze remains. Contains swallowed treasures that survived digestion.",
+	"drops": [
+		{"item_id": "gold_coin", "min_count": 1, "max_count": 20, "chance": 0.4, "cr_scales": true},
+		{"item_id": "gem", "min_count": 1, "max_count": 1, "chance": 0.15, "cr_scales": true},
+		{"item_id": "bone", "min_count": 1, "max_count": 3, "chance": 0.6},
+		{"item_id": "iron_key", "min_count": 1, "max_count": 1, "chance": 0.08}
+	]
+}

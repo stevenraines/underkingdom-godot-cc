@@ -1,0 +1,9 @@
+{
+	"id": "elemental_common",
+	"name": "Elemental Common Loot",
+	"description": "Drops from elemental creatures. Their essence sometimes crystallizes into gems.",
+	"drops": [
+		{"item_id": "gem", "min_count": 1, "max_count": 3, "chance": 0.5, "cr_scales": true},
+		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.1, "cr_scales": true}
+	]
+}

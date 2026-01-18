@@ -3,6 +3,7 @@
   "name": "Elemental",
   "description": "Beings of pure elemental energy from the elemental planes",
   "ascii_color": "#00FFFF",
+  "default_loot_tables": ["elemental_common"],
   "base_resistances": {
     "poison": -100
   },

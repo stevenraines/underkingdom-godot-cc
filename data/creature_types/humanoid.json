@@ -3,6 +3,7 @@
   "name": "Humanoid",
   "description": "Intelligent bipedal creatures",
   "ascii_color": "#FFFFFF",
+  "default_loot_tables": ["humanoid_common"],
   "base_resistances": {},
   "special_rules": {},
   "subtypes": {}

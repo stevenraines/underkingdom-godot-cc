@@ -1,0 +1,13 @@
+{
+	"id": "cr_5_10_treasure",
+	"name": "Moderate CR Treasure",
+	"description": "Moderate treasure for CR 5-10 creatures. Gold coins, uncommon gems, potions.",
+	"drops": [
+		{"item_id": "gold_coin", "min_count": 10, "max_count": 50, "chance": 0.6, "cr_scales": true},
+		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.2, "cr_scales": true},
+		{"item_id": "healing_potion", "min_count": 1, "max_count": 1, "chance": 0.15},
+		{"item_id": "mana_potion", "min_count": 1, "max_count": 1, "chance": 0.1},
+		{"item_id": "antidote", "min_count": 1, "max_count": 1, "chance": 0.1},
+		{"item_id": "iron_key", "min_count": 1, "max_count": 1, "chance": 0.08}
+	]
+}

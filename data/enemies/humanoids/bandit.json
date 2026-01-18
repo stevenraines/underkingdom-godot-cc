@@ -32,7 +32,7 @@
     }
   ],
   "behavior": "aggressive",
-  "loot_table": "bandit_common",
+  "loot_tables": ["humanoid_armed"],
   "xp_value": 25,
   "spawn_biomes": [
     "woodland",

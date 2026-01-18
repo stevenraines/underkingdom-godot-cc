@@ -1,0 +1,11 @@
+{
+	"id": "demon_common",
+	"name": "Demon Common Loot",
+	"description": "Drops from demonic entities. May contain soul gems and precious gems from their dark dealings.",
+	"drops": [
+		{"item_id": "soul_gem", "min_count": 1, "max_count": 2, "chance": 0.4, "cr_scales": true},
+		{"item_id": "gem", "min_count": 1, "max_count": 3, "chance": 0.35, "cr_scales": true},
+		{"item_id": "gold_coin", "min_count": 10, "max_count": 50, "chance": 0.5, "cr_scales": true},
+		{"item_id": "scroll_curse", "min_count": 1, "max_count": 1, "chance": 0.15}
+	]
+}

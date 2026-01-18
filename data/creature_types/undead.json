@@ -3,6 +3,7 @@
   "name": "Undead",
   "description": "Reanimated corpses or spirits bound to the mortal realm",
   "ascii_color": "#708090",
+  "default_loot_tables": ["undead_common"],
   "base_resistances": {
     "poison": -100,
     "necrotic": -100

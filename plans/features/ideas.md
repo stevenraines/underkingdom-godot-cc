@@ -5,6 +5,9 @@
 
 ---
 ## Unplanned
+- [ ] Craft: Fisherman, tailor, or weaver can teach receipe for cord.
+- [ ] Turn Undead
+    Turn undead ability for cleric class, using traditional roguelike patterns
 - [ ] Save transportability
     Add the ability to download a saved game as a JSON file and load it into a different instance of the game
 - [ ] Feature: Initial Spawn Time - Day
@@ -27,8 +30,6 @@
     Change mine generation so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation
     Modify dungeon generators so they have a layout in the overworld similar to buildings but appropriate to the shape the structure would have above ground  For instance, a fort or tower should have structure above ground. The barrow should have a crypt and be surrounded by tombstones, etc. Structures that can be above ground should have up stairs inside the structure as well as down (e.g. towers)
-- [ ] Scaled Loot Drops
-    Loot drops shoulds be based on the scale of the creature. Review https://dungeonmastertools.github.io/treasure.html and the related pages to improve how loot tables work to make them more realistic. Consider having separate loot tables by type/CR instead of creature, and have each creature have a list of loot_tables instead of one.
 - [ ] Limit Fast Travel
     only allow fast travel to destinations that the player has been near previously, or as an option in debug-mode.
 - [ ] Secret Doors
@@ -61,7 +62,6 @@
     Add a brewer to the city who sells beer and teaches brewing skill
 - [ ] NPC: Vintner
     Add a vintner outside of the city town who sells wine and teaches wine making & distillation
-- [ ] Craft: Fisherman, tailor, or weaver can teach receipe for cord.
 - [ ] NPCs: Wandering Traders:
     Add wandering traders who appear along roads and offer goods for sale.
 - [ ] NPCs: Non-trade NPCs
@@ -88,8 +88,6 @@
     Come spells may have required components. Without these components in inventory the spell cannot be cast. If the player has the components and casts the spell, the components are consumed and removed from the player's inventory. This occurs regardless of whether the spell succeeds or fails.
 - [ ] Quests
 - [ ] Hirelings
-- [ ] Turn Undead
-    Turn undead ability for cleric class, using traditional roguelike patterns
 - [ ] Sailing Mechanic
     Add sailing mechanic - player can board a boat at a dock
 - [ ] Feat Advancement Mechanic

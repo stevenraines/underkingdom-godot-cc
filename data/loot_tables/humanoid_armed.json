@@ -1,0 +1,9 @@
+{
+	"id": "humanoid_armed",
+	"name": "Armed Humanoid Loot",
+	"description": "Additional drops from armed humanoids. These creatures carry weapons and armor.",
+	"drops": [
+		{"item_id": "iron_arrow", "min_count": 3, "max_count": 10, "chance": 0.2},
+		{"item_id": "bolt", "min_count": 2, "max_count": 8, "chance": 0.15}
+	]
+}

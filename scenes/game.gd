@@ -942,17 +942,16 @@ func _on_entity_died(entity: Entity) -> void:
 						else:
 							total_yields[item_id] = count
 
-			# Process loot table (referenced loot table for additional drops)
-			if entity.loot_table != "":
-				var loot_drops = LootTableManager.generate_loot(entity.loot_table)
-				for drop in loot_drops:
-					var item_id = drop.get("item_id", "")
-					var count = drop.get("count", 1)
-					if item_id != "" and count > 0:
-						if item_id in total_yields:
-							total_yields[item_id] += count
-						else:
-							total_yields[item_id] = count
+			# Process loot tables (creature type defaults + entity-specific, with CR scaling)
+			var loot_drops = LootTableManager.generate_loot_for_entity(entity)
+			for drop in loot_drops:
+				var item_id = drop.get("item_id", "")
+				var count = drop.get("count", 1)
+				if item_id != "" and count > 0:
+					if item_id in total_yields:
+						total_yields[item_id] += count
+					else:
+						total_yields[item_id] = count
 
 			# Create and spawn items as ground items
 			for item_id in total_yields:

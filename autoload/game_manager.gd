@@ -29,6 +29,8 @@ var auto_pickup_enabled: bool = true  # Automatically pick up items and gather f
 # Player race and class (selected at character creation)
 var player_race: String = "human"
 var player_class: String = "adventurer"
+var player_abilities: Dictionary = {}  # Assigned ability scores from character creation
+var player_skill_points: Dictionary = {}  # Distributed skill points from character creation
 
 # Debug flags
 var debug_god_mode: bool = false  # Player takes no damage

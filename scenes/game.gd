@@ -175,6 +175,24 @@ func _ready() -> void:
 		player.apply_race(GameManager.player_race)
 		player.apply_class(GameManager.player_class)
 
+		# Apply rolled abilities from character creation (if any)
+		if not GameManager.player_abilities.is_empty():
+			for ability in GameManager.player_abilities:
+				player.attributes[ability] = GameManager.player_abilities[ability]
+			# Clear after applying
+			GameManager.player_abilities.clear()
+			# Recalculate derived stats (HP, stamina, etc.)
+			player._calculate_derived_stats()
+
+		# Apply distributed skill points from character creation (if any)
+		if not GameManager.player_skill_points.is_empty():
+			for skill_id in GameManager.player_skill_points:
+				var points = GameManager.player_skill_points[skill_id]
+				if player.skills.has(skill_id):
+					player.skills[skill_id] += points
+			# Clear after applying
+			GameManager.player_skill_points.clear()
+
 		# Give player some starter items (includes class starting equipment)
 		_give_starter_items()
 

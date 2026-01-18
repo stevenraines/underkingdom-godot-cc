@@ -18,6 +18,8 @@ const UNSELECT_COLOR: Color = Color(0.7, 0.7, 0.7, 1)
 # Character creation state
 var pending_character_name: String = ""
 var pending_race_id: String = ""
+var pending_abilities: Dictionary = {}  # Store rolled/assigned abilities
+var pending_skill_points: Dictionary = {}  # Store distributed skill points
 
 func _ready() -> void:
 	print("Main menu loaded")
@@ -80,6 +82,20 @@ func _ready() -> void:
 	class_selection_dialog.class_selected.connect(_on_class_selected)
 	class_selection_dialog.cancelled.connect(_on_class_cancelled)
 
+	# Setup ability roll screen
+	var AbilityRollScreenScene = load("res://ui/ability_roll_screen.tscn")
+	var ability_roll_screen = AbilityRollScreenScene.instantiate()
+	add_child(ability_roll_screen)
+	ability_roll_screen.confirmed.connect(_on_abilities_confirmed)
+	ability_roll_screen.cancelled.connect(_on_abilities_cancelled)
+
+	# Setup skill allocation screen
+	var SkillAllocationScreenScene = load("res://ui/skill_allocation_screen.tscn")
+	var skill_allocation_screen = SkillAllocationScreenScene.instantiate()
+	add_child(skill_allocation_screen)
+	skill_allocation_screen.confirmed.connect(_on_skills_confirmed)
+	skill_allocation_screen.cancelled.connect(_on_skills_cancelled)
+
 func _on_button_mouse_entered(idx: int) -> void:
 	selected_index = idx
 	update_selection()
@@ -106,6 +122,16 @@ func _input(event) -> void:
 	# Don't process input if class selection dialog is visible
 	var class_dialog = get_node_or_null("ClassSelectionDialog")
 	if class_dialog and class_dialog.visible:
+		return
+
+	# Don't process input if ability roll screen is visible
+	var ability_screen = get_node_or_null("AbilityRollScreen")
+	if ability_screen and ability_screen.visible:
+		return
+
+	# Don't process input if skill allocation screen is visible
+	var skill_screen = get_node_or_null("SkillAllocationScreen")
+	if skill_screen and skill_screen.visible:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -157,12 +183,19 @@ func _on_race_cancelled() -> void:
 		dialog.open()
 
 func _on_class_selected(class_id: String) -> void:
-	print("Starting new game with character: '%s', race: '%s', class: '%s'..." % [pending_character_name, pending_race_id, class_id])
-	print("Character name hash: %d" % pending_character_name.hash())
-	# Start game with character name, race, and class
-	GameManager.start_new_game(pending_character_name, pending_race_id, class_id)
-	print("After start_new_game - World seed: %d, Character: '%s', Race: %s, Class: %s" % [GameManager.world_seed, GameManager.character_name, GameManager.player_race, GameManager.player_class])
-	get_tree().change_scene_to_file("res://scenes/game.tscn")
+	print("Class selected: '%s' - Opening ability roll screen..." % class_id)
+	# Store class ID and open ability roll screen
+	GameManager.player_class = class_id
+
+	# Create temporary player to preview racial/class modifiers
+	var temp_player = Player.new()
+	temp_player.apply_race(pending_race_id)
+	temp_player.apply_class(class_id)
+
+	# Open ability roll screen
+	var ability_screen = get_node("AbilityRollScreen")
+	if ability_screen:
+		ability_screen.open(temp_player)
 
 func _on_class_cancelled() -> void:
 	print("Class selection cancelled - returning to race selection")
@@ -170,6 +203,56 @@ func _on_class_cancelled() -> void:
 	var race_dialog = get_node("RaceSelectionDialog")
 	if race_dialog:
 		race_dialog.open()
+
+func _on_abilities_confirmed(assigned_abilities: Dictionary) -> void:
+	print("Abilities confirmed: %s - Opening skill allocation..." % str(assigned_abilities))
+	# Store assigned abilities
+	pending_abilities = assigned_abilities
+
+	# Create temporary player to calculate skill points and preview
+	var temp_player = Player.new()
+	temp_player.apply_race(pending_race_id)
+	temp_player.apply_class(GameManager.player_class)
+
+	# Apply abilities to get correct INT for skill point calculation
+	for ability in assigned_abilities:
+		temp_player.attributes[ability] = assigned_abilities[ability]
+
+	# Open skill allocation screen
+	var skill_screen = get_node("SkillAllocationScreen")
+	if skill_screen:
+		skill_screen.open(temp_player)
+
+func _on_abilities_cancelled() -> void:
+	print("Ability roll cancelled - returning to class selection")
+	# Return to class selection dialog
+	var class_dialog = get_node("ClassSelectionDialog")
+	if class_dialog:
+		class_dialog.open()
+
+func _on_skills_confirmed(distributed_points: Dictionary) -> void:
+	print("Skills confirmed: %s - Starting game..." % str(distributed_points))
+	# Store distributed skill points
+	pending_skill_points = distributed_points
+
+	# Start game with character name, race, class, abilities, and skill points
+	GameManager.player_abilities = pending_abilities
+	GameManager.player_skill_points = pending_skill_points
+	GameManager.start_new_game(pending_character_name, pending_race_id, GameManager.player_class)
+	print("After start_new_game - World seed: %d, Character: '%s', Race: %s, Class: %s" % [GameManager.world_seed, GameManager.character_name, GameManager.player_race, GameManager.player_class])
+	get_tree().change_scene_to_file("res://scenes/game.tscn")
+
+func _on_skills_cancelled() -> void:
+	print("Skill allocation cancelled - returning to ability roll")
+	# Create temporary player again for ability roll screen
+	var temp_player = Player.new()
+	temp_player.apply_race(pending_race_id)
+	temp_player.apply_class(GameManager.player_class)
+
+	# Return to ability roll screen
+	var ability_screen = get_node("AbilityRollScreen")
+	if ability_screen:
+		ability_screen.open(temp_player)
 
 func _get_most_recent_save_slot() -> int:
 	var best_slot: int = -1

@@ -163,11 +163,8 @@ func _add_attributes_section() -> void:
 ## Add the skills section
 func _add_skills_section() -> void:
 	_add_spacer()
-	# Get skill names sorted alphabetically
-	var skill_names = player.skills.keys()
-	skill_names.sort()
 
-	if skill_names.is_empty():
+	if player.skills.is_empty():
 		var empty_label = Label.new()
 		empty_label.text = "No skills learned yet"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -176,36 +173,81 @@ func _add_skills_section() -> void:
 		skills_content.add_child(empty_label)
 		return
 
-	for skill_name in skill_names:
-		var skill_level = player.skills[skill_name]
+	# Separate skills into weapon and action categories
+	var weapon_skills = []
+	var action_skills = []
 
-		var skill_line = HBoxContainer.new()
+	for skill_id in player.skills.keys():
+		var skill_def = SkillManager.get_skill(skill_id)
+		if skill_def:
+			if skill_def.category == "weapon":
+				weapon_skills.append({"id": skill_id, "name": skill_def.name})
+			else:
+				action_skills.append({"id": skill_id, "name": skill_def.name})
 
-		# Skill name (left-aligned) - convert to proper case
-		var name_label = Label.new()
-		var friendly_name = skill_name.capitalize().replace("_", " ")
-		name_label.text = "%s:" % friendly_name
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_color_override("font_color", COLOR_LABEL)
-		name_label.add_theme_font_size_override("font_size", 14)
-		skill_line.add_child(name_label)
+	# Sort each category by name
+	weapon_skills.sort_custom(func(a, b): return a.name < b.name)
+	action_skills.sort_custom(func(a, b): return a.name < b.name)
 
-		# Value display (right-aligned) - just show current level
-		var value_label = Label.new()
-		value_label.text = "%d" % skill_level
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		value_label.custom_minimum_size.x = 80
+	# Create two-column layout
+	var columns_container = HBoxContainer.new()
+	columns_container.add_theme_constant_override("separation", 40)
+	skills_content.add_child(columns_container)
 
-		# Color based on skill level
-		if skill_level > 0:
-			value_label.add_theme_color_override("font_color", COLOR_VALUE)  # Green - has points
-		else:
-			value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))  # Gray - no points
+	# Left column - Weapon Skills
+	var weapon_column = VBoxContainer.new()
+	weapon_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	columns_container.add_child(weapon_column)
 
-		value_label.add_theme_font_size_override("font_size", 14)
-		skill_line.add_child(value_label)
+	if not weapon_skills.is_empty():
+		var weapon_header = _create_section_header("Weapon Skills")
+		weapon_column.add_child(weapon_header)
 
-		skills_content.add_child(skill_line)
+		for skill in weapon_skills:
+			_add_skill_line(skill.id, skill.name, weapon_column)
+
+	# Right column - Action Skills
+	var action_column = VBoxContainer.new()
+	action_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	columns_container.add_child(action_column)
+
+	if not action_skills.is_empty():
+		var action_header = _create_section_header("Action Skills")
+		action_column.add_child(action_header)
+
+		for skill in action_skills:
+			_add_skill_line(skill.id, skill.name, action_column)
+
+## Add a skill line to a container
+func _add_skill_line(skill_id: String, skill_display_name: String, container: VBoxContainer) -> void:
+	var skill_level = player.skills[skill_id]
+
+	var skill_line = HBoxContainer.new()
+
+	# Skill name (left-aligned)
+	var name_label = Label.new()
+	name_label.text = "%s:" % skill_display_name
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_font_size_override("font_size", 14)
+	skill_line.add_child(name_label)
+
+	# Value display (right-aligned) - just show current level
+	var value_label = Label.new()
+	value_label.text = "%d" % skill_level
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.custom_minimum_size.x = 40
+
+	# Color based on skill level
+	if skill_level > 0:
+		value_label.add_theme_color_override("font_color", COLOR_VALUE)  # Green - has points
+	else:
+		value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))  # Gray - no points
+
+	value_label.add_theme_font_size_override("font_size", 14)
+	skill_line.add_child(value_label)
+
+	container.add_child(skill_line)
 
 ## Add the combat section
 func _add_combat_section() -> void:

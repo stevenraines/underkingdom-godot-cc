@@ -1,7 +1,8 @@
 {
   "id": "well",
   "display_name": "a well",
-  "ascii_char": "○",
+  "ascii_char": "◎",
+  "ascii_color": "#00DDFF",
   "walkable": false,
   "transparent": true,
   "is_fire_source": false,

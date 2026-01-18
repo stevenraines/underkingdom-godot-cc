@@ -17,7 +17,7 @@
     Mages should start with a spellbook that contains the spells "light", "magic missile", and "create water".
 - [x] UI/UX: Spellbook shows damage
     The spellbook should show the range of values for combat spells and healing spells.
-- [ ] UI/UX: Wells should be more pronounced
+- [/] UI/UX: Wells should be more pronounced
     The well icon is hard to see. We need some way for it to be more pronounced and obvious to the user.
 - [x] Tech: Improve Lighting Performance:
     Simplify overworld daytime lighting

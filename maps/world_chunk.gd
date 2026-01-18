@@ -545,13 +545,15 @@ func _spawn_overworld_enemies(towns_data: Array, rng: SeededRandom) -> void:
 		return
 
 	# Calculate spawn count based on chunk size
-	# 50% chance of no enemies, 30% chance of 1, 20% chance of 2
+	# 20% chance of no enemies, 30% chance of 1, 30% chance of 2, 20% chance of 3
 	var spawn_roll = rng.randf()
 	var spawn_count: int = 0
-	if spawn_roll > 0.5:
+	if spawn_roll > 0.2:
 		spawn_count = 1
-		if spawn_roll > 0.8:
+		if spawn_roll > 0.5:
 			spawn_count = 2
+			if spawn_roll > 0.8:
+				spawn_count = 3
 	var spawned: int = 0
 
 	# Shuffle positions for random placement

@@ -9,6 +9,11 @@ extends Control
 @onready var load_button: Button = $VBoxContainer/LoadButton
 @onready var quit_button: Button = $VBoxContainer/QuitButton
 @onready var version_label: Label = $VersionLabel
+@onready var version_notice: Button = $VBoxContainer/VersionNotice
+
+# Version tracking
+const LAST_VERSION_PATH = "user://last_played_version.txt"
+var current_version: String = ""
 
 var buttons: Array = []
 var selected_index: int = 0
@@ -28,6 +33,9 @@ func _ready() -> void:
 
 	# Load and display version from config file
 	_load_version()
+
+	# Check for version update and show notice if newer
+	_check_version_update()
 
 	# Load ASCII art from file into Title RichTextLabel
 	var logo_path := "res://ui/underkingdom_logo.txt"
@@ -235,6 +243,9 @@ func _on_skills_confirmed(distributed_points: Dictionary) -> void:
 	# Store distributed skill points
 	pending_skill_points = distributed_points
 
+	# Save version as last played when starting a new game
+	_save_last_played_version()
+
 	# Start game with character name, race, class, abilities, and skill points
 	GameManager.player_abilities = pending_abilities
 	GameManager.player_skill_points = pending_skill_points
@@ -283,6 +294,9 @@ func _on_continue_button_pressed() -> void:
 		print("No saves available to continue")
 		return
 
+	# Save version as last played when continuing
+	_save_last_played_version()
+
 	GameManager.is_loading_save = true
 	var success = SaveManager.load_game(slot)
 	if success:
@@ -305,11 +319,84 @@ func _load_version() -> void:
 				var data: Dictionary = json.data
 				var version_str: String = str(data.get("version", "0.0.0"))
 				var build_str: String = str(data.get("build", ""))
+				current_version = version_str  # Store for version tracking
 				if build_str != "":
 					version_label.text = "v%s-%s" % [version_str, build_str]
 				else:
 					version_label.text = "v%s" % version_str
 			else:
 				version_label.text = "v?.?.?"
+				current_version = "0.0.0"
 	else:
 		version_label.text = "v?.?.?"
+		current_version = "0.0.0"
+
+
+## Check if current version is newer than last played version
+func _check_version_update() -> void:
+	if current_version == "" or current_version == "0.0.0":
+		return
+
+	var last_version = _load_last_played_version()
+	if last_version == "":
+		# First time playing - no notice needed, just save current version
+		return
+
+	if _is_version_newer(current_version, last_version):
+		# Show version update notice
+		version_notice.text = "Version Update (v%s). New Features Available!" % current_version
+		version_notice.visible = true
+		print("Version update detected: %s -> %s" % [last_version, current_version])
+
+
+## Load the last played version from storage
+func _load_last_played_version() -> String:
+	if not FileAccess.file_exists(LAST_VERSION_PATH):
+		return ""
+	var f = FileAccess.open(LAST_VERSION_PATH, FileAccess.READ)
+	if not f:
+		return ""
+	var version = f.get_as_text().strip_edges()
+	f.close()
+	return version
+
+
+## Save the current version as last played
+func _save_last_played_version() -> void:
+	if current_version == "" or current_version == "0.0.0":
+		return
+	var f = FileAccess.open(LAST_VERSION_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(current_version)
+		f.close()
+		print("Saved last played version: %s" % current_version)
+
+
+## Compare two version strings (e.g., "1.3" vs "1.2")
+## Returns true if version_a is newer than version_b
+func _is_version_newer(version_a: String, version_b: String) -> bool:
+	var parts_a = version_a.split(".")
+	var parts_b = version_b.split(".")
+
+	# Compare each part numerically
+	var max_parts = max(parts_a.size(), parts_b.size())
+	for i in range(max_parts):
+		var a = int(parts_a[i]) if i < parts_a.size() else 0
+		var b = int(parts_b[i]) if i < parts_b.size() else 0
+		if a > b:
+			return true
+		elif a < b:
+			return false
+
+	return false  # Equal versions
+
+
+## Handle version notice button click - open release notes
+func _on_version_notice_pressed() -> void:
+	var release_url = "https://github.com/stevenraines/underkingdom-godot-cc/releases/tag/v%s" % current_version
+	print("Opening release notes: %s" % release_url)
+	OS.shell_open(release_url)
+	# Hide the notice after clicking
+	version_notice.visible = false
+	# Save the version so notice doesn't show again
+	_save_last_played_version()

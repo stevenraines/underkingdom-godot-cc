@@ -399,12 +399,12 @@ func _place_road_tiles_in_chunk(road_paths: Array, _world_seed: int) -> void:
 			if _is_in_any_town(world_pos, towns_data):
 				continue
 
-			# Handle water - check for features (wells) vs natural water
+			# Don't replace wells
+			if existing_tile.tile_type == "well":
+				continue
+
+			# Handle natural water - use bridges
 			if existing_tile.tile_type == "water":
-				if existing_tile.ascii_char != "~":
-					# This is a feature like a well, not natural water - preserve it
-					continue
-				# Natural water - use a bridge instead
 				var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
 				tiles[local_pos] = GameTile.create(bridge_type)
 				continue

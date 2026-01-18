@@ -131,12 +131,12 @@ static func _place_road_tile(tiles_dict: Dictionary, pos: Vector2i, road_type: S
 	if existing.tile_type in ["wall", "door", "door_closed", "door_open", "dungeon_entrance", "stairs_down", "stairs_up", "tree"]:
 		return
 
-	# Don't replace water features (wells) - check for custom ascii_char
-	# Natural water uses "~", wells use "○"
+	# Don't replace wells
+	if existing.tile_type == "well":
+		return
+
+	# Don't replace natural water - use bridges
 	if existing.tile_type == "water":
-		if existing.ascii_char != "~":
-			# This is a feature like a well, not natural water - preserve it
-			return
 		# Natural water - use a bridge instead
 		var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
 		tiles_dict[pos] = GameTile.create(bridge_type)
@@ -346,12 +346,12 @@ static func _place_inter_town_road_tile(tiles_dict: Dictionary, pos: Vector2i, r
 	if existing.tile_type == "tree":
 		return
 
-	# Handle water - check for features (wells) vs natural water
+	# Don't replace wells
+	if existing.tile_type == "well":
+		return
+
+	# Handle natural water - use bridges
 	if existing.tile_type == "water":
-		if existing.ascii_char != "~":
-			# This is a feature like a well, not natural water - preserve it
-			return
-		# Natural water - use a bridge instead
 		var bridge_type = "bridge_stone" if road_type == "road_cobblestone" else "bridge_wood"
 		tiles_dict[pos] = GameTile.create(bridge_type)
 		return

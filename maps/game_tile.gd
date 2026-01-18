@@ -93,6 +93,9 @@ static func create(type: String) -> GameTile:
 		tile.is_fire_source = definition.get("is_fire_source", false)
 		tile.harvestable_resource_id = definition.get("harvestable_resource_id", "")
 		tile.can_plant = definition.get("can_plant", false)
+		# Load color from tile definition if specified
+		if definition.has("ascii_color"):
+			tile.color = Color.html(definition.get("ascii_color"))
 		return tile
 
 	# Fallback for unknown types

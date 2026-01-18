@@ -4,8 +4,8 @@
   "description": "A water source.",
   "size": [1, 1],
   "template_type": "feature",
-  "tile_type": "water",
-  "ascii_char": "○",
-  "ascii_color": "#4488AA",
+  "tile_type": "well",
+  "ascii_char": "◎",
+  "ascii_color": "#00DDFF",
   "layout": null
 }

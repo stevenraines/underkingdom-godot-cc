@@ -204,6 +204,79 @@ func get_templates_by_category(category: String) -> Array[String]:
 	return result
 
 
+## Get all possible item IDs that can be created from templates
+## For templates with required_variants, generates all variant combinations
+## Returns array of dictionaries with {id, display_name, template_id, variants}
+func get_all_templated_item_ids() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for template_id in _templates:
+		var template = _templates[template_id]
+		var required_variants = template.get("required_variants", [])
+		var default_variants = template.get("default_variants", {})
+
+		if required_variants.is_empty():
+			# No required variants - just use the template as-is with defaults
+			var item_id = template_id
+			var display_name = template.get("display_name", template_id)
+			result.append({
+				"id": item_id,
+				"display_name": display_name,
+				"template_id": template_id,
+				"variants": default_variants
+			})
+		else:
+			# Generate all combinations for required variants
+			# For now, handle single required variant (most common case)
+			if required_variants.size() == 1:
+				var variant_type = required_variants[0]
+				var variants = get_variants_of_type(variant_type)
+				for variant_name in variants:
+					var variant_data = variants[variant_name]
+					var item_id = variant_name + "_" + template_id
+					# Build display name from variant
+					var name_prefix = variant_data.get("name_prefix", "")
+					var name_override = variant_data.get("name_override", "")
+					var display_name: String
+					if name_override != "":
+						display_name = name_override
+					elif name_prefix != "":
+						display_name = name_prefix + " " + template.get("display_name", template_id)
+					else:
+						display_name = variant_name.capitalize() + " " + template.get("display_name", template_id)
+					result.append({
+						"id": item_id,
+						"display_name": display_name,
+						"template_id": template_id,
+						"variants": {variant_type: variant_name}
+					})
+			else:
+				# Multiple required variants - generate first variant only for now
+				# This is a simplification; full cartesian product would be complex
+				var variant_type = required_variants[0]
+				var variants = get_variants_of_type(variant_type)
+				for variant_name in variants:
+					var variant_data = variants[variant_name]
+					var item_id = variant_name + "_" + template_id
+					var name_prefix = variant_data.get("name_prefix", "")
+					var name_override = variant_data.get("name_override", "")
+					var display_name: String
+					if name_override != "":
+						display_name = name_override
+					elif name_prefix != "":
+						display_name = name_prefix + " " + template.get("display_name", template_id)
+					else:
+						display_name = variant_name.capitalize() + " " + template.get("display_name", template_id)
+					result.append({
+						"id": item_id,
+						"display_name": display_name,
+						"template_id": template_id,
+						"variants": {variant_type: variant_name}
+					})
+
+	return result
+
+
 ## Debug: Print all loaded templates and variants
 func debug_print_all() -> void:
 	print("=== Loaded Templates ===")

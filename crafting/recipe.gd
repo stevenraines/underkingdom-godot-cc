@@ -7,11 +7,15 @@ extends RefCounted
 ## Supports seeded_ingredients for world-seed-based dynamic recipes.
 ## seeded_ingredients can be a single config or an array of configs, allowing
 ## recipes to require multiple ingredient types (e.g., 1 mushroom + 2 herbs).
+##
+## Ingredients can be specified by:
+##   - item: Specific item ID (e.g., {"item": "raw_meat", "count": 1})
+##   - flag: Any item with the flag (e.g., {"flag": "fish", "count": 1, "display_name": "Any Fish"})
 
 var id: String = ""                         # Unique identifier (e.g., "leather_armor")
 var result_item_id: String = ""             # Item ID to create
 var result_count: int = 1                   # How many items produced
-var ingredients: Array[Dictionary] = []     # [{item: String, count: int}]
+var ingredients: Array[Dictionary] = []     # [{item: String, count: int}] or [{flag: String, count: int, display_name: String}]
 var tool_required: String = ""              # Tool type needed ("knife", "hammer", "")
 var fire_required: bool = false             # Must be near fire? (legacy, use workstation_required: "forge" instead)
 var workstation_required: String = ""       # Workstation needed ("forge", "anvil", "")
@@ -37,13 +41,22 @@ static func create_from_data(data: Dictionary) -> Recipe:
 	recipe.difficulty = data.get("difficulty", 1)
 	recipe.discovery_hint = data.get("discovery_hint", "")
 
-	# Parse ingredients array
+	# Parse ingredients array (supports both item-based and flag-based)
 	var ingredient_data = data.get("ingredients", [])
 	for ingredient in ingredient_data:
-		recipe.ingredients.append({
-			"item": ingredient.get("item", ""),
-			"count": ingredient.get("count", 1)
-		})
+		if ingredient.has("flag"):
+			# Flag-based ingredient: matches any item with the specified flag
+			recipe.ingredients.append({
+				"flag": ingredient.get("flag", ""),
+				"count": ingredient.get("count", 1),
+				"display_name": ingredient.get("display_name", "Any " + ingredient.get("flag", "").capitalize())
+			})
+		else:
+			# Item-based ingredient: matches specific item ID
+			recipe.ingredients.append({
+				"item": ingredient.get("item", ""),
+				"count": ingredient.get("count", 1)
+			})
 
 	# Parse seeded ingredients (for dynamic recipes)
 	# Can be a single dict or an array of dicts
@@ -150,10 +163,16 @@ func _get_seeded_names_for_config(config: Dictionary, world_seed: int) -> Array[
 ## For seeded recipes, uses GameManager.world_seed
 ## workstation_info: Dictionary with "near_forge" and "near_anvil" bools, or null to skip workstation check
 func has_requirements(inventory: Inventory, near_fire: bool, workstation_info: Dictionary = {}) -> bool:
-	# Check regular ingredients
+	# Check regular ingredients (item-based or flag-based)
 	for ingredient in ingredients:
-		if not inventory.has_item(ingredient["item"], ingredient["count"]):
-			return false
+		if ingredient.has("flag"):
+			# Flag-based ingredient
+			if inventory.get_item_count_with_flag(ingredient["flag"]) < ingredient["count"]:
+				return false
+		else:
+			# Item-based ingredient
+			if not inventory.has_item(ingredient["item"], ingredient["count"]):
+				return false
 
 	# Check seeded ingredients
 	if has_seeded_ingredients():
@@ -189,13 +208,21 @@ func has_requirements(inventory: Inventory, near_fire: bool, workstation_info: D
 func get_missing_requirements(inventory: Inventory, near_fire: bool, workstation_info: Dictionary = {}) -> Array[String]:
 	var missing: Array[String] = []
 
-	# Check regular ingredients
+	# Check regular ingredients (item-based or flag-based)
 	for ingredient in ingredients:
 		var needed = ingredient["count"]
-		var have = inventory.get_item_count(ingredient["item"])
-		if have < needed:
-			var item_name = ItemManager.get_item_data(ingredient["item"]).get("name", ingredient["item"])
-			missing.append("%s (need %d, have %d)" % [item_name, needed, have])
+		if ingredient.has("flag"):
+			# Flag-based ingredient
+			var have = inventory.get_item_count_with_flag(ingredient["flag"])
+			if have < needed:
+				var display_name = ingredient.get("display_name", "Any " + ingredient["flag"].capitalize())
+				missing.append("%s (need %d, have %d)" % [display_name, needed, have])
+		else:
+			# Item-based ingredient
+			var have = inventory.get_item_count(ingredient["item"])
+			if have < needed:
+				var item_name = ItemManager.get_item_data(ingredient["item"]).get("name", ingredient["item"])
+				missing.append("%s (need %d, have %d)" % [item_name, needed, have])
 
 	# Check seeded ingredients
 	if has_seeded_ingredients():
@@ -234,9 +261,16 @@ func get_missing_requirements(inventory: Inventory, near_fire: bool, workstation
 func consume_ingredients(inventory: Inventory) -> bool:
 	# First check we have everything (safety check)
 	for ingredient in ingredients:
-		if not inventory.has_item(ingredient["item"], ingredient["count"]):
-			push_error("Recipe.consume_ingredients: Missing ingredient %s" % ingredient["item"])
-			return false
+		if ingredient.has("flag"):
+			# Flag-based ingredient
+			if inventory.get_item_count_with_flag(ingredient["flag"]) < ingredient["count"]:
+				push_error("Recipe.consume_ingredients: Missing flag-based ingredient %s" % ingredient["flag"])
+				return false
+		else:
+			# Item-based ingredient
+			if not inventory.has_item(ingredient["item"], ingredient["count"]):
+				push_error("Recipe.consume_ingredients: Missing ingredient %s" % ingredient["item"])
+				return false
 
 	# Check seeded ingredients
 	var seeded_item_ids: Array[String] = []
@@ -248,12 +282,20 @@ func consume_ingredients(inventory: Inventory) -> bool:
 				push_error("Recipe.consume_ingredients: Missing seeded ingredient %s" % item_id)
 				return false
 
-	# Remove all regular ingredients
+	# Remove all regular ingredients (item-based or flag-based)
 	for ingredient in ingredients:
-		var removed = inventory.remove_item_by_id(ingredient["item"], ingredient["count"])
-		if removed != ingredient["count"]:
-			push_error("Recipe.consume_ingredients: Failed to remove %s" % ingredient["item"])
-			return false
+		if ingredient.has("flag"):
+			# Flag-based ingredient
+			var removed = inventory.remove_item_with_flag(ingredient["flag"], ingredient["count"])
+			if removed != ingredient["count"]:
+				push_error("Recipe.consume_ingredients: Failed to remove flag-based %s" % ingredient["flag"])
+				return false
+		else:
+			# Item-based ingredient
+			var removed = inventory.remove_item_by_id(ingredient["item"], ingredient["count"])
+			if removed != ingredient["count"]:
+				push_error("Recipe.consume_ingredients: Failed to remove %s" % ingredient["item"])
+				return false
 
 	# Remove seeded ingredients
 	for item_id in seeded_item_ids:
@@ -273,11 +315,17 @@ func get_display_name() -> String:
 func get_ingredient_list() -> String:
 	var parts: Array[String] = []
 
-	# Regular ingredients
+	# Regular ingredients (item-based or flag-based)
 	for ingredient in ingredients:
-		var item_data = ItemManager.get_item_data(ingredient["item"])
-		var item_name = item_data.get("name", ingredient["item"])
 		var count = ingredient["count"]
+		var item_name: String
+		if ingredient.has("flag"):
+			# Flag-based ingredient
+			item_name = ingredient.get("display_name", "Any " + ingredient["flag"].capitalize())
+		else:
+			# Item-based ingredient
+			var item_data = ItemManager.get_item_data(ingredient["item"])
+			item_name = item_data.get("name", ingredient["item"])
 		if count > 1:
 			parts.append("%s x%d" % [item_name, count])
 		else:

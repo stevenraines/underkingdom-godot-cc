@@ -555,13 +555,26 @@ func _show_item_submenu(mode: String) -> void:
 	menu_stack.append({"state": current_state, "index": selected_index, "title": "", "items": []})
 
 	var items: Array = []
-	var all_item_ids = ItemManager.get_all_item_ids()
-	all_item_ids.sort()
 
+	# Add legacy items from ItemManager
+	var all_item_ids = ItemManager.get_all_item_ids()
 	for item_id in all_item_ids:
 		var item_data = ItemManager.get_item_data(item_id)
 		var display_name = item_data.get("name", item_id) if item_data else item_id
-		items.append({"type": "command", "text": display_name, "id": item_id})
+		items.append({"type": "command", "text": display_name, "id": item_id, "name": display_name})
+
+	# Add templated items from VariantManager
+	var templated_items = VariantManager.get_all_templated_item_ids()
+	for templated_item in templated_items:
+		var item_id = templated_item.get("id", "")
+		var display_name = templated_item.get("display_name", item_id)
+		# Mark templated items with category in display
+		var template_id = templated_item.get("template_id", "")
+		var text = "%s [%s]" % [display_name, template_id]
+		items.append({"type": "command", "text": text, "id": item_id, "name": display_name})
+
+	# Sort alphabetically by name
+	items.sort_custom(func(a, b): return a.name < b.name)
 
 	current_state = MenuState.SUBMENU
 	selected_index = 0

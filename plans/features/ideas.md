@@ -5,6 +5,10 @@
 
 ---
 ## Unplanned
+- [ ] Feature: Tree Variety
+    Support different kinds of trees (e.g. oak, yew, maple, alder, pine, fir, apple, cherry, pear, willow, magnolia, mangrove, olive, almond, spruce) The types of trees should vary by biome / elevation. Use the variant mechanic to define tree types. Trees should grow in clusters - but the occasional other tree may grow in a group. Some trees bear fruit. The fruit should be harvestable as a renewable resource seasonally. Some trees are also flowering (magnolia) and flowers should be harvestable like fruit. The player should still have the option to cut down the tree and receive wood of the tree type.
+- [ ] Feature: Sprint
+    The player may invoke a "Sprint" mode, which allows the player to move (and only move) twice before creatures take their turn. Taking any action other than moving turns off sprint mode. Sprint mode on/off should be shown in the bottom of the UI. Moving in sprint mode drains stamina at 4x the normal rate.
 - [ ] Tech: Reduce context usage with agents/skills
     Review the CLAUDE.MD file and propose migrating sections to AGENTS files or SKILLS to reduce context usage.
 - [ ] Weapon and Armor Proficiency
@@ -19,8 +23,8 @@
     Creatures should be able to allied with other creatures, For instance a pack of 3 goblins and 1 hobgoblin could be allies, working together against one or more "enemies". Spell casting creatures who are allies should be able to heal and buff their allies in addition to hurting enemies.
 - [ ] Magic Item: Scroll of Recall
     Add a consumable item used to instantly teleport a character to a safe location (nearest town), allowing for emergency escapes. This should work even if the player is in a dungeon
-- [ ] Modify mine generation 
-    so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
+- [ ] Caves in Mines
+    Change mine generation so that in addition to the fixed mine design, sometimes mines intersect cave systems, so overlay a portion of the mine with the cave generator for more variety. Mines should be particularly susceptible to cave in hazards
 - [ ] Overworld building dungeon representation
     Modify dungeon generators so they have a layout in the overworld similar to buildings but appropriate to the shape the structure would have above ground  For instance, a fort or tower should have structure above ground. The barrow should have a crypt and be surrounded by tombstones, etc. Structures that can be above ground should have up stairs inside the structure as well as down (e.g. towers)
 - [ ] Scaled Loot Drops

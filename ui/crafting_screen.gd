@@ -434,26 +434,34 @@ func _update_details_panel(recipe: Recipe) -> void:
 
 	# Show each ingredient with count
 	for ingredient in recipe.ingredients:
-		var ingredient_item_data = ItemManager.get_item_data(ingredient["item"])
-		if not ingredient_item_data.is_empty():
-			var have_count = player.inventory.get_item_count(ingredient["item"])
-			var need_count = ingredient["count"]
+		var need_count = ingredient["count"]
+		var have_count: int = 0
+		var ingredient_name: String = "Unknown"
 
-			var ingredient_label = Label.new()
-			ingredient_label.text = "  %s: %d/%d" % [
-				ingredient_item_data.get("name", "Unknown"),
-				have_count,
-				need_count
-			]
-			ingredient_label.add_theme_font_size_override("font_size", 13)
-
-			# Color: green if have enough, red if not
-			if have_count >= need_count:
-				ingredient_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+		if ingredient.has("flag"):
+			# Flag-based ingredient (e.g., "any fish")
+			have_count = player.inventory.get_item_count_with_flag(ingredient["flag"])
+			ingredient_name = ingredient.get("display_name", "Any " + ingredient["flag"].capitalize())
+		else:
+			# Item-based ingredient
+			var ingredient_item_data = ItemManager.get_item_data(ingredient["item"])
+			if not ingredient_item_data.is_empty():
+				have_count = player.inventory.get_item_count(ingredient["item"])
+				ingredient_name = ingredient_item_data.get("name", ingredient["item"])
 			else:
-				ingredient_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+				continue  # Skip unknown items
 
-			details_container.add_child(ingredient_label)
+		var ingredient_label = Label.new()
+		ingredient_label.text = "  %s: %d/%d" % [ingredient_name, have_count, need_count]
+		ingredient_label.add_theme_font_size_override("font_size", 13)
+
+		# Color: green if have enough, red if not
+		if have_count >= need_count:
+			ingredient_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+		else:
+			ingredient_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+
+		details_container.add_child(ingredient_label)
 
 	# Tool requirement
 	if recipe.tool_required != "":

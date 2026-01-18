@@ -1,0 +1,21 @@
+{
+  "id": "cooked_fish",
+  "name": "Cooked Fish",
+  "description": "Well-cooked fish. Nutritious and delicious.",
+  "category": "consumable",
+  "subtype": "food",
+  "flags": {
+    "equippable": false,
+    "consumable": true,
+    "craftable": true,
+    "tool": false
+  },
+  "weight": 0.3,
+  "value": 8,
+  "max_stack": 10,
+  "ascii_char": "><",
+  "ascii_color": "#CD853F",
+  "effects": {
+    "hunger": 30
+  }
+}

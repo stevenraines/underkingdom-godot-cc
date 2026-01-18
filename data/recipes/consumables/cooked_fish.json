@@ -1,0 +1,12 @@
+{
+  "id": "cooked_fish",
+  "result": "cooked_fish",
+  "result_count": 1,
+  "ingredients": [
+    {"flag": "fish", "count": 1, "display_name": "Any Fish"}
+  ],
+  "tool_required": "",
+  "fire_required": true,
+  "difficulty": 1,
+  "discovery_hint": "Fish could be safer and more nutritious if cooked over a fire"
+}

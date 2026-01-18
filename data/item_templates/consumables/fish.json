@@ -19,8 +19,10 @@
   "base_stats": {
     "weight": 0.4,
     "value": 5,
-    "hunger": 15,
     "catch_chance": 0.15
+  },
+  "base_effects": {
+    "hunger": 15
   },
   "applicable_variants": ["fish_species"],
   "default_variants": {

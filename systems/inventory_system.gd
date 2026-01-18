@@ -173,6 +173,46 @@ func has_item_with_flag(flag_name: String) -> bool:
 			return true
 	return false
 
+## Get count of items with a specific flag (inventory only, not equipped)
+func get_item_count_with_flag(flag_name: String) -> int:
+	var total = 0
+	for item in items:
+		if item.has_flag(flag_name):
+			total += item.stack_size
+	return total
+
+## Remove items with a specific flag
+## Returns the actual number removed
+func remove_item_with_flag(flag_name: String, count: int = 1) -> int:
+	var removed = 0
+	var to_remove: Array[Item] = []
+
+	for item in items:
+		if item.has_flag(flag_name) and removed < count:
+			var can_remove = min(item.stack_size, count - removed)
+			item.remove_from_stack(can_remove)
+			removed += can_remove
+
+			if item.is_empty():
+				to_remove.append(item)
+
+	# Clean up empty stacks
+	for item in to_remove:
+		items.erase(item)
+
+	if removed > 0:
+		EventBus.inventory_changed.emit()
+		EventBus.encumbrance_changed.emit(get_encumbrance_ratio())
+
+	return removed
+
+## Get first item with a specific flag (for display purposes)
+func get_item_with_flag(flag_name: String) -> Item:
+	for item in items:
+		if item.has_flag(flag_name):
+			return item
+	return null
+
 ## Get total count of an item by ID
 func get_item_count(item_id: String) -> int:
 	var total = 0

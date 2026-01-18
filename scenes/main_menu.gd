@@ -243,9 +243,6 @@ func _on_skills_confirmed(distributed_points: Dictionary) -> void:
 	# Store distributed skill points
 	pending_skill_points = distributed_points
 
-	# Save version as last played when starting a new game
-	_save_last_played_version()
-
 	# Start game with character name, race, class, abilities, and skill points
 	GameManager.player_abilities = pending_abilities
 	GameManager.player_skill_points = pending_skill_points
@@ -294,9 +291,6 @@ func _on_continue_button_pressed() -> void:
 		print("No saves available to continue")
 		return
 
-	# Save version as last played when continuing
-	_save_last_played_version()
-
 	GameManager.is_loading_save = true
 	var success = SaveManager.load_game(slot)
 	if success:
@@ -338,15 +332,15 @@ func _check_version_update() -> void:
 		return
 
 	var last_version = _load_last_played_version()
-	if last_version == "":
-		# First time playing - no notice needed, just save current version
-		return
 
-	if _is_version_newer(current_version, last_version):
+	if last_version != "" and _is_version_newer(current_version, last_version):
 		# Show version update notice
 		version_notice.text = "Version Update (v%s). New Features Available!" % current_version
 		version_notice.visible = true
 		print("Version update detected: %s -> %s" % [last_version, current_version])
+
+	# Always save current version after checking (so notice only shows once per version)
+	_save_last_played_version()
 
 
 ## Load the last played version from storage
@@ -396,7 +390,5 @@ func _on_version_notice_pressed() -> void:
 	var release_url = "https://github.com/stevenraines/underkingdom-godot-cc/releases/tag/v%s" % current_version
 	print("Opening release notes: %s" % release_url)
 	OS.shell_open(release_url)
-	# Hide the notice after clicking
+	# Hide the notice after clicking (version already saved on menu load)
 	version_notice.visible = false
-	# Save the version so notice doesn't show again
-	_save_last_played_version()

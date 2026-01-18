@@ -531,15 +531,17 @@ func _apply_fog_of_war_to_terrain() -> void:
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 
 	for pos in all_positions:
-		# Check if tile is visible:
-		# 1. In LOS-based visible_tiles_set (O(1) lookup), OR
-		# 2. Daytime outdoors and not an interior tile
-		var is_terrain_visible = visible_tiles_set.has(pos)
-		if not is_terrain_visible and is_daytime_outdoors:
-			# During daytime outdoors, check if tile is exterior (visible without LOS)
+		# Check if tile is visible based on current conditions
+		var is_terrain_visible: bool
+
+		if is_daytime_outdoors:
+			# Daytime outdoors: all exterior tiles visible without FOV check
+			# Only interior tiles (inside buildings) are hidden
 			var tile = current_map.get_tile(pos)
-			if tile and not tile.is_interior:
-				is_terrain_visible = true
+			is_terrain_visible = (tile == null) or not tile.is_interior
+		else:
+			# Night/dungeons: require LOS from FOV calculation
+			is_terrain_visible = visible_tiles_set.has(pos)
 
 		var original_color = terrain_original_colors.get(pos, terrain_modulated_cells.get(pos, Color.WHITE))
 
@@ -635,7 +637,19 @@ func _apply_fog_of_war_to_entities() -> void:
 ## Check if an entity at a position should be visible
 ## Entities in interior tiles require strict LOS - no corner peeking allowed
 func _is_entity_visible_at(pos: Vector2i) -> bool:
-	# First check basic visibility using O(1) set lookup
+	# Check if we're in daytime outdoors mode
+	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
+
+	if is_daytime_outdoors:
+		# Daytime outdoors: entities visible unless in interior with blocked LOS
+		if current_map:
+			var tile = current_map.get_tile(pos)
+			if tile and tile.is_interior:
+				# Interior tile - check if player has LOS (door must be open)
+				return _has_clear_los_to(pos)
+		return true  # Exterior entity always visible during day
+
+	# Night/dungeons: require LOS from FOV calculation
 	if not visible_tiles_set.has(pos):
 		return false
 

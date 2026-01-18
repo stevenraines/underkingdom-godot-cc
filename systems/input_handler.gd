@@ -210,16 +210,19 @@ func _process(delta: float) -> void:
 		is_initial_wait_press = true
 
 	# Check for held movement keys
+	# Skip movement if Shift is held (Shift+key combos are handled in _unhandled_input)
 	var direction = Vector2i.ZERO
+	var shift_held = Input.is_key_pressed(KEY_SHIFT)
 
-	if Input.is_action_pressed("ui_up"):
-		direction = Vector2i.UP
-	elif Input.is_action_pressed("ui_down"):
-		direction = Vector2i.DOWN
-	elif Input.is_action_pressed("ui_left"):
-		direction = Vector2i.LEFT
-	elif Input.is_action_pressed("ui_right"):
-		direction = Vector2i.RIGHT
+	if not shift_held:
+		if Input.is_action_pressed("ui_up"):
+			direction = Vector2i.UP
+		elif Input.is_action_pressed("ui_down"):
+			direction = Vector2i.DOWN
+		elif Input.is_action_pressed("ui_left"):
+			direction = Vector2i.LEFT
+		elif Input.is_action_pressed("ui_right"):
+			direction = Vector2i.RIGHT
 
 	if direction != Vector2i.ZERO:
 		# Don't continue if we're blocked in this direction

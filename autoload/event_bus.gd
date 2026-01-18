@@ -283,6 +283,10 @@ signal lockpick_broken(position: Vector2i)
 @warning_ignore("unused_signal")
 signal harvesting_mode_changed(is_active: bool)
 
+# Sprint mode signals
+@warning_ignore("unused_signal")
+signal sprint_mode_changed(is_active: bool)
+
 # Fast travel signals
 @warning_ignore("unused_signal")
 signal location_discovered(location_id: String, location_name: String)

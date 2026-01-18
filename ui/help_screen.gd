@@ -52,6 +52,7 @@ func _build_help_content() -> void:
 	current_container = movement_content
 	_add_section_header("MOVEMENT & ACTIONS")
 	_add_keybind("Arrow Keys / WASD", "Move & attack enemies")
+	_add_keybind("Shift + S", "Toggle sprint (move 2x, 4x stamina)")
 	_add_keybind(". (period)", "Wait one turn (bonus stamina)")
 	_add_keybind("Shift + R", "Rest menu (rest multiple turns)")
 	_add_keybind("> (Shift + .)", "Descend stairs")

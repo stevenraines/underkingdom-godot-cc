@@ -5,13 +5,15 @@
 - [x] Feature: Playable Character Races 
     Allow for different fantasy races (classic D&D) with different abilities
 - [x] Feature: Racial Traits (K key)
-    Races have passive and active racial traits that give them special abilities.
+    Races have passive, proactive, and active racial traits that give them special abilities.
 - [x] Feature: Playable Character Classes 
     Allow the player to choose a starting character class as in traditional roguelikes with with starting skill levels and special abilities. Allow a random choice that auto-chooses for the player and a non-classed "Adventurer" who gets no bonuses at start but has no class restrictions
 - [x] Feature: Class Restrictions
     Some classes have restrictions (spell casting not allowed, spells can't be cast in heavy armor, etc.)
 - [x] Feature: Feats (K key)
-    Character classes come with active and passive classed-based feats that give them special abilities.
+    Character classes come with active, proactive, and passive classed-based feats that give them special abilities.
+- [ ] UI/UX: Help Menu Redesign
+    Reorganize Help menu into tabs for easier viewing.
 - [ ] Feature: Character Customization Sheet
     Character Customization at game start after tace and class selection (point assignment for scores, assigment of skill points, etc)
 - [x] Feature: Test mode Expansion

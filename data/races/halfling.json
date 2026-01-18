@@ -19,8 +19,15 @@
       "description": "Once per day, reroll a failed attack",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "proactive_buff",
       "effect": {
-        "reroll_type": "attack"
+        "buff_id": "lucky_active",
+        "buff_name": "Lucky (Active)",
+        "buff_duration": 999,
+        "trigger_on": "attack_miss",
+        "trigger_effect": "reroll_attack",
+        "activation_message": "Lucky activated! Your next miss will be rerolled.",
+        "trigger_message": "Lucky! Rerolling attack... (%d -> %d)"
       }
     },
     {

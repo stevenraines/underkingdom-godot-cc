@@ -27,8 +27,10 @@
       "description": "Reveal all enemies within perception range once per day",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
       "effect": {
-        "reveal_enemies": true
+        "reveal_enemies": true,
+        "activation_message": "You track nearby prey... enemies revealed!"
       }
     }
   ],

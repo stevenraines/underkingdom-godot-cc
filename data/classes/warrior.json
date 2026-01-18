@@ -28,8 +28,10 @@
       "description": "Recover 25% of max health once per day",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
       "effect": {
-        "heal_percent": 25
+        "heal_percent": 0.25,
+        "activation_message": "Second Wind! You recover health."
       }
     }
   ],

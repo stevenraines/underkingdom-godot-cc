@@ -388,105 +388,137 @@ func _use_selected_action() -> void:
 
 
 func _use_class_feat(action: Dictionary) -> bool:
-	var feat_id = action.id
-	var effect = action.effect
+	var pattern = action.get("activation_pattern", "direct_effect")
 
-	# Use the feat (decrements uses)
-	if not player.use_class_feat(feat_id):
-		EventBus.message_logged.emit("[color=red]Cannot use %s![/color]" % action.name)
-		return false
-
-	# Apply the effect based on feat type
-	match feat_id:
-		"second_wind":
-			# Warrior: Heal 25% of max HP
-			var heal_percent = effect.get("heal_percent", 25)
-			@warning_ignore("integer_division")
-			var heal_amount = player.max_health * heal_percent / 100
-			player.heal(heal_amount)
-			EventBus.message_logged.emit("[color=green]Second Wind! You recover %d HP![/color]" % heal_amount)
-			return true
-
-		"mana_surge":
-			# Mage: Recover 50% of max mana
-			var recovery_percent = effect.get("mana_recovery_percent", 50)
-			if player.survival:
-				var max_mana = player.survival.get_max_mana()
-				var recovery = int(max_mana * recovery_percent / 100.0)
-				player.survival.mana = min(player.survival.mana + recovery, max_mana)
-				EventBus.message_logged.emit("[color=cyan]Mana Surge! You recover %d mana![/color]" % recovery)
-			return true
-
-		"vanish":
-			# Rogue: Become undetectable for 1 turn
-			var stealth_turns = effect.get("stealth_turns", 1)
-			# Apply stealth effect
-			player.add_magical_effect({
-				"id": "vanish_stealth",
-				"type": "buff",
-				"remaining_duration": stealth_turns + 1,  # +1 because it ticks down immediately
-				"modifiers": {}
-			})
-			EventBus.message_logged.emit("[color=gray]Vanish! You slip into the shadows...[/color]")
-			return true
-
-		"track_prey":
-			# Ranger: Reveal all enemies within perception range
-			var revealed_count = 0
-			for entity in EntityManager.entities:
-				if entity is Enemy and entity.is_alive:
-					var distance = (entity.position - player.position).length()
-					if distance <= player.perception_range * 2:
-						# Mark enemy as tracked (could add a visual effect)
-						revealed_count += 1
-			EventBus.message_logged.emit("[color=green]Track Prey! You sense %d enemies nearby.[/color]" % revealed_count)
-			return true
-
-		"blessed_rest":
-			# Cleric: Heal 10 HP instantly
-			var heal_amount = effect.get("heal_amount", 10)
-			# Apply with healing bonus
-			player.heal_with_class_bonus(heal_amount)
-			EventBus.message_logged.emit("[color=yellow]Blessed Rest! Divine energy heals you for %d HP![/color]" % heal_amount)
-			return true
-
-		"berserker_strike":
-			# Barbarian: Next attack deals double damage
-			player.add_magical_effect({
-				"id": "berserker_strike",
-				"type": "buff",
-				"remaining_duration": 2,  # Lasts until next attack
-				"modifiers": {}
-			})
-			EventBus.message_logged.emit("[color=red]Berserker Strike! Your next attack will deal double damage![/color]")
-			return true
-
+	match pattern:
+		"proactive_buff":
+			return _handle_proactive_buff(action, false)  # false = is class feat
+		"direct_effect":
+			return _handle_direct_effect(action, false)
+		"reactive_automatic":
+			EventBus.message_logged.emit("[color=yellow]%s activates automatically.[/color]" % action.name)
+			return false
 		_:
-			EventBus.message_logged.emit("[color=yellow]%s activated![/color]" % action.name)
-			return true
+			push_error("Unknown activation pattern for class feat: %s" % pattern)
+			return false
 
 
 func _use_racial_trait(action: Dictionary) -> bool:
-	var trait_id = action.id
+	var pattern = action.get("activation_pattern", "direct_effect")
+
+	match pattern:
+		"proactive_buff":
+			return _handle_proactive_buff(action, true)  # true = is racial
+		"direct_effect":
+			return _handle_direct_effect(action, true)
+		"reactive_automatic":
+			EventBus.message_logged.emit("[color=yellow]%s activates automatically.[/color]" % action.name)
+			return false
+		_:
+			push_error("Unknown activation pattern for racial trait: %s" % pattern)
+			return false
+
+
+## Generic handler for proactive buff abilities (activate now, trigger later)
+func _handle_proactive_buff(action: Dictionary, is_racial: bool) -> bool:
+	var action_id = action.id
 	var effect = action.effect
 
-	# Note: Some racial traits are reactive (Lucky, Relentless) and are used automatically
-	# This handles ones that can be used manually
+	# Use the ability (decrements uses)
+	var success = false
+	if is_racial:
+		success = player.use_racial_ability(action_id)
+	else:
+		success = player.use_class_feat(action_id)
 
-	match trait_id:
-		"lucky":
-			# Lucky is used automatically when missing an attack
-			EventBus.message_logged.emit("[color=yellow]Lucky is used automatically when you miss an attack.[/color]")
-			return false
+	if not success:
+		EventBus.message_logged.emit("[color=red]Cannot use %s![/color]" % action.name)
+		return false
 
-		"relentless":
-			# Relentless is used automatically when taking lethal damage
-			EventBus.message_logged.emit("[color=yellow]Relentless Endurance activates automatically when you would die.[/color]")
-			return false
+	# Create and apply the buff
+	var buff = {
+		"id": effect.get("buff_id", action_id + "_active"),
+		"type": "buff",
+		"name": effect.get("buff_name", action.name + " (Active)"),
+		"modifiers": {},
+		"remaining_duration": effect.get("buff_duration", 999),
+		"source_spell": "",
+		"trigger_on": effect.get("trigger_on", ""),
+		"trigger_effect": effect.get("trigger_effect", ""),
+		"damage_multiplier": effect.get("damage_multiplier", 1.0),
+		"self_damage": effect.get("self_damage", 0)
+	}
+	player.add_magical_effect(buff)
 
-		_:
-			# For any other active traits that might be added
-			if player.use_racial_ability(trait_id):
-				EventBus.message_logged.emit("[color=cyan]%s activated![/color]" % action.name)
-				return true
-			return false
+	# Show activation message
+	var msg = effect.get("activation_message", "%s activated!" % action.name)
+	EventBus.message_logged.emit("[color=yellow]%s[/color]" % msg)
+	return true
+
+
+## Generic handler for direct effect abilities (instant result)
+func _handle_direct_effect(action: Dictionary, is_racial: bool) -> bool:
+	var action_id = action.id
+	var effect = action.effect
+
+	# Use the ability (decrements uses)
+	var success = false
+	if is_racial:
+		success = player.use_racial_ability(action_id)
+	else:
+		success = player.use_class_feat(action_id)
+
+	if not success:
+		EventBus.message_logged.emit("[color=red]Cannot use %s![/color]" % action.name)
+		return false
+
+	# Apply direct effects based on what's in the effect dictionary
+
+	# Healing (percent or fixed amount)
+	if effect.has("heal_percent"):
+		var heal_amount = int(player.max_health * effect.heal_percent)
+		if player.has_method("heal_with_class_bonus"):
+			player.heal_with_class_bonus(heal_amount)
+		else:
+			player.heal(heal_amount)
+	elif effect.has("heal_amount"):
+		var heal_amount = effect.heal_amount
+		if player.has_method("heal_with_class_bonus"):
+			player.heal_with_class_bonus(heal_amount)
+		else:
+			player.heal(heal_amount)
+
+	# Mana recovery (percent)
+	if effect.has("mana_percent"):
+		if player.survival:
+			var max_mana = player.survival.get_max_mana()
+			var recovery = int(max_mana * effect.mana_percent)
+			player.survival.mana = min(player.survival.mana + recovery, max_mana)
+
+	# Apply a temporary buff
+	if effect.has("apply_buff"):
+		var buff_data = effect.apply_buff
+		var buff = {
+			"id": buff_data.get("buff_id", action_id + "_buff"),
+			"type": buff_data.get("buff_type", "buff"),
+			"name": buff_data.get("buff_name", action.name),
+			"modifiers": {},
+			"remaining_duration": buff_data.get("buff_duration", 1),
+			"source_spell": ""
+		}
+		player.add_magical_effect(buff)
+
+	# Reveal enemies (Ranger Track Prey)
+	if effect.get("reveal_enemies", false):
+		var revealed_count = 0
+		for entity in EntityManager.entities:
+			if entity is Enemy and entity.is_alive:
+				var distance = (entity.position - player.position).length()
+				if distance <= player.perception_range * 2:
+					revealed_count += 1
+		# Message will be shown by activation_message
+
+	# Show activation message
+	var msg = effect.get("activation_message", "%s activated!" % action.name)
+	EventBus.message_logged.emit("[color=yellow]%s[/color]" % msg)
+	return true

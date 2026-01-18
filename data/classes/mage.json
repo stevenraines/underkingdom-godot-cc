@@ -27,8 +27,10 @@
       "description": "Recover 50% of max mana once per day",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
       "effect": {
-        "mana_recovery_percent": 50
+        "mana_percent": 0.50,
+        "activation_message": "Mana Surge! You recover magical energy."
       }
     }
   ],

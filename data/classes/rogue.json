@@ -27,8 +27,15 @@
       "description": "Become undetectable for 1 turn once per day",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
       "effect": {
-        "stealth_turns": 1
+        "apply_buff": {
+          "buff_id": "vanish_stealth",
+          "buff_name": "Vanished",
+          "buff_type": "buff",
+          "buff_duration": 1
+        },
+        "activation_message": "You vanish into the shadows!"
       }
     }
   ],

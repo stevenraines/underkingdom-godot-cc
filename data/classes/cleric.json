@@ -28,8 +28,10 @@
       "description": "Heal 10 HP instantly once per day",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
       "effect": {
-        "heal_amount": 10
+        "heal_amount": 10,
+        "activation_message": "Blessed Rest! Divine energy restores your vitality."
       }
     }
   ],

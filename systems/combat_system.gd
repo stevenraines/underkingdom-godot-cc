@@ -49,17 +49,21 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 	var roll = randi_range(1, 100)
 	result.roll = roll
 
-	# Check for Lucky trait reroll on miss (Halfling)
+	# Check for proactive buff triggers on miss (generic system)
 	if roll > hit_chance:
-		if attacker.has_method("has_racial_trait") and attacker.has_racial_trait("lucky"):
-			if attacker.has_method("can_use_racial_ability") and attacker.can_use_racial_ability("lucky"):
-				# Reroll the attack
-				var reroll = randi_range(1, 100)
-				attacker.use_racial_ability("lucky")
-				EventBus.message_logged.emit("[color=yellow]Lucky! Rerolling attack... (%d -> %d)[/color]" % [roll, reroll])
-				roll = reroll
-				result.roll = roll
-				result.lucky_reroll = true
+		for effect in attacker.active_effects:
+			if effect.get("trigger_on", "") == "attack_miss":
+				match effect.get("trigger_effect", ""):
+					"reroll_attack":
+						var reroll = randi_range(1, 100)
+						var effect_name = effect.get("name", "Effect")
+						attacker.remove_magical_effect(effect.id)
+						EventBus.message_logged.emit("[color=yellow]%s[/color]" % effect_name)
+						EventBus.message_logged.emit("[color=yellow]Rerolling attack... (%d -> %d)[/color]" % [roll, reroll])
+						roll = reroll
+						result.roll = roll
+						result.lucky_reroll = true
+						break  # Only one reroll per attack
 
 	# Check if Nimble (evasion bonus) made the difference
 	if roll > hit_chance and evasion_data.racial_bonus > 0:
@@ -71,8 +75,28 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 	if roll <= hit_chance:
 		result.hit = true
 
+		# Check for proactive buff triggers on hit (generic system)
+		var damage_multiplier = 1.0
+		var self_damage_amount = 0
+		for effect in attacker.active_effects:
+			if effect.get("trigger_on", "") == "melee_hit":
+				match effect.get("trigger_effect", ""):
+					"double_damage":
+						damage_multiplier = effect.get("damage_multiplier", 2.0)
+						self_damage_amount = effect.get("self_damage", 0)
+						var trigger_msg = effect.get("trigger_message", "")
+						if trigger_msg != "":
+							EventBus.message_logged.emit("[color=red]%s[/color]" % trigger_msg)
+						attacker.remove_magical_effect(effect.id)
+						break  # Only one damage modifier per attack
+
 		# Calculate and apply damage with damage types
 		var damage_result = calculate_damage_with_types(attacker, defender, weapon)
+
+		# Apply damage multiplier from triggered effects (e.g., Berserker Strike)
+		if damage_multiplier != 1.0:
+			damage_result.primary_damage = int(damage_result.primary_damage * damage_multiplier)
+			damage_result.secondary_damage = int(damage_result.secondary_damage * damage_multiplier)
 		result.damage = damage_result.primary_damage
 		result.secondary_damage = damage_result.secondary_damage
 		result.resisted = damage_result.resisted
@@ -89,6 +113,11 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 
 		if defender.has_method("take_damage") and total_damage > 0:
 			defender.take_damage(total_damage, source, method)
+
+		# Apply self-damage from triggered effects (e.g., Berserker Strike)
+		if self_damage_amount > 0 and attacker.has_method("take_damage"):
+			attacker.take_damage(self_damage_amount, "Self", "Berserker Strike")
+			EventBus.message_logged.emit("[color=red]You take %d damage from the exertion![/color]" % self_damage_amount)
 
 		# Check if defender died
 		if not defender.is_alive:

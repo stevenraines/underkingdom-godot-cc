@@ -134,7 +134,8 @@ func _build_help_content() -> void:
 	_add_keybind("A", "Open Special Actions menu")
 	_add_help_text("Use active class feats and racial abilities")
 	_add_help_text("Most have limited daily uses (recharge at dawn)")
-	_add_help_text("Some traits activate automatically (Lucky, Relentless)")
+	_add_help_text("Some must be activated before use (Lucky)")
+	_add_help_text("Some traits activate automatically (Relentless)")
 	_add_help_text("Passive bonuses apply constantly (no activation needed)")
 	_add_spacer()
 

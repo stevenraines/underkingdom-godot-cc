@@ -28,9 +28,17 @@
       "description": "Deal double damage but take 5 damage yourself once per day",
       "type": "active",
       "uses_per_day": 1,
+      "activation_pattern": "proactive_buff",
       "effect": {
+        "buff_id": "berserker_strike_active",
+        "buff_name": "Berserker Strike (Ready)",
+        "buff_duration": 999,
+        "trigger_on": "melee_hit",
+        "trigger_effect": "double_damage",
         "damage_multiplier": 2.0,
-        "self_damage": 5
+        "self_damage": 5,
+        "activation_message": "Berserker Strike ready! Your next melee hit will deal double damage.",
+        "trigger_message": "Berserker Strike! You unleash devastating power!"
       }
     }
   ],

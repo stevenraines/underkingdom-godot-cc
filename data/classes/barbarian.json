@@ -1,0 +1,61 @@
+{
+  "id": "barbarian",
+  "name": "Barbarian",
+  "description": "Fierce warriors who channel primal fury in battle, barbarians grow stronger as they take damage. They disdain heavy armor and magic alike.",
+  "ascii_color": "#CC3333",
+  "stat_modifiers": {
+    "STR": 2,
+    "CON": 1,
+    "INT": -2
+  },
+  "skill_bonuses": {
+    "axes": 2
+  },
+  "feats": [
+    {
+      "id": "rage",
+      "name": "Rage",
+      "description": "+3 melee damage when below 50% health",
+      "type": "passive",
+      "effect": {
+        "low_hp_melee_bonus": 3,
+        "low_hp_threshold": 0.5
+      }
+    },
+    {
+      "id": "berserker_strike",
+      "name": "Berserker Strike",
+      "description": "Deal double damage but take 5 damage yourself once per day",
+      "type": "active",
+      "uses_per_day": 1,
+      "activation_pattern": "proactive_buff",
+      "effect": {
+        "buff_id": "berserker_strike_active",
+        "buff_name": "Berserker Strike (Ready)",
+        "buff_duration": 999,
+        "trigger_on": "melee_hit",
+        "trigger_effect": "double_damage",
+        "damage_multiplier": 2.0,
+        "self_damage": 5,
+        "activation_message": "Berserker Strike ready! Your next melee hit will deal double damage.",
+        "trigger_message": "Berserker Strike! You unleash devastating power!"
+      }
+    }
+  ],
+  "restrictions": {
+    "forbidden_armor_weights": ["heavy"],
+    "spell_failure": {
+      "conditions": [
+        {
+          "check": "always",
+          "values": [],
+          "failure_chance": 100,
+          "message": "Barbarians cannot cast spells!"
+        }
+      ]
+    }
+  },
+  "starting_equipment": [
+    {"item_id": "iron_axe", "count": 1}
+  ]
+}

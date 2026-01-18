@@ -36,6 +36,7 @@ var fast_travel_screen: Control = null
 var rest_menu: Control = null
 var spell_list_screen: Control = null
 var ritual_menu: Control = null
+var special_actions_screen: Control = null
 var debug_command_menu: Control = null
 # auto_pickup_enabled moved to GameManager for global access
 
@@ -77,6 +78,7 @@ const PauseMenuScene = preload("res://ui/pause_menu.tscn")
 const DeathScreenScene = preload("res://ui/death_screen.tscn")
 const SpellListScreenScene = preload("res://ui/spell_list_screen.tscn")
 const RitualMenuScene = preload("res://ui/ritual_menu.tscn")
+const SpecialActionsScreenScene = preload("res://ui/special_actions_screen.tscn")
 const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
 
 func _ready() -> void:
@@ -140,6 +142,9 @@ func _ready() -> void:
 	# Create ritual menu
 	_setup_ritual_menu()
 
+	# Create special actions screen
+	_setup_special_actions_screen()
+
 	# Create debug command menu
 	_setup_debug_command_menu()
 
@@ -166,10 +171,29 @@ func _ready() -> void:
 		player.position = _find_valid_spawn_position()
 		MapManager.current_map.entities.append(player)
 
-		# Apply selected race from GameManager
+		# Apply selected race and class from GameManager
 		player.apply_race(GameManager.player_race)
+		player.apply_class(GameManager.player_class)
 
-		# Give player some starter items
+		# Apply rolled abilities from character creation (if any)
+		if not GameManager.player_abilities.is_empty():
+			for ability in GameManager.player_abilities:
+				player.attributes[ability] = GameManager.player_abilities[ability]
+			# Clear after applying
+			GameManager.player_abilities.clear()
+			# Recalculate derived stats (HP, stamina, etc.)
+			player._calculate_derived_stats()
+
+		# Apply distributed skill points from character creation (if any)
+		if not GameManager.player_skill_points.is_empty():
+			for skill_id in GameManager.player_skill_points:
+				var points = GameManager.player_skill_points[skill_id]
+				if player.skills.has(skill_id):
+					player.skills[skill_id] += points
+			# Clear after applying
+			GameManager.player_skill_points.clear()
+
+		# Give player some starter items (includes class starting equipment)
 		_give_starter_items()
 
 		# Set player reference in input handler and EntityManager
@@ -443,6 +467,22 @@ func _setup_ritual_menu() -> void:
 	else:
 		print("[Game] ERROR: Could not load ritual_menu.tscn scene")
 
+## Setup special actions screen
+func _setup_special_actions_screen() -> void:
+	print("[Game] Setting up special actions screen from scene...")
+	if SpecialActionsScreenScene:
+		special_actions_screen = SpecialActionsScreenScene.instantiate()
+		special_actions_screen.name = "SpecialActionsScreen"
+		hud.add_child(special_actions_screen)
+		if special_actions_screen.has_signal("closed"):
+			special_actions_screen.closed.connect(_on_special_actions_closed)
+		if special_actions_screen.has_signal("action_used"):
+			special_actions_screen.action_used.connect(_on_special_action_used)
+		print("[Game] Special actions screen scene instantiated and added to HUD")
+	else:
+		print("[Game] ERROR: Could not load special_actions_screen.tscn scene")
+
+
 ## Setup debug command menu
 func _setup_debug_command_menu() -> void:
 	print("[Game] Setting up debug command menu from scene...")
@@ -502,6 +542,19 @@ func _give_starter_items() -> void:
 			# Auto-equip if flagged
 			if should_equip and item.is_equippable():
 				player.equip_item(item)
+
+	# Give class starting equipment
+	var class_equipment = ClassManager.get_starting_equipment(GameManager.player_class)
+	for equip_data in class_equipment:
+		var item_id = equip_data.get("item_id", "")
+		var count = int(equip_data.get("count", 1))
+		if item_id != "":
+			var item = item_mgr.create_item(item_id, count)
+			if item:
+				player.inventory.add_item(item)
+				# Auto-equip weapons from class starting equipment
+				if item.is_equippable() and item.item_type == "weapon":
+					player.equip_item(item)
 
 	# Give player some starter recipes for testing
 	player.learn_recipe("bandage")
@@ -2088,6 +2141,28 @@ func _on_ritual_menu_closed() -> void:
 func _on_ritual_started(ritual_id: String) -> void:
 	input_handler.ui_blocking_input = false
 	_add_message("Ritual channeling has begun. Continue waiting to complete it.", Color.MAGENTA)
+
+
+## Called when special actions screen is closed
+func _on_special_actions_closed() -> void:
+	input_handler.ui_blocking_input = false
+
+
+## Called when a special action is used
+func _on_special_action_used(_action_type: String, _action_id: String) -> void:
+	# Action was used, advance turn
+	TurnManager.advance_turn()
+
+
+## Toggle special actions screen (called from input handler)
+func toggle_special_actions() -> void:
+	if special_actions_screen and player:
+		if special_actions_screen.visible:
+			special_actions_screen.hide()
+			input_handler.ui_blocking_input = false
+		else:
+			special_actions_screen.open(player)
+			input_handler.ui_blocking_input = true
 
 
 ## Toggle fast travel screen (called from input handler)

@@ -653,6 +653,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_K and not event.shift_pressed:  # K - open spell casting (alias for spellbook)
 			_toggle_spell_list()
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_A:  # A - toggle special actions (class feats + racial traits)
+			_toggle_special_actions()
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_M and not event.shift_pressed:  # M - toggle world map
 			_toggle_world_map()
 			get_viewport().set_input_as_handled()
@@ -887,6 +890,12 @@ func _toggle_ritual_menu() -> void:
 
 	# Emit the ritual menu requested signal
 	EventBus.ritual_menu_requested.emit()
+
+## Toggle special actions screen
+func _toggle_special_actions() -> void:
+	var game = get_parent()
+	if game and game.has_method("toggle_special_actions"):
+		game.toggle_special_actions()
 
 ## Interact with structure at player position
 func _interact_with_structure() -> void:

@@ -1,0 +1,54 @@
+{
+  "id": "ranger",
+  "name": "Ranger",
+  "description": "Skilled hunters and trackers, rangers excel at ranged combat and survival in the wilderness. They move best in lighter armor.",
+  "ascii_color": "#339933",
+  "stat_modifiers": {
+    "DEX": 1,
+    "WIS": 1
+  },
+  "skill_bonuses": {
+    "bows": 2,
+    "traps": 1
+  },
+  "feats": [
+    {
+      "id": "hunters_mark",
+      "name": "Hunter's Mark",
+      "description": "+2 ranged damage",
+      "type": "passive",
+      "effect": {
+        "ranged_damage_bonus": 2
+      }
+    },
+    {
+      "id": "track_prey",
+      "name": "Track Prey",
+      "description": "Reveal all enemies within perception range once per day",
+      "type": "active",
+      "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
+      "effect": {
+        "reveal_enemies": true,
+        "activation_message": "You track nearby prey... enemies revealed!"
+      }
+    }
+  ],
+  "restrictions": {
+    "forbidden_armor_weights": ["heavy"],
+    "spell_failure": {
+      "conditions": [
+        {
+          "check": "armor_weight",
+          "values": ["heavy"],
+          "failure_chance": 25,
+          "message": "Heavy armor hampers your concentration!"
+        }
+      ]
+    }
+  },
+  "starting_equipment": [
+    {"item_id": "short_bow", "count": 1},
+    {"item_id": "arrow", "count": 20}
+  ]
+}

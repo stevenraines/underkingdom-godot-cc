@@ -26,8 +26,11 @@ var visited_locations: Dictionary = {}
 var auto_open_doors: bool = true  # Automatically open doors when walking into them
 var auto_pickup_enabled: bool = true  # Automatically pick up items and gather features when walking
 
-# Player race (selected at character creation)
+# Player race and class (selected at character creation)
 var player_race: String = "human"
+var player_class: String = "adventurer"
+var player_abilities: Dictionary = {}  # Assigned ability scores from character creation
+var player_skill_points: Dictionary = {}  # Distributed skill points from character creation
 
 # Debug flags
 var debug_god_mode: bool = false  # Player takes no damage
@@ -40,12 +43,14 @@ func _ready() -> void:
 	_FarmingSystem.load_crops()
 	print("GameManager initialized")
 
-## Start a new game with character name (used as seed) and race
+## Start a new game with character name (used as seed), race, and class
 ## If character_name_input is empty, generates a random seed and default name
 ## race_id defaults to "human" if not specified
-func start_new_game(character_name_input: String = "", race_id: String = "human") -> void:
-	# Store selected race
+## class_id defaults to "adventurer" if not specified
+func start_new_game(character_name_input: String = "", race_id: String = "human", class_id: String = "adventurer") -> void:
+	# Store selected race and class
 	player_race = race_id
+	player_class = class_id
 
 	if character_name_input.is_empty():
 		randomize()
@@ -92,7 +97,7 @@ func start_new_game(character_name_input: String = "", race_id: String = "human"
 	# Clear visited locations for new game
 	clear_visited_locations()
 
-	print("New game started - Character: '%s', Race: %s, Seed: %d" % [character_name, player_race, world_seed])
+	print("New game started - Character: '%s', Race: %s, Class: %s, Seed: %d" % [character_name, player_race, player_class, world_seed])
 
 ## Update the current map being played
 func set_current_map(map_id: String) -> void:

@@ -25,11 +25,14 @@
     {
       "id": "relentless",
       "name": "Relentless Endurance",
-      "description": "Once per rest, survive a killing blow with 1 HP",
+      "description": "Once per day, survive a killing blow with 1 HP",
       "type": "active",
-      "uses_per_rest": 1,
+      "uses_per_day": 1,
+      "activation_pattern": "reactive_automatic",
       "effect": {
-        "death_save": true
+        "trigger_on": "lethal_damage",
+        "set_hp": 1,
+        "trigger_message": "Relentless Endurance! You refuse to fall."
       }
     }
   ]

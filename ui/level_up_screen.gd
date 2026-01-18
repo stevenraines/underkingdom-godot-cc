@@ -279,8 +279,11 @@ func _input(event: InputEvent) -> void:
 				_navigate_down()
 				get_viewport().set_input_as_handled()
 			KEY_TAB:
-				# Switch between tabs
-				tab_container.current_tab = (tab_container.current_tab + 1) % 2
+				# Switch between tabs (SHIFT+TAB = previous, TAB = next)
+				if event.shift_pressed:
+					tab_container.current_tab = (tab_container.current_tab - 1 + 2) % 2
+				else:
+					tab_container.current_tab = (tab_container.current_tab + 1) % 2
 				_on_tab_changed(tab_container.current_tab)
 				get_viewport().set_input_as_handled()
 			KEY_PLUS, KEY_KP_ADD, KEY_EQUAL, KEY_ENTER, KEY_KP_ENTER:

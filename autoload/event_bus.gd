@@ -83,6 +83,12 @@ signal racial_ability_used(entity: Entity, trait_id: String)
 @warning_ignore("unused_signal")
 signal racial_ability_recharged(entity: Entity, trait_id: String)
 
+# Class feat signals
+@warning_ignore("unused_signal")
+signal class_feat_used(entity: Entity, feat_id: String)
+@warning_ignore("unused_signal")
+signal class_feat_recharged(entity: Entity, feat_id: String)
+
 # Magical effect signals (buffs/debuffs)
 @warning_ignore("unused_signal")
 signal effect_applied(entity: Entity, effect: Dictionary)

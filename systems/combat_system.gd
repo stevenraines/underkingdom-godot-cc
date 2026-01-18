@@ -38,10 +38,10 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 			result.damage_type = weapon.damage_type if weapon.damage_type != "" else "bludgeoning"
 			result.secondary_damage_type = weapon.secondary_damage_type if weapon.secondary_damage_type != "" else ""
 
-	# Calculate hit chance
+	# Calculate hit chance with evasion breakdown for logging
 	var accuracy = get_accuracy(attacker)
-	var evasion = get_evasion(defender)
-	var hit_chance = clampi(accuracy - evasion, 5, 95)  # Always 5-95% chance
+	var evasion_data = get_evasion_with_breakdown(defender)
+	var hit_chance = clampi(accuracy - evasion_data.total, 5, 95)  # Always 5-95% chance
 
 	result.hit_chance = hit_chance
 
@@ -49,23 +49,54 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 	var roll = randi_range(1, 100)
 	result.roll = roll
 
-	# Check for Lucky trait reroll on miss (Halfling)
+	# Check for proactive buff triggers on miss (generic system)
 	if roll > hit_chance:
-		if attacker.has_method("has_racial_trait") and attacker.has_racial_trait("lucky"):
-			if attacker.has_method("can_use_racial_ability") and attacker.can_use_racial_ability("lucky"):
-				# Reroll the attack
-				var reroll = randi_range(1, 100)
-				attacker.use_racial_ability("lucky")
-				EventBus.message_logged.emit("Lucky! Rerolling attack... (%d -> %d)" % [roll, reroll])
-				roll = reroll
-				result.roll = roll
-				result.lucky_reroll = true
+		for effect in attacker.active_effects:
+			if effect.get("trigger_on", "") == "attack_miss":
+				match effect.get("trigger_effect", ""):
+					"reroll_attack":
+						var reroll = randi_range(1, 100)
+						var effect_name = effect.get("name", "Effect")
+						attacker.remove_magical_effect(effect.id)
+						EventBus.message_logged.emit("[color=yellow]%s[/color]" % effect_name)
+						EventBus.message_logged.emit("[color=yellow]Rerolling attack... (%d -> %d)[/color]" % [roll, reroll])
+						roll = reroll
+						result.roll = roll
+						result.lucky_reroll = true
+						break  # Only one reroll per attack
+
+	# Check if Nimble (evasion bonus) made the difference
+	if roll > hit_chance and evasion_data.racial_bonus > 0:
+		# Would have hit without racial bonus?
+		var hit_chance_without_bonus = clampi(accuracy - evasion_data.base, 5, 95)
+		if roll <= hit_chance_without_bonus:
+			EventBus.message_logged.emit("[color=cyan]Nimble! Your agility helps you dodge the attack![/color]")
 
 	if roll <= hit_chance:
 		result.hit = true
 
+		# Check for proactive buff triggers on hit (generic system)
+		var damage_multiplier = 1.0
+		var self_damage_amount = 0
+		for effect in attacker.active_effects:
+			if effect.get("trigger_on", "") == "melee_hit":
+				match effect.get("trigger_effect", ""):
+					"double_damage":
+						damage_multiplier = effect.get("damage_multiplier", 2.0)
+						self_damage_amount = effect.get("self_damage", 0)
+						var trigger_msg = effect.get("trigger_message", "")
+						if trigger_msg != "":
+							EventBus.message_logged.emit("[color=red]%s[/color]" % trigger_msg)
+						attacker.remove_magical_effect(effect.id)
+						break  # Only one damage modifier per attack
+
 		# Calculate and apply damage with damage types
 		var damage_result = calculate_damage_with_types(attacker, defender, weapon)
+
+		# Apply damage multiplier from triggered effects (e.g., Berserker Strike)
+		if damage_multiplier != 1.0:
+			damage_result.primary_damage = int(damage_result.primary_damage * damage_multiplier)
+			damage_result.secondary_damage = int(damage_result.secondary_damage * damage_multiplier)
 		result.damage = damage_result.primary_damage
 		result.secondary_damage = damage_result.secondary_damage
 		result.resisted = damage_result.resisted
@@ -82,6 +113,11 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 
 		if defender.has_method("take_damage") and total_damage > 0:
 			defender.take_damage(total_damage, source, method)
+
+		# Apply self-damage from triggered effects (e.g., Berserker Strike)
+		if self_damage_amount > 0 and attacker.has_method("take_damage"):
+			attacker.take_damage(self_damage_amount, "Self", "Berserker Strike")
+			EventBus.message_logged.emit("[color=red]You take %d damage from the exertion![/color]" % self_damage_amount)
 
 		# Check if defender died
 		if not defender.is_alive:
@@ -107,15 +143,27 @@ static func get_accuracy(entity: Entity) -> int:
 
 ## Calculate defender's evasion
 ## Formula: 5% + (DEX × 1)% + racial bonuses
-static func get_evasion(entity: Entity) -> int:
+## Returns dictionary with total and bonus breakdown for logging
+static func get_evasion_with_breakdown(entity: Entity) -> Dictionary:
 	var dex = entity.attributes.get("DEX", 10)
 	var base_evasion = 5 + dex
+	var racial_bonus = 0
 
 	# Add racial evasion bonus (e.g., Halfling Nimble)
 	if entity.has_method("get_racial_evasion_bonus"):
-		base_evasion += entity.get_racial_evasion_bonus()
+		racial_bonus = entity.get_racial_evasion_bonus()
 
-	return base_evasion
+	return {
+		"total": base_evasion + racial_bonus,
+		"base": base_evasion,
+		"racial_bonus": racial_bonus
+	}
+
+
+## Calculate defender's evasion (simple version for backwards compatibility)
+## Formula: 5% + (DEX × 1)% + racial bonuses
+static func get_evasion(entity: Entity) -> int:
+	return get_evasion_with_breakdown(entity).total
 
 ## Calculate damage for an attack (legacy - used for backwards compatibility)
 ## Formula: Base Damage + STR modifier - Armor
@@ -186,6 +234,13 @@ static func calculate_damage_with_types(attacker: Entity, defender: Entity, weap
 
 	# Calculate raw physical damage before resistance
 	var raw_damage = maxi(0, base_damage + str_modifier - effective_armor)
+
+	# Add class melee damage bonus (e.g., Barbarian Rage when low HP)
+	if attacker.has_method("get_class_melee_bonus"):
+		var melee_bonus = attacker.get_class_melee_bonus()
+		if melee_bonus > 0:
+			raw_damage += melee_bonus
+			EventBus.message_logged.emit("[color=red]Rage: +%d melee damage![/color]" % melee_bonus)
 
 	# Apply damage type resistance/vulnerability for primary damage
 	var primary_result = ElementalSystemClass.calculate_elemental_damage(raw_damage, damage_type, defender, attacker)

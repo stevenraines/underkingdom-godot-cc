@@ -1,0 +1,55 @@
+{
+  "id": "mage",
+  "name": "Mage",
+  "description": "Wielders of arcane magic, mages command powerful spells but are physically frail. Metal armor disrupts their delicate magical focus.",
+  "ascii_color": "#6666FF",
+  "stat_modifiers": {
+    "INT": 2,
+    "CON": -1,
+    "STR": -1
+  },
+  "skill_bonuses": {
+    "crafting": 1
+  },
+  "feats": [
+    {
+      "id": "arcane_mind",
+      "name": "Arcane Mind",
+      "description": "+20 max mana",
+      "type": "passive",
+      "effect": {
+        "max_mana_bonus": 20
+      }
+    },
+    {
+      "id": "mana_surge",
+      "name": "Mana Surge",
+      "description": "Recover 50% of max mana once per day",
+      "type": "active",
+      "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
+      "effect": {
+        "mana_percent": 0.50,
+        "activation_message": "Mana Surge! You recover magical energy."
+      }
+    }
+  ],
+  "restrictions": {
+    "forbidden_armor_materials": ["metal", "chainmail", "plate"],
+    "forbidden_armor_weights": ["heavy"],
+    "forbidden_weapon_types": ["two_handed_sword", "greataxe", "halberd"],
+    "spell_failure": {
+      "conditions": [
+        {
+          "check": "armor_material",
+          "values": ["metal", "chainmail", "plate"],
+          "failure_chance": 100,
+          "message": "Metal armor disrupts your arcane focus!"
+        }
+      ]
+    }
+  },
+  "starting_equipment": [
+    {"item_id": "wooden_staff", "count": 1}
+  ]
+}

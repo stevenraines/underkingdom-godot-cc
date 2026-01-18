@@ -73,11 +73,46 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 	var roll = randi_range(1, 100)
 	result.roll = roll
 
+	# Check for proactive buff triggers on miss (generic system)
+	if roll > hit_chance:
+		for effect in attacker.active_effects:
+			if effect.get("trigger_on", "") == "attack_miss":
+				match effect.get("trigger_effect", ""):
+					"reroll_attack":
+						var reroll = randi_range(1, 100)
+						var effect_name = effect.get("name", "Effect")
+						attacker.remove_magical_effect(effect.id)
+						EventBus.message_logged.emit("[color=yellow]%s[/color]" % effect_name)
+						EventBus.message_logged.emit("[color=yellow]Rerolling attack... (%d -> %d)[/color]" % [roll, reroll])
+						roll = reroll
+						result.roll = roll
+						break  # Only one reroll per attack
+
 	if roll <= hit_chance:
 		result.hit = true
 
+		# Check for proactive buff triggers on ranged hit (generic system)
+		var damage_multiplier = 1.0
+		var self_damage_amount = 0
+		for effect in attacker.active_effects:
+			if effect.get("trigger_on", "") == "ranged_hit":
+				match effect.get("trigger_effect", ""):
+					"double_damage":
+						damage_multiplier = effect.get("damage_multiplier", 2.0)
+						self_damage_amount = effect.get("self_damage", 0)
+						var trigger_msg = effect.get("trigger_message", "")
+						if trigger_msg != "":
+							EventBus.message_logged.emit("[color=green]%s[/color]" % trigger_msg)
+						attacker.remove_magical_effect(effect.id)
+						break  # Only one damage modifier per attack
+
 		# Calculate damage with damage types
 		var damage_result = calculate_ranged_damage_with_types(attacker, target, weapon, ammo)
+
+		# Apply damage multiplier from triggered effects
+		if damage_multiplier != 1.0:
+			damage_result.primary_damage = int(damage_result.primary_damage * damage_multiplier)
+			damage_result.secondary_damage = int(damage_result.secondary_damage * damage_multiplier)
 		result.damage = damage_result.primary_damage
 		result.secondary_damage = damage_result.secondary_damage
 		result.resisted = damage_result.resisted
@@ -93,6 +128,11 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 
 		if target.has_method("take_damage") and total_damage > 0:
 			target.take_damage(total_damage, source, method)
+
+		# Apply self-damage from triggered effects
+		if self_damage_amount > 0 and attacker.has_method("take_damage"):
+			attacker.take_damage(self_damage_amount, "Self", "Ability")
+			EventBus.message_logged.emit("[color=red]You take %d damage from the exertion![/color]" % self_damage_amount)
 
 		# Check if target died
 		if not target.is_alive:
@@ -207,6 +247,13 @@ static func calculate_ranged_damage_with_types(attacker: Entity, target: Entity,
 
 	# Ranged attacks typically bypass armor (projectiles find gaps)
 	# But piercing already has armor bypass built in, so we just use base damage
+
+	# Add class ranged damage bonus (e.g., Ranger Hunter's Mark)
+	if attacker.has_method("get_class_ranged_bonus"):
+		var ranged_bonus = attacker.get_class_ranged_bonus()
+		if ranged_bonus > 0:
+			base_damage += ranged_bonus
+			EventBus.message_logged.emit("[color=green]Hunter's Mark: +%d ranged damage![/color]" % ranged_bonus)
 
 	# Apply damage type resistance/vulnerability for primary damage
 	var primary_result = ElementalSystemClass.calculate_elemental_damage(base_damage, damage_type, target, attacker)

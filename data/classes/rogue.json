@@ -1,0 +1,59 @@
+{
+  "id": "rogue",
+  "name": "Rogue",
+  "description": "Masters of stealth and precision, rogues strike from the shadows with deadly accuracy. They prefer light armor that doesn't impede their agility.",
+  "ascii_color": "#666666",
+  "stat_modifiers": {
+    "DEX": 2,
+    "CON": -1
+  },
+  "skill_bonuses": {
+    "daggers": 2,
+    "lockpicking": 2
+  },
+  "feats": [
+    {
+      "id": "shadow_strike",
+      "name": "Shadow Strike",
+      "description": "+2 critical hit damage",
+      "type": "passive",
+      "effect": {
+        "crit_damage_bonus": 2
+      }
+    },
+    {
+      "id": "vanish",
+      "name": "Vanish",
+      "description": "Become undetectable for 1 turn once per day",
+      "type": "active",
+      "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
+      "effect": {
+        "apply_buff": {
+          "buff_id": "vanish_stealth",
+          "buff_name": "Vanished",
+          "buff_type": "buff",
+          "buff_duration": 1
+        },
+        "activation_message": "You vanish into the shadows!"
+      }
+    }
+  ],
+  "restrictions": {
+    "forbidden_armor_weights": ["heavy"],
+    "spell_failure": {
+      "conditions": [
+        {
+          "check": "armor_weight",
+          "values": ["medium", "heavy"],
+          "failure_chance": 25,
+          "message": "Bulky armor disrupts your concentration!"
+        }
+      ]
+    }
+  },
+  "starting_equipment": [
+    {"item_id": "iron_dagger", "count": 1},
+    {"item_id": "lockpicks", "count": 1}
+  ]
+}

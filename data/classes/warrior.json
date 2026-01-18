@@ -1,0 +1,53 @@
+{
+  "id": "warrior",
+  "name": "Warrior",
+  "description": "Masters of martial combat, warriors excel in melee fighting and defensive tactics. Their training grants proficiency with heavy weapons and armor.",
+  "ascii_color": "#CC6633",
+  "stat_modifiers": {
+    "STR": 1,
+    "CON": 1,
+    "INT": -1
+  },
+  "skill_bonuses": {
+    "swords": 2,
+    "axes": 1
+  },
+  "feats": [
+    {
+      "id": "battle_hardened",
+      "name": "Battle Hardened",
+      "description": "+5 max health",
+      "type": "passive",
+      "effect": {
+        "max_health_bonus": 5
+      }
+    },
+    {
+      "id": "second_wind",
+      "name": "Second Wind",
+      "description": "Recover 25% of max health once per day",
+      "type": "active",
+      "uses_per_day": 1,
+      "activation_pattern": "direct_effect",
+      "effect": {
+        "heal_percent": 0.25,
+        "activation_message": "Second Wind! You recover health."
+      }
+    }
+  ],
+  "restrictions": {
+    "spell_failure": {
+      "conditions": [
+        {
+          "check": "armor_weight",
+          "values": ["heavy"],
+          "failure_chance": 50,
+          "message": "Heavy armor hampers your concentration!"
+        }
+      ]
+    }
+  },
+  "starting_equipment": [
+    {"item_id": "iron_sword", "count": 1}
+  ]
+}

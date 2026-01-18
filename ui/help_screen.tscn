@@ -76,14 +76,108 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TabContainer" type="TabContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+theme = ExtResource("2_theme")
 
-[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer"]
+[node name="Movement" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Movement"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+
+[node name="Combat" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Combat"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Traps" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Traps"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Inventory" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Inventory"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Crafting" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Crafting"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Farming" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Farming"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NPCs" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/NPCs"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Survival" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Survival"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Abilities" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Abilities"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Magic" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Magic"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UI" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/UI"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -93,5 +187,5 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 12
-text = "Press [ESC], [?], or [F1] to close"
+text = "[TAB/SHIFT+TAB] or [←/→] Switch tabs  •  [↑/↓] or [W/S] Scroll  •  [ESC], [?], or [F1] to close"
 horizontal_alignment = 1

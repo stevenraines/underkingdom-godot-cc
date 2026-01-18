@@ -221,9 +221,13 @@ func _handle_tabs_input(event: InputEventKey, viewport: Viewport) -> void:
 			close()
 			viewport.set_input_as_handled()
 		KEY_TAB:
-			# Switch to next tab
-			var next_tab = (tab_container.current_tab + 1) % tab_container.get_tab_count()
-			tab_container.current_tab = next_tab
+			# Switch tabs (SHIFT+TAB = previous, TAB = next)
+			if event.shift_pressed:
+				var prev_tab = (tab_container.current_tab - 1 + tab_container.get_tab_count()) % tab_container.get_tab_count()
+				tab_container.current_tab = prev_tab
+			else:
+				var next_tab = (tab_container.current_tab + 1) % tab_container.get_tab_count()
+				tab_container.current_tab = next_tab
 			viewport.set_input_as_handled()
 		KEY_UP:
 			_navigate(-1)

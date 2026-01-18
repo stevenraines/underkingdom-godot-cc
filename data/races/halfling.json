@@ -16,9 +16,9 @@
     {
       "id": "lucky",
       "name": "Lucky",
-      "description": "Once per rest, reroll a failed attack",
+      "description": "Once per day, reroll a failed attack",
       "type": "active",
-      "uses_per_rest": 1,
+      "uses_per_day": 1,
       "effect": {
         "reroll_type": "attack"
       }

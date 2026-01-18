@@ -1,33 +1,16 @@
 # Feature ideas to flesh out with Claude
 
-## Version 1.2 Updates 
+## Version 1.3 Updates 
 ---
-- [x] Playable character races 
-    Allow for different fantasy races (classic D&D) with different abilities
-- [ ] Playable Character Classes 
-    Allow the player to choose a starting character class as in traditional roguelikes with with starting skill levels and special abilities. Allow a random choice that auto-chooses for the player
-- [ ] Character Customization Sheet
-    Character Customization at game start (point assignment for scores, assigment of skill points, classes, races)
-- [x] Test mode Expansion
-    Implement the following improvements to the Debug Mode~~
-    * For all the selection lists of hazards, spells, receipes, etc,  in the debug section, if the thing being listed has a level of some kind, sort by that first. Then sort alphabetically.
-    * add options to spawn structures, crops, and resources
-    * add option to convert a tile to another tile (select new tile, select direction, select distance)
-    * add option to learn rituals
-- [x] Make easily collected resources into features
-    Made flowers, herbs, and mushrooms collectable by walking over them. These are not collected if auto-pickup is off
-- [x] Rename Character sheet Weather tab to Environment as it contains dates 
-- [x] H is for pickup
-    When auto-pickup is turned off, standing on an item and pressing H (harvest) will pick up the item.
-- [x] Creature Types
-    Classify all creature with types (goblinoid, undead, humanoid,beast,slime, etc.) Add these to the display in Debug mode for each creature in the list (for filtering). We previously implemented damage types & resistances at the creature level. Also add the ability to configure resistences at the creature type level. For example, all creatures of type Elemental - Fire should be immune to fire damage.
-- [x] Resistance / Vulnerability cues
-    When a creature has immunity or resistance to an attack or action, the log should indicate a cue to the player, like "Your axe seems to do less damage that usual."
 
 ---
 ## Unplanned
+- [ ] Tech: Reduce context usage with agents/skills
+    Review the CLAUDE.MD file and propose migrating sections to AGENTS files or SKILLS to reduce context usage.
+- [ ] Weapon and Armor Proficiency
+    Players should be able to use any weapon, but if they are not trained in int they should have a -2 penalty to hit. All characters should be trained to use basic bludgeoning weapons (clubs, staves), slings, knives, and axes. But Swords, two-handed axes, bows, crossbows, require proficency (by the type or classification.) Similarly, wearing clothing or leather armor can be done by anyone but once more advanced armor (including a shield) is involved, the player mus tbe proficent (medium armor, heavy armor, shield) there should be a -2 penalty. Implement both of these by extending restrictions system designed for character classes.
 - [ ] Enemy traits
-    Some creatures should have special abilities like the racial traits players have - trolls have regenreation, dragons breath fire, etc. Implement a system to support special abilities that can be defined through data configuration
+    Some creatures should have special abilities like the racial traits / feats players have - trolls have regenreation, dragons breath fire, etc. Implement a system to support special abilities that can be defined through data configuration
 - [ ] Allow enemies to use ranged weapons and spells.
     Humanoid creatures should be able to use ranged weapons like bows and slings to attach players. Spell casting creatures (mages, demons, etc) should also be able to cast spells on players to hurt or hinder them. For instance, in addition to the combat spells, a wizard of sufficent level should be able to cast a Slow spell on the player that causes the player to only be able to act once every 2 turns until the spell ends or the player makes a successful save.
 - [ ] Creature interaction

@@ -38,10 +38,10 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 			result.damage_type = weapon.damage_type if weapon.damage_type != "" else "bludgeoning"
 			result.secondary_damage_type = weapon.secondary_damage_type if weapon.secondary_damage_type != "" else ""
 
-	# Calculate hit chance
+	# Calculate hit chance with evasion breakdown for logging
 	var accuracy = get_accuracy(attacker)
-	var evasion = get_evasion(defender)
-	var hit_chance = clampi(accuracy - evasion, 5, 95)  # Always 5-95% chance
+	var evasion_data = get_evasion_with_breakdown(defender)
+	var hit_chance = clampi(accuracy - evasion_data.total, 5, 95)  # Always 5-95% chance
 
 	result.hit_chance = hit_chance
 
@@ -56,10 +56,17 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 				# Reroll the attack
 				var reroll = randi_range(1, 100)
 				attacker.use_racial_ability("lucky")
-				EventBus.message_logged.emit("Lucky! Rerolling attack... (%d -> %d)" % [roll, reroll])
+				EventBus.message_logged.emit("[color=yellow]Lucky! Rerolling attack... (%d -> %d)[/color]" % [roll, reroll])
 				roll = reroll
 				result.roll = roll
 				result.lucky_reroll = true
+
+	# Check if Nimble (evasion bonus) made the difference
+	if roll > hit_chance and evasion_data.racial_bonus > 0:
+		# Would have hit without racial bonus?
+		var hit_chance_without_bonus = clampi(accuracy - evasion_data.base, 5, 95)
+		if roll <= hit_chance_without_bonus:
+			EventBus.message_logged.emit("[color=cyan]Nimble! Your agility helps you dodge the attack![/color]")
 
 	if roll <= hit_chance:
 		result.hit = true
@@ -107,15 +114,27 @@ static func get_accuracy(entity: Entity) -> int:
 
 ## Calculate defender's evasion
 ## Formula: 5% + (DEX × 1)% + racial bonuses
-static func get_evasion(entity: Entity) -> int:
+## Returns dictionary with total and bonus breakdown for logging
+static func get_evasion_with_breakdown(entity: Entity) -> Dictionary:
 	var dex = entity.attributes.get("DEX", 10)
 	var base_evasion = 5 + dex
+	var racial_bonus = 0
 
 	# Add racial evasion bonus (e.g., Halfling Nimble)
 	if entity.has_method("get_racial_evasion_bonus"):
-		base_evasion += entity.get_racial_evasion_bonus()
+		racial_bonus = entity.get_racial_evasion_bonus()
 
-	return base_evasion
+	return {
+		"total": base_evasion + racial_bonus,
+		"base": base_evasion,
+		"racial_bonus": racial_bonus
+	}
+
+
+## Calculate defender's evasion (simple version for backwards compatibility)
+## Formula: 5% + (DEX × 1)% + racial bonuses
+static func get_evasion(entity: Entity) -> int:
+	return get_evasion_with_breakdown(entity).total
 
 ## Calculate damage for an attack (legacy - used for backwards compatibility)
 ## Formula: Base Damage + STR modifier - Armor
@@ -186,6 +205,13 @@ static func calculate_damage_with_types(attacker: Entity, defender: Entity, weap
 
 	# Calculate raw physical damage before resistance
 	var raw_damage = maxi(0, base_damage + str_modifier - effective_armor)
+
+	# Add class melee damage bonus (e.g., Barbarian Rage when low HP)
+	if attacker.has_method("get_class_melee_bonus"):
+		var melee_bonus = attacker.get_class_melee_bonus()
+		if melee_bonus > 0:
+			raw_damage += melee_bonus
+			EventBus.message_logged.emit("[color=red]Rage: +%d melee damage![/color]" % melee_bonus)
 
 	# Apply damage type resistance/vulnerability for primary damage
 	var primary_result = ElementalSystemClass.calculate_elemental_damage(raw_damage, damage_type, defender, attacker)

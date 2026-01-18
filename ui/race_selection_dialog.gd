@@ -165,12 +165,15 @@ func _navigate_races(direction: int) -> void:
 
 
 func _update_race_selection() -> void:
-	# Update race button colors
+	# Update race button colors and text
 	for i in range(race_buttons.size()):
+		var base_text = race_buttons[i].text.trim_prefix("► ")
 		if i == selected_race_index and not in_button_mode:
 			race_buttons[i].modulate = COLOR_SELECTED
+			race_buttons[i].text = "► " + base_text
 		else:
 			race_buttons[i].modulate = COLOR_NORMAL
+			race_buttons[i].text = base_text
 
 	# Update info panel
 	if selected_race_index >= 0 and selected_race_index < race_ids.size():

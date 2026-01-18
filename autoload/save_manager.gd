@@ -220,6 +220,19 @@ func _serialize_player() -> Dictionary:
 			"spell_success_bonus": player.spell_success_bonus,
 			"harvest_bonuses": player.harvest_bonuses.duplicate()
 		},
+		"class_id": player.class_id,
+		"class_feats": player.class_feats.duplicate(true),
+		"class_stat_modifiers": player.class_stat_modifiers.duplicate(),
+		"class_skill_bonuses": player.class_skill_bonuses.duplicate(),
+		"class_bonuses": {
+			"max_health_bonus": player.max_health_bonus,
+			"max_mana_bonus": player.max_mana_bonus,
+			"crit_damage_bonus": player.crit_damage_bonus,
+			"ranged_damage_bonus": player.ranged_damage_bonus,
+			"healing_received_bonus": player.healing_received_bonus,
+			"low_hp_melee_bonus": player.low_hp_melee_bonus,
+			"bonus_skill_points_per_level": player.bonus_skill_points_per_level
+		},
 		"attributes": {
 			"STR": player.attributes["STR"],
 			"DEX": player.attributes["DEX"],
@@ -567,6 +580,51 @@ func _deserialize_player(player_data: Dictionary):
 		player.crafting_bonus = 0
 		player.spell_success_bonus = 0
 		player.harvest_bonuses = {}
+
+	# Class (with backwards compatibility - default to adventurer for old saves)
+	player.class_id = player_data.get("class_id", "adventurer")
+	# Support both old (class_abilities) and new (class_feats) save format
+	if player_data.has("class_feats"):
+		player.class_feats = player_data.class_feats.duplicate(true)
+	elif player_data.has("class_abilities"):
+		# Backwards compatibility: rename old key
+		player.class_feats = player_data.class_abilities.duplicate(true)
+	else:
+		# Initialize class feats for old saves
+		player.class_feats = {}
+
+	# Class stat modifiers (with backwards compatibility for old saves)
+	if player_data.has("class_stat_modifiers"):
+		player.class_stat_modifiers = player_data.class_stat_modifiers.duplicate()
+	else:
+		# Re-apply from class manager for old saves without this field
+		player.class_stat_modifiers = ClassManager.get_stat_modifiers(player.class_id).duplicate()
+
+	# Class skill bonuses (with backwards compatibility for old saves)
+	if player_data.has("class_skill_bonuses"):
+		player.class_skill_bonuses = player_data.class_skill_bonuses.duplicate()
+	else:
+		player.class_skill_bonuses = ClassManager.get_skill_bonuses(player.class_id).duplicate()
+
+	# Class bonuses (with backwards compatibility for old saves)
+	if player_data.has("class_bonuses"):
+		var cls_bonuses = player_data.class_bonuses
+		player.max_health_bonus = cls_bonuses.get("max_health_bonus", 0)
+		player.max_mana_bonus = cls_bonuses.get("max_mana_bonus", 0)
+		player.crit_damage_bonus = cls_bonuses.get("crit_damage_bonus", 0)
+		player.ranged_damage_bonus = cls_bonuses.get("ranged_damage_bonus", 0)
+		player.healing_received_bonus = cls_bonuses.get("healing_received_bonus", 0.0)
+		player.low_hp_melee_bonus = cls_bonuses.get("low_hp_melee_bonus", 0)
+		player.bonus_skill_points_per_level = cls_bonuses.get("bonus_skill_points_per_level", 0)
+	else:
+		# Old save - set defaults (adventurer has no bonuses)
+		player.max_health_bonus = 0
+		player.max_mana_bonus = 0
+		player.crit_damage_bonus = 0
+		player.ranged_damage_bonus = 0
+		player.healing_received_bonus = 0.0
+		player.low_hp_melee_bonus = 0
+		player.bonus_skill_points_per_level = 0
 
 	# Attributes
 	for attr in player_data.attributes.keys():

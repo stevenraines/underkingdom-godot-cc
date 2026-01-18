@@ -16,6 +16,7 @@ const _FOVSystem = preload("res://systems/fov_system.gd")
 const _LockSystem = preload("res://systems/lock_system.gd")
 const _RitualSystem = preload("res://systems/ritual_system.gd")
 const _ItemFactory = preload("res://items/item_factory.gd")
+# Note: ClassManager is accessed as an autoload singleton (registered in project.godot)
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -173,6 +174,21 @@ var crafting_bonus: int = 0  # Tinkerer (Gnome)
 var spell_success_bonus: int = 0  # Arcane Affinity (Gnome)
 var harvest_bonuses: Dictionary = {}  # Stonecunning (Dwarf) - {resource_type: bonus}
 
+# Class system
+var class_id: String = "adventurer"  # Selected class ID
+var class_feats: Dictionary = {}  # Feat state: {feat_id: {uses_remaining: int, active: bool}}
+var class_stat_modifiers: Dictionary = {}  # Class stat bonuses: {stat_name: modifier}
+var class_skill_bonuses: Dictionary = {}  # Class skill bonuses: {skill_id: bonus}
+
+# Class passive bonuses (applied from passive feats)
+var max_health_bonus: int = 0  # Battle Hardened (Warrior)
+var max_mana_bonus: int = 0  # Arcane Mind (Mage)
+var crit_damage_bonus: int = 0  # Shadow Strike (Rogue)
+var ranged_damage_bonus: int = 0  # Hunter's Mark (Ranger)
+var healing_received_bonus: float = 0.0  # Divine Favor (Cleric)
+var low_hp_melee_bonus: int = 0  # Rage (Barbarian)
+var bonus_skill_points_per_level: int = 0  # Jack of All Trades (Adventurer)
+
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
 	_setup_player()
@@ -268,9 +284,9 @@ func _apply_racial_trait(trait_data: Dictionary) -> void:
 	var trait_type = trait_data.get("type", "passive")
 
 	# Initialize trait state
-	var uses_per_rest = trait_data.get("uses_per_rest", -1)  # -1 = unlimited
+	var uses_per_day = trait_data.get("uses_per_day", -1)  # -1 = unlimited
 	racial_traits[trait_id] = {
-		"uses_remaining": uses_per_rest,
+		"uses_remaining": uses_per_day,
 		"active": true
 	}
 
@@ -345,23 +361,24 @@ func can_use_racial_ability(trait_id: String) -> bool:
 	return trait_state.uses_remaining != 0  # -1 (unlimited) or positive
 
 
-## Reset racial ability uses (called on rest)
+## Reset racial ability uses (called at dawn each day)
 func reset_racial_abilities() -> void:
 	var all_traits = RaceManager.get_traits(race_id)
 	for trait_data in all_traits:
 		var tid = trait_data.get("id", "")
 		if racial_traits.has(tid):
-			var uses_per_rest = trait_data.get("uses_per_rest", -1)
-			racial_traits[tid].uses_remaining = uses_per_rest
+			var uses_per_day = trait_data.get("uses_per_day", -1)
+			racial_traits[tid].uses_remaining = uses_per_day
 			EventBus.racial_ability_recharged.emit(self, tid)
 
 
-## Override to include racial stat modifiers in effective attribute calculation
+## Override to include racial and class stat modifiers in effective attribute calculation
 func get_effective_attribute(attr_name: String) -> int:
 	var base_value = attributes.get(attr_name, 10)
 	var racial_mod = racial_stat_modifiers.get(attr_name, 0)
+	var class_mod = class_stat_modifiers.get(attr_name, 0)
 	var temp_mod = stat_modifiers.get(attr_name, 0)
-	return max(1, base_value + racial_mod + temp_mod)
+	return max(1, base_value + racial_mod + class_mod + temp_mod)
 
 
 ## Get effective perception range (with racial bonuses like darkvision)
@@ -403,6 +420,183 @@ func get_racial_xp_bonus() -> int:
 		bonus += effect.get("xp_bonus", 0)
 
 	return bonus
+
+
+# =============================================================================
+# CLASS SYSTEM
+# =============================================================================
+
+## Apply class bonuses to player attributes and skills
+## Should be called during character creation, after class is selected
+func apply_class(new_class_id: String) -> void:
+	class_id = new_class_id
+
+	# Store class stat modifiers (don't modify base attributes)
+	class_stat_modifiers = ClassManager.get_stat_modifiers(class_id).duplicate()
+	print("[Player] Class stat modifiers: %s" % class_stat_modifiers)
+
+	# Store class skill bonuses
+	class_skill_bonuses = ClassManager.get_skill_bonuses(class_id).duplicate()
+	print("[Player] Class skill bonuses: %s" % class_skill_bonuses)
+
+	# Apply skill bonuses to skills
+	for skill_id in class_skill_bonuses:
+		if skills.has(skill_id):
+			skills[skill_id] += class_skill_bonuses[skill_id]
+
+	# Apply class feats
+	var feats = ClassManager.get_feats(class_id)
+	for feat in feats:
+		_apply_class_feat(feat)
+
+	# Recalculate derived stats after attribute changes
+	_calculate_derived_stats()
+
+	# Update perception based on effective WIS (includes class modifier)
+	perception_range = 5 + int(get_effective_attribute("WIS") / 2.0)
+
+	print("[Player] Applied class '%s' - Stats: %s, Skills: %s" % [
+		class_id,
+		ClassManager.format_stat_modifiers(class_id),
+		ClassManager.format_skill_bonuses(class_id)
+	])
+
+
+## Apply a single class feat
+func _apply_class_feat(feat_data: Dictionary) -> void:
+	var feat_id = feat_data.get("id", "")
+	var feat_type = feat_data.get("type", "passive")
+
+	# Initialize feat state
+	var uses_per_day = feat_data.get("uses_per_day", -1)  # -1 = unlimited (passive)
+	class_feats[feat_id] = {
+		"uses_remaining": uses_per_day,
+		"active": true
+	}
+
+	# Apply passive effects immediately
+	if feat_type == "passive":
+		var effect = feat_data.get("effect", {})
+		_apply_passive_feat_effect(effect)
+
+
+## Apply passive feat effects (stat bonuses, etc.)
+func _apply_passive_feat_effect(effect: Dictionary) -> void:
+	# Max health bonus (e.g., Warrior Battle Hardened)
+	if effect.has("max_health_bonus"):
+		max_health_bonus += effect.max_health_bonus
+		max_health += effect.max_health_bonus
+		current_health += effect.max_health_bonus
+
+	# Max mana bonus (e.g., Mage Arcane Mind)
+	if effect.has("max_mana_bonus"):
+		max_mana_bonus += effect.max_mana_bonus
+		if survival:
+			survival.base_max_mana += effect.max_mana_bonus
+			survival.mana += effect.max_mana_bonus
+
+	# Critical hit damage bonus (e.g., Rogue Shadow Strike)
+	if effect.has("crit_damage_bonus"):
+		crit_damage_bonus += effect.crit_damage_bonus
+
+	# Ranged damage bonus (e.g., Ranger Hunter's Mark)
+	if effect.has("ranged_damage_bonus"):
+		ranged_damage_bonus += effect.ranged_damage_bonus
+
+	# Healing received bonus (e.g., Cleric Divine Favor)
+	if effect.has("healing_received_bonus"):
+		healing_received_bonus += effect.healing_received_bonus
+
+	# Low HP melee bonus (e.g., Barbarian Rage)
+	if effect.has("low_hp_melee_bonus"):
+		low_hp_melee_bonus += effect.low_hp_melee_bonus
+
+	# Bonus skill points per level (e.g., Adventurer Jack of All Trades)
+	if effect.has("bonus_skill_points_per_level"):
+		bonus_skill_points_per_level += effect.bonus_skill_points_per_level
+
+
+## Check if player has a specific class feat
+func has_class_feat(feat_id: String) -> bool:
+	return class_feats.has(feat_id) and class_feats[feat_id].active
+
+
+## Use a class feat (for active feats with limited uses)
+## Returns true if feat was used successfully
+func use_class_feat(feat_id: String) -> bool:
+	if not class_feats.has(feat_id):
+		return false
+
+	var feat_state = class_feats[feat_id]
+
+	# Check if uses remaining (unlimited = -1 for passives)
+	if feat_state.uses_remaining == 0:
+		return false
+
+	# Decrement uses if not unlimited
+	if feat_state.uses_remaining > 0:
+		feat_state.uses_remaining -= 1
+
+	EventBus.class_feat_used.emit(self, feat_id)
+	return true
+
+
+## Check if a class feat has uses remaining
+func can_use_class_feat(feat_id: String) -> bool:
+	if not class_feats.has(feat_id):
+		return false
+
+	var feat_state = class_feats[feat_id]
+	return feat_state.uses_remaining != 0  # -1 (unlimited) or positive
+
+
+## Get remaining uses for a class feat
+func get_class_feat_uses(feat_id: String) -> int:
+	if not class_feats.has(feat_id):
+		return 0
+	return class_feats[feat_id].uses_remaining
+
+
+## Reset class feat uses (called at dawn each day)
+func reset_class_feats() -> void:
+	var feats = ClassManager.get_feats(class_id)
+	for feat in feats:
+		var feat_id = feat.get("id", "")
+		if class_feats.has(feat_id):
+			var uses_per_day = feat.get("uses_per_day", -1)
+			class_feats[feat_id].uses_remaining = uses_per_day
+			EventBus.class_feat_recharged.emit(self, feat_id)
+
+
+## Get melee damage bonus from class feats (e.g., Barbarian Rage when low HP)
+func get_class_melee_bonus() -> int:
+	var bonus = 0
+
+	# Rage: bonus damage when below threshold HP
+	if has_class_feat("rage"):
+		var feat = ClassManager.get_feat(class_id, "rage")
+		var effect = feat.get("effect", {})
+		var threshold = effect.get("low_hp_threshold", 0.5)
+		if float(current_health) / float(max_health) <= threshold:
+			bonus += effect.get("low_hp_melee_bonus", 0)
+
+	return bonus
+
+
+## Get ranged damage bonus from class feats
+func get_class_ranged_bonus() -> int:
+	return ranged_damage_bonus
+
+
+## Get crit damage bonus from class feats
+func get_class_crit_bonus() -> int:
+	return crit_damage_bonus
+
+
+## Apply healing with class bonus (e.g., Cleric Divine Favor)
+func heal_with_class_bonus(amount: int) -> void:
+	var bonus_amount = int(amount * healing_received_bonus)
+	heal(amount + bonus_amount)
 
 
 ## Attempt to attack a target entity

@@ -25,9 +25,9 @@
     {
       "id": "relentless",
       "name": "Relentless Endurance",
-      "description": "Once per rest, survive a killing blow with 1 HP",
+      "description": "Once per day, survive a killing blow with 1 HP",
       "type": "active",
-      "uses_per_rest": 1,
+      "uses_per_day": 1,
       "effect": {
         "death_save": true
       }

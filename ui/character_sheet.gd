@@ -368,6 +368,13 @@ func _add_progression_section() -> void:
 	var race_color = Color.from_string(race_color_hex, Color(0.9, 0.9, 0.6))
 	_add_stat_line("Race", race_name, race_color)
 
+	# Class
+	var cls_id = player.class_id if player.class_id != "" else "adventurer"
+	var cls_name = ClassManager.get_class_name(cls_id)
+	var cls_color_hex = ClassManager.get_class_color(cls_id)
+	var cls_color = Color.from_string(cls_color_hex, Color(0.9, 0.9, 0.6))
+	_add_stat_line("Class", cls_name, cls_color)
+
 	# Level
 	_add_stat_line("Level", "%d" % player.level, Color(1.0, 0.85, 0.3))
 
@@ -516,6 +523,76 @@ func _add_traits_section() -> void:
 			trait_container.add_child(desc_label)
 
 		traits_content.add_child(trait_container)
+
+	# Class abilities section
+	_add_spacer()
+	_add_class_abilities_section()
+
+## Add class abilities to the traits tab
+func _add_class_abilities_section() -> void:
+	var cls_id = player.class_id if player.class_id != "" else "adventurer"
+	var cls_name = ClassManager.get_class_name(cls_id)
+	var abilities = ClassManager.get_abilities(cls_id)
+
+	# Class name label
+	var class_label = Label.new()
+	class_label.text = cls_name + " Abilities"
+	class_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	class_label.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
+	class_label.add_theme_font_size_override("font_size", 16)
+	traits_content.add_child(class_label)
+	_add_spacer()
+
+	if abilities.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No class abilities"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		empty_label.add_theme_font_size_override("font_size", 14)
+		traits_content.add_child(empty_label)
+		return
+
+	for ability_def in abilities:
+		var ability_id = ability_def.get("id", "")
+		var ability_name = ability_def.get("name", "Unknown")
+		var ability_desc = ability_def.get("description", "")
+		var ability_type = ability_def.get("type", "passive")
+
+		# Create a container for each ability
+		var ability_container = VBoxContainer.new()
+		ability_container.add_theme_constant_override("separation", 2)
+
+		# Ability name line with type indicator
+		var name_line = HBoxContainer.new()
+
+		var name_label = Label.new()
+		if ability_type == "active":
+			# Show uses remaining for active abilities
+			var uses_remaining = 0
+			var uses_per_rest = ability_def.get("uses_per_rest", 1)
+			if player.class_abilities.has(ability_id):
+				uses_remaining = player.class_abilities[ability_id].get("uses_remaining", 0)
+			name_label.text = "◆ %s [%d/%d uses]" % [ability_name, uses_remaining, uses_per_rest]
+			name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.5))  # Yellow for active
+		else:
+			name_label.text = "◇ %s" % ability_name
+			name_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9))  # Blue-ish for passive
+
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.add_theme_font_size_override("font_size", 14)
+		name_line.add_child(name_label)
+		ability_container.add_child(name_line)
+
+		# Ability description (wrapped)
+		if ability_desc != "":
+			var desc_label = Label.new()
+			desc_label.text = "  %s" % ability_desc
+			desc_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+			desc_label.add_theme_font_size_override("font_size", 12)
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			ability_container.add_child(desc_label)
+
+		traits_content.add_child(ability_container)
 
 ## Helper: Add a stat line with label and value
 func _add_stat_line(label_text: String, value_text: String, value_color: Color) -> void:

@@ -1,0 +1,21 @@
+{
+  "id": "adventurer",
+  "name": "Adventurer",
+  "description": "A jack of all trades with no specialization but unlimited potential. Free from class restrictions, adventurers can master any weapon and wear any armor.",
+  "ascii_color": "#AAAAAA",
+  "stat_modifiers": {},
+  "skill_bonuses": {},
+  "feats": [
+    {
+      "id": "jack_of_all_trades",
+      "name": "Jack of All Trades",
+      "description": "+1 bonus skill point per level",
+      "type": "passive",
+      "effect": {
+        "bonus_skill_points_per_level": 1
+      }
+    }
+  ],
+  "restrictions": {},
+  "starting_equipment": []
+}

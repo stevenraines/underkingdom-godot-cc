@@ -1,0 +1,41 @@
+{
+  "id": "cleric",
+  "name": "Cleric",
+  "description": "Holy warriors devoted to the gods, clerics channel divine magic to heal allies and smite the undead. Their faith protects them from arcane interference.",
+  "ascii_color": "#FFFF66",
+  "stat_modifiers": {
+    "WIS": 1,
+    "CHA": 1,
+    "DEX": -1
+  },
+  "skill_bonuses": {
+    "maces": 1,
+    "harvesting": 1
+  },
+  "feats": [
+    {
+      "id": "divine_favor",
+      "name": "Divine Favor",
+      "description": "+10% healing received",
+      "type": "passive",
+      "effect": {
+        "healing_received_bonus": 0.10
+      }
+    },
+    {
+      "id": "blessed_rest",
+      "name": "Blessed Rest",
+      "description": "Heal 10 HP instantly once per day",
+      "type": "active",
+      "uses_per_day": 1,
+      "effect": {
+        "heal_amount": 10
+      }
+    }
+  ],
+  "restrictions": {},
+  "starting_equipment": [
+    {"item_id": "iron_mace", "count": 1},
+    {"item_id": "bandage", "count": 3}
+  ]
+}

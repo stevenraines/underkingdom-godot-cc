@@ -208,6 +208,13 @@ static func calculate_ranged_damage_with_types(attacker: Entity, target: Entity,
 	# Ranged attacks typically bypass armor (projectiles find gaps)
 	# But piercing already has armor bypass built in, so we just use base damage
 
+	# Add class ranged damage bonus (e.g., Ranger Hunter's Mark)
+	if attacker.has_method("get_class_ranged_bonus"):
+		var ranged_bonus = attacker.get_class_ranged_bonus()
+		if ranged_bonus > 0:
+			base_damage += ranged_bonus
+			EventBus.message_logged.emit("[color=green]Hunter's Mark: +%d ranged damage![/color]" % ranged_bonus)
+
 	# Apply damage type resistance/vulnerability for primary damage
 	var primary_result = ElementalSystemClass.calculate_elemental_damage(base_damage, damage_type, target, attacker)
 	result.primary_damage = primary_result.final_damage

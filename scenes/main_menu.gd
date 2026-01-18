@@ -387,7 +387,7 @@ func _is_version_newer(version_a: String, version_b: String) -> bool:
 
 ## Handle version notice button click - open release notes
 func _on_version_notice_pressed() -> void:
-	var release_url = "https://github.com/stevenraines/underkingdom-godot-cc/releases/tag/v%s" % current_version
+	var release_url = "https://github.com/stevenraines/underkingdom-godot-cc/releases"
 	print("Opening release notes: %s" % release_url)
 	OS.shell_open(release_url)
 	# Hide the notice after clicking (version already saved on menu load)

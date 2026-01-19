@@ -1157,6 +1157,7 @@ func _start_detect_trap_mode() -> void:
 
 	# Search all tiles within range
 	var detected_traps: Array[String] = []
+	var detected_positions: Array[Vector2i] = []
 	var sensed_count: int = 0
 
 	for dx in range(-detection_range, detection_range + 1):
@@ -1174,6 +1175,7 @@ func _start_detect_trap_mode() -> void:
 
 			if result.detected:
 				detected_traps.append(result.hazard_name)
+				detected_positions.append(target_pos)
 			elif result.hazard_name != "":
 				# Found a trap but failed the check
 				sensed_count += 1
@@ -1183,9 +1185,10 @@ func _start_detect_trap_mode() -> void:
 		if detected_traps.size() > 0:
 			var trap_list = ", ".join(detected_traps)
 			game._add_message("You discover: %s!" % trap_list, Color(0.6, 1.0, 0.6))
-			# Refresh hazard rendering so newly detected traps are visible
-			if game.has_method("_render_hazards"):
-				game._render_hazards(player.position)
+			# Render only the newly detected hazards (not all hazards on map)
+			if game.has_method("_render_hazard_at"):
+				for trap_pos in detected_positions:
+					game._render_hazard_at(trap_pos)
 		elif sensed_count > 0:
 			game._add_message("You sense something nearby, but can't pinpoint it...", Color(1.0, 0.8, 0.5))
 		else:
@@ -1237,9 +1240,9 @@ func _try_disarm_trap_at(pos: Vector2i) -> void:
 		var color = Color(0.6, 1.0, 0.6) if result.success else Color(1.0, 0.5, 0.5)
 		game._add_message(result.message, color)
 
-	# Refresh hazard rendering to show grey disarmed trap
-	if result.success and game.has_method("_render_hazards"):
-		game._render_hazards(player.position)
+	# Refresh hazard rendering to show grey disarmed trap (only at this position)
+	if result.success and game.has_method("_render_hazard_at"):
+		game._render_hazard_at(pos)
 
 	# If disarm failed and triggered the trap, apply damage
 	if result.get("triggered", false):

@@ -8,8 +8,8 @@
     Turn undead ability for cleric class, using traditional roguelike patterns
 - [X] UI/UX: Show spell targets with reticule
     When as spell is selected and the option to tab through enemies appears, the selected enemy should show as targeted so the player knows which creature they are casting it on
-- [/] Bug: Traps not rendering when sprung.
-- [ ] Bug: Render Order of Enemies and Items
+- [X] Bug: Traps not rendering when sprung.
+- [X] Bug: Render Order of Enemies and Items
     When occupying the same space, items render over top of creatures
 - [ ] Feature: Cleric Spell Casting
     Clerics should not need a spellbook to cast spells. Instead, they should be able to case any spell they know as long as they possess a magical focus, a token of their faith. Give the cleric this object at creation.

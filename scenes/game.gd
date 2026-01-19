@@ -645,22 +645,18 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	if is_dungeon:
 		# Re-render entire map with updated wall visibility
 		_render_map()
+		_render_ground_items()  # Render loot first so creatures appear on top
 		_render_all_entities()
 
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
 
-	# Re-render any entity at old position that was hidden under player
-	_render_entity_at(old_pos)
-
-	# Re-render any ground item at old position that was hidden under player
+	# Re-render items/hazards/features at old position that were hidden under player
+	# Render loot first, then hazards/features, then creatures (so creatures appear on top)
 	_render_ground_item_at(old_pos)
-
-	# Re-render any feature at old position that was hidden under player
 	_render_feature_at(old_pos)
-
-	# Re-render any hazard at old position that was hidden under player
 	_render_hazard_at(old_pos)
+	_render_entity_at(old_pos)
 
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
@@ -2163,8 +2159,8 @@ func _cast_spell_on_target(spell, target) -> void:
 	# Update HUD to show mana change
 	_update_hud()
 	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
-	_render_all_entities()
 	_render_ground_items()
+	_render_all_entities()
 	_update_visibility()
 
 
@@ -2269,8 +2265,8 @@ func _on_structure_placed(_structure: Structure) -> void:
 	input_handler.ui_blocking_input = false  # Re-enable player movement
 	# Re-render map to clear cursor and show the new structure
 	_render_map()
-	_render_all_entities()
 	_render_ground_items()
+	_render_all_entities()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 
 ## Try to place a structure at the clicked screen position
@@ -2305,8 +2301,8 @@ func _try_place_structure_at_cursor() -> void:
 		_update_hud()  # Update inventory display
 		# Clear cursor after successful placement
 		_render_map()
-		_render_all_entities()
 		_render_ground_items()
+		_render_all_entities()
 		renderer.render_entity(player.position, "@", Color.YELLOW)
 	else:
 		_add_message(result.message, Color(0.9, 0.5, 0.5))
@@ -2318,8 +2314,8 @@ func _update_build_cursor() -> void:
 
 	# Re-render map to clear old cursor
 	_render_map()
-	_render_all_entities()
 	_render_ground_items()
+	_render_all_entities()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 
 	# Render cursor at new position

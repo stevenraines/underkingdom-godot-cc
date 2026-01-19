@@ -1,0 +1,27 @@
+{
+  "id": "minor_healing",
+  "name": "Minor Healing",
+  "description": "Restore a small amount of health to yourself.",
+  "school": "conjuration",
+  "level": 0,
+  "mana_cost": 8,
+  "requirements": {
+    "character_level": 1,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "self"
+  },
+  "effects": {
+    "heal": {
+      "base": 2,
+      "scaling": 4
+    }
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "Healing energy flows through you!",
+  "ascii_char": "+",
+  "ascii_color": "#44FF44"
+}

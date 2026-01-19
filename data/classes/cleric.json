@@ -33,11 +33,29 @@
         "heal_amount": 10,
         "activation_message": "Blessed Rest! Divine energy restores your vitality."
       }
+    },
+    {
+      "id": "turn_undead",
+      "name": "Turn Undead",
+      "description": "Channel divine power to damage and terrify nearby undead. Radius 3 (+1 per 4 levels).",
+      "type": "active",
+      "uses_per_day": 2,
+      "activation_pattern": "aoe_undead_effect",
+      "effect": {
+        "base_damage": 12,
+        "damage_type": "radiant",
+        "fear_duration": 5,
+        "base_radius": 3,
+        "radius_per_levels": 4,
+        "target_creature_type": "undead",
+        "activation_message": "You channel divine light! Undead creatures recoil in terror!"
+      }
     }
   ],
   "restrictions": {},
   "starting_equipment": [
     {"item_id": "iron_mace", "count": 1},
     {"item_id": "bandage", "count": 3}
-  ]
+  ],
+  "starting_spells": ["light", "heal_minor", "sacred_flame"]
 }

@@ -158,24 +158,26 @@ func create_item(item_id: String, count: int = 1) -> Item:
 
 ## Create multiple item stacks if needed
 ## Returns array of items to handle counts larger than max_stack
+## Supports both legacy item IDs and template-based items (e.g., "quartz_gem")
 func create_item_stacks(item_id: String, total_count: int) -> Array[Item]:
 	var items: Array[Item] = []
-	
-	if not has_item(item_id):
+	var remaining = total_count
+
+	# Get item data - supports both legacy and template-based items
+	var data = get_item_data(item_id)
+	if data.is_empty():
 		push_error("ItemManager: Unknown item ID: %s" % item_id)
 		return items
-	
-	var remaining = total_count
-	var data = _item_data[item_id]
+
 	var max_stack = data.get("max_stack", 1)
-	
+
 	while remaining > 0:
 		var stack_count = min(remaining, max_stack)
 		var item = create_item(item_id, stack_count)
 		if item:
 			items.append(item)
 		remaining -= stack_count
-	
+
 	return items
 
 ## Get all item IDs of a specific type

@@ -6,7 +6,8 @@
 		{"item_id": "bone", "min_count": 1, "max_count": 3, "chance": 0.5},
 		{"item_id": "leather", "min_count": 1, "max_count": 2, "chance": 0.3},
 		{"item_id": "gold_coin", "min_count": 1, "max_count": 15, "chance": 0.25, "cr_scales": true},
-		{"item_id": "gem", "min_count": 1, "max_count": 1, "chance": 0.1, "cr_scales": true},
+		{"item_id": "quartz_gem", "min_count": 1, "max_count": 1, "chance": 0.06, "cr_scales": true},
+		{"item_id": "garnet_gem", "min_count": 1, "max_count": 1, "chance": 0.03, "cr_scales": true},
 		{"item_id": "raw_meat", "min_count": 1, "max_count": 2, "chance": 0.4}
 	]
 }

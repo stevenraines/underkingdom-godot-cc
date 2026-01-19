@@ -1055,6 +1055,14 @@ func pickup_item(ground_item: GroundItem) -> bool:
 
 	var item = ground_item.item
 
+	# Handle gold coins specially - add directly to gold count
+	if item.id == "gold_coin":
+		var count = item.stack_size
+		gold += count
+		EventBus.message_logged.emit("Found %d gold!" % count)
+		EventBus.item_picked_up.emit(item)
+		return true
+
 	# Auto-equip lit light sources to off-hand if available
 	if item.provides_light and item.is_lit and item.can_equip_to_slot("off_hand"):
 		var off_hand = inventory.get_equipped("off_hand")

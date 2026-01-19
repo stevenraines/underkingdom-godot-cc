@@ -6,7 +6,7 @@
 	"color": "#8B4513",
 	"weight": 2.5,
 	"value": 10,
-	"stack_size": 1,
+	"max_stack": 1,
 	"item_type": "weapon",
 	"slot": "main_hand",
 	"damage": 4,

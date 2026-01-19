@@ -1,0 +1,27 @@
+{
+  "template_id": "gem",
+  "display_name": "Gem",
+  "description_base": "A precious gemstone that sparkles in the light.",
+  "category": "misc",
+  "subtype": "treasure",
+  "base_properties": {
+    "ascii_char": "*",
+    "flags": {
+      "equippable": false,
+      "consumable": false,
+      "craftable": false,
+      "tool": false,
+      "valuable": true
+    },
+    "max_stack": 10
+  },
+  "base_stats": {
+    "weight": 0.1,
+    "value": 50
+  },
+  "applicable_variants": ["gem_type"],
+  "default_variants": {
+    "gem_type": "quartz"
+  },
+  "required_variants": ["gem_type"]
+}

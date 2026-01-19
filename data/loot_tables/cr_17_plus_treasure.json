@@ -6,7 +6,10 @@
 		{"item_id": "gold_coin", "min_count": 100, "max_count": 500, "cr_scales": true}
 	],
 	"drops": [
-		{"item_id": "gem", "min_count": 3, "max_count": 10, "chance": 0.7, "cr_scales": true},
+		{"item_id": "sapphire_gem", "min_count": 1, "max_count": 3, "chance": 0.4, "cr_scales": true},
+		{"item_id": "emerald_gem", "min_count": 1, "max_count": 2, "chance": 0.35, "cr_scales": true},
+		{"item_id": "ruby_gem", "min_count": 1, "max_count": 2, "chance": 0.25, "cr_scales": true},
+		{"item_id": "diamond_gem", "min_count": 1, "max_count": 1, "chance": 0.15, "cr_scales": true},
 		{"item_id": "soul_gem", "min_count": 1, "max_count": 3, "chance": 0.4, "cr_scales": true},
 		{"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.2},
 		{"item_id": "ancient_crown", "min_count": 1, "max_count": 1, "chance": 0.1},

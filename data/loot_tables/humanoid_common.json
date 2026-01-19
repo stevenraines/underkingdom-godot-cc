@@ -12,6 +12,8 @@
 		{"item_id": "healing_potion", "min_count": 1, "max_count": 1, "chance": 0.08},
 		{"item_id": "lockpick", "min_count": 1, "max_count": 1, "chance": 0.04},
 		{"item_id": "rope", "min_count": 1, "max_count": 1, "chance": 0.1},
-		{"item_id": "gem", "min_count": 1, "max_count": 1, "chance": 0.03, "cr_scales": true}
+		{"item_id": "quartz_gem", "min_count": 1, "max_count": 1, "chance": 0.02, "cr_scales": true},
+		{"item_id": "amethyst_gem", "min_count": 1, "max_count": 1, "chance": 0.008, "cr_scales": true},
+		{"item_id": "topaz_gem", "min_count": 1, "max_count": 1, "chance": 0.005, "cr_scales": true}
 	]
 }

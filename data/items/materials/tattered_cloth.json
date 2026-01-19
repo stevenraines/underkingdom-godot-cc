@@ -6,6 +6,6 @@
 	"color": "#A9A9A9",
 	"weight": 0.1,
 	"value": 1,
-	"stack_size": 20,
+	"max_stack": 20,
 	"item_type": "material"
 }

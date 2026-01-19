@@ -10,7 +10,9 @@
   "harvest_actions": 3,
   "yields": [
     {"item_id": "stone", "min_count": 3, "max_count": 6},
-    {"item_id": "flint", "min_count": 0, "max_count": 2, "chance": 0.3}
+    {"item_id": "flint", "min_count": 0, "max_count": 2, "chance": 0.3},
+    {"item_id": "sling_stone", "min_count": 2, "max_count": 10, "chance": 0.2}
+ 
   ],
   "replacement_tile": "floor",
   "harvest_message": "Broke rock with %tool%, got %yield%",

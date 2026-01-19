@@ -154,11 +154,25 @@ func take_turn() -> void:
 
 ## Execute AI behavior
 func _execute_behavior(player: Player) -> void:
-	# First, check if we should attack (player is adjacent)
+	# First, check if fleeing due to fear effect (spell-based fear like Turn Undead)
+	if ai_state == "fleeing":
+		var fear_effect = get_active_effect("turn_undead_fear")
+		if fear_effect.is_empty():
+			fear_effect = get_active_effect("fear_effect")
+
+		if not fear_effect.is_empty():
+			var flee_from = fear_effect.get("flee_from", player.position)
+			_move_away_from(flee_from)
+			return  # Fleeing consumes the turn
+		else:
+			# Fear effect expired but ai_state not reset - reset it
+			ai_state = "normal"
+
+	# Second, check if we should attack (player is adjacent)
 	if _attempt_attack_if_adjacent():
 		return  # Attack consumes the turn
 
-	# Check for feared components - flee if near any
+	# Check for feared components - flee if near any (environmental fear)
 	if not feared_components.is_empty() and _is_near_feared_component():
 		var threat_pos = _get_nearest_feared_component_position()
 		_move_away_from(threat_pos)

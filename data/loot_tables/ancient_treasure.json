@@ -7,7 +7,10 @@
 	],
 	"drops": [
 		{"item_id": "ancient_artifact", "min_count": 1, "max_count": 1, "chance": 0.3},
-		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.4, "cr_scales": true},
+		{"item_id": "garnet_gem", "min_count": 1, "max_count": 2, "chance": 0.2, "cr_scales": true},
+		{"item_id": "sapphire_gem", "min_count": 1, "max_count": 1, "chance": 0.12, "cr_scales": true},
+		{"item_id": "emerald_gem", "min_count": 1, "max_count": 1, "chance": 0.08, "cr_scales": true},
+		{"item_id": "ruby_gem", "min_count": 1, "max_count": 1, "chance": 0.04, "cr_scales": true},
 		{"item_id": "ancient_scroll", "min_count": 1, "max_count": 1, "chance": 0.2},
 		{"item_id": "cursed_ring", "min_count": 1, "max_count": 1, "chance": 0.1},
 		{"item_id": "healing_potion", "min_count": 1, "max_count": 2, "chance": 0.25},

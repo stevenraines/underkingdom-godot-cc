@@ -10,7 +10,9 @@
 		{"item_id": "scroll_heal", "min_count": 1, "max_count": 1, "chance": 0.1},
 		{"item_id": "scroll_shield", "min_count": 1, "max_count": 1, "chance": 0.08},
 		{"item_id": "scroll_flame_bolt", "min_count": 1, "max_count": 1, "chance": 0.06},
-		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.15, "cr_scales": true},
+		{"item_id": "amethyst_gem", "min_count": 1, "max_count": 1, "chance": 0.08, "cr_scales": true},
+		{"item_id": "sapphire_gem", "min_count": 1, "max_count": 1, "chance": 0.05, "cr_scales": true},
+		{"item_id": "ruby_gem", "min_count": 1, "max_count": 1, "chance": 0.02, "cr_scales": true},
 		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.05}
 	]
 }

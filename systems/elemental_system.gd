@@ -220,10 +220,10 @@ static func calculate_elemental_damage(base_damage: int, element: String, target
 		result.message = "%s is immune to %s!" % [target.name, element]
 	elif resistance <= -50:
 		result.resisted = true
-		result.message = "%s resists the %s!" % [target.name, element]
+		# Note: resisted message shown by calling system when damage is actually dealt
 	elif resistance >= 50:
 		result.vulnerable = true
-		result.message = "%s is vulnerable to %s!" % [target.name, element]
+		# Note: vulnerable message shown by calling system when damage is actually dealt
 
 	return result
 

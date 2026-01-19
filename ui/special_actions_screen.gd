@@ -109,7 +109,8 @@ func _gather_actions() -> void:
 				"uses_remaining": uses_remaining,
 				"max_uses": max_uses,
 				"source": ClassManager.get_class_name(player.class_id),
-				"effect": feat.get("effect", {})
+				"effect": feat.get("effect", {}),
+				"activation_pattern": feat.get("activation_pattern", "direct_effect")
 			})
 
 	# Gather active racial traits
@@ -395,6 +396,8 @@ func _use_class_feat(action: Dictionary) -> bool:
 			return _handle_proactive_buff(action, false)  # false = is class feat
 		"direct_effect":
 			return _handle_direct_effect(action, false)
+		"aoe_undead_effect":
+			return _handle_aoe_undead_effect(action)
 		"reactive_automatic":
 			EventBus.message_logged.emit("[color=yellow]%s activates automatically.[/color]" % action.name)
 			return false
@@ -522,3 +525,104 @@ func _handle_direct_effect(action: Dictionary, is_racial: bool) -> bool:
 	var msg = effect.get("activation_message", "%s activated!" % action.name)
 	EventBus.message_logged.emit("[color=yellow]%s[/color]" % msg)
 	return true
+
+
+## Handle AOE undead effect abilities (Turn Undead)
+func _handle_aoe_undead_effect(action: Dictionary) -> bool:
+	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
+	const ElementalSystemClass = preload("res://systems/elemental_system.gd")
+
+	var action_id = action.id
+	var effect = action.effect
+
+	# Calculate radius based on player level
+	var base_radius = effect.get("base_radius", 3)
+	var radius_per_levels = effect.get("radius_per_levels", 4)
+	var bonus_radius = player.level / radius_per_levels
+	var final_radius = base_radius + bonus_radius
+
+	# Get all entities in AOE
+	var entities_in_range = SpellCastingSystemClass.get_entities_in_aoe(player.position, final_radius, "circle")
+
+	# Filter to target creature type only
+	var target_type = effect.get("target_creature_type", "undead")
+	var valid_targets: Array = []
+	for entity in entities_in_range:
+		if entity == player:
+			continue
+		if entity.creature_type == target_type and entity.is_alive:
+			valid_targets.append(entity)
+
+	if valid_targets.is_empty():
+		EventBus.message_logged.emit("[color=yellow]No %s in range.[/color]" % target_type)
+		return false
+
+	# Use the ability (decrements uses) - only after we confirm there are targets
+	if not player.use_class_feat(action_id):
+		EventBus.message_logged.emit("[color=red]Cannot use %s![/color]" % action.name)
+		return false
+
+	# Show activation message
+	var msg = effect.get("activation_message", "%s activated!" % action.name)
+	EventBus.message_logged.emit("[color=gold]%s[/color]" % msg)
+
+	# Apply damage and fear to each target
+	# Total damage is spread across all targets (divided evenly)
+	var total_base_damage = effect.get("base_damage", 12)
+	var damage_type = effect.get("damage_type", "radiant")
+	var fear_duration = effect.get("fear_duration", 4)
+
+	# Divide damage among all targets (minimum 1 per target)
+	var damage_per_target = maxi(1, total_base_damage / valid_targets.size())
+
+	var total_damage_dealt = 0
+	var enemies_affected = 0
+	var enemies_killed = 0
+
+	for target in valid_targets:
+		# Calculate and apply radiant damage (ElementalSystem handles vulnerability)
+		var damage_result = ElementalSystemClass.calculate_elemental_damage(damage_per_target, damage_type, target, player)
+		var final_damage = damage_result.get("final_damage", damage_per_target)
+
+		if final_damage > 0:
+			target.take_damage(final_damage, player.name, "Turn Undead")
+			total_damage_dealt += final_damage
+			# Show per-target damage message
+			EventBus.message_logged.emit("[color=gold]%s takes %d radiant damage![/color]" % [target.name, final_damage])
+
+		# Check if target died from damage
+		if not target.is_alive:
+			enemies_killed += 1
+			enemies_affected += 1
+			continue
+
+		# Apply fear effect to surviving targets
+		_apply_turn_undead_fear(target, fear_duration)
+		enemies_affected += 1
+
+	# Log results
+	if enemies_killed > 0:
+		EventBus.message_logged.emit("[color=gold]Turn Undead destroys %d undead![/color]" % enemies_killed)
+	if enemies_affected - enemies_killed > 0:
+		EventBus.message_logged.emit("[color=gold]%d undead flee in terror![/color]" % (enemies_affected - enemies_killed))
+
+	EventBus.message_logged.emit("[color=yellow]Dealt %d radiant damage to %d undead.[/color]" % [total_damage_dealt, enemies_affected])
+
+	# Close the special actions screen
+	_close()
+
+	return true
+
+
+## Apply fear effect from Turn Undead
+func _apply_turn_undead_fear(target, duration: int) -> void:
+	var fear_effect = {
+		"id": "turn_undead_fear",
+		"type": "fear",
+		"flee_from": player.position,
+		"remaining_duration": duration,
+		"source_spell": "turn_undead"
+	}
+
+	target.ai_state = "fleeing"
+	target.add_magical_effect(fear_effect)

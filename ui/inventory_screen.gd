@@ -524,28 +524,32 @@ func _populate_item_tooltip(item: Item) -> void:
 				stats.append("◆ Hunger: +%d%%" % item.effects["hunger"])
 			if item.effects.has("thirst") and item.effects["thirst"] > 0:
 				stats.append("◇ Thirst: +%d%%" % item.effects["thirst"])
-		"weapon":
-			stats.append("⚔ Damage: +%d" % item.damage_bonus)
-			if item.is_two_handed():
+		"weapon", "tool":
+			# Damage first
+			if item.damage_min > 0 and item.damage_max > 0:
+				if item.damage_bonus > 0:
+					stats.append("⚔ Damage: %d-%d +%d" % [item.damage_min, item.damage_max, item.damage_bonus])
+				else:
+					stats.append("⚔ Damage: %d-%d" % [item.damage_min, item.damage_max])
+			elif item.damage_bonus > 0:
+				stats.append("⚔ Damage: +%d" % item.damage_bonus)
+			# Tool type second
+			if item.tool_type != "":
+				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
+			# Equip slots third (shows multi-slot or two-handed)
+			var slots = item.get_equip_slots()
+			if slots.size() > 1:
+				var slot_names = []
+				for slot in slots:
+					slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
+				stats.append("Slots: %s" % ", ".join(slot_names))
+			elif item.is_two_handed():
 				stats.append("◊ Two-Handed")
 		"armor":
 			if item.armor_value > 0:
 				stats.append("◈ Armor: %d" % item.armor_value)
 			if item.warmth != 0.0:
 				stats.append("☀ Warmth: %+.0f°F" % item.warmth)
-		"tool":
-			if item.tool_type != "":
-				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
-			if item.is_two_handed():
-				stats.append("◊ Two-Handed")
-
-	# Equip slot info for multi-slot items
-	var slots = item.get_equip_slots()
-	if slots.size() > 1:
-		var slot_names = []
-		for slot in slots:
-			slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
-		stats.append("Slots: %s" % ", ".join(slot_names))
 
 	# Assign stats to the 3 stat lines
 	stat_line_1.text = stats[0] if stats.size() > 0 else ""
@@ -557,12 +561,10 @@ func _populate_item_tooltip(item: Item) -> void:
 	match item.item_type:
 		"consumable":
 			stat_color = Color(0.5, 0.9, 0.5)
-		"weapon":
-			stat_color = Color(1.0, 0.5, 0.5)
+		"weapon", "tool":
+			stat_color = Color(1.0, 0.7, 0.5)  # Warm orange for combat items
 		"armor":
 			stat_color = Color(0.5, 0.5, 1.0)
-		"tool":
-			stat_color = Color(0.8, 0.8, 0.8)
 
 	stat_line_1.add_theme_color_override("font_color", stat_color)
 	stat_line_2.add_theme_color_override("font_color", stat_color)

@@ -12,7 +12,9 @@
     "casting_focus": true
   },
   "equip_slots": ["main_hand"],
-  "damage_bonus": 5,
+  "damage_min": 3,
+  "damage_max": 7,
+  "damage_bonus": 0,
   "damage_type": "bludgeoning",
   "secondary_damage_type": "ice",
   "secondary_damage_bonus": 3,

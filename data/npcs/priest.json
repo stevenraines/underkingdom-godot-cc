@@ -13,6 +13,7 @@
     "no_gold": "The temple accepts all, rich or poor."
   },
   "trade_inventory": [
+    {"item_id": "token_of_faith", "count": 3, "base_price": 50},
     {"item_id": "herb", "count": 10, "base_price": 3},
     {"item_id": "healing_herb", "count": 5, "base_price": 8},
     {"item_id": "healing_salve", "count": 3, "base_price": 15},

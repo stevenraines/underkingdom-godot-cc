@@ -19,6 +19,8 @@
   "durability": 100,
   "tool_type": "scythe",
   "equip_slots": ["main_hand"],
-  "damage_bonus": 2,
-	"damage_type": "slashing"
+  "damage_min": 3,
+  "damage_max": 7,
+  "damage_bonus": 0,
+  "damage_type": "slashing"
 }

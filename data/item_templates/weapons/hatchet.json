@@ -22,7 +22,9 @@
     "weight": 1.5,
     "value": 20,
     "durability": 100,
-    "damage_bonus": 3
+    "damage_min": 2,
+    "damage_max": 5,
+    "damage_bonus": 0
   },
   "applicable_variants": ["material", "quality", "origin", "enchantment"],
   "default_variants": {

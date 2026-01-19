@@ -266,7 +266,7 @@ static func _apply_modifiers(base_stats: Dictionary, variants: Array[Dictionary]
 		result[stat_name] = result.get(stat_name, 0) + combined_add
 
 	# Round integer stats
-	var integer_stats = ["durability", "damage_bonus", "armor_value", "value", "attack_range", "accuracy_modifier"]
+	var integer_stats = ["durability", "damage_bonus", "damage_min", "damage_max", "armor_value", "value", "attack_range", "accuracy_modifier"]
 	for stat_name in integer_stats:
 		if stat_name in result:
 			result[stat_name] = int(round(result[stat_name]))

@@ -224,8 +224,8 @@ func _ready() -> void:
 
 	# Initial render
 	_render_map()
+	_render_ground_items()  # Render loot first so creatures appear on top
 	_render_all_entities()
-	_render_ground_items()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
 
@@ -635,8 +635,8 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		var new_chunk = ChunkManager.world_to_chunk(new_pos)
 		if old_chunk != new_chunk:
 			_render_map()
-			_render_all_entities()
 			_render_ground_items()
+			_render_all_entities()
 
 	# In dungeons, wall visibility depends on player position
 	# So we need to re-render the entire map when player moves
@@ -740,7 +740,10 @@ func _render_hazard_at(pos: Vector2i) -> void:
 		var hazard: Dictionary = HazardManager.active_hazards[pos]
 		var definition: Dictionary = hazard.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "^")
-		var color: Color = definition.get("color", Color.RED)
+		var color = definition.get("color", Color.RED)
+		# Handle string colors (from serialized data)
+		if color is String:
+			color = Color.from_string(color, Color.RED)
 		# Disarmed hazards appear grey
 		if hazard.get("disarmed", false):
 			color = Color(0.5, 0.5, 0.5)  # Grey
@@ -1632,7 +1635,10 @@ func _render_hazards(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 			var hazard: Dictionary = HazardManager.active_hazards[pos]
 			var definition: Dictionary = hazard.get("definition", {})
 			var ascii_char: String = definition.get("ascii_char", "^")
-			var color: Color = definition.get("color", Color.RED)
+			var color = definition.get("color", Color.RED)
+			# Handle string colors (from serialized data)
+			if color is String:
+				color = Color.from_string(color, Color.RED)
 			# Disarmed hazards appear grey
 			if hazard.get("disarmed", false):
 				color = Color(0.5, 0.5, 0.5)  # Grey
@@ -2090,8 +2096,8 @@ func _on_debug_action_completed() -> void:
 	input_handler.ui_blocking_input = false
 	# Refresh rendering to show spawned entities/items and tile changes
 	_render_map()
-	_render_all_entities()
 	_render_ground_items()
+	_render_all_entities()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	_update_visibility()
 

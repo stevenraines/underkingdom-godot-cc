@@ -6,10 +6,14 @@
 ---
 ## Unplanned
 
-- [ ] Save transportability
-    Add the ability to download a saved game as a JSON file and load it into a different instance of the game
+- [ ] Feature: Dungeon Map 
+      Opening the Map in a dungeone should show currently explored level
+- [ ] Save / Load Across Machines
+    Add the ability to download a saved game as a JSON file and load it into a different instance of the game. Add a Load from file option and a place to download a saved game to a file.
 - [ ] Feature: Initial Spawn Time - Day
     Start the player's first turn at the beginning of Day, not Dawn.
+- [ ] Bash / Hack Down Doors
+    Without a key or lockpicks, there is no way to open a locked door. Add the ability to bash/hack a door open (takes several turns, fewer the stronger the character is)
 - [ ] Feature: Tree Variety
     Support different kinds of trees (e.g. oak, yew, maple, alder, pine, fir, apple, cherry, pear, willow, magnolia, mangrove, olive, almond, spruce) The types of trees should vary by biome / elevation. Use the variant mechanic to define tree types. Trees should grow in clusters - but the occasional other tree may grow in a group. Some trees bear fruit. The fruit should be harvestable as a renewable resource seasonally. Some trees are also flowering (magnolia) and flowers should be harvestable like fruit. The player should still have the option to cut down the tree and receive wood of the tree type.
 - [ ] Weapon and Armor Proficiency

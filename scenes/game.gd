@@ -1457,6 +1457,12 @@ func update_look_highlight(look_pos: Vector2i) -> void:
 			renderer.clear_highlight()
 
 
+## Hide targeting UI and clear highlight when targeting ends
+func hide_targeting_ui() -> void:
+	if renderer:
+		renderer.clear_highlight()
+
+
 ## Get ordinal suffix for a day number (1st, 2nd, 3rd, etc.)
 func _get_day_suffix(day: int) -> String:
 	if day >= 11 and day <= 13:
@@ -2125,6 +2131,10 @@ func _on_spell_cast_requested(spell_id: String) -> void:
 			input_handler.ui_blocking_input = true
 			_add_message(input_handler.targeting_system.get_status_text(), Color(0.5, 0.8, 1.0))
 			_add_message(input_handler.targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
+			# Show visual highlight on the initial target
+			var initial_target = input_handler.targeting_system.get_current_target()
+			if initial_target:
+				update_target_highlight(initial_target)
 		else:
 			_add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))
 	else:

@@ -105,6 +105,15 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		# Total damage is primary + secondary
 		var total_damage = result.damage + result.secondary_damage
 
+		# Check if defender will die from this damage (before applying it)
+		# This allows us to emit the attack message before the death triggers loot drops
+		if defender.current_health - total_damage <= 0:
+			result.defender_died = true
+
+		# Emit attack signal BEFORE applying damage
+		# This ensures the kill message appears before loot drop messages
+		EventBus.attack_performed.emit(attacker, defender, result)
+
 		# Apply damage to defender
 		# Pass source and method for death tracking
 		var source = attacker.name if attacker else "Unknown"
@@ -118,13 +127,9 @@ static func attempt_attack(attacker: Entity, defender: Entity) -> Dictionary:
 		if self_damage_amount > 0 and attacker.has_method("take_damage"):
 			attacker.take_damage(self_damage_amount, "Self", "Berserker Strike")
 			EventBus.message_logged.emit("[color=red]You take %d damage from the exertion![/color]" % self_damage_amount)
-
-		# Check if defender died
-		if not defender.is_alive:
-			result.defender_died = true
-
-	# Emit attack signal
-	EventBus.attack_performed.emit(attacker, defender, result)
+	else:
+		# Miss - emit attack signal
+		EventBus.attack_performed.emit(attacker, defender, result)
 
 	return result
 

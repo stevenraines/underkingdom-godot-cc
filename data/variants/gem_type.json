@@ -1,0 +1,101 @@
+{
+  "variant_type": "gem_type",
+  "variants": {
+    "quartz": {
+      "name_prefix": "",
+      "name_override": "Quartz",
+      "description_modifier": "a common clear crystal",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 0.5}
+      },
+      "overrides": {
+        "ascii_color": "#E0E0E0"
+      },
+      "tier": 1
+    },
+    "amethyst": {
+      "name_prefix": "",
+      "name_override": "Amethyst",
+      "description_modifier": "a purple gemstone prized for its clarity",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.0}
+      },
+      "overrides": {
+        "ascii_color": "#9966CC"
+      },
+      "tier": 2
+    },
+    "topaz": {
+      "name_prefix": "",
+      "name_override": "Topaz",
+      "description_modifier": "a golden-yellow gemstone",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.2}
+      },
+      "overrides": {
+        "ascii_color": "#FFC87C"
+      },
+      "tier": 2
+    },
+    "garnet": {
+      "name_prefix": "",
+      "name_override": "Garnet",
+      "description_modifier": "a deep red gemstone",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 1.5}
+      },
+      "overrides": {
+        "ascii_color": "#8B0000"
+      },
+      "tier": 2
+    },
+    "sapphire": {
+      "name_prefix": "",
+      "name_override": "Sapphire",
+      "description_modifier": "a brilliant blue gemstone of great beauty",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 2.5}
+      },
+      "overrides": {
+        "ascii_color": "#0F52BA"
+      },
+      "tier": 3
+    },
+    "emerald": {
+      "name_prefix": "",
+      "name_override": "Emerald",
+      "description_modifier": "a vivid green gemstone of exceptional quality",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 3.0}
+      },
+      "overrides": {
+        "ascii_color": "#50C878"
+      },
+      "tier": 3
+    },
+    "ruby": {
+      "name_prefix": "",
+      "name_override": "Ruby",
+      "description_modifier": "a fiery red gemstone of legendary value",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 4.0}
+      },
+      "overrides": {
+        "ascii_color": "#E0115F"
+      },
+      "tier": 4
+    },
+    "diamond": {
+      "name_prefix": "",
+      "name_override": "Diamond",
+      "description_modifier": "the most precious of all gemstones, perfectly clear",
+      "modifiers": {
+        "value": {"type": "multiply", "value": 6.0}
+      },
+      "overrides": {
+        "ascii_color": "#B9F2FF"
+      },
+      "tier": 5
+    }
+  }
+}

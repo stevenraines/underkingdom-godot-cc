@@ -121,6 +121,15 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		# Total damage is primary + secondary
 		var total_damage = result.damage + result.secondary_damage
 
+		# Check if target will die from this damage (before applying it)
+		# This allows us to emit the attack message before the death triggers loot drops
+		if target.current_health - total_damage <= 0:
+			result.defender_died = true
+
+		# Emit attack signal BEFORE applying damage
+		# This ensures the kill message appears before loot drop messages
+		EventBus.attack_performed.emit(attacker, target, result)
+
 		# Apply damage to target
 		# Pass source and weapon for death tracking
 		var source = attacker.name if attacker else "Unknown"
@@ -133,10 +142,6 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 		if self_damage_amount > 0 and attacker.has_method("take_damage"):
 			attacker.take_damage(self_damage_amount, "Self", "Ability")
 			EventBus.message_logged.emit("[color=red]You take %d damage from the exertion![/color]" % self_damage_amount)
-
-		# Check if target died
-		if not target.is_alive:
-			result.defender_died = true
 
 		# Ammo/thrown recovery on hit - add to pending drops
 		if ammo or weapon.is_thrown_weapon():
@@ -161,8 +166,8 @@ static func attempt_ranged_attack(attacker: Entity, target: Entity, weapon: Item
 			if randf() < (recovery_chance * 0.7):
 				result.ammo_recovered = true
 
-	# Emit attack signal
-	EventBus.attack_performed.emit(attacker, target, result)
+		# Emit attack signal for misses
+		EventBus.attack_performed.emit(attacker, target, result)
 
 	return result
 

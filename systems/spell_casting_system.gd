@@ -283,13 +283,12 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 				result.target_died = true
 
 		# Generate message based on elemental result
-		if elemental_result.get("message", "") != "":
-			result.message = elemental_result.message
-		elif elemental_result.get("immune", false):
+		if elemental_result.get("immune", false):
 			result.message = "%s is immune to %s!" % [target.name if target else "Target", damage_type]
 		elif elemental_result.get("healed", false):
 			result.message = "%s absorbs the %s energy!" % [target.name if target else "Target", damage_type]
 		else:
+			# Always show damage amount in the message
 			result.message = "%s hits %s for %d %s damage!" % [
 				spell.name,
 				target.name if target else "the target",

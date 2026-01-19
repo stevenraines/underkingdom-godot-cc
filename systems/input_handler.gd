@@ -1610,6 +1610,11 @@ func _update_targeting_display() -> void:
 	elif game and game.has_method("_add_message"):
 		game._add_message(targeting_system.get_status_text(), Color(0.8, 0.9, 1.0))
 
+	# Update visual highlight to show current target
+	var current = targeting_system.get_current_target()
+	if current and game and game.has_method("update_target_highlight"):
+		game.update_target_highlight(current)
+
 
 ## Process the result of a ranged attack
 func _process_ranged_attack_result(result: Dictionary) -> void:
@@ -2304,9 +2309,10 @@ func _exit_look_mode() -> void:
 func _get_entity_description(entity: Entity) -> String:
 	if entity is Enemy:
 		var hp_percent = int((float(entity.current_health) / float(entity.max_health)) * 100)
+		var is_undead = entity.creature_type == "undead"
 		var health_state = "healthy"
 		if hp_percent <= 25:
-			health_state = "near death"
+			health_state = "near destruction" if is_undead else "near death"
 		elif hp_percent <= 50:
 			health_state = "wounded"
 		elif hp_percent <= 75:

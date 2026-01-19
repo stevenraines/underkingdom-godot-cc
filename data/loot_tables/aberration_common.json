@@ -3,7 +3,9 @@
 	"name": "Aberration Common Loot",
 	"description": "Strange items from aberrant beings. Their alien nature sometimes crystallizes into valuable gems.",
 	"drops": [
-		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.25, "cr_scales": true},
+		{"item_id": "amethyst_gem", "min_count": 1, "max_count": 1, "chance": 0.12, "cr_scales": true},
+		{"item_id": "sapphire_gem", "min_count": 1, "max_count": 1, "chance": 0.08, "cr_scales": true},
+		{"item_id": "emerald_gem", "min_count": 1, "max_count": 1, "chance": 0.05, "cr_scales": true},
 		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.1, "cr_scales": true},
 		{"item_id": "scroll_identify", "min_count": 1, "max_count": 1, "chance": 0.08}
 	]

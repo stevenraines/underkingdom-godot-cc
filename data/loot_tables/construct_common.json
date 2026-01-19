@@ -3,7 +3,9 @@
 	"name": "Construct Common Loot",
 	"description": "Drops from magical constructs. May contain animating gems or metal components.",
 	"drops": [
-		{"item_id": "gem", "min_count": 1, "max_count": 2, "chance": 0.4, "cr_scales": true},
+		{"item_id": "amethyst_gem", "min_count": 1, "max_count": 1, "chance": 0.2, "cr_scales": true},
+		{"item_id": "topaz_gem", "min_count": 1, "max_count": 1, "chance": 0.12, "cr_scales": true},
+		{"item_id": "sapphire_gem", "min_count": 1, "max_count": 1, "chance": 0.08, "cr_scales": true},
 		{"item_id": "iron_ingot", "min_count": 1, "max_count": 2, "chance": 0.3},
 		{"item_id": "steel_ingot", "min_count": 1, "max_count": 1, "chance": 0.15},
 		{"item_id": "soul_gem", "min_count": 1, "max_count": 1, "chance": 0.08, "cr_scales": true}

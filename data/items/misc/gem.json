@@ -6,6 +6,6 @@
 	"color": "#00CED1",
 	"weight": 0.1,
 	"value": 50,
-	"stack_size": 10,
+	"max_stack": 10,
 	"item_type": "misc"
 }

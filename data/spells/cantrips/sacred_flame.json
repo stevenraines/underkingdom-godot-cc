@@ -1,0 +1,30 @@
+{
+  "id": "sacred_flame",
+  "name": "Sacred Flame",
+  "description": "A beam of radiant energy streaks toward a target, especially effective against undead.",
+  "school": "evocation",
+  "level": 0,
+  "mana_cost": 5,
+  "requirements": {
+    "character_level": 0,
+    "intelligence": 8
+  },
+  "targeting": {
+    "mode": "ranged",
+    "range": 6,
+    "requires_los": true
+  },
+  "effects": {
+    "damage": {
+      "type": "radiant",
+      "base": 4,
+      "scaling": 0
+    }
+  },
+  "duration": {
+    "type": "instant"
+  },
+  "cast_message": "You invoke sacred flame!",
+  "ascii_char": "*",
+  "ascii_color": "#FFD700"
+}

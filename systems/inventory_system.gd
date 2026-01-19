@@ -408,6 +408,24 @@ func get_weapon_damage_bonus() -> int:
 	var weapon = equipment.get("main_hand", null)
 	return weapon.damage_bonus if weapon else 0
 
+
+## Roll weapon damage (for weapons with damage ranges)
+## Returns the full rolled damage if weapon has a range, otherwise returns damage_bonus
+func roll_weapon_damage() -> int:
+	var weapon = equipment.get("main_hand", null)
+	if weapon:
+		return weapon.roll_damage()
+	return 0
+
+
+## Check if equipped weapon has a damage range
+func has_weapon_damage_range() -> bool:
+	var weapon = equipment.get("main_hand", null)
+	if weapon and weapon.damage_min > 0 and weapon.damage_max > 0:
+		return true
+	return false
+
+
 ## Get total armor value from all equipped items
 func get_total_armor() -> int:
 	var total = 0

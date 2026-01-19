@@ -1834,6 +1834,11 @@ func _fire_at_target() -> void:
 			game._add_message("No ranged weapon equipped.", Color(0.9, 0.6, 0.4))
 		return
 
+	# Handle charged spell items (wands) differently
+	if weapon.is_charged_ranged_item():
+		_fire_charged_item_at_target(weapon, game)
+		return
+
 	# For ranged weapons (not thrown), check for ammo
 	var ammo: Item = null
 	if weapon.is_ranged_weapon() and weapon.ammunition_type != "":
@@ -1967,6 +1972,75 @@ func _has_ranged_magic_item() -> bool:
 				return true
 
 	return false
+
+
+## Fire a charged spell item (wand) at the current target
+func _fire_charged_item_at_target(weapon: Item, game) -> void:
+	# Get the spell from the wand
+	var spell = SpellManager.get_spell(weapon.casts_spell)
+	if spell == null:
+		if game and game.has_method("_add_message"):
+			game._add_message("The %s contains corrupted magic." % weapon.name, Color(0.9, 0.5, 0.5))
+		return
+
+	# Check range
+	var effective_range = spell.get_range()
+	var distance = RangedCombatSystemClass.get_tile_distance(player.position, current_target.position)
+
+	if distance > effective_range:
+		if game and game.has_method("_add_message"):
+			game._add_message("Target is out of range.", Color(0.9, 0.6, 0.4))
+		return
+
+	if distance < 1:
+		if game and game.has_method("_add_message"):
+			game._add_message("Target is too close. Use melee attack.", Color(0.9, 0.6, 0.4))
+		return
+
+	# Check line of sight
+	if not RangedCombatSystemClass.has_line_of_sight(player.position, current_target.position):
+		if game and game.has_method("_add_message"):
+			game._add_message("No line of sight to target.", Color(0.9, 0.6, 0.4))
+		return
+
+	# Cast the spell using the SpellCastingSystem (from_item=true bypasses class restrictions)
+	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
+	var result = SpellCastingSystemClass.cast_spell(player, spell, current_target, true)
+
+	# Consume a charge on successful cast
+	if result.success or not result.get("failed", true):
+		weapon.charges -= 1
+		EventBus.wand_used.emit(weapon, spell, weapon.charges)
+
+		# Identify the wand on successful use
+		if weapon.unidentified:
+			var id_manager = Engine.get_main_loop().root.get_node_or_null("IdentificationManager")
+			if id_manager and not id_manager.is_identified(weapon.id):
+				id_manager.identify_item(weapon.id)
+				weapon.unidentified = false
+				if game and game.has_method("_add_message"):
+					game._add_message("It was a %s!" % weapon.name, Color(0.9, 0.9, 0.5))
+
+	# Display result message
+	if result.has("message") and result.message != "":
+		var color = Color(0.6, 0.9, 0.6) if result.success else Color(0.9, 0.6, 0.4)
+		if game and game.has_method("_add_message"):
+			game._add_message(result.message, color)
+
+	# Show remaining charges
+	if weapon.charges > 0:
+		if game and game.has_method("_add_message"):
+			game._add_message("%s: %d charges remaining." % [weapon.name, weapon.charges], Color(0.7, 0.7, 0.9))
+	else:
+		if game and game.has_method("_add_message"):
+			game._add_message("The %s is depleted." % weapon.name, Color(0.9, 0.7, 0.4))
+
+	# Clear target if it died
+	if current_target and (not is_instance_valid(current_target) or not current_target.is_alive):
+		_set_current_target(null)
+
+	# Advance turn
+	TurnManager.advance_turn()
 
 
 ## Set the current target and emit signal

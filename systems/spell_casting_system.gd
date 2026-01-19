@@ -15,8 +15,9 @@ const ElementalSystemClass = preload("res://systems/elemental_system.gd")
 ## caster: The entity casting the spell
 ## spell: The Spell object being cast
 ## target: The target entity (null for self-targeting spells)
+## from_item: If true, bypasses class magic type restrictions (for wands, scrolls, etc.)
 ## Returns a dictionary with cast results
-static func cast_spell(caster, spell, target = null) -> Dictionary:
+static func cast_spell(caster, spell, target = null, from_item: bool = false) -> Dictionary:
 	var result = {
 		"success": false,
 		"damage": 0,
@@ -40,11 +41,12 @@ static func cast_spell(caster, spell, target = null) -> Dictionary:
 		result.message = "No caster."
 		return result
 
-	# Check if caster can cast this spell
-	var can_cast_result = SpellManager.can_cast(caster, spell)
-	if not can_cast_result.can_cast:
-		result.message = can_cast_result.reason
-		return result
+	# Check if caster can cast this spell (skip magic type check for item-based casting)
+	if not from_item:
+		var can_cast_result = SpellManager.can_cast(caster, spell)
+		if not can_cast_result.can_cast:
+			result.message = can_cast_result.reason
+			return result
 
 	# Determine target based on targeting mode
 	var targeting_mode = spell.get_targeting_mode()

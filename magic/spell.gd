@@ -15,6 +15,7 @@ var description: String = ""
 # Classification
 var school: String = ""  # evocation, conjuration, enchantment, transmutation, divination, necromancy, abjuration, illusion
 var level: int = 1  # Spell level 0-10 (0 = cantrip)
+var magic_type: Array = ["arcane"]  # arcane, divine, or both - defaults to arcane for backwards compatibility
 
 # Resource costs
 var mana_cost: int = 0
@@ -74,6 +75,13 @@ static func from_dict(data: Dictionary):
 	spell.school = data.get("school", "evocation")
 	spell.level = data.get("level", 1)
 
+	# Magic type - support both string and array formats
+	var mt = data.get("magic_type", ["arcane"])  # Default to arcane for backwards compatibility
+	if mt is String:
+		spell.magic_type = [mt]
+	else:
+		spell.magic_type = mt.duplicate() if mt is Array else ["arcane"]
+
 	# Resource costs
 	spell.mana_cost = data.get("mana_cost", 5)
 
@@ -114,6 +122,22 @@ static func from_dict(data: Dictionary):
 ## Check if this spell is a cantrip (level 0)
 func is_cantrip() -> bool:
 	return level == 0
+
+## Get magic types this spell can be cast as
+func get_magic_types() -> Array:
+	return magic_type
+
+## Check if spell can be cast as a specific magic type
+func is_magic_type(check_type: String) -> bool:
+	return check_type in magic_type
+
+## Check if spell can be cast as arcane magic
+func is_arcane() -> bool:
+	return "arcane" in magic_type
+
+## Check if spell can be cast as divine magic
+func is_divine() -> bool:
+	return "divine" in magic_type
 
 ## Get the effective mana cost (cantrips may cost 0)
 func get_mana_cost() -> int:
@@ -187,6 +211,7 @@ func to_dict() -> Dictionary:
 		"description": description,
 		"school": school,
 		"level": level,
+		"magic_type": magic_type.duplicate(),
 		"mana_cost": mana_cost,
 		"requirements": requirements.duplicate(),
 		"targeting": targeting.duplicate(),

@@ -354,3 +354,53 @@ func format_restrictions(class_id: String) -> String:
 	if parts.is_empty():
 		return "No restrictions"
 	return "; ".join(parts)
+
+
+# =============================================================================
+# MAGIC TYPE SYSTEM
+# =============================================================================
+
+## Get magic types a class can cast
+## Returns array of magic type strings (e.g., ["arcane"], ["divine"], ["arcane", "divine"], or [])
+func get_magic_types(class_id: String) -> Array:
+	var cls = get_class_def(class_id)
+	return cls.get("magic_types", [])
+
+
+## Check if a class can cast a specific magic type
+func can_cast_magic_type(class_id: String, magic_type: String) -> bool:
+	var types = get_magic_types(class_id)
+	return magic_type in types
+
+
+## Check if a class can cast any magic at all
+func can_cast_magic(class_id: String) -> bool:
+	return not get_magic_types(class_id).is_empty()
+
+
+## Get display name for magic menu based on class magic types
+## Returns "Divine Magic" for divine casters, "Arcane Spellbook" for arcane casters,
+## "Spellbook" for classes with both, empty string for non-casters
+func get_magic_menu_title(class_id: String) -> String:
+	var types = get_magic_types(class_id)
+	if types.is_empty():
+		return ""
+	if types.size() == 1:
+		match types[0]:
+			"arcane":
+				return "Arcane Spellbook"
+			"divine":
+				return "Divine Magic"
+	return "Spellbook"  # For classes with both types
+
+
+## Format magic types as display string for character info
+func format_magic_types(class_id: String) -> String:
+	var types = get_magic_types(class_id)
+	if types.is_empty():
+		return "Cannot cast magic"
+
+	var formatted: Array[String] = []
+	for t in types:
+		formatted.append(t.capitalize())
+	return ", ".join(formatted)

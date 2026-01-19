@@ -1,0 +1,15 @@
+{
+	"id": "token_of_faith",
+	"name": "Token of Faith",
+	"description": "A blessed holy symbol worn by divine casters. Required to channel divine magic and cast divine spells.",
+	"category": "misc",
+	"subtype": "holy_symbol",
+	"flags": {
+		"holy_symbol": true
+	},
+	"weight": 0.3,
+	"value": 50,
+	"max_stack": 1,
+	"ascii_char": "t",
+	"ascii_color": "#FFD700"
+}

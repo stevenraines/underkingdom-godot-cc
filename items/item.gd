@@ -41,6 +41,8 @@ var equip_slot: String = ""         # Legacy: single slot (for backwards compati
 var equip_slots: Array[String] = [] # Which slots this can equip to (e.g., ["main_hand", "off_hand"])
 var armor_value: int = 0            # Damage reduction when equipped
 var damage_bonus: int = 0           # Added to base damage when equipped
+var damage_min: int = 0             # Minimum weapon damage (0 = use damage_bonus as flat value)
+var damage_max: int = 0             # Maximum weapon damage (0 = use damage_bonus as flat value)
 
 # Damage type properties (for weapons and attacks)
 var damage_type: String = "bludgeoning"      # Primary damage type (slashing, piercing, bludgeoning, etc.)
@@ -169,6 +171,8 @@ static func create_from_data(data: Dictionary) -> Item:
 	
 	item.armor_value = data.get("armor_value", 0)
 	item.damage_bonus = data.get("damage_bonus", 0)
+	item.damage_min = data.get("damage_min", 0)
+	item.damage_max = data.get("damage_max", 0)
 
 	# Damage type properties
 	item.damage_type = data.get("damage_type", "bludgeoning")
@@ -269,6 +273,8 @@ func duplicate_item() -> Item:
 	copy.equip_slots = equip_slots.duplicate()
 	copy.armor_value = armor_value
 	copy.damage_bonus = damage_bonus
+	copy.damage_min = damage_min
+	copy.damage_max = damage_max
 	copy.damage_type = damage_type
 	copy.secondary_damage_type = secondary_damage_type
 	copy.secondary_damage_bonus = secondary_damage_bonus
@@ -661,8 +667,9 @@ func _cast_scroll_spell(caster: Entity, spell, target: Entity) -> Dictionary:
 
 	# Use SpellCastingSystem but with special scroll flags
 	# Scrolls cast at minimum level (spell.level) with no scaling
+	# from_item=true bypasses class magic type restrictions
 	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
-	var cast_result = SpellCastingSystemClass.cast_spell(caster, spell, target)
+	var cast_result = SpellCastingSystemClass.cast_spell(caster, spell, target, true)
 
 	# Copy results
 	result.success = cast_result.success or not cast_result.failed
@@ -757,9 +764,9 @@ func _cast_wand_spell(caster: Entity, spell, target: Entity) -> Dictionary:
 		"effects_applied": []
 	}
 
-	# Use SpellCastingSystem
+	# Use SpellCastingSystem (from_item=true bypasses class restrictions)
 	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
-	var cast_result = SpellCastingSystemClass.cast_spell(caster, spell, target)
+	var cast_result = SpellCastingSystemClass.cast_spell(caster, spell, target, true)
 
 	# Copy results
 	result.success = cast_result.success or not cast_result.failed
@@ -906,7 +913,15 @@ func get_tooltip() -> String:
 	
 	if equip_slot != "":
 		lines.append("Equips to: %s" % equip_slot.replace("_", " ").capitalize())
-		if damage_bonus > 0:
+		# Show damage for weapons
+		if damage_min > 0 and damage_max > 0:
+			# Has damage range - show range plus bonus
+			if damage_bonus > 0:
+				lines.append("Damage: %d-%d +%d" % [damage_min, damage_max, damage_bonus])
+			else:
+				lines.append("Damage: %d-%d" % [damage_min, damage_max])
+		elif damage_bonus > 0:
+			# Legacy: flat damage bonus only
 			lines.append("Damage: +%d" % damage_bonus)
 		if armor_value > 0:
 			lines.append("Armor: %d" % armor_value)
@@ -1001,6 +1016,10 @@ func is_ranged_weapon() -> bool:
 func is_thrown_weapon() -> bool:
 	return attack_type == "thrown" or flags.get("throwable", false)
 
+## Check if this is a charged spell item (wand, rod) that can be used for ranged attacks
+func is_charged_ranged_item() -> bool:
+	return is_wand() and charges > 0
+
 ## Check if this item is ammunition
 func is_ammunition() -> bool:
 	return flags.get("ammunition", false) or category == "ammunition"
@@ -1017,18 +1036,46 @@ func is_skeleton_key() -> bool:
 func is_lockpick() -> bool:
 	return tool_type == "lockpick"
 
-## Check if this item can be used for ranged attack (ranged or thrown)
+## Check if this item can be used for ranged attack (ranged, thrown, or charged spell item)
 func can_attack_at_range() -> bool:
-	return is_ranged_weapon() or is_thrown_weapon()
+	return is_ranged_weapon() or is_thrown_weapon() or is_charged_ranged_item()
 
 ## Get the effective attack range
 ## For thrown weapons, this is modified by STR
+## For charged spell items (wands), uses the spell's range
 func get_effective_range(str_stat: int = 0) -> int:
 	if is_thrown_weapon():
 		# Thrown range = base_range + STR/2
 		@warning_ignore("integer_division")
 		return attack_range + (str_stat / 2)
+	if is_charged_ranged_item() and casts_spell != "":
+		# Use spell's range for wands
+		var spell = SpellManager.get_spell(casts_spell)
+		if spell:
+			return spell.get_range()
 	return attack_range
+
+
+## Roll weapon damage (between min and max, plus bonus)
+## If no damage range defined, returns damage_bonus as flat value
+func roll_damage() -> int:
+	if damage_min > 0 and damage_max > 0:
+		return randi_range(damage_min, damage_max) + damage_bonus
+	return damage_bonus
+
+
+## Get minimum possible damage from this weapon
+func get_min_damage() -> int:
+	if damage_min > 0:
+		return damage_min + damage_bonus
+	return damage_bonus
+
+
+## Get maximum possible damage from this weapon
+func get_max_damage() -> int:
+	if damage_max > 0:
+		return damage_max + damage_bonus
+	return damage_bonus
 
 
 ## Check if this item is a casting focus (staff)

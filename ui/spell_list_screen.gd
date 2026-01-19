@@ -98,14 +98,34 @@ func open(p: Player) -> void:
 	player = p
 	selected_index = 0
 
-	# Check if player has spellbook
-	if not player or not player.has_spellbook():
+	if not player:
 		_show_no_spellbook_message()
+		show()
+		return
+
+	# Check if player's class can cast any magic
+	var magic_types = player.get_magic_types()
+	if magic_types.is_empty():
+		_show_no_magic_ability_message()
+		show()
+		return
+
+	# Check if player has required focus items
+	var has_arcane_focus = player.has_spellbook()
+	var has_divine_focus = player.has_holy_symbol()
+	var can_cast_arcane = "arcane" in magic_types and has_arcane_focus
+	var can_cast_divine = "divine" in magic_types and has_divine_focus
+
+	if not can_cast_arcane and not can_cast_divine:
+		_show_missing_focus_message(magic_types, has_arcane_focus, has_divine_focus)
 		show()
 		return
 
 	# Get known spells
 	spells = player.get_known_spells()
+
+	# Update title based on class
+	_update_magic_title()
 
 	refresh()
 	show()
@@ -148,6 +168,82 @@ func _show_no_spellbook_message() -> void:
 	_clear_detail_panel()
 	spells = []
 
+
+func _show_no_magic_ability_message() -> void:
+	# Clear spell list
+	for child in spell_list.get_children():
+		spell_list.remove_child(child)
+		child.free()
+
+	# Add message for non-caster class
+	var label = Label.new()
+	label.text = "Your class cannot cast magic"
+	label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+	label.add_theme_font_size_override("font_size", 14)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	spell_list.add_child(label)
+
+	# Update header
+	if mana_label:
+		mana_label.text = "No Magic"
+		mana_label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+
+	if spell_list_title:
+		spell_list_title.text = "══ MAGIC ══"
+
+	# Clear details
+	_clear_detail_panel()
+	spells = []
+
+
+func _show_missing_focus_message(magic_types: Array, has_arcane: bool, has_divine: bool) -> void:
+	# Clear spell list
+	for child in spell_list.get_children():
+		spell_list.remove_child(child)
+		child.free()
+
+	# Build message based on what's missing
+	var missing: Array[String] = []
+	if "arcane" in magic_types and not has_arcane:
+		missing.append("a spellbook (for arcane magic)")
+	if "divine" in magic_types and not has_divine:
+		missing.append("a Token of Faith (for divine magic)")
+
+	var label = Label.new()
+	if missing.size() == 1:
+		label.text = "You need %s" % missing[0]
+	else:
+		label.text = "You need %s" % " and ".join(missing)
+	label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+	label.add_theme_font_size_override("font_size", 14)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	spell_list.add_child(label)
+
+	# Update header
+	if mana_label:
+		mana_label.text = "Missing Focus"
+		mana_label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+
+	if spell_list_title:
+		spell_list_title.text = "══ MAGIC ══"
+
+	# Clear details
+	_clear_detail_panel()
+	spells = []
+
+
+func _update_magic_title() -> void:
+	if not player or not spell_list_title:
+		return
+
+	# Get menu title from ClassManager
+	var title = ClassManager.get_magic_menu_title(player.class_id)
+	if title.is_empty():
+		title = "SPELLBOOK"
+
+	spell_list_title.text = "══ %s ══" % title.to_upper()
+
 func _update_mana_display() -> void:
 	if not player or not player.survival:
 		return
@@ -168,9 +264,12 @@ func _update_spell_list() -> void:
 		spell_list.remove_child(child)
 		child.free()
 
-	# Update title with spell count
-	if spell_list_title:
-		spell_list_title.text = "══ KNOWN SPELLS (%d) ══" % spells.size()
+	# Update title with spell count (uses class-specific title)
+	_update_magic_title()
+	if spell_list_title and spells.size() > 0:
+		# Append spell count to the title
+		var base_title = spell_list_title.text.replace("══ ", "").replace(" ══", "")
+		spell_list_title.text = "══ %s (%d) ══" % [base_title, spells.size()]
 
 	# Reset scroll position to top
 	if spell_scroll:

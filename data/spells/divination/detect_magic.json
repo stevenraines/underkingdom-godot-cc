@@ -4,6 +4,7 @@
   "description": "Sense magical auras nearby.",
   "school": "divination",
   "level": 0,
+  "magic_type": ["arcane", "divine"],
   "mana_cost": 0,
   "requirements": {
     "character_level": 1,

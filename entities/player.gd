@@ -1027,9 +1027,13 @@ func harvest_resource(direction: Vector2i) -> Dictionary:
 	# Delegate to HarvestSystem
 	return _HarvestSystem.harvest(self, target_pos, tile.harvestable_resource_id)
 
-## Get total weapon damage (base + equipped weapon bonus)
+## Get total weapon damage (rolled if weapon has range, otherwise base + bonus)
 func get_weapon_damage() -> int:
 	if inventory:
+		# If weapon has a damage range, roll it (weapon damage replaces base damage)
+		if inventory.has_weapon_damage_range():
+			return inventory.roll_weapon_damage()
+		# Legacy: flat bonus added to base damage
 		return base_damage + inventory.get_weapon_damage_bonus()
 	return base_damage
 
@@ -1209,20 +1213,91 @@ func has_spellbook() -> bool:
 		return false
 	return inventory.has_item_with_flag("spellbook")
 
+
+## Check if player has a holy symbol (Token of Faith) in inventory
+func has_holy_symbol() -> bool:
+	if not inventory:
+		return false
+	return inventory.has_item_with_flag("holy_symbol")
+
+
+## Get the magic types this player's class can cast
+func get_magic_types() -> Array:
+	return ClassManager.get_magic_types(class_id)
+
+
+## Check if player can cast a specific magic type
+func can_cast_magic_type(magic_type: String) -> bool:
+	return ClassManager.can_cast_magic_type(class_id, magic_type)
+
+
+## Check if player has the required focus item for a spell
+## Arcane spells require a spellbook, Divine spells require a holy symbol
+## Returns dictionary with: valid (bool), message (String)
+func has_focus_for_spell(spell) -> Dictionary:
+	var spell_types = spell.get_magic_types()
+	var player_types = get_magic_types()
+
+	# Check if player's class can cast any of the spell's magic types
+	var can_cast_type = false
+	for spell_type in spell_types:
+		if spell_type in player_types:
+			can_cast_type = true
+			break
+
+	if not can_cast_type:
+		return {"valid": false, "message": "Your class cannot cast this type of magic."}
+
+	# Check if player has required focus for the spell types they can cast
+	# If spell is both arcane AND divine, player only needs one matching focus
+	for spell_type in spell_types:
+		if spell_type in player_types:
+			match spell_type:
+				"arcane":
+					if has_spellbook():
+						return {"valid": true, "message": ""}
+				"divine":
+					if has_holy_symbol():
+						return {"valid": true, "message": ""}
+
+	# Player's class can cast the magic type but lacks the focus
+	var missing_items: Array[String] = []
+	for spell_type in spell_types:
+		if spell_type in player_types:
+			match spell_type:
+				"arcane":
+					if not has_spellbook():
+						missing_items.append("spellbook")
+				"divine":
+					if not has_holy_symbol():
+						missing_items.append("Token of Faith")
+
+	if missing_items.size() == 1:
+		return {"valid": false, "message": "You need a %s to cast this spell." % missing_items[0]}
+	else:
+		return {"valid": false, "message": "You need a %s to cast this spell." % " or ".join(missing_items)}
+
+
 ## Check if player knows a specific spell
 func knows_spell(spell_id: String) -> bool:
 	return spell_id in known_spells
 
-## Learn a new spell (requires spellbook)
+## Learn a new spell (requires appropriate magic focus)
+## Arcane spells require spellbook, Divine spells require holy symbol
 ## Returns true if spell was successfully learned
 func learn_spell(spell_id: String) -> bool:
-	if not has_spellbook():
-		return false
 	if knows_spell(spell_id):
 		return false
 	var spell = SpellManager.get_spell(spell_id)
 	if spell == null:
 		return false
+
+	# Check if player has appropriate focus for this spell
+	var focus_check = has_focus_for_spell(spell)
+	if not focus_check.valid:
+		print("Player cannot learn spell %s: %s" % [spell_id, focus_check.message])
+		return false
+
 	known_spells.append(spell_id)
 	EventBus.spell_learned.emit(spell_id)
 	print("Player learned spell: ", spell_id)

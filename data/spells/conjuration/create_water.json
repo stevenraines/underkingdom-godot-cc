@@ -4,6 +4,7 @@
   "description": "Create a pool of fresh water that can be harvested.",
   "school": "conjuration",
   "level": 2,
+  "magic_type": ["arcane", "divine"],
   "mana_cost": 8,
   "requirements": {
     "character_level": 2,

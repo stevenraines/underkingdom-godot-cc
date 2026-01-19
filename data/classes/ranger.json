@@ -3,6 +3,7 @@
   "name": "Ranger",
   "description": "Skilled hunters and trackers, rangers excel at ranged combat and survival in the wilderness. They move best in lighter armor.",
   "ascii_color": "#339933",
+  "magic_types": [],
   "stat_modifiers": {
     "DEX": 1,
     "WIS": 1

@@ -11,9 +11,12 @@
 - [X] Bug: Traps not rendering when sprung.
 - [X] Bug: Render Order of Enemies and Items
     When occupying the same space, items render over top of creatures
-- [ ] Feature: Cleric Spell Casting
+- [X] Feature: Use Wand
+    Players can now cast spells with wands.
+- [X] Feature: Cleric Spell Casting
     Clerics should not need a spellbook to cast spells. Instead, they should be able to case any spell they know as long as they possess a magical focus, a token of their faith. Give the cleric this object at creation.
-- [ ] Feature: Class Specific Spells
+- [X] Feature: Class Specific Spells
     Some spells should be class specific (only clerics can cast, or only mages can cast) However, "Adventurers" should be able to cast any spell (with the appropriate magic focus or spellbook)
+    
      
         

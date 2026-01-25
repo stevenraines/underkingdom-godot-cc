@@ -19,12 +19,19 @@ var current_turn: int = 0
 var time_of_day: String = "dawn"
 var is_player_turn: bool = true
 
+# Auto-save tracking
+var turns_since_autosave: int = 0
+
 # Cached time periods from CalendarManager (array of {id, duration, temp_modifier, start, end})
 var _time_periods: Array = []
 
 func _ready() -> void:
 	# Load time periods from CalendarManager (will be available after CalendarManager._ready())
 	call_deferred("_load_time_periods")
+
+	# Connect to game_saved signal to reset auto-save counter
+	EventBus.game_saved.connect(_on_game_saved)
+
 	print("TurnManager initialized")
 
 ## Load time period data from CalendarManager
@@ -70,6 +77,9 @@ func advance_turn() -> void:
 
 	EventBus.turn_advanced.emit(current_turn)
 
+	# Process auto-save if interval reached
+	_process_autosave()
+
 	# Reset player turn flag
 	is_player_turn = true
 
@@ -95,6 +105,19 @@ func _process_player_survival() -> void:
 func _process_ritual_channeling() -> void:
 	if RitualSystemClass.is_channeling():
 		RitualSystemClass.process_channeling_turn()
+
+## Process auto-save every N turns
+func _process_autosave() -> void:
+	turns_since_autosave += 1
+
+	if turns_since_autosave >= SaveManager.AUTOSAVE_INTERVAL:
+		if SaveManager.save_autosave():
+			EventBus.message_logged.emit("Game auto-saved (checkpoint)")
+			turns_since_autosave = 0
+
+## Reset auto-save counter when manual save occurs
+func _on_game_saved(_slot: int) -> void:
+	turns_since_autosave = 0
 
 ## Get current time of day period based on turn number
 func get_time_of_day() -> String:

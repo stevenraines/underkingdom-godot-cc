@@ -104,4 +104,6 @@
 - [ ] Add Racial Variants
     Allow players to select racial variants for races that have them (Dark Elf, Wood Elf, High Elf, etc.)
 - [ ] Multiplayer implementation
+- [ ] Create a skill to build the game and then resolve any warnings.
+
 

@@ -58,9 +58,8 @@ func _ready() -> void:
 			# Disable automatic focus navigation to prevent conflicts
 			b.focus_mode = Control.FOCUS_NONE
 
-	# Hide Continue button if there are no saves
-	var recent = _get_most_recent_save_slot()
-	if recent == -1:
+	# Hide Continue button if there is no auto-save
+	if not SaveManager.has_autosave():
 		continue_button.visible = false
 		# remove it from navigation
 		buttons.erase(continue_button)
@@ -285,14 +284,14 @@ func _on_load_button_pressed() -> void:
 	pause_menu.open(false)  # false = load mode
 
 func _on_continue_button_pressed() -> void:
-	# Find the most recent save slot and load it
-	var slot = _get_most_recent_save_slot()
-	if slot == -1:
-		print("No saves available to continue")
+	# Load auto-save checkpoint
+	if not SaveManager.has_autosave():
+		print("No auto-save available to continue")
 		return
 
+	print("Loading checkpoint...")
 	GameManager.is_loading_save = true
-	var success = SaveManager.load_game(slot)
+	var success = SaveManager.load_autosave()
 	if success:
 		get_tree().change_scene_to_file("res://scenes/game.tscn")
 

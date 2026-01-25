@@ -372,6 +372,7 @@ func _setup_death_screen() -> void:
 	death_screen = DeathScreenScene.instantiate()
 	hud.add_child(death_screen)
 	death_screen.load_save_requested.connect(_on_death_screen_load_save)
+	death_screen.restore_checkpoint_requested.connect(_on_death_screen_restore_checkpoint)
 	death_screen.return_to_menu_requested.connect(_on_death_screen_return_to_menu)
 
 ## Setup character sheet
@@ -1120,6 +1121,18 @@ func _on_death_screen_load_save(slot: int) -> void:
 		get_tree().reload_current_scene()
 	else:
 		_add_message("Failed to load save!", Color.RED)
+
+## Handle checkpoint restore from death screen
+func _on_death_screen_restore_checkpoint() -> void:
+	# Load the auto-save checkpoint
+	var success = SaveManager.load_autosave()
+	if success:
+		# Indicate we're loading a save so _ready applies pending save data
+		GameManager.is_loading_save = true
+		# Reload the game scene to reset everything
+		get_tree().reload_current_scene()
+	else:
+		_add_message("Failed to load checkpoint!", Color.RED)
 
 ## Handle return to menu from death screen
 func _on_death_screen_return_to_menu() -> void:

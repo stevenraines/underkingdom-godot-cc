@@ -48,6 +48,9 @@ func _ready() -> void:
 ## race_id defaults to "human" if not specified
 ## class_id defaults to "adventurer" if not specified
 func start_new_game(character_name_input: String = "", race_id: String = "human", class_id: String = "adventurer") -> void:
+	# Clear auto-save from previous game
+	SaveManager.clear_autosave()
+
 	# Store selected race and class
 	player_race = race_id
 	player_class = class_id

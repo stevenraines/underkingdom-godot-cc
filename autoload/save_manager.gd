@@ -11,7 +11,9 @@ const FarmingSystemClass = preload("res://systems/farming_system.gd")
 
 const SAVE_DIR = "user://saves/"
 const SAVE_FILE_PATTERN = "save_slot_%d.json"
+const AUTOSAVE_FILE = "save_autosave.json"
 const MAX_SLOTS = 3
+const AUTOSAVE_INTERVAL = 25
 const SAVE_VERSION = "1.0.0"
 
 # Pending save data for deferred loading
@@ -57,6 +59,10 @@ func save_game(slot: int) -> bool:
 	EventBus.emit_signal("game_saved", slot)
 	EventBus.emit_signal("message_logged", "Game saved to slot %d." % slot)
 	print("SaveManager: Game saved to slot %d" % slot)
+
+	# Sync auto-save with this manual save
+	_copy_save_to_autosave(slot)
+
 	return true
 
 ## Load game from specified slot
@@ -93,6 +99,10 @@ func load_game(slot: int) -> bool:
 	pending_save_data = json.data
 
 	print("SaveManager: Save data loaded from slot %d, waiting for game scene" % slot)
+
+	# Sync auto-save with loaded game
+	_copy_save_to_autosave(slot)
+
 	return true
 
 ## Apply pending save data (called by game scene after initialization)
@@ -159,6 +169,144 @@ func delete_save(slot: int) -> bool:
 		return true
 	return false
 
+## Save game to auto-save slot (checkpoint)
+func save_autosave() -> bool:
+	var save_data = _serialize_game_state()
+	save_data.metadata.is_autosave = true
+	save_data.metadata.slot_number = -1
+	save_data.metadata.timestamp = Time.get_datetime_string_from_system()
+
+	var file_path = SAVE_DIR + AUTOSAVE_FILE
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+
+	if not file:
+		var error_msg = "Could not open auto-save file for writing: %s" % file_path
+		push_error("SaveManager: " + error_msg)
+		return false
+
+	var json_string = JSON.stringify(save_data, "\t")
+	file.store_string(json_string)
+	file.close()
+
+	EventBus.emit_signal("game_autosaved")
+	print("SaveManager: Game auto-saved (checkpoint)")
+	return true
+
+## Load game from auto-save slot
+func load_autosave() -> bool:
+	var file_path = SAVE_DIR + AUTOSAVE_FILE
+
+	if not FileAccess.file_exists(file_path):
+		EventBus.emit_signal("load_failed", "Auto-save file does not exist")
+		return false
+
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		var error_msg = "Could not open auto-save file for reading: %s" % file_path
+		EventBus.emit_signal("load_failed", error_msg)
+		push_error("SaveManager: " + error_msg)
+		return false
+
+	var json_string = file.get_as_text()
+	file.close()
+
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+
+	if parse_result != OK:
+		EventBus.emit_signal("load_failed", "Failed to parse auto-save file")
+		push_error("SaveManager: Failed to parse auto-save JSON")
+		return false
+
+	# Store save data for deferred loading after game scene is ready
+	pending_save_data = json.data
+
+	print("SaveManager: Auto-save data loaded, waiting for game scene")
+	return true
+
+## Check if auto-save exists
+func has_autosave() -> bool:
+	var file_path = SAVE_DIR + AUTOSAVE_FILE
+	return FileAccess.file_exists(file_path)
+
+## Get auto-save metadata information
+func get_autosave_info() -> Dictionary:
+	var file_path = SAVE_DIR + AUTOSAVE_FILE
+
+	if not FileAccess.file_exists(file_path):
+		return {}
+
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		return {}
+
+	var json_string = file.get_as_text()
+	file.close()
+
+	var json = JSON.new()
+	if json.parse(json_string) != OK:
+		return {}
+
+	var save_data = json.data
+	if not save_data.has("metadata"):
+		return {}
+
+	var metadata = save_data.metadata
+	var info = {
+		"timestamp": metadata.get("timestamp", ""),
+		"playtime_turns": metadata.get("playtime_turns", 0),
+		"character_name": ""
+	}
+
+	# Get character name from world data
+	if save_data.has("world"):
+		info.character_name = save_data.world.get("character_name", "")
+		info.world_name = save_data.world.get("world_name", "")
+
+	return info
+
+## Clear auto-save file
+func clear_autosave() -> void:
+	var file_path = SAVE_DIR + AUTOSAVE_FILE
+	if FileAccess.file_exists(file_path):
+		DirAccess.remove_absolute(file_path)
+		print("SaveManager: Auto-save cleared")
+
+## Copy a manual save to the auto-save slot
+func _copy_save_to_autosave(slot: int) -> void:
+	var source_path = SAVE_DIR + (SAVE_FILE_PATTERN % slot)
+	var dest_path = SAVE_DIR + AUTOSAVE_FILE
+
+	if not FileAccess.file_exists(source_path):
+		return
+
+	# Read the save file
+	var file = FileAccess.open(source_path, FileAccess.READ)
+	if not file:
+		return
+
+	var json_string = file.get_as_text()
+	file.close()
+
+	# Parse it to modify metadata
+	var json = JSON.new()
+	if json.parse(json_string) != OK:
+		return
+
+	var save_data = json.data
+	save_data.metadata.is_autosave = true
+	save_data.metadata.slot_number = -1
+
+	# Write to auto-save file
+	var autosave_file = FileAccess.open(dest_path, FileAccess.WRITE)
+	if not autosave_file:
+		return
+
+	autosave_file.store_string(JSON.stringify(save_data, "\t"))
+	autosave_file.close()
+
+	print("SaveManager: Auto-save synced with slot %d" % slot)
+
 # ===== SERIALIZATION =====
 
 ## Serialize entire game state to dictionary
@@ -182,6 +330,7 @@ func _serialize_metadata() -> Dictionary:
 		"save_name": "Adventure Save",  # Could make this user-editable
 		"timestamp": "",  # Set during save
 		"slot_number": 0,  # Set during save
+		"is_autosave": false,  # Set to true for auto-saves
 		"playtime_turns": TurnManager.current_turn,
 		"version": SAVE_VERSION
 	}

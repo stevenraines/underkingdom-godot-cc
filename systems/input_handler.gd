@@ -79,14 +79,29 @@ signal look_object_changed(obj)  # Emitted when look selection changes
 
 func _ready() -> void:
 	set_process_unhandled_input(true)
-	set_process(true)
+	set_process(false)  # Start disabled for performance - enabled when player's turn starts
 	targeting_system = TargetingSystemClass.new()
 	# Connect to scroll and wand targeting signals
 	EventBus.scroll_targeting_started.connect(_on_scroll_targeting_started)
 	EventBus.wand_targeting_started.connect(_on_wand_targeting_started)
+	# Connect to turn signals for performance optimization
+	TurnManager.player_turn_started.connect(_on_player_turn_started)
+	TurnManager.player_turn_ended.connect(_on_player_turn_ended)
 
 func set_player(p: Player) -> void:
 	player = p
+
+
+## Set UI blocking state and control _process() for performance
+func set_ui_blocking(blocking: bool) -> void:
+	ui_blocking_input = blocking
+	if blocking:
+		# UI is open - stop processing input
+		set_process(false)
+	elif player and player.is_alive and TurnManager.is_player_turn:
+		# UI closed, player's turn, and player alive - resume processing
+		set_process(true)
+
 
 func _process(delta: float) -> void:
 	if not player or not TurnManager.is_player_turn:
@@ -352,7 +367,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				direction = Vector2i.RIGHT
 			KEY_ESCAPE:
 				_awaiting_disarm_trap_direction = false
-				ui_blocking_input = false
+				set_ui_blocking(false)
 				var game = get_parent()
 				if game and game.has_method("_add_message"):
 					game._add_message("Cancelled disarm", Color(0.7, 0.7, 0.7))
@@ -361,7 +376,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		if direction != Vector2i.ZERO:
 			_awaiting_disarm_trap_direction = false
-			ui_blocking_input = false
+			set_ui_blocking(false)
 			get_viewport().set_input_as_handled()
 			var target_pos = player.position + direction
 			if HazardManager.has_visible_hazard(target_pos):
@@ -388,7 +403,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				# Cancel harvest
 				_awaiting_harvest_direction = false
-				ui_blocking_input = false
+				set_ui_blocking(false)
 				var game = get_parent()
 				if game and game.has_method("_add_message"):
 					game._add_message("Cancelled harvest", Color(0.7, 0.7, 0.7))
@@ -397,7 +412,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		if direction != Vector2i.ZERO:
 			_awaiting_harvest_direction = false
-			ui_blocking_input = false
+			set_ui_blocking(false)
 			get_viewport().set_input_as_handled()  # Consume input BEFORE processing
 
 			# Reset movement timer to prevent immediate movement after harvest
@@ -473,7 +488,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				# Cancel fishing
 				_awaiting_fishing_direction = false
-				ui_blocking_input = false
+				set_ui_blocking(false)
 				var game = get_parent()
 				if game and game.has_method("_add_message"):
 					game._add_message("Cancelled fishing", Color(0.7, 0.7, 0.7))
@@ -482,7 +497,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		if direction != Vector2i.ZERO:
 			_awaiting_fishing_direction = false
-			ui_blocking_input = false
+			set_ui_blocking(false)
 			get_viewport().set_input_as_handled()  # Consume input BEFORE processing
 
 			# Reset movement timer to prevent immediate movement after fishing
@@ -1080,7 +1095,7 @@ func _start_harvest_mode() -> void:
 		game._add_message("Harvest which direction? (Arrow keys or WASD)", Color(1.0, 1.0, 0.6))
 
 	# Set a flag to await direction input
-	ui_blocking_input = true
+	set_ui_blocking(true)
 	_awaiting_harvest_direction = true
 
 ## Exit continuous harvesting mode
@@ -1222,7 +1237,7 @@ func _start_disarm_trap_mode() -> void:
 		# Multiple adjacent traps - prompt for direction
 		if game and game.has_method("_add_message"):
 			game._add_message("Disarm trap in which direction? (Arrow keys or WASD)", Color(1.0, 0.6, 0.6))
-		ui_blocking_input = true
+		set_ui_blocking(true)
 		_awaiting_disarm_trap_direction = true
 		return
 
@@ -1260,7 +1275,7 @@ func _start_fishing_mode() -> void:
 		game._add_message("Fish which direction? (Arrow keys or WASD)", Color(0.6, 0.8, 1.0))
 
 	# Set a flag to await direction input
-	ui_blocking_input = true
+	set_ui_blocking(true)
 	_awaiting_fishing_direction = true
 
 ## Exit continuous fishing mode
@@ -1344,14 +1359,14 @@ func _start_till_mode() -> void:
 		return
 
 	_awaiting_till_direction = true
-	ui_blocking_input = true
+	set_ui_blocking(true)
 	if game and game.has_method("_add_message"):
 		game._add_message("Till which direction? (Arrow keys/WASD, ESC to cancel)", Color(0.8, 0.9, 1.0))
 
 ## Exit till mode
 func _exit_till_mode() -> void:
 	_awaiting_till_direction = false
-	ui_blocking_input = false
+	set_ui_blocking(false)
 
 ## Try to till soil in the given direction
 func _try_till(direction: Vector2i) -> bool:
@@ -1398,7 +1413,7 @@ func _start_plant_mode() -> void:
 	_current_seed_index = 0
 	_selected_seed_for_planting = _available_seeds[0]
 	_awaiting_plant_direction = true
-	ui_blocking_input = true
+	set_ui_blocking(true)
 
 	_show_plant_mode_message()
 
@@ -1431,7 +1446,7 @@ func _exit_plant_mode() -> void:
 	_selected_seed_for_planting = null
 	_available_seeds.clear()
 	_current_seed_index = 0
-	ui_blocking_input = false
+	set_ui_blocking(false)
 
 ## Try to plant a seed in the given direction
 func _try_plant(direction: Vector2i) -> bool:
@@ -1538,7 +1553,7 @@ func _start_ranged_targeting() -> void:
 		return
 
 	# Block other input while targeting
-	ui_blocking_input = true
+	set_ui_blocking(true)
 
 	# Show targeting UI
 	if game and game.has_method("show_targeting_ui"):
@@ -1584,7 +1599,7 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 				# Normal ranged weapon targeting
 				var result = targeting_system.confirm_target()
 				_process_ranged_attack_result(result)
-			ui_blocking_input = false
+			set_ui_blocking(false)
 			get_viewport().set_input_as_handled()
 
 		KEY_ESCAPE:
@@ -1601,7 +1616,7 @@ func _handle_targeting_input(event: InputEventKey) -> void:
 					game._add_message("Spell cancelled.", Color(0.7, 0.7, 0.7))
 				else:
 					game._add_message("Targeting cancelled.", Color(0.7, 0.7, 0.7))
-			ui_blocking_input = false
+			set_ui_blocking(false)
 			get_viewport().set_input_as_handled()
 
 
@@ -2503,7 +2518,7 @@ func _on_scroll_targeting_started(scroll, spell) -> void:
 
 	# Start spell targeting for the scroll's spell
 	if targeting_system.start_spell_targeting(player, spell):
-		ui_blocking_input = true
+		set_ui_blocking(true)
 		if game and game.has_method("_add_message"):
 			game._add_message(targeting_system.get_status_text(), Color(0.5, 0.8, 1.0))
 			game._add_message(targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
@@ -2527,7 +2542,7 @@ func _on_wand_targeting_started(wand, spell) -> void:
 
 	# Start spell targeting for the wand's spell
 	if targeting_system.start_spell_targeting(player, spell):
-		ui_blocking_input = true
+		set_ui_blocking(true)
 		if game and game.has_method("_add_message"):
 			game._add_message(targeting_system.get_status_text(), Color(0.5, 0.8, 1.0))
 			game._add_message(targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
@@ -2536,3 +2551,16 @@ func _on_wand_targeting_started(wand, spell) -> void:
 		pending_wand = null
 		if game and game.has_method("_add_message"):
 			game._add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))
+
+
+## Handle player turn started signal
+## Enables _process() for input handling during player's turn
+func _on_player_turn_started() -> void:
+	if player and player.is_alive and not ui_blocking_input:
+		set_process(true)
+
+
+## Handle player turn ended signal
+## Disables _process() to save CPU during enemy turns
+func _on_player_turn_ended() -> void:
+	set_process(false)

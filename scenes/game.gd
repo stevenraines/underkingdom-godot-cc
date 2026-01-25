@@ -57,6 +57,30 @@ var build_cursor_offset: Vector2i = Vector2i(1, 0)  # Offset from player for pla
 var _enemy_light_cache: Array[Vector2i] = []
 var _enemy_light_cache_dirty: bool = true
 
+# Performance optimization: Cache HUD string values to avoid rebuilding unchanged text
+var _cached_player_hp: int = -1
+var _cached_player_max_hp: int = -1
+var _cached_turn: int = -1
+var _cached_player_level: int = -1
+var _cached_player_xp: int = -1
+var _cached_player_gold: int = -1
+var _cached_stamina: float = -1
+var _cached_max_stamina: float = -1
+var _cached_mana: float = -1
+var _cached_max_mana: float = -1
+var _cached_hunger: float = -1
+var _cached_thirst: float = -1
+var _cached_temperature: float = -999
+var _cached_env_temperature: float = -999
+var _cached_location: String = ""
+var _cached_biome_name: String = ""
+var _cached_light_lit: bool = false
+var _cached_has_light: bool = false
+
+# Performance optimization: Track rendered entities for incremental updates
+var _rendered_entities: Dictionary = {}  # Vector2i -> Entity reference
+var _full_render_needed: bool = true
+
 @onready var hud: CanvasLayer = $HUD
 @onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
 @onready var status_line: Label = $HUD/TopBar/StatusLine
@@ -634,6 +658,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		var old_chunk = ChunkManager.world_to_chunk(old_pos)
 		var new_chunk = ChunkManager.world_to_chunk(new_pos)
 		if old_chunk != new_chunk:
+			_full_render_needed = true  # New chunks loaded - need full render
 			_render_map()
 			_render_ground_items()
 			_render_all_entities()
@@ -643,10 +668,13 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
 
 	if is_dungeon:
+		# Note: For dungeons, we still do full entity re-render every move
+		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
+		# and the incremental check overhead would negate the benefit
 		# Re-render entire map with updated wall visibility
 		_render_map()
 		_render_ground_items()  # Render loot first so creatures appear on top
-		_render_all_entities()
+		_render_all_entities()  # Will use incremental rendering automatically
 
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
@@ -774,6 +802,9 @@ func toggle_auto_open_doors() -> void:
 func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change START: %s ===" % map_id)
 
+	# Mark full render needed for new map
+	_full_render_needed = true
+
 	# Skip entity handling during save load (SaveManager handles entities separately)
 	if SaveManager.is_deserializing:
 		print("[Game] Skipping entity handling during deserialization")
@@ -848,6 +879,9 @@ func _on_tile_changed(pos: Vector2i) -> void:
 			renderer.render_tile(pos, tile.ascii_char, 0, tile.color)
 		else:
 			renderer.render_tile(pos, tile.ascii_char)
+
+	# Invalidate FOV cache since tile transparency may have changed (doors, walls)
+	FOVSystemClass.invalidate_cache()
 
 	# Recalculate visibility when tiles change (doors open/close affects LOS)
 	_update_visibility()
@@ -1129,7 +1163,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					build_mode_active = false
 					selected_structure_id = ""
 					build_cursor_offset = Vector2i(1, 0)
-					input_handler.ui_blocking_input = false  # Re-enable player movement
+					input_handler.set_ui_blocking(false)  # Re-enable player movement
 					_add_message("Cancelled building", Color(0.7, 0.7, 0.7))
 					_render_map()  # Clear cursor
 					_render_all_entities()
@@ -1139,7 +1173,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			build_mode_active = false
 			selected_structure_id = ""
 			build_cursor_offset = Vector2i(1, 0)
-			input_handler.ui_blocking_input = false  # Re-enable player movement
+			input_handler.set_ui_blocking(false)  # Re-enable player movement
 			_add_message("Cancelled building", Color(0.7, 0.7, 0.7))
 			get_viewport().set_input_as_handled()
 		# Restart game when R is pressed and player is dead
@@ -1172,93 +1206,154 @@ func _update_hud() -> void:
 	if not player:
 		return
 
-	# Update character info line with calendar data and weather
+	# Update character info line with calendar data and weather (only if turn changed)
 	if character_info_label:
-		# Format: "Moonday, 15th Bloom - Dawn (Year 342) | ☀ Clear"
-		var date_str = CalendarManager.get_short_date_string()
-		var time_str = TurnManager.time_of_day.capitalize()
-		var year_str = "Year %d" % CalendarManager.current_year
+		var current_turn = TurnManager.current_turn
+		if current_turn != _cached_turn:
+			_cached_turn = current_turn
+			# Format: "Moonday, 15th Bloom - Dawn (Year 342) | ☀ Clear"
+			var date_str = CalendarManager.get_short_date_string()
+			var time_str = TurnManager.time_of_day.capitalize()
+			var year_str = "Year %d" % CalendarManager.current_year
 
-		# Add weather info if on overworld
-		var weather_text = ""
-		if WeatherManager.should_apply_weather_effects():
-			var weather_char = WeatherManager.get_current_weather_char()
-			var weather_name = WeatherManager.get_current_weather_name()
-			weather_text = " | %s %s" % [weather_char, weather_name]
+			# Add weather info if on overworld
+			var weather_text = ""
+			if WeatherManager.should_apply_weather_effects():
+				var weather_char = WeatherManager.get_current_weather_char()
+				var weather_name = WeatherManager.get_current_weather_name()
+				weather_text = " | %s %s" % [weather_char, weather_name]
 
-		character_info_label.text = "%s - %s (%s)%s" % [date_str, time_str, year_str, weather_text]
+			character_info_label.text = "%s - %s (%s)%s" % [date_str, time_str, year_str, weather_text]
 
-	# Update status line with health and survival
+	# Update status line with health and survival (only if values changed)
 	if status_line:
-		# Health with color coding
-		var hp_text = "HP: %d/%d" % [player.current_health, player.max_health]
-		var turn_text = "Turn: %d" % TurnManager.current_turn
+		var needs_update = false
 
-		# Survival stats (if available)
-		var survival_text = ""
+		# Check if any values changed
+		if player.current_health != _cached_player_hp or player.max_health != _cached_player_max_hp:
+			_cached_player_hp = player.current_health
+			_cached_player_max_hp = player.max_health
+			needs_update = true
+
+		# Check survival stats
 		if player.survival:
 			var s = player.survival
-			var stam_text = "Stam: %d/%d" % [int(s.stamina), int(s.get_max_stamina())]
-			var mana_text = "Mana: %d/%d" % [int(s.mana), int(s.get_max_mana())]
-			var hunger_text = "Hun: %d%%" % int(s.hunger)
-			var thirst_text = "Thr: %d%%" % int(s.thirst)
-			# Show outside temp → player temp (with warmth adjustment)
-			# Use roundi() to match character sheet display (%.0f rounds)
-			var env_temp = roundi(s.get_environmental_temperature())
-			var player_temp = roundi(s.temperature)
-			var temp_text = "Tmp: %d→%d°F" % [env_temp, player_temp]
-			survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, hunger_text, thirst_text, temp_text]
+			var stam = s.stamina
+			var max_stam = s.get_max_stamina()
+			var mana = s.mana
+			var max_mana = s.get_max_mana()
+			var hunger = s.hunger
+			var thirst = s.thirst
+			var env_temp = s.get_environmental_temperature()
+			var player_temp = s.temperature
 
-		# Light source indicator
-		var light_text = ""
+			if stam != _cached_stamina or max_stam != _cached_max_stamina or \
+			   mana != _cached_mana or max_mana != _cached_max_mana or \
+			   hunger != _cached_hunger or thirst != _cached_thirst or \
+			   abs(env_temp - _cached_env_temperature) > 0.5 or \
+			   abs(player_temp - _cached_temperature) > 0.5:
+				_cached_stamina = stam
+				_cached_max_stamina = max_stam
+				_cached_mana = mana
+				_cached_max_mana = max_mana
+				_cached_hunger = hunger
+				_cached_thirst = thirst
+				_cached_env_temperature = env_temp
+				_cached_temperature = player_temp
+				needs_update = true
+
+		# Check light source
+		var has_light = false
+		var light_lit = false
 		if player.inventory:
 			var light_item = _get_equipped_light_source()
 			if light_item:
-				if light_item.is_lit:
+				has_light = true
+				light_lit = light_item.is_lit
+
+		if has_light != _cached_has_light or light_lit != _cached_light_lit:
+			_cached_has_light = has_light
+			_cached_light_lit = light_lit
+			needs_update = true
+
+		# Only rebuild text if something changed
+		if needs_update:
+			var hp_text = "HP: %d/%d" % [_cached_player_hp, _cached_player_max_hp]
+			var turn_text = "Turn: %d" % TurnManager.current_turn
+
+			# Survival stats (if available)
+			var survival_text = ""
+			if player.survival:
+				var stam_text = "Stam: %d/%d" % [int(_cached_stamina), int(_cached_max_stamina)]
+				var mana_text = "Mana: %d/%d" % [int(_cached_mana), int(_cached_max_mana)]
+				var hunger_text = "Hun: %d%%" % int(_cached_hunger)
+				var thirst_text = "Thr: %d%%" % int(_cached_thirst)
+				var env_temp = roundi(_cached_env_temperature)
+				var player_temp = roundi(_cached_temperature)
+				var temp_text = "Tmp: %d→%d°F" % [env_temp, player_temp]
+				survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, hunger_text, thirst_text, temp_text]
+
+			# Light source indicator
+			var light_text = ""
+			if _cached_has_light:
+				if _cached_light_lit:
 					light_text = "  [Torch: LIT]"
 				else:
 					light_text = "  [Torch: OUT]"
 
-		status_line.text = "%s%s%s  %s" % [hp_text, survival_text, light_text, turn_text]
+			status_line.text = "%s%s%s  %s" % [hp_text, survival_text, light_text, turn_text]
 
-	# Update XP label if present
+			# Color code based on most critical state
+			var status_color = _get_status_color()
+			status_line.add_theme_color_override("font_color", status_color)
+
+	# Update XP label if present (only if values changed)
 	if xp_label and player:
 		var cur_level = player.level if "level" in player else 0
 		var cur_xp = player.experience if "experience" in player else 0
-		var next_xp = player.experience_to_next_level if "experience_to_next_level" in player else 100
-		xp_label.text = "Lvl %d | Exp: %d/%d" % [cur_level, cur_xp, next_xp]
+		if cur_level != _cached_player_level or cur_xp != _cached_player_xp:
+			_cached_player_level = cur_level
+			_cached_player_xp = cur_xp
+			var next_xp = player.experience_to_next_level if "experience_to_next_level" in player else 100
+			xp_label.text = "Lvl %d | Exp: %d/%d" % [cur_level, cur_xp, next_xp]
 
-	# Update gold label if present
+	# Update gold label if present (only if value changed)
 	if gold_label and player:
-		gold_label.text = "Gold: %d" % player.gold
+		if player.gold != _cached_player_gold:
+			_cached_player_gold = player.gold
+			gold_label.text = "Gold: %d" % player.gold
 
-		# Color code based on most critical state
-		var status_color = _get_status_color()
-		status_line.add_theme_color_override("font_color", status_color)
-
-	# Update location
+	# Update location (only if map or biome changed)
 	if location_label:
 		var map_name = MapManager.current_map.map_id if MapManager.current_map else "Unknown"
-		var formatted_name = map_name.replace("_", " ").capitalize()
-		var location_text = "◆ %s ◆" % formatted_name.to_upper()
 
-		# Add biome and ground type for overworld
+		# Check for overworld biome changes
+		var current_biome = ""
 		if MapManager.current_map and MapManager.current_map.map_id == "overworld" and player:
-			# Get biome at player position
 			var biome_data = BiomeGenerator.get_biome_at(player.position.x, player.position.y, GameManager.world_seed)
-			var biome_name = biome_data.get("biome_name", "Unknown")
-			var biome_id = biome_data.get("biome_name", "")
-			biome_name = biome_name.replace("_", " ").capitalize()
+			current_biome = biome_data.get("biome_name", "Unknown")
 
-			# Get ground character name
-			var tile = MapManager.current_map.get_tile(player.position)
-			var ground_char = tile.ascii_char
-			var ground_name = _get_terrain_name(ground_char, biome_id)
+		# Only update if location or biome changed
+		if map_name != _cached_location or current_biome != _cached_biome_name:
+			_cached_location = map_name
+			_cached_biome_name = current_biome
 
-			# Format as "Biome, Ground"
-			location_text += "\n%s, %s" % [biome_name, ground_name]
+			var formatted_name = map_name.replace("_", " ").capitalize()
+			var location_text = "◆ %s ◆" % formatted_name.to_upper()
 
-		location_label.text = location_text
+			# Add biome and ground type for overworld
+			if MapManager.current_map and MapManager.current_map.map_id == "overworld" and player:
+				var biome_name = current_biome.replace("_", " ").capitalize()
+
+				# Get ground character name
+				var tile = MapManager.current_map.get_tile(player.position)
+				var ground_char = tile.ascii_char
+				var ground_name = _get_terrain_name(ground_char, current_biome)
+
+				# Format as "Biome, Ground"
+				location_text += "\n%s, %s" % [biome_name, ground_name]
+
+			location_label.text = location_text
 
 	# Update debug info
 	if debug_info_label and player:
@@ -1570,6 +1665,19 @@ func _spawn_map_enemies() -> void:
 
 ## Render all entities on the current map
 func _render_all_entities() -> void:
+	# Use incremental rendering if possible (much faster for large entity counts)
+	if _full_render_needed:
+		_full_render_all_entities()
+		_full_render_needed = false
+		return
+
+	_incremental_render_entities()
+
+
+## Full entity render - used on map transitions or when incremental tracking is lost
+func _full_render_all_entities() -> void:
+	_rendered_entities.clear()
+
 	# Get current target for highlighting
 	var current_target = input_handler.get_current_target() if input_handler else null
 
@@ -1584,9 +1692,9 @@ func _render_all_entities() -> void:
 			var render_color = entity.color
 			# Highlight targeted enemy with a distinct color
 			if entity == current_target:
-				# Use a bright cyan/white pulsing effect by brightening the color
 				render_color = Color(1.0, 0.4, 0.4)  # Red tint for targeted enemy
 			renderer.render_entity(entity.position, entity.ascii_char, render_color)
+			_rendered_entities[entity.position] = entity
 
 	# Render structures (skip player position)
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
@@ -1594,12 +1702,58 @@ func _render_all_entities() -> void:
 	for structure in structures:
 		if structure.position != player_pos:
 			renderer.render_entity(structure.position, structure.ascii_char, structure.color)
+			_rendered_entities[structure.position] = structure
 
 	# Render dungeon features (skip player position)
 	_render_features(player_pos)
 
 	# Render dungeon hazards (visible ones only, skip player position)
 	_render_hazards(player_pos)
+
+
+## Incremental entity render - only updates entities that changed
+func _incremental_render_entities() -> void:
+	var current_entities: Dictionary = {}
+
+	# Get current target for highlighting
+	var current_target = input_handler.get_current_target() if input_handler else null
+	var player_pos = player.position if player else Vector2i(-1, -1)
+
+	# Build current entity positions
+	for entity in EntityManager.entities:
+		if entity.is_alive and entity.position != player_pos:
+			current_entities[entity.position] = entity
+
+	# Add structures
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var structures = StructureManager.get_structures_on_map(map_id)
+	for structure in structures:
+		if structure.position != player_pos:
+			current_entities[structure.position] = structure
+
+	# Find and clear removed entities
+	for pos in _rendered_entities:
+		if not current_entities.has(pos):
+			renderer.clear_entity(pos)
+
+	# Render new/moved entities
+	for pos in current_entities:
+		var entity = current_entities[pos]
+		# Re-render if entity is new at this position or if it's the current target (color may change)
+		if not _rendered_entities.has(pos) or _rendered_entities[pos] != entity or entity == current_target:
+			var render_color = entity.color if "color" in entity else Color.WHITE
+			var ascii_char = entity.ascii_char if "ascii_char" in entity else "?"
+
+			# Highlight targeted enemy
+			if entity == current_target:
+				render_color = Color(1.0, 0.4, 0.4)
+
+			renderer.render_entity(pos, ascii_char, render_color)
+
+	_rendered_entities = current_entities
+
+	# Note: Features and hazards are typically static, so they're only rendered in full render
+	# If they become dynamic, they should be added to incremental rendering too
 
 
 ## Render dungeon features (chests, altars, etc.)
@@ -1793,10 +1947,10 @@ func toggle_inventory_screen() -> void:
 	if inventory_screen:
 		if inventory_screen.visible:
 			inventory_screen.hide()
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			inventory_screen.open(player)
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 
 ## Open crafting screen (called from input handler)
 func open_crafting_screen() -> void:
@@ -1804,7 +1958,7 @@ func open_crafting_screen() -> void:
 		crafting_screen.open(player)
 		# Block player movement while crafting UI is open
 		if input_handler:
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 		# Center HUD focus if necessary
 		_render_ground_items()
 		_update_hud()
@@ -1814,7 +1968,7 @@ func open_crafting_screen() -> void:
 func _on_crafting_closed() -> void:
 	# Called when crafting screen closes to re-enable player input
 	if input_handler:
-		input_handler.ui_blocking_input = false
+		input_handler.set_ui_blocking(false)
 
 ## Toggle build mode (called from input handler)
 func toggle_build_mode() -> void:
@@ -1823,42 +1977,42 @@ func toggle_build_mode() -> void:
 			build_mode_screen.hide()
 			build_mode_active = false
 			selected_structure_id = ""
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			build_mode_screen.open(player)
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 
 ## Toggle world map (called from input handler)
 func toggle_world_map() -> void:
 	if world_map_screen:
 		if world_map_screen.visible:
 			world_map_screen.close()
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			world_map_screen.open()
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 
 ## Toggle spell list (called from input handler via Shift+M)
 func toggle_spell_list() -> void:
 	if spell_list_screen and player:
 		if spell_list_screen.visible:
 			spell_list_screen.hide()
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			spell_list_screen.open(player)
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 
 ## Open container screen (called from input handler)
 func open_container_screen(structure: Structure) -> void:
 	if container_screen and player:
 		container_screen.open(player, structure)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Open pause menu (called from ESC key)
 func _open_pause_menu() -> void:
 	if pause_menu:
 		pause_menu.open(true)  # true = save mode
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Open character sheet (called from P key)
 func open_character_sheet() -> void:
@@ -1866,7 +2020,7 @@ func open_character_sheet() -> void:
 	if character_sheet and player:
 		print("[Game] Opening character sheet UI")
 		character_sheet.open(player)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 	else:
 		print("[Game] ERROR: character_sheet or player is null")
 
@@ -1876,7 +2030,7 @@ func open_help_screen() -> void:
 	if help_screen:
 		print("[Game] Opening help screen UI")
 		help_screen.open()
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 	else:
 		print("[Game] ERROR: help_screen is null")
 
@@ -1886,31 +2040,31 @@ func toggle_debug_menu() -> void:
 	if debug_command_menu:
 		if debug_command_menu.visible:
 			debug_command_menu.close()
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			debug_command_menu.open(player)
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 	else:
 		print("[Game] ERROR: debug_command_menu is null")
 
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
 	# Resume normal gameplay
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when build mode screen is closed
 func _on_build_mode_closed() -> void:
 	# Only clear if we're not in placement mode
 	if selected_structure_id == "":
 		build_mode_active = false
-		input_handler.ui_blocking_input = false
+		input_handler.set_ui_blocking(false)
 
 ## Called when a structure is selected from build mode
 func _on_structure_selected(structure_id: String) -> void:
 	selected_structure_id = structure_id
 	build_mode_active = true
 	build_cursor_offset = Vector2i(1, 0)  # Reset cursor to right of player
-	input_handler.ui_blocking_input = true  # Block player movement during placement
+	input_handler.set_ui_blocking(true)  # Block player movement during placement
 	var structure_name = StructureManager.structure_definitions[structure_id].get("name", structure_id) if StructureManager.structure_definitions.has(structure_id) else structure_id
 	_add_message("BUILD MODE: %s - Arrow keys to move cursor, ENTER to place, ESC to cancel" % structure_name, Color(1.0, 1.0, 0.6))
 	# Show initial cursor
@@ -1918,63 +2072,63 @@ func _on_structure_selected(structure_id: String) -> void:
 
 ## Called when container screen is closed
 func _on_container_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when shop is opened
 func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 	if shop_screen and shop_player:
 		shop_screen.open(shop_player, shop_npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when training is opened
 func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
 	if training_screen and train_player:
 		training_screen.open(train_player, trainer_npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when training screen is closed
 func _on_training_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when shop screen requests switch to training
 func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
 	if training_screen and switch_player:
 		training_screen.open(switch_player, npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when training screen requests switch to trade
 func _on_training_switch_to_trade(npc: NPC, switch_player: Player) -> void:
 	if shop_screen and switch_player:
 		shop_screen.open(switch_player, npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when NPC menu is opened (NPC with multiple services)
 func _on_npc_menu_opened(menu_npc: NPC, menu_player: Player) -> void:
 	if npc_menu_screen and menu_player:
 		npc_menu_screen.open(menu_player, menu_npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when NPC menu screen is closed
 func _on_npc_menu_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when trade is selected from NPC menu
 func _on_npc_menu_trade_selected(menu_npc: NPC, menu_player: Player) -> void:
 	# Open shop screen
 	if shop_screen and menu_player:
 		shop_screen.open(menu_player, menu_npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when train is selected from NPC menu
 func _on_npc_menu_train_selected(menu_npc: NPC, menu_player: Player) -> void:
 	# Open training screen
 	if training_screen and menu_player:
 		training_screen.open(menu_player, menu_npc)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when harvesting mode changes
 func _on_harvesting_mode_changed(is_active: bool) -> void:
@@ -2064,15 +2218,15 @@ func _unlock_shop_door(door_pos: Vector2i) -> void:
 
 ## Called when pause menu is closed
 func _on_pause_menu_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when character sheet is closed
 func _on_character_sheet_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when level-up screen is closed
 func _on_level_up_screen_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 	# Reopen character sheet (it was hidden when level-up opened)
 	if character_sheet and player:
 		character_sheet.open(player)
@@ -2081,15 +2235,15 @@ func _on_level_up_screen_closed() -> void:
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when debug menu is closed
 func _on_debug_menu_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 	# Refresh rendering to show spawned entities/items and tile changes
 	_render_map()
 	_render_ground_items()
@@ -2099,15 +2253,15 @@ func _on_debug_action_completed() -> void:
 
 ## Called when world map is closed
 func _on_world_map_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when spell list is closed
 func _on_spell_list_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when player requests to cast a spell from the spell list
 func _on_spell_cast_requested(spell_id: String) -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 	if not player or not spell_id:
 		return
@@ -2130,7 +2284,7 @@ func _on_spell_cast_requested(spell_id: String) -> void:
 
 		# Start spell targeting (TargetingSystem handles valid targets)
 		if input_handler.targeting_system.start_spell_targeting(player, spell):
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 			_add_message(input_handler.targeting_system.get_status_text(), Color(0.5, 0.8, 1.0))
 			_add_message(input_handler.targeting_system.get_help_text(), Color(0.7, 0.7, 0.7))
 			# Show visual highlight on the initial target
@@ -2168,21 +2322,21 @@ func _cast_spell_on_target(spell, target) -> void:
 func _on_ritual_menu_requested() -> void:
 	if ritual_menu and player:
 		ritual_menu.open(player)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when ritual menu is closed
 func _on_ritual_menu_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when player begins a ritual from the ritual menu
 func _on_ritual_started(ritual_id: String) -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 	_add_message("Ritual channeling has begun. Continue waiting to complete it.", Color.MAGENTA)
 
 
 ## Called when special actions screen is closed
 func _on_special_actions_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 
 ## Called when a special action is used
@@ -2196,10 +2350,10 @@ func toggle_special_actions() -> void:
 	if special_actions_screen and player:
 		if special_actions_screen.visible:
 			special_actions_screen.hide()
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			special_actions_screen.open(player)
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 
 
 ## Toggle fast travel screen (called from input handler)
@@ -2207,14 +2361,14 @@ func toggle_fast_travel() -> void:
 	if fast_travel_screen:
 		if fast_travel_screen.visible:
 			fast_travel_screen.close()
-			input_handler.ui_blocking_input = false
+			input_handler.set_ui_blocking(false)
 		else:
 			fast_travel_screen.open()
-			input_handler.ui_blocking_input = true
+			input_handler.set_ui_blocking(true)
 
 ## Called when fast travel screen is closed
 func _on_fast_travel_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when an item is picked up
 func _on_item_picked_up(item) -> void:
@@ -2262,7 +2416,7 @@ func _on_structure_placed(_structure: Structure) -> void:
 	build_mode_active = false
 	selected_structure_id = ""
 	build_cursor_offset = Vector2i(1, 0)
-	input_handler.ui_blocking_input = false  # Re-enable player movement
+	input_handler.set_ui_blocking(false)  # Re-enable player movement
 	# Re-render map to clear cursor and show the new structure
 	_render_map()
 	_render_ground_items()
@@ -2447,11 +2601,11 @@ func _update_visibility() -> void:
 func open_rest_menu() -> void:
 	if rest_menu and player:
 		rest_menu.open(player)
-		input_handler.ui_blocking_input = true
+		input_handler.set_ui_blocking(true)
 
 ## Called when rest menu is closed
 func _on_rest_menu_closed() -> void:
-	input_handler.ui_blocking_input = false
+	input_handler.set_ui_blocking(false)
 
 ## Called when player requests rest from menu
 func _on_rest_requested(type: String, turns: int) -> void:

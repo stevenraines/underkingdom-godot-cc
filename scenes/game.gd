@@ -1785,26 +1785,12 @@ func _incremental_render_entities() -> void:
 		if structure.position != player_pos:
 			current_entities[structure.position] = structure
 
-	# Add features (to prevent them from being cleared by incremental renderer)
-	for pos in FeatureManager.active_features:
-		if pos != player_pos:
-			var feature = FeatureManager.active_features[pos]
-			# Only add if walkable and visible
-			if MapManager.current_map:
-				var tile = MapManager.current_map.get_tile(pos)
-				if tile and tile.walkable and renderer.is_position_visible(pos):
-					current_entities[pos] = feature
-
-	# Add visible hazards (to prevent them from being cleared by incremental renderer)
-	for pos in HazardManager.active_hazards:
-		if pos != player_pos and HazardManager.has_visible_hazard(pos) and renderer.is_position_visible(pos):
-			var hazard = HazardManager.active_hazards[pos]
-			current_entities[pos] = hazard
-
-	# Find and clear removed entities
+	# Find and clear removed entities (but skip features/hazards - they'll be handled separately)
 	for pos in _rendered_entities:
 		if not current_entities.has(pos):
-			renderer.clear_entity(pos)
+			# Don't clear features or hazards here - they have their own rendering logic
+			if not FeatureManager.active_features.has(pos) and not HazardManager.active_hazards.has(pos):
+				renderer.clear_entity(pos)
 
 	# Render new/moved entities
 	for pos in current_entities:
@@ -1812,37 +1798,66 @@ func _incremental_render_entities() -> void:
 
 		# Re-render if entity is new at this position or if it's the current target (color may change)
 		if not _rendered_entities.has(pos) or _rendered_entities[pos] != entity or entity == current_target:
-			# Handle features (have a definition dictionary)
-			if FeatureManager.active_features.has(pos):
-				var feature: Dictionary = entity
-				var definition: Dictionary = feature.get("definition", {})
-				var ascii_char: String = definition.get("ascii_char", "?")
-				var color: Color = definition.get("color", Color.WHITE)
-				renderer.render_entity(pos, ascii_char, color)
-			# Handle hazards (have a definition dictionary)
-			elif HazardManager.active_hazards.has(pos):
-				var hazard: Dictionary = entity
-				var definition: Dictionary = hazard.get("definition", {})
-				var ascii_char: String = definition.get("ascii_char", "^")
-				var color = definition.get("color", Color.RED)
-				if color is String:
-					color = Color.from_string(color, Color.RED)
-				if hazard.get("disarmed", false):
-					color = Color(0.5, 0.5, 0.5)
-				renderer.render_entity(pos, ascii_char, color)
-			# Handle regular entities
-			else:
-				var render_color = entity.color if "color" in entity else Color.WHITE
-				var ascii_char = entity.ascii_char if "ascii_char" in entity else "?"
+			var render_color = entity.color if "color" in entity else Color.WHITE
+			var ascii_char = entity.ascii_char if "ascii_char" in entity else "?"
 
-				# Highlight targeted enemy
-				if entity == current_target:
-					render_color = Color(1.0, 0.4, 0.4)
+			# Highlight targeted enemy
+			if entity == current_target:
+				render_color = Color(1.0, 0.4, 0.4)
 
-				renderer.render_entity(pos, ascii_char, render_color)
+			renderer.render_entity(pos, ascii_char, render_color)
 
 	_rendered_entities = current_entities
-	# Features and hazards are now handled by the main rendering loop above
+
+	# Render features and hazards separately with visibility tracking
+	# Track which feature/hazard positions are currently rendered
+	var rendered_features: Array[Vector2i] = []
+	var rendered_hazards: Array[Vector2i] = []
+
+	# Render visible features
+	for pos in FeatureManager.active_features:
+		if pos == player_pos:
+			continue
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(pos)
+			if tile == null or not tile.walkable:
+				continue
+		if renderer.is_position_visible(pos):
+			var feature: Dictionary = FeatureManager.active_features[pos]
+			var definition: Dictionary = feature.get("definition", {})
+			var ascii_char: String = definition.get("ascii_char", "?")
+			var color: Color = definition.get("color", Color.WHITE)
+			renderer.render_entity(pos, ascii_char, color)
+			_rendered_entities[pos] = feature
+			rendered_features.append(pos)
+
+	# Render visible hazards
+	for pos in HazardManager.active_hazards:
+		if pos == player_pos:
+			continue
+		if not HazardManager.has_visible_hazard(pos):
+			continue
+		if renderer.is_position_visible(pos):
+			var hazard: Dictionary = HazardManager.active_hazards[pos]
+			var definition: Dictionary = hazard.get("definition", {})
+			var ascii_char: String = definition.get("ascii_char", "^")
+			var color = definition.get("color", Color.RED)
+			if color is String:
+				color = Color.from_string(color, Color.RED)
+			if hazard.get("disarmed", false):
+				color = Color(0.5, 0.5, 0.5)
+			renderer.render_entity(pos, ascii_char, color)
+			_rendered_entities[pos] = hazard
+			rendered_hazards.append(pos)
+
+	# Clear features/hazards that are no longer visible
+	for pos in _rendered_entities.keys():
+		if FeatureManager.active_features.has(pos) and not pos in rendered_features:
+			renderer.clear_entity(pos)
+			_rendered_entities.erase(pos)
+		elif HazardManager.active_hazards.has(pos) and not pos in rendered_hazards:
+			renderer.clear_entity(pos)
+			_rendered_entities.erase(pos)
 
 
 ## Render dungeon features (chests, altars, etc.)

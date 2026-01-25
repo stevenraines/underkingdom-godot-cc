@@ -152,14 +152,19 @@ static func _calculate_los_and_lighting_visibility(
 			if dist_sq <= perception_range * perception_range:
 				tiles_in_range.append(pos)
 
-	# Also include positions of all light sources that might be visible
-	# (within player's light radius or close to perception range)
-	var max_check_range = perception_range + player_light_radius
+	# Also include tiles illuminated by light sources
+	# This ensures braziers/campfires outside perception range still illuminate their area
 	for light_source in light_sources:
-		var light_pos = light_source.position
-		var dist = _chebyshev_distance(origin, light_pos)
-		if dist <= max_check_range and not tiles_in_range.has(light_pos):
-			tiles_in_range.append(light_pos)
+		var light_pos = light_source.get("position", Vector2i.ZERO)
+		var light_radius = light_source.get("radius", 0)
+
+		# Add all tiles within this light source's radius
+		for dx in range(-light_radius, light_radius + 1):
+			for dy in range(-light_radius, light_radius + 1):
+				var pos = light_pos + Vector2i(dx, dy)
+				var dist_sq = dx * dx + dy * dy
+				if dist_sq <= light_radius * light_radius and not tiles_in_range.has(pos):
+					tiles_in_range.append(pos)
 
 	# For each tile in range, check LOS and calculate lighting
 	for pos in tiles_in_range:
@@ -188,8 +193,8 @@ static func _calculate_los_and_lighting_visibility(
 
 		# Add light from map light sources (campfires, braziers, etc.)
 		for light_source in light_sources:
-			var light_pos = light_source.position
-			var light_radius = light_source.radius
+			var light_pos = light_source.get("position", Vector2i.ZERO)
+			var light_radius = light_source.get("radius", 0)
 
 			# Check if light source can illuminate this tile
 			var dist_to_light = _chebyshev_distance(light_pos, pos)

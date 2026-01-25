@@ -1834,10 +1834,6 @@ func _incremental_render_entities() -> void:
 	for pos in FeatureManager.active_features:
 		if pos == player_pos:
 			continue
-		if MapManager.current_map:
-			var tile = MapManager.current_map.get_tile(pos)
-			if tile == null or not tile.walkable:
-				continue
 		if renderer.is_position_visible(pos):
 			var feature: Dictionary = FeatureManager.active_features[pos]
 			var definition: Dictionary = feature.get("definition", {})

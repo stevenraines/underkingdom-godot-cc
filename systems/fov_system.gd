@@ -23,6 +23,7 @@ static var cache_time: String = ""
 static var cache_map_id: String = ""
 static var cache_dirty: bool = true
 static var cache_light_sources_hash: int = 0
+static var cache_light_radius: int = -1  # OPTIMIZATION: Cache player's light radius
 
 ## Row structure for shadowcasting algorithm
 class Row:
@@ -248,6 +249,17 @@ static func _adjust_range_for_time(base_range: int) -> int:
 ## This is the main function to call from game.gd
 ## Returns tiles that are currently visible (in LOS AND illuminated)
 static func calculate_visibility(origin: Vector2i, perception_range: int, light_radius: int, map: GameMap) -> Array[Vector2i]:
+	# Get map info for cache validation
+	var map_id = map.map_id if map else ""
+	var current_time = TurnManager.time_of_day
+
+	# OPTIMIZATION: Check if cached visibility is still valid
+	# This prevents recalculation when player hasn't moved and conditions haven't changed
+	if (origin == cache_origin and perception_range == cache_range and
+	    light_radius == cache_light_radius and current_time == cache_time and
+	    map_id == cache_map_id and not cache_dirty and not cached_visible.is_empty()):
+		return cached_visible
+
 	# DEBUG: If map reveal is enabled, return all tiles in a large area
 	if GameManager.debug_map_revealed and map:
 		var all_tiles: Array[Vector2i] = []
@@ -264,10 +276,10 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 		FogOfWarSystemClass.mark_many_explored(debug_map_id, all_tiles, debug_chunk_based)
 		cached_fov = all_tiles
 		cached_visible = all_tiles
+		cache_light_radius = light_radius
 		return all_tiles
 
-	# Get map info for fog of war
-	var map_id = map.map_id if map else ""
+	# Get map info for fog of war (map_id already declared above for cache check)
 	var chunk_based = map.chunk_based if map else false
 
 	# Dungeons (non-chunk-based maps) have no sunlight - always require light sources
@@ -292,6 +304,7 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 		# Don't mark tiles explored here - renderer will do it per visible tile
 		cached_fov = minimal
 		cached_visible = minimal
+		cache_light_radius = light_radius
 		return minimal
 
 	# SLOW PATH: Night/dungeons - use full recursive shadowcasting
@@ -329,7 +342,9 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	FogOfWarSystemClass.set_visible_tiles(visible_tiles)
 	FogOfWarSystemClass.mark_many_explored(map_id, visible_tiles, chunk_based)
 
+	# Update cache (including light_radius for better cache validation)
 	cached_visible = visible_tiles
+	cache_light_radius = light_radius
 	return visible_tiles
 
 ## Get the last calculated visible tiles

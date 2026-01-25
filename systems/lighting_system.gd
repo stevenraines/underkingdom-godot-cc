@@ -36,13 +36,80 @@ static var light_sources: Array = []  # Array of {position: Vector2i, type: Ligh
 static var cache_dirty: bool = true
 static var current_is_underground: bool = false  # Track if current map is underground (no sunlight)
 
+# OPTIMIZATION: Persistent light source registry (updated via events instead of rebuilt every move)
+# Key: Vector2i position, Value: {type: LightType, radius: int, source_id: String}
+static var registered_sources: Dictionary = {}
+
 ## Set whether current map is underground (no sunlight)
 static func set_underground(is_underground: bool) -> void:
 	current_is_underground = is_underground
 
 ## Clear all light sources and mark cache dirty
+## OPTIMIZATION: Only clears transient light_sources array, preserves registered_sources
 static func clear_light_sources() -> void:
 	light_sources.clear()
+	cache_dirty = true
+
+## Clear registered sources (call when changing maps)
+static func clear_registered_sources() -> void:
+	registered_sources.clear()
+	cache_dirty = true
+
+## Register a persistent light source (structure, feature, etc.)
+## Updates incrementally via events instead of full rebuild
+static func register_source(pos: Vector2i, type: LightType, radius: int, source_id: String) -> void:
+	registered_sources[pos] = {
+		"type": type,
+		"radius": radius,
+		"source_id": source_id
+	}
+	# Add to active light_sources array
+	light_sources.append({
+		"position": pos,
+		"type": type,
+		"radius": radius
+	})
+	cache_dirty = true
+
+## Unregister a persistent light source
+static func unregister_source(pos: Vector2i, source_id: String) -> void:
+	# Check if source_id matches before removing
+	if pos in registered_sources:
+		var source = registered_sources[pos]
+		if source.get("source_id", "") == source_id:
+			registered_sources.erase(pos)
+			# Remove from active light_sources array
+			for i in range(light_sources.size() - 1, -1, -1):
+				if light_sources[i].position == pos:
+					light_sources.remove_at(i)
+					break
+			cache_dirty = true
+
+## Update a light source position (e.g., moving entity with torch)
+static func update_source(new_pos: Vector2i, old_pos: Vector2i, source_id: String) -> void:
+	if old_pos in registered_sources:
+		var source = registered_sources[old_pos]
+		if source.get("source_id", "") == source_id:
+			# Move to new position
+			registered_sources.erase(old_pos)
+			registered_sources[new_pos] = source
+			# Update in light_sources array
+			for i in range(light_sources.size()):
+				if light_sources[i].position == old_pos:
+					light_sources[i].position = new_pos
+					break
+			cache_dirty = true
+
+## Rebuild light_sources array from registered_sources (called on map load)
+static func rebuild_light_sources_from_registry() -> void:
+	light_sources.clear()
+	for pos in registered_sources:
+		var source = registered_sources[pos]
+		light_sources.append({
+			"position": pos,
+			"type": source.type,
+			"radius": source.radius
+		})
 	cache_dirty = true
 
 ## Add a light source at position

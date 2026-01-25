@@ -212,6 +212,12 @@ signal container_opened(structure)  # Structure
 signal container_closed(structure)  # Structure
 @warning_ignore("unused_signal")
 signal fire_toggled(structure, is_lit: bool)  # Structure
+@warning_ignore("unused_signal")
+signal fire_state_changed(position: Vector2i, is_lit: bool)  # For lighting system optimization
+@warning_ignore("unused_signal")
+signal structure_created(position: Vector2i, structure_id: String)  # For lighting system optimization
+@warning_ignore("unused_signal")
+signal structure_destroyed(position: Vector2i, structure_id: String)  # For lighting system optimization
 
 # NPC & Shop signals
 @warning_ignore("unused_signal")

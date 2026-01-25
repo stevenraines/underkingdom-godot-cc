@@ -268,8 +268,8 @@ func _ready() -> void:
 	renderer.set_map_info(map_id, chunk_based, MapManager.current_map)
 	renderer.set_fow_enabled(true)
 
-	# Register light sources from structures
-	_register_light_sources()
+	# Initialize light sources from structures (persistent lights only)
+	_initialize_light_sources_for_map()
 
 	# Calculate initial visibility (FOV + lighting)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
@@ -2494,9 +2494,12 @@ func _update_build_cursor() -> void:
 	renderer.render_entity(cursor_pos, "X", Color(1.0, 1.0, 0.0, 0.8))
 
 
-## Register light sources from structures on the current map
-func _register_light_sources() -> void:
-	# Clear existing light sources
+## OPTIMIZATION: Initialize persistent light sources on map load
+## Only called on map transitions, NOT on every player move
+## Dynamic lights (enemies, ground items) are still scanned each update
+func _initialize_light_sources_for_map() -> void:
+	# Clear registered sources when changing maps
+	LightingSystemClass.clear_registered_sources()
 	LightingSystemClass.clear_light_sources()
 
 	if not MapManager.current_map:
@@ -2504,15 +2507,16 @@ func _register_light_sources() -> void:
 
 	var map_id = MapManager.current_map.map_id
 
-	# Register light sources from structures (campfires, etc.)
+	# Register persistent light sources from structures (campfires, etc.)
 	var structures = StructureManager.get_structures_on_map(map_id)
 	for structure in structures:
 		if structure.has_component("fire"):
 			var fire_comp = structure.get_component("fire")
 			if fire_comp.is_lit:
-				LightingSystemClass.add_light_source(structure.position, LightingSystemClass.LightType.CAMPFIRE)
+				var source_id = "structure_%s_%d_%d" % [map_id, structure.position.x, structure.position.y]
+				LightingSystemClass.register_source(structure.position, LightingSystemClass.LightType.CAMPFIRE, 20, source_id)
 
-	# Register light sources from dungeon features (braziers, glowing moss, etc.)
+	# Register persistent light sources from dungeon features (braziers, glowing moss, etc.)
 	for pos in FeatureManager.active_features:
 		var feature = FeatureManager.active_features[pos]
 		var definition = feature.get("definition", {})
@@ -2520,12 +2524,22 @@ func _register_light_sources() -> void:
 		if definition.get("provides_light", false):
 			var light_type_str = definition.get("light_type", "torch")
 			var light_type = _get_light_type_from_string(light_type_str)
-			LightingSystemClass.add_light_source(pos, light_type)
+			var radius = LightingSystemClass.LIGHT_RADII.get(light_type, 5)
+			var source_id = "feature_%s_%d_%d" % [map_id, pos.x, pos.y]
+			LightingSystemClass.register_source(pos, light_type, radius, source_id)
 
 	# Register town lights (lampposts) on overworld
 	if map_id == "overworld":
 		_register_town_lights()
 
+	# Dynamic light sources (enemies, ground items) are handled separately
+	# They change position/state frequently so are scanned on-demand
+	_update_dynamic_light_sources()
+
+
+## Update dynamic light sources (enemies with torches, dropped items)
+## Called only when needed (player moves, time changes to/from night)
+func _update_dynamic_light_sources() -> void:
 	# Only scan entities for light sources during night/dusk (performance optimization)
 	# During day, enemies don't need torches and lit ground items are rare
 	var is_dark = TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk"
@@ -2602,8 +2616,10 @@ func _update_visibility() -> void:
 	if not player or not MapManager.current_map:
 		return
 
-	# Re-register light sources (enemy positions may have changed)
-	_register_light_sources()
+	# OPTIMIZATION: No longer re-scanning structures every move
+	# Persistent lights are registered once on map load
+	# Dynamic lights (enemies, ground items) are updated separately
+	_update_dynamic_light_sources()
 
 	# Calculate visibility (LOS-based, for entities)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()

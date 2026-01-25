@@ -670,19 +670,6 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 			_render_ground_items()
 			_render_all_entities()
 
-	# In dungeons, wall visibility depends on player position
-	# So we need to re-render the entire map when player moves
-	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
-
-	if is_dungeon:
-		# Note: For dungeons, we still do full entity re-render every move
-		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
-		# and the incremental check overhead would negate the benefit
-		# Re-render entire map with updated wall visibility
-		_render_map()
-		_render_ground_items()  # Render loot first so creatures appear on top
-		_render_all_entities()  # Will use incremental rendering automatically
-
 	# Clear old player position and render at new position
 	renderer.clear_entity(old_pos)
 
@@ -696,8 +683,22 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
 
-	# Update visibility (FOV + lighting)
+	# CRITICAL: Update visibility BEFORE rendering map
+	# This ensures fog of war uses the NEW position's visibility data
 	_update_visibility()
+
+	# In dungeons, wall visibility depends on player position
+	# So we need to re-render the entire map when player moves
+	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
+
+	if is_dungeon:
+		# Note: For dungeons, we still do full entity re-render every move
+		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
+		# and the incremental check overhead would negate the benefit
+		# Re-render entire map with updated wall visibility
+		_render_map()
+		_render_ground_items()  # Render loot first so creatures appear on top
+		_render_all_entities()  # Will use incremental rendering automatically
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()
@@ -2632,6 +2633,7 @@ func _initialize_light_sources_for_map() -> void:
 			var light_type = _get_light_type_from_string(light_type_str)
 			var radius = LightingSystemClass.LIGHT_RADII.get(light_type, 5)
 			var source_id = "feature_%s_%d_%d" % [map_id, pos.x, pos.y]
+			print("[LIGHT] Registering feature light: ", definition.get("id", "unknown"), " at ", pos, " type=", light_type_str, " radius=", radius)
 			LightingSystemClass.register_source(pos, light_type, radius, source_id)
 
 	# Register town lights (lampposts) on overworld

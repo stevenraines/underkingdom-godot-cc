@@ -106,14 +106,18 @@ static func update_source(new_pos: Vector2i, old_pos: Vector2i, source_id: Strin
 
 ## Rebuild light_sources array from registered_sources (called on map load)
 static func rebuild_light_sources_from_registry() -> void:
+	print("[LIGHT] Rebuilding from registry. Registered sources: ", registered_sources.size())
 	light_sources.clear()
 	for pos in registered_sources:
 		var source = registered_sources[pos]
-		light_sources.append({
+		var rebuilt = {
 			"position": pos,
 			"type": source.get("type", LightType.TORCH),
 			"radius": source.get("radius", 5)
-		})
+		}
+		print("[LIGHT]   Rebuilt: pos=", pos, " type=", rebuilt.type, " radius=", rebuilt.radius)
+		light_sources.append(rebuilt)
+	print("[LIGHT] Total light sources after rebuild: ", light_sources.size())
 	cache_dirty = true
 
 ## Add a light source at position

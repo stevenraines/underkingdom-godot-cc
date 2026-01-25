@@ -111,8 +111,8 @@ static func rebuild_light_sources_from_registry() -> void:
 		var source = registered_sources[pos]
 		light_sources.append({
 			"position": pos,
-			"type": source.type,
-			"radius": source.radius
+			"type": source.get("type", LightType.TORCH),
+			"radius": source.get("radius", 5)
 		})
 	cache_dirty = true
 

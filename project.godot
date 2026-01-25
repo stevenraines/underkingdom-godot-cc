@@ -14,8 +14,8 @@ config/name="Underkingdom Roguelike"
 config/description="Turn-based roguelike survival game with procedural generation"
 config/version="0.1.0"
 run/main_scene="res://scenes/main.tscn"
-run/max_fps=30
 config/features=PackedStringArray("4.5", "GL Compatibility")
+run/max_fps=30
 config/icon="res://icon.svg"
 
 [autoload]
@@ -122,6 +122,6 @@ open_crafting={
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/canvas_textures/default_texture_filter=0

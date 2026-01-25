@@ -1776,8 +1776,9 @@ func _incremental_render_entities() -> void:
 
 	_rendered_entities = current_entities
 
-	# Note: Features and hazards are typically static, so they're only rendered in full render
-	# If they become dynamic, they should be added to incremental rendering too
+	# Render features and hazards (they can change state - features don't but hazards can be discovered)
+	_render_features(player_pos)
+	_render_hazards(player_pos)
 
 
 ## Render dungeon features (chests, altars, etc.)

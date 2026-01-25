@@ -1,7 +1,7 @@
 {
-  "id": "staff_of_frost",
-  "name": "Staff of Frost",
-  "description": "A pale ash staff covered in frost crystals. A sapphire at its head glows with cold light.",
+  "id": "staff_of_evocation",
+  "name": "Staff of Evocation",
+  "description": "A pale ash staff with a glowing gem at its head. Arcane power thrums within.",
   "category": "weapon",
   "subtype": "staff",
   "item_type": "weapon",
@@ -11,8 +11,11 @@
     "two_handed": true,
     "casting_focus": true
   },
+  "unidentified": true,
   "equip_slots": ["main_hand"],
-  "damage_bonus": 5,
+  "damage_min": 3,
+  "damage_max": 7,
+  "damage_bonus": 0,
   "damage_type": "bludgeoning",
   "secondary_damage_type": "ice",
   "secondary_damage_bonus": 3,

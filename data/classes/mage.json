@@ -3,6 +3,7 @@
   "name": "Mage",
   "description": "Wielders of arcane magic, mages command powerful spells but are physically frail. Metal armor disrupts their delicate magical focus.",
   "ascii_color": "#6666FF",
+  "magic_types": ["arcane"],
   "stat_modifiers": {
     "INT": 2,
     "CON": -1,

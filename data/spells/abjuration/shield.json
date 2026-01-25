@@ -4,6 +4,7 @@
   "description": "A magical barrier provides temporary protection.",
   "school": "abjuration",
   "level": 1,
+  "magic_type": ["arcane", "divine"],
   "mana_cost": 5,
   "requirements": {
     "character_level": 1,

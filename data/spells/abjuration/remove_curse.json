@@ -4,6 +4,7 @@
   "description": "Lift a curse from an item or creature.",
   "school": "abjuration",
   "level": 4,
+  "magic_type": "divine",
   "mana_cost": 20,
   "requirements": {
     "character_level": 4,

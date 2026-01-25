@@ -1,6 +1,6 @@
 {
-  "id": "necromancer_staff",
-  "name": "Necromancer's Staff",
+  "id": "staff_of_necromancy",
+  "name": "Staff of Necromancy",
   "description": "A twisted bone staff crowned with a skull. Dark energy pulses within.",
   "category": "weapon",
   "subtype": "staff",
@@ -11,8 +11,11 @@
     "two_handed": true,
     "casting_focus": true
   },
+  "unidentified": true,
   "equip_slots": ["main_hand"],
-  "damage_bonus": 6,
+  "damage_min": 3,
+  "damage_max": 8,
+  "damage_bonus": 0,
   "damage_type": "bludgeoning",
   "secondary_damage_type": "necrotic",
   "secondary_damage_bonus": 3,

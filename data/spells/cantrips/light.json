@@ -4,6 +4,7 @@
   "description": "You create a soft glow that follows you, illuminating your surroundings.",
   "school": "evocation",
   "level": 0,
+  "magic_type": ["arcane", "divine"],
   "mana_cost": 5,
   "requirements": {
     "character_level": 0,

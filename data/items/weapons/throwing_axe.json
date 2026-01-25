@@ -17,6 +17,8 @@
   "max_stack": 3,
   "ascii_char": "P",
   "ascii_color": "#8B7355",
-  "damage_bonus": 5,
+  "damage_min": 2,
+  "damage_max": 7,
+  "damage_bonus": 0,
   "damage_type": "slashing"
 }

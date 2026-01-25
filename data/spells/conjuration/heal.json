@@ -4,6 +4,7 @@
   "description": "Restore health to yourself.",
   "school": "conjuration",
   "level": 1,
+  "magic_type": "divine",
   "mana_cost": 8,
   "requirements": {
     "character_level": 1,

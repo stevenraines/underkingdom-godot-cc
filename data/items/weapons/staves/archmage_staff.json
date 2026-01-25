@@ -11,8 +11,11 @@
     "two_handed": true,
     "casting_focus": true
   },
+  "unidentified": true,
   "equip_slots": ["main_hand"],
-  "damage_bonus": 8,
+  "damage_min": 4,
+  "damage_max": 10,
+  "damage_bonus": 0,
   "damage_type": "bludgeoning",
   "attack_type": "melee",
   "weight": 2.5,

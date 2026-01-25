@@ -3,6 +3,7 @@
   "name": "Cleric",
   "description": "Holy warriors devoted to the gods, clerics channel divine magic to heal allies and smite the undead. Their faith protects them from arcane interference.",
   "ascii_color": "#FFFF66",
+  "magic_types": ["divine"],
   "stat_modifiers": {
     "WIS": 1,
     "CHA": 1,
@@ -55,7 +56,8 @@
   "restrictions": {},
   "starting_equipment": [
     {"item_id": "iron_mace", "count": 1},
-    {"item_id": "bandage", "count": 3}
+    {"item_id": "bandage", "count": 3},
+    {"item_id": "token_of_faith", "count": 1}
   ],
-  "starting_spells": ["light", "heal_minor", "sacred_flame"]
+  "starting_spells": ["light", "minor_healing", "sacred_flame"]
 }

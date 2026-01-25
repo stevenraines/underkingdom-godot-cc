@@ -18,5 +18,8 @@
   "durability": 50,
   "tool_type": "knife",
   "equip_slots": ["main_hand", "off_hand"],
-  "damage_bonus": 2
+  "damage_min": 1,
+  "damage_max": 3,
+  "damage_bonus": 0,
+  "damage_type": "slashing"
 }

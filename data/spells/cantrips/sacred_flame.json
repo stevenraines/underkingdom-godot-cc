@@ -4,6 +4,7 @@
   "description": "A beam of radiant energy streaks toward a target, especially effective against undead.",
   "school": "evocation",
   "level": 0,
+  "magic_type": "divine",
   "mana_cost": 5,
   "requirements": {
     "character_level": 0,

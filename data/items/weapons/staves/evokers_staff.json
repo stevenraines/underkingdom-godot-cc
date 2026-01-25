@@ -1,7 +1,7 @@
 {
-  "id": "staff_of_fire",
-  "name": "Staff of Fire",
-  "description": "A charred ironwood staff with a smoldering ruby set in its head. Flames dance along its length.",
+  "id": "evokers_staff",
+  "name": "Evoker's Staff",
+  "description": "A charred ironwood staff with a smoldering gem set in its head. Energy crackles along its length.",
   "category": "weapon",
   "subtype": "staff",
   "item_type": "weapon",
@@ -11,8 +11,11 @@
     "two_handed": true,
     "casting_focus": true
   },
+  "unidentified": true,
   "equip_slots": ["main_hand"],
-  "damage_bonus": 5,
+  "damage_min": 3,
+  "damage_max": 7,
+  "damage_bonus": 0,
   "damage_type": "bludgeoning",
   "secondary_damage_type": "fire",
   "secondary_damage_bonus": 3,

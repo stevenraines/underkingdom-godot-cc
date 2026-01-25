@@ -17,6 +17,8 @@
   "ascii_color": "#AAAAAA",
   "durability": 100,
   "equip_slots": ["main_hand"],
-  "damage_bonus": 6,
+  "damage_min": 3,
+  "damage_max": 8,
+  "damage_bonus": 0,
   "damage_type": "slashing"
 }

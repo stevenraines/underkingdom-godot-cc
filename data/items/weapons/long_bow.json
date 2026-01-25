@@ -20,6 +20,8 @@
   "ascii_color": "#A0522D",
   "durability": 80,
   "equip_slots": ["main_hand", "off_hand"],
-  "damage_bonus": 5,
+  "damage_min": 3,
+  "damage_max": 8,
+  "damage_bonus": 0,
   "damage_type": "piercing"
 }

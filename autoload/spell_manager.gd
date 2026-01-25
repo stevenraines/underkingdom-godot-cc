@@ -149,6 +149,12 @@ func can_cast(caster, spell) -> Dictionary:
 	if not caster:
 		return {can_cast = false, reason = "Invalid caster"}
 
+	# Check magic type and focus requirements (only for Player)
+	if caster.has_method("has_focus_for_spell"):
+		var focus_check = caster.has_focus_for_spell(spell)
+		if not focus_check.valid:
+			return {can_cast = false, reason = focus_check.message}
+
 	# Check minimum INT for any magic (8)
 	var caster_int = _get_caster_int(caster)
 	if caster_int < MIN_MAGIC_INT:

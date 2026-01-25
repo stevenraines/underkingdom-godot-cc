@@ -19,5 +19,8 @@
   "durability": 100,
   "tool_type": "axe",
   "equip_slots": ["main_hand"],
-  "damage_bonus": 2
+  "damage_min": 2,
+  "damage_max": 6,
+  "damage_bonus": 0,
+  "damage_type": "slashing"
 }

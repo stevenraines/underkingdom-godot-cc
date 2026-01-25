@@ -5,7 +5,8 @@
 
 ---
 ## Unplanned
-
+- [ ] Feature: Add Ritual to Charge Magic Items
+    Wands and other items have charges. Create a ritual that allows for these items to be recharged.
 - [ ] Feature: Dungeon Map 
       Opening the Map in a dungeone should show currently explored level
 - [ ] Save / Load Across Machines

@@ -4,6 +4,7 @@
   "description": "Grant resistance to all elemental damage types.",
   "school": "abjuration",
   "level": 5,
+  "magic_type": ["arcane", "divine"],
   "mana_cost": 25,
   "requirements": {
     "character_level": 5,

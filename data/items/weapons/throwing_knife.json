@@ -17,6 +17,8 @@
   "max_stack": 5,
   "ascii_char": "/",
   "ascii_color": "#AAAAAA",
-  "damage_bonus": 3,
+  "damage_min": 1,
+  "damage_max": 4,
+  "damage_bonus": 0,
   "damage_type": "piercing"
 }

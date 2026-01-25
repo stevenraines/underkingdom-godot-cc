@@ -63,6 +63,17 @@ const COLOR_AFFORDABLE = Color(0.6, 0.9, 0.6, 1.0)
 const COLOR_EXPENSIVE = Color(0.9, 0.5, 0.5, 1.0)
 const COLOR_HIGHLIGHT = Color(0.6, 0.9, 0.6, 1.0)
 
+# Slot display names for equip info
+const SLOT_DISPLAY_NAMES = {
+	"main_hand": "Weapon",
+	"off_hand": "Off-Hand",
+	"head": "Head",
+	"torso": "Torso",
+	"hands": "Hands",
+	"legs": "Legs",
+	"feet": "Feet"
+}
+
 # Filter hotkeys (shared with inventory screen)
 const FILTER_HOTKEYS = {
 	KEY_1: Inventory.FilterType.ALL,
@@ -567,20 +578,64 @@ func _populate_item_tooltip(item: Item) -> void:
 				stats.append("◆ Hunger: +%d%%" % item.effects["hunger"])
 			if item.effects.has("thirst") and item.effects["thirst"] > 0:
 				stats.append("◇ Thirst: +%d%%" % item.effects["thirst"])
-		"weapon":
-			stats.append("⚔ Damage: +%d" % item.damage_bonus)
-			if item.is_two_handed():
-				stats.append("◊ Two-Handed")
+		"weapon", "tool":
+			# Check if this is a spell-casting item (wand, rod, staff with spell)
+			if item.casts_spell != "" and item.max_charges > 0:
+				# Spell-casting item - show spell and charges (or Unknown if unidentified)
+				if item.is_identified():
+					var spell = SpellManager.get_spell(item.casts_spell)
+					if spell:
+						stats.append("✦ Casts: %s" % spell.name)
+						var spell_dmg = spell.get_damage().get("base", 0)
+						if spell_dmg > 0:
+							stats.append("⚔ Spell Damage: %d" % spell_dmg)
+					stats.append("⚡ Charges: %d/%d" % [item.charges, item.max_charges])
+				else:
+					stats.append("✦ Casts: Unknown")
+					stats.append("⚔ Spell Damage: Unknown")
+					stats.append("⚡ Charges: Unknown")
+			# Check if this is a casting focus (staff)
+			elif item.flags.get("casting_focus", false):
+				var bonuses = item.get_casting_bonuses()
+				if item.is_identified() and not bonuses.is_empty():
+					if bonuses.has("success_modifier"):
+						stats.append("✦ Cast Success: +%d%%" % bonuses.success_modifier)
+					if bonuses.has("school_affinity"):
+						var school_bonus = bonuses.get("school_damage_bonus", 0)
+						stats.append("◈ %s: +%d dmg" % [bonuses.school_affinity.capitalize(), school_bonus])
+					if bonuses.has("mana_cost_modifier"):
+						stats.append("◇ Mana Cost: %d%%" % bonuses.mana_cost_modifier)
+				elif not item.is_identified():
+					stats.append("✦ Bonuses: Unknown")
+				# Show damage for melee use
+				if item.damage_min > 0 and item.damage_max > 0:
+					stats.append("⚔ Melee: %d-%d" % [item.damage_min, item.damage_max])
+			else:
+				# Regular weapon/tool - show damage
+				if item.damage_min > 0 and item.damage_max > 0:
+					if item.damage_bonus > 0:
+						stats.append("⚔ Damage: %d-%d +%d" % [item.damage_min, item.damage_max, item.damage_bonus])
+					else:
+						stats.append("⚔ Damage: %d-%d" % [item.damage_min, item.damage_max])
+				elif item.damage_bonus > 0:
+					stats.append("⚔ Damage: +%d" % item.damage_bonus)
+				# Tool type
+				if item.tool_type != "":
+					stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
+				# Equip slots (shows multi-slot or two-handed)
+				var slots = item.get_equip_slots()
+				if slots.size() > 1:
+					var slot_names = []
+					for slot in slots:
+						slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
+					stats.append("Slots: %s" % ", ".join(slot_names))
+				elif item.is_two_handed():
+					stats.append("◊ Two-Handed")
 		"armor":
 			if item.armor_value > 0:
 				stats.append("◈ Armor: %d" % item.armor_value)
 			if item.warmth != 0.0:
 				stats.append("☀ Warmth: %+.0f°F" % item.warmth)
-		"tool":
-			if item.tool_type != "":
-				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
-			if item.is_two_handed():
-				stats.append("◊ Two-Handed")
 
 	# Assign stats to the 3 stat lines
 	stat_line_1.text = stats[0] if stats.size() > 0 else ""
@@ -592,12 +647,10 @@ func _populate_item_tooltip(item: Item) -> void:
 	match item.item_type:
 		"consumable":
 			stat_color = Color(0.5, 0.9, 0.5)
-		"weapon":
-			stat_color = Color(1.0, 0.5, 0.5)
+		"weapon", "tool":
+			stat_color = Color(1.0, 0.7, 0.5)  # Warm orange for combat items
 		"armor":
 			stat_color = Color(0.5, 0.5, 1.0)
-		"tool":
-			stat_color = Color(0.8, 0.8, 0.8)
 
 	stat_line_1.add_theme_color_override("font_color", stat_color)
 	stat_line_2.add_theme_color_override("font_color", stat_color)

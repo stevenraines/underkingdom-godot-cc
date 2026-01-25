@@ -61,6 +61,7 @@ var _enemy_light_cache_dirty: bool = true
 var _cached_player_hp: int = -1
 var _cached_player_max_hp: int = -1
 var _cached_turn: int = -1
+var _cached_status_turn: int = -1  # Separate tracking for status line updates
 var _cached_player_level: int = -1
 var _cached_player_xp: int = -1
 var _cached_player_gold: int = -1
@@ -1245,6 +1246,12 @@ func _update_hud() -> void:
 	# Update status line with health and survival (only if values changed)
 	if status_line:
 		var needs_update = false
+
+		# Check if turn changed (force update every turn)
+		var current_turn = TurnManager.current_turn
+		if current_turn != _cached_status_turn:
+			_cached_status_turn = current_turn
+			needs_update = true
 
 		# Check if any values changed
 		if player.current_health != _cached_player_hp or player.max_health != _cached_player_max_hp:
@@ -2540,6 +2547,10 @@ func _initialize_light_sources_for_map() -> void:
 ## Update dynamic light sources (enemies with torches, dropped items)
 ## Called only when needed (player moves, time changes to/from night)
 func _update_dynamic_light_sources() -> void:
+	# CRITICAL: Rebuild persistent lights from registry first
+	# This ensures structures/features are always in the light_sources array
+	LightingSystemClass.rebuild_light_sources_from_registry()
+
 	# Only scan entities for light sources during night/dusk (performance optimization)
 	# During day, enemies don't need torches and lit ground items are rare
 	var is_dark = TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk"

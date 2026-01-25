@@ -275,17 +275,17 @@ func try_active_detect_hazard(pos: Vector2i, ability_modifier: int, traps_skill:
 	var hazard_def: Dictionary = hazard.definition
 	var hazard_name: String = hazard_def.get("name", "trap").to_lower()
 
-	# Already detected
-	if hazard.detected:
-		return {"detected": false, "message": "You already know about the %s here." % hazard_name, "hazard_name": hazard_name}
+	# Skip already-discovered hazards silently (detected by search OR triggered)
+	if hazard.get("detected", false) or hazard.get("triggered", false):
+		return {"detected": false, "message": "", "hazard_name": ""}
 
-	# Not hidden - already visible
+	# Skip already-disarmed hazards silently
+	if hazard.get("disarmed", false):
+		return {"detected": false, "message": "", "hazard_name": ""}
+
+	# Skip non-hidden (visible) hazards silently - they're already visible
 	if not hazard_def.get("hidden", false):
-		return {"detected": false, "message": "The %s is already visible." % hazard_name, "hazard_name": hazard_name}
-
-	# Already disarmed
-	if hazard.disarmed:
-		return {"detected": false, "message": "There's a disarmed trap here.", "hazard_name": hazard_name}
+		return {"detected": false, "message": "", "hazard_name": ""}
 
 	var detection_difficulty: int = hazard.config.get("detection_difficulty", hazard_def.get("detection_difficulty", 15))
 

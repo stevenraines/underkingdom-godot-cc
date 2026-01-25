@@ -177,8 +177,26 @@ static func _calculate_los_and_lighting_visibility(
 		# Check line of sight from player
 		var has_los = _has_line_of_sight(origin, pos, map)
 
+		# Check if this tile itself is the blocker (wall/obstacle we can see)
+		# vs something in between blocking the view (can't see this tile)
+		var is_visible_blocker = false
 		if not has_los:
-			# Can't see through walls
+			# Check if removing THIS tile would give us LOS
+			var tile = map.get_tile(pos)
+			if tile and not map.is_transparent(pos):
+				# This tile blocks - check if path TO this tile is clear
+				# by checking LOS to adjacent transparent tile
+				var neighbors = [
+					pos + Vector2i(-1, 0), pos + Vector2i(1, 0),
+					pos + Vector2i(0, -1), pos + Vector2i(0, 1)
+				]
+				for neighbor in neighbors:
+					if map.is_transparent(neighbor) and _has_line_of_sight(origin, neighbor, map):
+						is_visible_blocker = true
+						break
+
+		# Skip tiles behind walls (no LOS and not a visible blocker)
+		if not has_los and not is_visible_blocker:
 			continue
 
 		# Calculate light level at this position

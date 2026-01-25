@@ -670,7 +670,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 			_render_ground_items()
 			_render_all_entities()
 
-	# Clear old player position and render at new position
+	# Clear old player position
 	renderer.clear_entity(old_pos)
 
 	# Re-render items/hazards/features at old position that were hidden under player
@@ -680,12 +680,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	_render_hazard_at(old_pos)
 	_render_entity_at(old_pos)
 
-	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
-
-	# CRITICAL: Update visibility BEFORE rendering map
-	# This ensures fog of war uses the NEW position's visibility data
-	_update_visibility()
 
 	# In dungeons, wall visibility depends on player position
 	# So we need to re-render the entire map when player moves
@@ -699,6 +694,15 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		_render_map()
 		_render_ground_items()  # Render loot first so creatures appear on top
 		_render_all_entities()  # Will use incremental rendering automatically
+
+	# CRITICAL: Update visibility AFTER dungeon re-render
+	# This applies fog of war AFTER render_tile() sets base colors
+	# Otherwise render_tile() would overwrite the fog of war dimming
+	_update_visibility()
+
+	# CRITICAL: Render player AFTER everything else
+	# Must be after visibility update so fog of war doesn't hide the player
+	renderer.render_entity(new_pos, "@", Color.YELLOW)
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()

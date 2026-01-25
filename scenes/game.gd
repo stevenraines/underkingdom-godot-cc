@@ -11,6 +11,7 @@ const ItemManagerScript = preload("res://autoload/item_manager.gd")
 const JsonHelperScript = preload("res://autoload/json_helper.gd")
 const Structure = preload("res://entities/structure.gd")
 const StructurePlacement = preload("res://systems/structure_placement.gd")
+const VisibilitySystemClass = preload("res://systems/visibility_system.gd")
 const LightingSystemClass = preload("res://systems/lighting_system.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
@@ -2730,13 +2731,30 @@ func _update_visibility() -> void:
 	# Dynamic lights (enemies, ground items) are updated separately
 	_update_dynamic_light_sources()
 
-	# Calculate visibility (LOS-based, for entities)
+	# Get all light sources for visibility calculation
+	var light_sources = LightingSystemClass.get_all_light_sources()
+
+	# Calculate visibility using UNIFIED system (LOS + lighting combined)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
-	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
 
-	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer
-	renderer.update_fov(visible_tiles, player.position)
+	var visibility_result = VisibilitySystemClass.calculate_visibility(
+		player.position,
+		effective_perception,
+		player_light_radius,
+		MapManager.current_map,
+		light_sources
+	)
+
+	# Update fog of war
+	var map_id = MapManager.current_map.map_id
+	var chunk_based = MapManager.current_map.chunk_based
+	FogOfWarSystemClass.set_visible_tiles(visibility_result.visible_tiles)
+	FogOfWarSystemClass.mark_many_explored(map_id, visibility_result.visible_tiles, chunk_based)
+
+	# Update renderer with visibility data
+	renderer.update_fov(visibility_result.visible_tiles, player.position)
+	renderer.set_visibility_data(visibility_result.tile_data)
 
 
 ## Open rest menu (called from input handler)

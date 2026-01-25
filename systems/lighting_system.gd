@@ -44,6 +44,10 @@ static var registered_sources: Dictionary = {}
 static func set_underground(is_underground: bool) -> void:
 	current_is_underground = is_underground
 
+## Get all current light sources (for VisibilitySystem)
+static func get_all_light_sources() -> Array:
+	return light_sources
+
 ## Clear all light sources and mark cache dirty
 ## OPTIMIZATION: Only clears transient light_sources array, preserves registered_sources
 static func clear_light_sources() -> void:

@@ -158,6 +158,9 @@ var default_terrain_colors: Dictionary = {
 var visible_tiles: Array[Vector2i] = []
 var visible_tiles_set: Dictionary = {}  # Dictionary for O(1) lookups
 
+# Visibility data from VisibilitySystem (unified FOV + lighting)
+var visibility_data: Dictionary = {}  # pos -> {lit: bool, light_level: float, in_los: bool}
+
 # Fog of war state
 var fow_enabled: bool = true
 var current_map_id: String = ""
@@ -500,9 +503,19 @@ func update_fov(new_visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(
 	# Apply fog of war to entity layer (uses LOS-based visibility)
 	_apply_fog_of_war_to_entities()
 
+## Set visibility data from VisibilitySystem (new unified approach)
+## This replaces the need for separate FOV + lighting checks
+func set_visibility_data(vis_data: Dictionary) -> void:
+	visibility_data = vis_data
+
 ## Check if a position is currently visible (public method for game logic)
-## Uses the same logic as entity visibility (FOV + interior LOS checks)
+## Now uses cached visibility data from VisibilitySystem
 func is_position_visible(pos: Vector2i) -> bool:
+	# If we have visibility data from VisibilitySystem, use it
+	if not visibility_data.is_empty():
+		return visibility_data.has(pos)
+
+	# Fallback to old method for backwards compatibility
 	return _is_entity_visible_at(pos)
 
 ## Set map info for fog of war tracking
@@ -661,37 +674,36 @@ func _apply_fog_of_war_to_entities() -> void:
 	_mark_entity_dirty()
 
 ## Check if an entity at a position should be visible
-## Entities in interior tiles require strict LOS - no corner peeking allowed
+## NOW USES CACHED VISIBILITY DATA from VisibilitySystem when available
 func _is_entity_visible_at(pos: Vector2i) -> bool:
+	# NEW: Use cached visibility data from VisibilitySystem
+	# This already includes LOS + lighting + interior/exterior checks
+	if not visibility_data.is_empty():
+		return visibility_data.has(pos)
+
+	# FALLBACK: Old logic for backwards compatibility during transition
 	# Check if we're in daytime outdoors mode
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 
-	# Check if player is inside a building or standing in a doorway
-	var player_tile = current_map.get_tile(player_position) if current_map else null
-	var player_on_door = player_tile and player_tile.tile_type == "door"
-	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
-
-	# Check if entity is on interior tile
-	var entity_tile = current_map.get_tile(pos) if current_map else null
-	var is_interior_tile = entity_tile and entity_tile.is_interior
-
 	if is_daytime_outdoors:
+		# Check if entity is on interior tile
+		var entity_tile = current_map.get_tile(pos) if current_map else null
+		var is_interior_tile = entity_tile and entity_tile.is_interior
+
 		if is_interior_tile:
-			if player_inside_building:
-				# Player inside: can see interior entities with LOS
-				return _has_clear_los_to(pos)
-			else:
+			# Check if player is inside a building or standing in a doorway
+			var player_tile = current_map.get_tile(player_position) if current_map else null
+			var player_on_door = player_tile and player_tile.tile_type == "door"
+			var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
+
+			if not player_inside_building:
 				# Player outside: interior entities completely hidden
 				return false
-		return true  # Exterior entity always visible during day
 
-	# Night/dungeons: require LOS from FOV calculation AND strict wall check
-	if not visible_tiles_set.has(pos):
-		return false
+		return true  # Exterior entity visible during day (or player inside with interior entity)
 
-	# ALWAYS verify strict line-of-sight in dungeons (shadowcasting can have edge cases)
-	# This prevents seeing through walls in diagonal configurations
-	return _has_clear_los_to(pos)
+	# Night/dungeons: check visible tiles set
+	return visible_tiles_set.has(pos)
 
 ## Strict line-of-sight check using Bresenham's algorithm
 ## Returns true only if there's a completely clear path from player to target

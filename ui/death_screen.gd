@@ -5,6 +5,7 @@ extends Control
 ## Displays death message, stats, and options to load save or return to main menu.
 
 signal load_save_requested(slot: int)
+signal restore_checkpoint_requested()
 signal return_to_menu_requested()
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/TitleLabel
@@ -51,10 +52,19 @@ func _input(event: InputEvent) -> void:
 				var _vp = get_viewport()
 				if _vp:
 					_vp.set_input_as_handled()
+			KEY_C:
+				# Press 'C' to restore checkpoint (if available)
+				if SaveManager.has_autosave():
+					_restore_checkpoint()
+				var _vp = get_viewport()
+				if _vp:
+					_vp.set_input_as_handled()
 			KEY_1, KEY_2, KEY_3:
 				var slot = event.keycode - KEY_1
-				if slot >= 0 and slot < available_saves.size():
-					selected_save_index = slot
+				# Account for checkpoint button at index 0 if it exists
+				var offset = 1 if SaveManager.has_autosave() else 0
+				if slot + offset >= offset and slot + offset < available_saves.size() + offset:
+					selected_save_index = slot + offset
 					_load_selected_save()
 				var _vp = get_viewport()
 				if _vp:
@@ -130,12 +140,37 @@ func _refresh_save_list() -> void:
 	save_buttons.clear()
 	available_saves.clear()
 
+	# Add checkpoint restore option if auto-save exists
+	if SaveManager.has_autosave():
+		var checkpoint_info = SaveManager.get_autosave_info()
+		var button = Button.new()
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.add_theme_font_size_override("font_size", 13)
+
+		var turn = checkpoint_info.get("playtime_turns", 0)
+		var day = int(turn / 1000.0)
+		button.text = "[C] Restore from Last Checkpoint - Day %d" % day
+		button.modulate = Color(0.6, 1.0, 0.6, 1.0)  # Green tint for checkpoint
+
+		button.pressed.connect(_restore_checkpoint)
+		save_list.add_child(button)
+		save_buttons.append(button)
+
+		# Add checkpoint to available_saves for navigation
+		available_saves.append({
+			"exists": true,
+			"is_checkpoint": true,
+			"slot": -1,
+			"playtime_turns": turn
+		})
+
 	# Get available saves
 	for slot in range(1, 4):
 		var save_info = SaveManager.get_save_slot_info(slot)
 		# Store as dictionary for easier access
 		available_saves.append({
 			"exists": save_info.exists,
+			"is_checkpoint": false,
 			"slot": slot,
 			"world_name": save_info.world_name,
 			"playtime_turns": save_info.playtime_turns,
@@ -143,7 +178,8 @@ func _refresh_save_list() -> void:
 		})
 
 	# Create buttons for each save slot
-	for i in range(available_saves.size()):
+	var button_index = 1 if SaveManager.has_autosave() else 0
+	for i in range(button_index, available_saves.size()):
 		var save_data = available_saves[i]
 		var button = Button.new()
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -162,10 +198,12 @@ func _refresh_save_list() -> void:
 			elif time_portion >= 700 and time_portion < 850:
 				time_of_day = "Dusk"
 
-			button.text = "[%d] %s - Day %d (%s)" % [i + 1, world_name, day, time_of_day]
+			var slot_num = save_data.get("slot", i)
+			button.text = "[%d] %s - Day %d (%s)" % [slot_num, world_name, day, time_of_day]
 			button.modulate = COLOR_NORMAL
 		else:
-			button.text = "[%d] <Empty Slot>" % (i + 1)
+			var slot_num = save_data.get("slot", i)
+			button.text = "[%d] <Empty Slot>" % slot_num
 			button.modulate = Color(0.4, 0.4, 0.4, 1.0)
 			button.disabled = true
 
@@ -222,12 +260,24 @@ func _on_save_button_pressed(index: int) -> void:
 func _load_selected_save() -> void:
 	if selected_save_index >= 0 and selected_save_index < available_saves.size():
 		if available_saves[selected_save_index].get("exists", false):
-			var slot = available_saves[selected_save_index].get("slot", 1)
-			load_save_requested.emit(slot)
-			hide()
-			var _tree = get_tree()
-			if _tree:
-				_tree.paused = false
+			# Check if this is a checkpoint
+			if available_saves[selected_save_index].get("is_checkpoint", false):
+				_restore_checkpoint()
+			else:
+				var slot = available_saves[selected_save_index].get("slot", 1)
+				load_save_requested.emit(slot)
+				hide()
+				var _tree = get_tree()
+				if _tree:
+					_tree.paused = false
+
+func _restore_checkpoint() -> void:
+	if SaveManager.has_autosave():
+		restore_checkpoint_requested.emit()
+		hide()
+		var _tree = get_tree()
+		if _tree:
+			_tree.paused = false
 
 func _return_to_menu() -> void:
 	return_to_menu_requested.emit()

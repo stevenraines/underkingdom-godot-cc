@@ -258,6 +258,10 @@ func _ready() -> void:
 	if _tree:
 		_tree.paused = false
 
+	# Ensure input is enabled after initialization
+	if input_handler:
+		input_handler.set_ui_blocking(false)
+
 	# Setup fog of war
 	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
 	var chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false

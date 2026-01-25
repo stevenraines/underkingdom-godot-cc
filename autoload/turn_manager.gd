@@ -10,6 +10,10 @@ const HarvestSystem = preload("res://systems/harvest_system.gd")
 const FarmingSystem = preload("res://systems/farming_system.gd")
 const RitualSystemClass = preload("res://systems/ritual_system.gd")
 
+# Signals for turn state changes (used for performance optimization)
+signal player_turn_started  # Emitted when player's turn begins (after enemy turns complete)
+signal player_turn_ended  # Emitted when player's turn ends (before enemy turns start)
+
 # Turn tracking
 var current_turn: int = 0
 var time_of_day: String = "dawn"
@@ -33,6 +37,9 @@ func get_turns_per_day() -> int:
 
 ## Advance the turn counter and update time of day
 func advance_turn() -> void:
+	# Player's turn is ending (they just took an action)
+	player_turn_ended.emit()
+
 	current_turn += 1
 	_update_time_of_day()
 
@@ -65,6 +72,9 @@ func advance_turn() -> void:
 
 	# Reset player turn flag
 	is_player_turn = true
+
+	# Player's turn is starting (they can act again)
+	player_turn_started.emit()
 
 ## Process player survival systems each turn
 func _process_player_survival() -> void:

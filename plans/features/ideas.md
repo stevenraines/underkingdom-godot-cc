@@ -8,7 +8,7 @@
 - [ ] Feature: Add Ritual to Charge Magic Items
     Wands and other items have charges. Create a ritual that allows for these items to be recharged.
 - [ ] Feature: Dungeon Map 
-      Opening the Map in a dungeone should show currently explored level
+    Opening the Map in a dungeone should show currently explored level, not the overworld
 - [ ] Save / Load Across Machines
     Add the ability to download a saved game as a JSON file and load it into a different instance of the game. Add a Load from file option and a place to download a saved game to a file.
 - [ ] Feature: Initial Spawn Time - Day

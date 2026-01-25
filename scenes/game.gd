@@ -1792,6 +1792,9 @@ func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 			var tile = MapManager.current_map.get_tile(pos)
 			if tile == null or not tile.walkable:
 				continue
+		# Only render if visible to player (FOV check)
+		if not renderer.is_position_visible(pos):
+			continue
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
@@ -1806,18 +1809,22 @@ func _render_hazards(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		if pos == skip_pos:
 			continue
 		# Only render if hazard is visible (detected or not hidden)
-		if HazardManager.has_visible_hazard(pos):
-			var hazard: Dictionary = HazardManager.active_hazards[pos]
-			var definition: Dictionary = hazard.get("definition", {})
-			var ascii_char: String = definition.get("ascii_char", "^")
-			var color = definition.get("color", Color.RED)
-			# Handle string colors (from serialized data)
-			if color is String:
-				color = Color.from_string(color, Color.RED)
-			# Disarmed hazards appear grey
-			if hazard.get("disarmed", false):
-				color = Color(0.5, 0.5, 0.5)  # Grey
-			renderer.render_entity(pos, ascii_char, color)
+		if not HazardManager.has_visible_hazard(pos):
+			continue
+		# Only render if in player's field of view (FOV check)
+		if not renderer.is_position_visible(pos):
+			continue
+		var hazard: Dictionary = HazardManager.active_hazards[pos]
+		var definition: Dictionary = hazard.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "^")
+		var color = definition.get("color", Color.RED)
+		# Handle string colors (from serialized data)
+		if color is String:
+			color = Color.from_string(color, Color.RED)
+		# Disarmed hazards appear grey
+		if hazard.get("disarmed", false):
+			color = Color(0.5, 0.5, 0.5)  # Grey
+		renderer.render_entity(pos, ascii_char, color)
 
 
 ## Find a valid spawn position for the player (walkable, not occupied)

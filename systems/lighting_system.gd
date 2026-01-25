@@ -239,7 +239,7 @@ static func _chebyshev_distance(a: Vector2i, b: Vector2i) -> int:
 	return max(abs(a.x - b.x), abs(a.y - b.y))
 
 ## Check if there's a clear line of sight between two positions (walls block light)
-## Uses simple Bresenham-like algorithm to check for walls along the path
+## Uses Bresenham algorithm with diagonal blocking checks
 static func _has_line_of_sight(from: Vector2i, to: Vector2i, map) -> bool:
 	if not map:
 		return true  # No map = no walls
@@ -260,6 +260,10 @@ static func _has_line_of_sight(from: Vector2i, to: Vector2i, map) -> bool:
 	dx *= 2
 	dy *= 2
 
+	# Track previous position to detect diagonal steps
+	var prev_x = x
+	var prev_y = y
+
 	# Check each tile along the line
 	while true:
 		# Don't check the starting position
@@ -268,9 +272,22 @@ static func _has_line_of_sight(from: Vector2i, to: Vector2i, map) -> bool:
 			if not map.is_transparent(Vector2i(x, y)):
 				return false
 
+			# If we moved diagonally, check that the diagonal path is actually open
+			# (prevent light from squeezing through diagonal walls)
+			if x != prev_x and y != prev_y:
+				# Check both adjacent tiles - at least one must be transparent
+				var tile1 = map.is_transparent(Vector2i(prev_x, y))
+				var tile2 = map.is_transparent(Vector2i(x, prev_y))
+				if not tile1 and not tile2:
+					return false  # Both adjacent tiles are walls - diagonal is blocked
+
 		# Reached destination
 		if x == to.x and y == to.y:
 			break
+
+		# Remember previous position
+		prev_x = x
+		prev_y = y
 
 		# Step to next tile
 		if error > 0:

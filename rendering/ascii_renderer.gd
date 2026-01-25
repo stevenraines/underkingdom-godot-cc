@@ -500,6 +500,11 @@ func update_fov(new_visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(
 	# Apply fog of war to entity layer (uses LOS-based visibility)
 	_apply_fog_of_war_to_entities()
 
+## Check if a position is currently visible (public method for game logic)
+## Uses the same logic as entity visibility (FOV + interior LOS checks)
+func is_position_visible(pos: Vector2i) -> bool:
+	return _is_entity_visible_at(pos)
+
 ## Set map info for fog of war tracking
 func set_map_info(map_id: String, chunk_based: bool, map = null) -> void:
 	current_map_id = map_id

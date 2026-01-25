@@ -685,18 +685,17 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 				return false
 		return true  # Exterior entity always visible during day
 
-	# Night/dungeons: require LOS from FOV calculation
+	# Night/dungeons: require LOS from FOV calculation AND strict wall check
 	if not visible_tiles_set.has(pos):
 		return false
 
-	# For interior tiles, do an additional Bresenham line-of-sight check
-	if is_interior_tile:
-		return _has_clear_los_to(pos)
-
-	return true
+	# ALWAYS verify strict line-of-sight in dungeons (shadowcasting can have edge cases)
+	# This prevents seeing through walls in diagonal configurations
+	return _has_clear_los_to(pos)
 
 ## Strict line-of-sight check using Bresenham's algorithm
 ## Returns true only if there's a completely clear path from player to target
+## Prevents diagonal movement through walls
 func _has_clear_los_to(target: Vector2i) -> bool:
 	if not current_map:
 		return false
@@ -715,6 +714,8 @@ func _has_clear_los_to(target: Vector2i) -> bool:
 
 	var x = x0
 	var y = y0
+	var prev_x = x0
+	var prev_y = y0
 
 	while true:
 		# Skip the start and end positions
@@ -725,9 +726,22 @@ func _has_clear_los_to(target: Vector2i) -> bool:
 			if tile and not tile.transparent:
 				return false
 
+			# If we moved diagonally, check that the diagonal path is actually open
+			# (prevent vision from squeezing through diagonal walls)
+			if x != prev_x and y != prev_y:
+				var tile1 = current_map.get_tile(Vector2i(prev_x, y))
+				var tile2 = current_map.get_tile(Vector2i(x, prev_y))
+				# If both adjacent tiles are walls, the diagonal is blocked
+				if tile1 and not tile1.transparent and tile2 and not tile2.transparent:
+					return false
+
 		# Reached target
 		if x == x1 and y == y1:
 			break
+
+		# Remember previous position
+		prev_x = x
+		prev_y = y
 
 		var e2 = 2 * err
 		if e2 > -dy:

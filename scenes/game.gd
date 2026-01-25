@@ -2633,7 +2633,6 @@ func _initialize_light_sources_for_map() -> void:
 			var light_type = _get_light_type_from_string(light_type_str)
 			var radius = LightingSystemClass.LIGHT_RADII.get(light_type, 5)
 			var source_id = "feature_%s_%d_%d" % [map_id, pos.x, pos.y]
-			print("[LIGHT] Registering feature light: ", definition.get("id", "unknown"), " at ", pos, " type=", light_type_str, " radius=", radius)
 			LightingSystemClass.register_source(pos, light_type, radius, source_id)
 
 	# Register town lights (lampposts) on overworld

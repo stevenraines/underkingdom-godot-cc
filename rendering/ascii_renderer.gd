@@ -634,8 +634,14 @@ func _apply_fog_of_war_to_terrain() -> void:
 				var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
 				match tile_state:
 					"explored":
-						# Dark gray tint (lerp toward fog color)
-						terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+						# Dungeons: make explored areas very dark (barely visible)
+						# Overworld: lighter explored state for better navigation
+						if is_daytime_outdoors:
+							# Overworld: medium dark tint
+							terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+						else:
+							# Dungeons: very dark, almost black
+							terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_UNEXPLORED_COLOR, 0.9)
 					_:  # "unexplored"
 						# Very dark gray
 						terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR

@@ -579,26 +579,58 @@ func _populate_item_tooltip(item: Item) -> void:
 			if item.effects.has("thirst") and item.effects["thirst"] > 0:
 				stats.append("◇ Thirst: +%d%%" % item.effects["thirst"])
 		"weapon", "tool":
-			# Damage first
-			if item.damage_min > 0 and item.damage_max > 0:
-				if item.damage_bonus > 0:
-					stats.append("⚔ Damage: %d-%d +%d" % [item.damage_min, item.damage_max, item.damage_bonus])
+			# Check if this is a spell-casting item (wand, rod, staff with spell)
+			if item.casts_spell != "" and item.max_charges > 0:
+				# Spell-casting item - show spell and charges (or Unknown if unidentified)
+				if item.is_identified():
+					var spell = SpellManager.get_spell(item.casts_spell)
+					if spell:
+						stats.append("✦ Casts: %s" % spell.name)
+						var spell_dmg = spell.get_damage().get("base", 0)
+						if spell_dmg > 0:
+							stats.append("⚔ Spell Damage: %d" % spell_dmg)
+					stats.append("⚡ Charges: %d/%d" % [item.charges, item.max_charges])
 				else:
-					stats.append("⚔ Damage: %d-%d" % [item.damage_min, item.damage_max])
-			elif item.damage_bonus > 0:
-				stats.append("⚔ Damage: +%d" % item.damage_bonus)
-			# Tool type second
-			if item.tool_type != "":
-				stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
-			# Equip slots third (shows multi-slot or two-handed)
-			var slots = item.get_equip_slots()
-			if slots.size() > 1:
-				var slot_names = []
-				for slot in slots:
-					slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
-				stats.append("Slots: %s" % ", ".join(slot_names))
-			elif item.is_two_handed():
-				stats.append("◊ Two-Handed")
+					stats.append("✦ Casts: Unknown")
+					stats.append("⚔ Spell Damage: Unknown")
+					stats.append("⚡ Charges: Unknown")
+			# Check if this is a casting focus (staff)
+			elif item.flags.get("casting_focus", false):
+				var bonuses = item.get_casting_bonuses()
+				if item.is_identified() and not bonuses.is_empty():
+					if bonuses.has("success_modifier"):
+						stats.append("✦ Cast Success: +%d%%" % bonuses.success_modifier)
+					if bonuses.has("school_affinity"):
+						var school_bonus = bonuses.get("school_damage_bonus", 0)
+						stats.append("◈ %s: +%d dmg" % [bonuses.school_affinity.capitalize(), school_bonus])
+					if bonuses.has("mana_cost_modifier"):
+						stats.append("◇ Mana Cost: %d%%" % bonuses.mana_cost_modifier)
+				elif not item.is_identified():
+					stats.append("✦ Bonuses: Unknown")
+				# Show damage for melee use
+				if item.damage_min > 0 and item.damage_max > 0:
+					stats.append("⚔ Melee: %d-%d" % [item.damage_min, item.damage_max])
+			else:
+				# Regular weapon/tool - show damage
+				if item.damage_min > 0 and item.damage_max > 0:
+					if item.damage_bonus > 0:
+						stats.append("⚔ Damage: %d-%d +%d" % [item.damage_min, item.damage_max, item.damage_bonus])
+					else:
+						stats.append("⚔ Damage: %d-%d" % [item.damage_min, item.damage_max])
+				elif item.damage_bonus > 0:
+					stats.append("⚔ Damage: +%d" % item.damage_bonus)
+				# Tool type
+				if item.tool_type != "":
+					stats.append("⚒ Tool: %s" % item.tool_type.capitalize())
+				# Equip slots (shows multi-slot or two-handed)
+				var slots = item.get_equip_slots()
+				if slots.size() > 1:
+					var slot_names = []
+					for slot in slots:
+						slot_names.append(SLOT_DISPLAY_NAMES.get(slot, slot))
+					stats.append("Slots: %s" % ", ".join(slot_names))
+				elif item.is_two_handed():
+					stats.append("◊ Two-Handed")
 		"armor":
 			if item.armor_value > 0:
 				stats.append("◈ Armor: %d" % item.armor_value)

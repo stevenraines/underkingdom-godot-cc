@@ -134,19 +134,19 @@ func test_wooden_club_has_bludgeoning_damage() -> void:
 		pending("Could not create wooden_club item")
 
 
-func test_staff_of_fire_has_secondary_fire_damage() -> void:
+func test_evokers_staff_has_secondary_fire_damage() -> void:
 	if not _is_item_manager_available():
 		pending("ItemManager not available in unit test environment")
 		return
 
-	var item = ItemManager.create_item("staff_of_fire")
+	var item = ItemManager.create_item("evokers_staff")
 
 	if item:
-		assert_eq(item.damage_type, "bludgeoning", "Staff of fire primary should be bludgeoning")
-		assert_eq(item.secondary_damage_type, "fire", "Staff of fire secondary should be fire")
-		assert_eq(item.secondary_damage_bonus, 3, "Staff of fire should have +3 fire damage")
+		assert_eq(item.damage_type, "bludgeoning", "Evoker's staff primary should be bludgeoning")
+		assert_eq(item.secondary_damage_type, "fire", "Evoker's staff secondary should be fire")
+		assert_eq(item.secondary_damage_bonus, 3, "Evoker's staff should have +3 fire damage")
 	else:
-		pending("Could not create staff_of_fire item")
+		pending("Could not create evokers_staff item")
 
 
 # =============================================================================

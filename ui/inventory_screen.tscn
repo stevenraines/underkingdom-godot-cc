@@ -246,6 +246,7 @@ theme_override_constants/separation = 4
 custom_minimum_size = Vector2(0, 90)
 layout_mode = 2
 size_flags_vertical = 0
+clip_contents = true
 
 [node name="TooltipVBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TooltipPanel"]
 layout_mode = 2
@@ -274,6 +275,7 @@ theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
 theme_override_font_sizes/font_size = 12
 text = "Item description"
 autowrap_mode = 2
+max_lines_visible = 2
 
 [node name="StatsColumn" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TooltipPanel/TooltipVBox/TooltipColumns"]
 layout_mode = 2

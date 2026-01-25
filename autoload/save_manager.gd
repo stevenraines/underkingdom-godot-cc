@@ -172,7 +172,8 @@ func _serialize_game_state() -> Dictionary:
 		"harvest": _serialize_harvest(),
 		"farming": _serialize_farming(),
 		"structures": StructureManager.serialize(),
-		"fog_of_war": FogOfWarSystemClass.serialize()
+		"fog_of_war": FogOfWarSystemClass.serialize(),
+		"identification": IdentificationManager.serialize()
 	}
 
 ## Serialize save metadata
@@ -501,6 +502,10 @@ func _deserialize_game_state(save_data: Dictionary):
 	# Restore fog of war (explored tiles)
 	if save_data.has("fog_of_war"):
 		FogOfWarSystemClass.deserialize(save_data.fog_of_war)
+
+	# Restore identification state (wand/scroll/potion appearances and identified items)
+	if save_data.has("identification"):
+		IdentificationManager.deserialize(save_data.identification)
 
 	# Clear flag
 	is_deserializing = false

@@ -463,11 +463,12 @@ Staves provide casting bonuses while equipped.
 
 ```json
 {
-  "id": "staff_of_fire",
-  "name": "Staff of Fire",
+  "id": "staff_of_evocation",
+  "name": "Staff of Evocation",
   "category": "weapon",
   "subtype": "staff",
   "flags": {"equippable": true, "magical": true, "two_handed": true, "casting_focus": true},
+  "unidentified": true,
   "damage_bonus": 5,
   "casting_bonuses": {
     "success_modifier": 10,

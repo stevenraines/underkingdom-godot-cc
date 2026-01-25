@@ -1,7 +1,7 @@
 {
-  "id": "staff_of_fire",
-  "name": "Staff of Fire",
-  "description": "A charred ironwood staff with a smoldering ruby set in its head. Flames dance along its length.",
+  "id": "staff_of_necromancy",
+  "name": "Staff of Necromancy",
+  "description": "A twisted bone staff crowned with a skull. Dark energy pulses within.",
   "category": "weapon",
   "subtype": "staff",
   "item_type": "weapon",
@@ -11,23 +11,24 @@
     "two_handed": true,
     "casting_focus": true
   },
+  "unidentified": true,
   "equip_slots": ["main_hand"],
   "damage_min": 3,
-  "damage_max": 7,
+  "damage_max": 8,
   "damage_bonus": 0,
   "damage_type": "bludgeoning",
-  "secondary_damage_type": "fire",
+  "secondary_damage_type": "necrotic",
   "secondary_damage_bonus": 3,
   "attack_type": "melee",
-  "weight": 2.0,
-  "value": 350,
+  "weight": 2.2,
+  "value": 400,
   "max_stack": 1,
-  "durability": 120,
+  "durability": 100,
   "ascii_char": "/",
-  "ascii_color": "#FF4400",
+  "ascii_color": "#884488",
   "casting_bonuses": {
     "success_modifier": 10,
-    "school_affinity": "evocation",
-    "school_damage_bonus": 2
+    "school_affinity": "necromancy",
+    "school_damage_bonus": 3
   }
 }

@@ -12,7 +12,7 @@
 - [X] Bug: Item details screens do not show damage ranges
 - [X] Bug: Render Order of Enemies and Items
     When occupying the same space, items render over top of creatures
-- [X] Feature: Use Wand
+- [X] Feature: Use Wands
     Players can now cast spells with wands.
 - [X] Feature: Cleric Spell Casting
     Clerics should not need a spellbook to cast spells. Instead, they should be able to case any spell they know as long as they possess a magical focus, a token of their faith. Give the cleric this object at creation.

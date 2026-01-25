@@ -1807,6 +1807,16 @@ func _incremental_render_entities() -> void:
 
 			renderer.render_entity(pos, ascii_char, render_color)
 
+	# Before replacing _rendered_entities, save old feature/hazard positions for cleanup
+	var old_feature_positions: Array[Vector2i] = []
+	var old_hazard_positions: Array[Vector2i] = []
+	for pos in _rendered_entities:
+		if FeatureManager.active_features.has(pos):
+			old_feature_positions.append(pos)
+		elif HazardManager.active_hazards.has(pos):
+			old_hazard_positions.append(pos)
+
+	# Update _rendered_entities with current entities
 	_rendered_entities = current_entities
 
 	# Render features and hazards separately with visibility tracking
@@ -1850,14 +1860,15 @@ func _incremental_render_entities() -> void:
 			_rendered_entities[pos] = hazard
 			rendered_hazards.append(pos)
 
-	# Clear features/hazards that are no longer visible
-	for pos in _rendered_entities.keys():
-		if FeatureManager.active_features.has(pos) and not pos in rendered_features:
+	# Clear features that were visible before but aren't now
+	for pos in old_feature_positions:
+		if not pos in rendered_features:
 			renderer.clear_entity(pos)
-			_rendered_entities.erase(pos)
-		elif HazardManager.active_hazards.has(pos) and not pos in rendered_hazards:
+
+	# Clear hazards that were visible before but aren't now
+	for pos in old_hazard_positions:
+		if not pos in rendered_hazards:
 			renderer.clear_entity(pos)
-			_rendered_entities.erase(pos)
 
 
 ## Render dungeon features (chests, altars, etc.)

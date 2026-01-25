@@ -112,7 +112,6 @@ func _process_autosave() -> void:
 
 	if turns_since_autosave >= SaveManager.AUTOSAVE_INTERVAL:
 		if SaveManager.save_autosave():
-			EventBus.message_logged.emit("Game auto-saved (checkpoint)")
 			turns_since_autosave = 0
 
 ## Reset auto-save counter when manual save occurs

@@ -317,8 +317,8 @@ static func calculate_visibility(origin: Vector2i, perception_range: int, light_
 	# Player's own tile is always visible
 	visible_set[origin] = true
 
-	# Calculate illuminated area from light sources
-	LightingSystemClass.calculate_illuminated_area(origin, perception_range)
+	# Calculate illuminated area from light sources (pass map for wall checks)
+	LightingSystemClass.calculate_illuminated_area(origin, perception_range, map)
 
 	for tile_pos in los_tiles:
 		# Check if illuminated by any light source (torches, braziers, etc.)

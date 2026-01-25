@@ -179,7 +179,8 @@ static func is_illuminated(position: Vector2i) -> bool:
 
 ## Calculate all illuminated positions within a range of the player
 ## This is more efficient than checking every tile individually
-static func calculate_illuminated_area(center: Vector2i, max_range: int) -> Dictionary:
+## @param map: GameMap reference for line-of-sight checks (walls block light)
+static func calculate_illuminated_area(center: Vector2i, max_range: int, map = null) -> Dictionary:
 	illuminated_positions.clear()
 
 	# Check sun first
@@ -202,12 +203,15 @@ static func calculate_illuminated_area(center: Vector2i, max_range: int) -> Dict
 		if dist_to_center > max_range + radius:
 			continue
 
-		# Add illuminated positions from this source
+		# Add illuminated positions from this source (with line-of-sight checks)
 		for dy in range(-radius, radius + 1):
 			for dx in range(-radius, radius + 1):
 				var pos = source_pos + Vector2i(dx, dy)
 				var dist = _chebyshev_distance(pos, source_pos)
 				if dist <= radius:
+					# Check if light path is blocked by walls
+					if map and not _has_line_of_sight(source_pos, pos, map):
+						continue
 					var falloff = 1.0 - (float(dist) / float(radius + 1))
 					var current = illuminated_positions.get(pos, 0.0)
 					illuminated_positions[pos] = max(current, falloff)
@@ -233,6 +237,50 @@ static func get_nearby_light_sources(position: Vector2i, range: int) -> Array:
 ## Chebyshev distance (max of dx, dy) - used for light calculations
 static func _chebyshev_distance(a: Vector2i, b: Vector2i) -> int:
 	return max(abs(a.x - b.x), abs(a.y - b.y))
+
+## Check if there's a clear line of sight between two positions (walls block light)
+## Uses simple Bresenham-like algorithm to check for walls along the path
+static func _has_line_of_sight(from: Vector2i, to: Vector2i, map) -> bool:
+	if not map:
+		return true  # No map = no walls
+
+	# Same position always has LOS
+	if from == to:
+		return true
+
+	# Use Bresenham's line algorithm to check tiles along path
+	var dx = abs(to.x - from.x)
+	var dy = abs(to.y - from.y)
+	var x = from.x
+	var y = from.y
+	var x_inc = 1 if to.x > from.x else -1
+	var y_inc = 1 if to.y > from.y else -1
+	var error = dx - dy
+
+	dx *= 2
+	dy *= 2
+
+	# Check each tile along the line
+	while true:
+		# Don't check the starting position
+		if Vector2i(x, y) != from:
+			# Check if this tile blocks light (not transparent)
+			if not map.is_transparent(Vector2i(x, y)):
+				return false
+
+		# Reached destination
+		if x == to.x and y == to.y:
+			break
+
+		# Step to next tile
+		if error > 0:
+			x += x_inc
+			error -= dy
+		else:
+			y += y_inc
+			error += dx
+
+	return true
 
 ## Get player's light radius from equipped items
 ## Returns 0 if no light source equipped

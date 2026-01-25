@@ -2754,9 +2754,10 @@ func _update_visibility() -> void:
 	FogOfWarSystemClass.set_visible_tiles(visibility_result.visible_tiles)
 	FogOfWarSystemClass.mark_many_explored(map_id, visibility_result.visible_tiles, chunk_based)
 
-	# Update renderer with visibility data
-	renderer.update_fov(visibility_result.visible_tiles, player.position)
+	# CRITICAL: Set visibility data BEFORE update_fov
+	# update_fov applies fog of war, which needs current visibility_data
 	renderer.set_visibility_data(visibility_result.tile_data)
+	renderer.update_fov(visibility_result.visible_tiles, player.position)
 
 
 ## Open rest menu (called from input handler)

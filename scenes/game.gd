@@ -1883,11 +1883,6 @@ func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		# Skip rendering at player position
 		if pos == skip_pos:
 			continue
-		# Skip rendering on non-walkable tiles (walls)
-		if MapManager.current_map:
-			var tile = MapManager.current_map.get_tile(pos)
-			if tile == null or not tile.walkable:
-				continue
 		# Only render if visible to player (FOV check)
 		if not renderer.is_position_visible(pos):
 			continue

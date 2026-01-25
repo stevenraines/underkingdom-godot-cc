@@ -139,8 +139,10 @@ static func _calculate_los_and_lighting_visibility(
 	var result = VisibilityResult.new()
 
 	# Determine ambient light level (twilight has some ambient light)
+	# Dungeons are always pitch black regardless of surface time
+	var is_dungeon = map and (not map.chunk_based)
 	var ambient_light = 0.0
-	if time_of_day == "dusk" or time_of_day == "dawn":
+	if not is_dungeon and (time_of_day == "dusk" or time_of_day == "dawn"):
 		ambient_light = 0.3
 
 	# Get all tiles in perception circle

@@ -2635,7 +2635,8 @@ func _initialize_light_sources_for_map() -> void:
 		if definition.get("provides_light", false):
 			var light_type_str = definition.get("light_type", "torch")
 			var light_type = _get_light_type_from_string(light_type_str)
-			var radius = LightingSystemClass.LIGHT_RADII.get(light_type, 5)
+			# Use custom light_radius from definition if specified, otherwise use default for type
+			var radius = definition.get("light_radius", LightingSystemClass.LIGHT_RADII.get(light_type, 5))
 			var source_id = "feature_%s_%d_%d" % [map_id, pos.x, pos.y]
 			LightingSystemClass.register_source(pos, light_type, radius, source_id)
 

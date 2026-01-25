@@ -511,7 +511,21 @@ func set_visibility_data(vis_data: Dictionary) -> void:
 ## Check if a position is currently visible (public method for game logic)
 ## Now uses cached visibility data from VisibilitySystem
 func is_position_visible(pos: Vector2i) -> bool:
-	# If we have visibility data from VisibilitySystem, use it
+	# Check if we're in daytime outdoors mode
+	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
+
+	if is_daytime_outdoors:
+		# During day, all exterior tiles are visible
+		var tile = current_map.get_tile(pos) if current_map else null
+		if tile and not tile.is_interior:
+			return true  # Exterior tiles always visible during day
+
+		# Interior tiles need to be in visibility data
+		if not visibility_data.is_empty():
+			return visibility_data.has(pos)
+		return _is_entity_visible_at(pos)
+
+	# Night/dungeons: use visibility data if available
 	if not visibility_data.is_empty():
 		return visibility_data.has(pos)
 
@@ -584,9 +598,32 @@ func _apply_fog_of_war_to_terrain() -> void:
 			terrain_original_colors[pos] = original_color
 
 		if is_terrain_visible:
-			# Mark as visible in fog of war system and show at full brightness
+			# Mark as visible in fog of war system
 			FogOfWarSystemClass.mark_explored(current_map_id, pos, is_chunk_based)
-			terrain_modulated_cells[pos] = original_color
+
+			# Apply light-based dimming if we have visibility data with light levels
+			if visibility_data.has(pos) and "light_level" in visibility_data[pos]:
+				var light_level = visibility_data[pos]["light_level"]
+
+				# Apply dimming based on light level
+				# 1.0 = full brightness, 0.0 = very dark (like unexplored)
+				if light_level >= 0.9:
+					# Very bright - full color
+					terrain_modulated_cells[pos] = original_color
+				elif light_level >= 0.5:
+					# Medium light - slight dimming
+					var dim_factor = light_level  # 0.5 to 0.9 range
+					terrain_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 1.0 - dim_factor)
+				elif light_level > 0.0:
+					# Low light - heavy dimming
+					var dim_factor = light_level * 2.0  # Scale 0.0-0.5 to 0.0-1.0
+					terrain_modulated_cells[pos] = FOG_EXPLORED_COLOR.lerp(FOG_UNEXPLORED_COLOR, 1.0 - dim_factor)
+				else:
+					# No light - very dark
+					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+			else:
+				# No light data - show at full brightness (backwards compatibility)
+				terrain_modulated_cells[pos] = original_color
 		else:
 			# Interior tiles are ALWAYS black when not visible (never show "explored" state)
 			# This prevents seeing building interiors from outside
@@ -659,8 +696,28 @@ func _apply_fog_of_war_to_entities() -> void:
 			entity_original_colors[pos] = original_color
 
 		if pos_is_visible:
-			# Show entity with original color
-			entity_modulated_cells[pos] = original_color
+			# Apply light-based dimming if we have visibility data with light levels
+			if visibility_data.has(pos) and "light_level" in visibility_data[pos]:
+				var light_level = visibility_data[pos]["light_level"]
+
+				# Apply dimming based on light level (same logic as terrain)
+				if light_level >= 0.9:
+					# Very bright - full color
+					entity_modulated_cells[pos] = original_color
+				elif light_level >= 0.5:
+					# Medium light - slight dimming
+					var dim_factor = light_level
+					entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 1.0 - dim_factor)
+				elif light_level > 0.0:
+					# Low light - heavy dimming
+					var dim_factor = light_level * 2.0
+					entity_modulated_cells[pos] = FOG_EXPLORED_COLOR.lerp(FOG_UNEXPLORED_COLOR, 1.0 - dim_factor)
+				else:
+					# No light - very dark
+					entity_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+			else:
+				# No light data - show at full brightness (backwards compatibility)
+				entity_modulated_cells[pos] = original_color
 		else:
 			# Not in LOS - store entity data and erase the cell
 			var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
@@ -676,13 +733,8 @@ func _apply_fog_of_war_to_entities() -> void:
 ## Check if an entity at a position should be visible
 ## NOW USES CACHED VISIBILITY DATA from VisibilitySystem when available
 func _is_entity_visible_at(pos: Vector2i) -> bool:
-	# NEW: Use cached visibility data from VisibilitySystem
-	# This already includes LOS + lighting + interior/exterior checks
-	if not visibility_data.is_empty():
-		return visibility_data.has(pos)
-
-	# FALLBACK: Old logic for backwards compatibility during transition
-	# Check if we're in daytime outdoors mode
+	# IMPORTANT: Check daytime outdoors FIRST before using visibility_data
+	# During daytime, exterior tiles aren't added to visibility_data to save memory
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 
 	if is_daytime_outdoors:
@@ -700,9 +752,20 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 				# Player outside: interior entities completely hidden
 				return false
 
-		return true  # Exterior entity visible during day (or player inside with interior entity)
+			# Interior entity, player inside: check visibility_data if available
+			if not visibility_data.is_empty():
+				return visibility_data.has(pos)
+			return visible_tiles_set.has(pos)
 
-	# Night/dungeons: check visible tiles set
+		# Exterior entity during daytime - always visible
+		return true
+
+	# Night/dungeons: Use cached visibility data from VisibilitySystem
+	# This includes LOS + lighting checks
+	if not visibility_data.is_empty():
+		return visibility_data.has(pos)
+
+	# Fallback: check visible tiles set
 	return visible_tiles_set.has(pos)
 
 ## Strict line-of-sight check using Bresenham's algorithm

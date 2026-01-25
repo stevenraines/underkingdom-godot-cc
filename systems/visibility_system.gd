@@ -93,14 +93,23 @@ static func _is_daytime_outdoors(map, time_of_day: String) -> bool:
 	return time_of_day == "day"
 
 ## Fast path: daytime overworld visibility
+## During day, exterior tiles are visible without limit - renderer handles chunks
+## Return minimal data - renderer will handle the rest
 static func _calculate_daytime_visibility(origin: Vector2i, perception_range: int, map) -> VisibilityResult:
 	var result = VisibilityResult.new()
 
-	# During day, all exterior tiles in range are visible
-	# Interior tiles still require LOS
+	# During daytime, mark origin as visible (fog of war needs at least this)
+	result.visible_tiles.append(origin)
+	result.tile_data[origin] = {"lit": true, "light_level": 1.0, "in_los": true}
+
+	# For interior tiles within perception range, check LOS
+	# Exterior tiles don't need to be in the list - renderer allows all during day
 	for dx in range(-perception_range, perception_range + 1):
 		for dy in range(-perception_range, perception_range + 1):
 			var pos = origin + Vector2i(dx, dy)
+			if pos == origin:
+				continue  # Already added
+
 			var dist_sq = dx * dx + dy * dy
 			if dist_sq > perception_range * perception_range:
 				continue
@@ -109,15 +118,12 @@ static func _calculate_daytime_visibility(origin: Vector2i, perception_range: in
 			if not tile:
 				continue
 
-			# Interior tiles require LOS even during day
+			# Only add interior tiles to the visible set (they need LOS check)
+			# Exterior tiles are implicitly visible during day
 			if tile.is_interior:
 				if _has_line_of_sight(origin, pos, map):
 					result.visible_tiles.append(pos)
 					result.tile_data[pos] = {"lit": true, "light_level": 1.0, "in_los": true}
-			else:
-				# Exterior tiles automatically visible
-				result.visible_tiles.append(pos)
-				result.tile_data[pos] = {"lit": true, "light_level": 1.0, "in_los": true}
 
 	return result
 
@@ -145,6 +151,15 @@ static func _calculate_los_and_lighting_visibility(
 			var dist_sq = dx * dx + dy * dy
 			if dist_sq <= perception_range * perception_range:
 				tiles_in_range.append(pos)
+
+	# Also include positions of all light sources that might be visible
+	# (within player's light radius or close to perception range)
+	var max_check_range = perception_range + player_light_radius
+	for light_source in light_sources:
+		var light_pos = light_source.position
+		var dist = _chebyshev_distance(origin, light_pos)
+		if dist <= max_check_range and not tiles_in_range.has(light_pos):
+			tiles_in_range.append(light_pos)
 
 	# For each tile in range, check LOS and calculate lighting
 	for pos in tiles_in_range:

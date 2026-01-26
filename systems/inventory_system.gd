@@ -294,11 +294,16 @@ func equip_item(item: Item, target_slot: String = "") -> Array[Item]:
 		push_error("Inventory: Invalid equip slot: %s" % slot)
 		return unequipped
 	
-	# Check if off_hand is blocked by a two-handed weapon
+	# Check if off_hand is blocked by a two-handed weapon in main_hand
 	if slot == "off_hand" and is_off_hand_blocked():
 		push_warning("Inventory: Cannot equip to off_hand - blocked by two-handed weapon")
 		return unequipped
-	
+
+	# Check if trying to equip a two-handed weapon to off_hand when main_hand is occupied
+	if slot == "off_hand" and item.is_two_handed() and equipment.get("main_hand", null) != null:
+		push_warning("Inventory: Cannot equip two-handed weapon to off_hand - main_hand is occupied")
+		return unequipped
+
 	# Remove from inventory first
 	remove_item(item)
 	
@@ -328,7 +333,7 @@ func _get_best_slot_for_item(item: Item) -> String:
 	var slots = item.get_equip_slots()
 	if slots.is_empty():
 		return ""
-	
+
 	# For accessories, check both slots
 	if "accessory" in slots:
 		if equipment["accessory_1"] == null:
@@ -336,12 +341,16 @@ func _get_best_slot_for_item(item: Item) -> String:
 		if equipment["accessory_2"] == null:
 			return "accessory_2"
 		return "accessory_1"
-	
+
+	# Two-handed weapons MUST use main_hand (they can't be equipped to off_hand if main_hand is occupied)
+	if item.is_two_handed() and "main_hand" in slots:
+		return "main_hand"
+
 	# Check if any slot is empty
 	for slot in slots:
 		if equipment.get(slot, null) == null:
 			return slot
-	
+
 	# Return first slot (will replace existing)
 	return slots[0]
 

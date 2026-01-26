@@ -17,6 +17,6 @@
     "placement": {
         "min_per_floor": 2,
         "max_per_floor": 5,
-        "locations": ["corridor_wall", "room_entrance", "near_stairs"]
+        "locations": ["room_entrance", "near_stairs"]
     }
 }

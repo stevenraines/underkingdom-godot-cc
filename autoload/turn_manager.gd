@@ -176,26 +176,40 @@ func wait_for_player() -> void:
 
 ## Process DoT (Damage over Time) effects for player and all entities
 ## Must be called BEFORE _process_effect_durations so damage happens before durations tick down
+## OPTIMIZATION: Only processes entities within ENEMY_PROCESS_RANGE of player
 func _process_dot_effects() -> void:
 	# Process player DoT effects
 	if EntityManager.player and EntityManager.player.has_method("process_dot_effects"):
 		EntityManager.player.process_dot_effects()
 
-	# Process DoT effects for all other entities
+	# Only process nearby entities (same range as AI processing)
+	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
 	for entity in EntityManager.entities:
-		if entity != EntityManager.player and entity.has_method("process_dot_effects"):
+		if entity == EntityManager.player:
+			continue
+
+		# Range check using Manhattan distance (faster than Euclidean)
+		var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+		if dist <= EntityManager.ENEMY_PROCESS_RANGE and entity.has_method("process_dot_effects"):
 			entity.process_dot_effects()
 
 
 ## Process active magical effect durations for player and all entities
+## OPTIMIZATION: Only processes entities within ENEMY_PROCESS_RANGE of player
 func _process_effect_durations() -> void:
 	# Process player effects
 	if EntityManager.player and EntityManager.player.has_method("process_effect_durations"):
 		EntityManager.player.process_effect_durations()
 
-	# Process effects for all other entities
+	# Only process nearby entities (same range as AI processing)
+	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
 	for entity in EntityManager.entities:
-		if entity != EntityManager.player and entity.has_method("process_effect_durations"):
+		if entity == EntityManager.player:
+			continue
+
+		# Range check using Manhattan distance (faster than Euclidean)
+		var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+		if dist <= EntityManager.ENEMY_PROCESS_RANGE and entity.has_method("process_effect_durations"):
 			entity.process_effect_durations()
 
 

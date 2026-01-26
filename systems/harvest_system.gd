@@ -427,6 +427,8 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 			if resource.replacement_tile:
 				var new_tile = GameTile.create(resource.replacement_tile)
 				MapManager.current_map.set_tile(target_pos, new_tile)
+				# Emit signal to update rendering
+				EventBus.tile_changed.emit(target_pos)
 
 			# TODO: Integrate with ResourceSpawner when chunk-based resource system is complete
 			# ResourceSpawner.remove_resource_at(MapManager.current_map, target_pos)
@@ -436,6 +438,8 @@ static func harvest(player: Player, target_pos: Vector2i, resource_id: String) -
 			if resource.replacement_tile:
 				var new_tile = GameTile.create(resource.replacement_tile)
 				MapManager.current_map.set_tile(target_pos, new_tile)
+				# Emit signal to update rendering
+				EventBus.tile_changed.emit(target_pos)
 
 			# Track for respawn
 			var respawn_turn = TurnManager.current_turn + resource.respawn_turns
@@ -482,6 +486,8 @@ static func process_renewable_resources() -> void:
 				# Restore the resource tile
 				var tile = GameTile.create(renewable.resource_id)
 				MapManager.current_map.set_tile(renewable.position, tile)
+				# Emit signal to update rendering
+				EventBus.tile_changed.emit(renewable.position)
 
 			# Remove from tracking (respawned)
 			_renewable_resources.remove_at(i)

@@ -11,6 +11,7 @@ const ItemManagerScript = preload("res://autoload/item_manager.gd")
 const JsonHelperScript = preload("res://autoload/json_helper.gd")
 const Structure = preload("res://entities/structure.gd")
 const StructurePlacement = preload("res://systems/structure_placement.gd")
+const VisibilitySystemClass = preload("res://systems/visibility_system.gd")
 const LightingSystemClass = preload("res://systems/lighting_system.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
@@ -61,6 +62,7 @@ var _enemy_light_cache_dirty: bool = true
 var _cached_player_hp: int = -1
 var _cached_player_max_hp: int = -1
 var _cached_turn: int = -1
+var _cached_status_turn: int = -1  # Separate tracking for status line updates
 var _cached_player_level: int = -1
 var _cached_player_xp: int = -1
 var _cached_player_gold: int = -1
@@ -268,14 +270,28 @@ func _ready() -> void:
 	renderer.set_map_info(map_id, chunk_based, MapManager.current_map)
 	renderer.set_fow_enabled(true)
 
-	# Register light sources from structures
-	_register_light_sources()
+	# Initialize light sources from structures (persistent lights only)
+	_initialize_light_sources_for_map()
 
 	# Calculate initial visibility (FOV + lighting)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
-	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
-	renderer.update_fov(visible_tiles, player.position)
+
+	# Get all light sources for visibility calculation
+	var light_sources = LightingSystemClass.get_all_light_sources()
+
+	# Calculate visibility using unified system (returns VisibilityResult with tile_data)
+	var visibility_result = VisibilitySystemClass.calculate_visibility(
+		player.position,
+		effective_perception,
+		player_light_radius,
+		MapManager.current_map,
+		light_sources
+	)
+
+	# CRITICAL: Set visibility data BEFORE update_fov
+	renderer.set_visibility_data(visibility_result.tile_data)
+	renderer.update_fov(visibility_result.visible_tiles, player.position)
 
 	# Connect signals
 	EventBus.player_moved.connect(_on_player_moved)
@@ -665,23 +681,12 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		if old_chunk != new_chunk:
 			_full_render_needed = true  # New chunks loaded - need full render
 			_render_map()
+			# Update visibility after rendering map, before rendering entities
+			_update_visibility()
 			_render_ground_items()
 			_render_all_entities()
 
-	# In dungeons, wall visibility depends on player position
-	# So we need to re-render the entire map when player moves
-	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
-
-	if is_dungeon:
-		# Note: For dungeons, we still do full entity re-render every move
-		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
-		# and the incremental check overhead would negate the benefit
-		# Re-render entire map with updated wall visibility
-		_render_map()
-		_render_ground_items()  # Render loot first so creatures appear on top
-		_render_all_entities()  # Will use incremental rendering automatically
-
-	# Clear old player position and render at new position
+	# Clear old player position
 	renderer.clear_entity(old_pos)
 
 	# Re-render items/hazards/features at old position that were hidden under player
@@ -691,11 +696,31 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	_render_hazard_at(old_pos)
 	_render_entity_at(old_pos)
 
-	renderer.render_entity(new_pos, "@", Color.YELLOW)
 	renderer.center_camera(new_pos)
 
-	# Update visibility (FOV + lighting)
+	# In dungeons, wall visibility depends on player position
+	# So we need to re-render the entire map when player moves
+	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
+
+	# CRITICAL: Update visibility AFTER map render but BEFORE entity render
+	# This must be after render_tile() sets base colors (for fog of war dimming)
+	# but BEFORE entity rendering (so entities can check current visibility data)
 	_update_visibility()
+
+	if is_dungeon:
+		# Note: For dungeons, we still do full entity re-render every move
+		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
+		# and the incremental check overhead would negate the benefit
+		# Re-render entire map with updated wall visibility
+		_render_map()
+		# Update visibility again after re-rendering map
+		_update_visibility()
+		_render_ground_items()  # Render loot first so creatures appear on top
+		_render_all_entities()  # Will use incremental rendering automatically
+
+	# CRITICAL: Render player AFTER everything else
+	# Must be after visibility update so fog of war doesn't hide the player
+	renderer.render_entity(new_pos, "@", Color.YELLOW)
 
 	# Auto-pickup items at new position
 	_auto_pickup_items()
@@ -863,8 +888,12 @@ func _on_map_changed(map_id: String) -> void:
 	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
 	renderer.set_map_info(fow_map_id, fow_chunk_based, MapManager.current_map)
 
+	# Initialize light sources for new map (braziers, torches, etc.)
+	print("[Game] 8a/8 Initializing light sources")
+	_initialize_light_sources_for_map()
+
 	# Update visibility (FOV + lighting)
-	print("[Game] 8/8 Calculating visibility")
+	print("[Game] 8b/8 Calculating visibility")
 	_update_visibility()
 
 	# Update message
@@ -932,28 +961,25 @@ func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> v
 
 ## Called when an entity's visual (char/color) changes (e.g., crop growth stage)
 func _on_entity_visual_changed(pos: Vector2i) -> void:
+	# CRITICAL: Clear tracking FIRST before clearing/re-rendering
+	# This ensures incremental rendering knows this position needs updating
+	if _rendered_entities.has(pos):
+		_rendered_entities.erase(pos)
+
 	# Clear existing entity rendering at position
 	renderer.clear_entity(pos)
 
-	# Re-render the terrain tile first (e.g., tilled soil after harvest)
-	if MapManager.current_map:
-		var tile = MapManager.current_map.get_tile(pos)
-		if tile:
-			if tile.color != Color.WHITE:
-				renderer.render_tile(pos, tile.ascii_char, 0, tile.color)
-			else:
-				renderer.render_tile(pos, tile.ascii_char)
+	# Force immediate entity layer flush to prevent ghost visuals
+	# This is ONLY needed here for crop harvesting (not for general entity clearing)
+	if renderer and renderer.has_method("_flush_entity_updates"):
+		renderer._flush_entity_updates()
 
-	# If player is at this position, render player on top (not the entity)
-	if player and player.position == pos:
-		renderer.render_entity(pos, "@", Color.YELLOW)
-		return
-
-	# Re-render any entity at this position (will hide terrain underneath)
-	_render_entity_at(pos)
-
-	# Also handle ground items that might be at this position
-	_render_ground_item_at(pos)
+	# NOTE: We don't re-render here because:
+	# 1. For crop growth: the crop is still in EntityManager.entities,
+	#    incremental rendering will pick it up with new visuals
+	# 2. For crop harvest: the crop is removed from EntityManager.entities,
+	#    the harvest handler will update visibility and re-render everything properly
+	# Trying to render here causes timing issues and ghost visuals
 
 
 ## Called when an entity dies
@@ -1245,6 +1271,12 @@ func _update_hud() -> void:
 	# Update status line with health and survival (only if values changed)
 	if status_line:
 		var needs_update = false
+
+		# Check if turn changed (force update every turn)
+		var current_turn = TurnManager.current_turn
+		if current_turn != _cached_status_turn:
+			_cached_status_turn = current_turn
+			needs_update = true
 
 		# Check if any values changed
 		if player.current_health != _cached_player_hp or player.max_health != _cached_player_max_hp:
@@ -1721,11 +1753,51 @@ func _full_render_all_entities() -> void:
 			renderer.render_entity(structure.position, structure.ascii_char, structure.color)
 			_rendered_entities[structure.position] = structure
 
-	# Render dungeon features (skip player position)
-	_render_features(player_pos)
+	# Render dungeon features (skip player position) and add to tracking
+	for pos in FeatureManager.active_features:
+		if pos == player_pos:
+			continue
+		if MapManager.current_map:
+			var tile = MapManager.current_map.get_tile(pos)
+			if tile == null or not tile.walkable:
+				continue
+		# Check if feature is visible
+		if not renderer.is_position_visible(pos):
+			continue
 
-	# Render dungeon hazards (visible ones only, skip player position)
-	_render_hazards(player_pos)
+		# Features require direct line of sight (not just light leak visibility)
+		# Check visibility_data for the in_los flag (only in dungeons/night)
+		var vis_data = renderer.visibility_data if renderer else {}
+		if not vis_data.is_empty() and vis_data.has(pos):
+			# We have visibility data - check for direct LOS
+			if not vis_data[pos].get("in_los", false):
+				continue  # No direct LOS - skip rendering feature
+
+		var feature: Dictionary = FeatureManager.active_features[pos]
+		var definition: Dictionary = feature.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "?")
+		var color: Color = definition.get("color", Color.WHITE)
+		renderer.render_entity(pos, ascii_char, color)
+		_rendered_entities[pos] = feature
+
+	# Render dungeon hazards (visible ones only, skip player position) and add to tracking
+	for pos in HazardManager.active_hazards:
+		if pos == player_pos:
+			continue
+		if not HazardManager.has_visible_hazard(pos):
+			continue
+		if not renderer.is_position_visible(pos):
+			continue
+		var hazard: Dictionary = HazardManager.active_hazards[pos]
+		var definition: Dictionary = hazard.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "^")
+		var color = definition.get("color", Color.RED)
+		if color is String:
+			color = Color.from_string(color, Color.RED)
+		if hazard.get("disarmed", false):
+			color = Color(0.5, 0.5, 0.5)
+		renderer.render_entity(pos, ascii_char, color)
+		_rendered_entities[pos] = hazard
 
 
 ## Incremental entity render - only updates entities that changed
@@ -1748,14 +1820,17 @@ func _incremental_render_entities() -> void:
 		if structure.position != player_pos:
 			current_entities[structure.position] = structure
 
-	# Find and clear removed entities
+	# Find and clear removed entities (but skip features/hazards - they'll be handled separately)
 	for pos in _rendered_entities:
 		if not current_entities.has(pos):
-			renderer.clear_entity(pos)
+			# Don't clear features or hazards here - they have their own rendering logic
+			if not FeatureManager.active_features.has(pos) and not HazardManager.active_hazards.has(pos):
+				renderer.clear_entity(pos)
 
 	# Render new/moved entities
 	for pos in current_entities:
 		var entity = current_entities[pos]
+
 		# Re-render if entity is new at this position or if it's the current target (color may change)
 		if not _rendered_entities.has(pos) or _rendered_entities[pos] != entity or entity == current_target:
 			var render_color = entity.color if "color" in entity else Color.WHITE
@@ -1767,10 +1842,73 @@ func _incremental_render_entities() -> void:
 
 			renderer.render_entity(pos, ascii_char, render_color)
 
+	# Before replacing _rendered_entities, save old feature/hazard positions for cleanup
+	var old_feature_positions: Array[Vector2i] = []
+	var old_hazard_positions: Array[Vector2i] = []
+	for pos in _rendered_entities:
+		if FeatureManager.active_features.has(pos):
+			old_feature_positions.append(pos)
+		elif HazardManager.active_hazards.has(pos):
+			old_hazard_positions.append(pos)
+
+	# Update _rendered_entities with current entities
 	_rendered_entities = current_entities
 
-	# Note: Features and hazards are typically static, so they're only rendered in full render
-	# If they become dynamic, they should be added to incremental rendering too
+	# Render features and hazards separately with visibility tracking
+	# Track which feature/hazard positions are currently rendered
+	var rendered_features: Array[Vector2i] = []
+	var rendered_hazards: Array[Vector2i] = []
+
+	# Render visible features
+	for pos in FeatureManager.active_features:
+		if pos == player_pos:
+			continue
+		if not renderer.is_position_visible(pos):
+			continue
+
+		# Features require direct line of sight (not just light leak visibility)
+		var vis_data = renderer.visibility_data if renderer else {}
+		if not vis_data.is_empty() and vis_data.has(pos):
+			# We have visibility data - check for direct LOS
+			if not vis_data[pos].get("in_los", false):
+				continue  # No direct LOS - skip rendering feature
+
+		var feature: Dictionary = FeatureManager.active_features[pos]
+		var definition: Dictionary = feature.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "?")
+		var color: Color = definition.get("color", Color.WHITE)
+		renderer.render_entity(pos, ascii_char, color)
+		_rendered_entities[pos] = feature
+		rendered_features.append(pos)
+
+	# Render visible hazards
+	for pos in HazardManager.active_hazards:
+		if pos == player_pos:
+			continue
+		if not HazardManager.has_visible_hazard(pos):
+			continue
+		if renderer.is_position_visible(pos):
+			var hazard: Dictionary = HazardManager.active_hazards[pos]
+			var definition: Dictionary = hazard.get("definition", {})
+			var ascii_char: String = definition.get("ascii_char", "^")
+			var color = definition.get("color", Color.RED)
+			if color is String:
+				color = Color.from_string(color, Color.RED)
+			if hazard.get("disarmed", false):
+				color = Color(0.5, 0.5, 0.5)
+			renderer.render_entity(pos, ascii_char, color)
+			_rendered_entities[pos] = hazard
+			rendered_hazards.append(pos)
+
+	# Clear features that were visible before but aren't now
+	for pos in old_feature_positions:
+		if not pos in rendered_features:
+			renderer.clear_entity(pos)
+
+	# Clear hazards that were visible before but aren't now
+	for pos in old_hazard_positions:
+		if not pos in rendered_hazards:
+			renderer.clear_entity(pos)
 
 
 ## Render dungeon features (chests, altars, etc.)
@@ -1779,11 +1917,9 @@ func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		# Skip rendering at player position
 		if pos == skip_pos:
 			continue
-		# Skip rendering on non-walkable tiles (walls)
-		if MapManager.current_map:
-			var tile = MapManager.current_map.get_tile(pos)
-			if tile == null or not tile.walkable:
-				continue
+		# Only render if visible to player (FOV check)
+		if not renderer.is_position_visible(pos):
+			continue
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
@@ -1798,18 +1934,22 @@ func _render_hazards(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		if pos == skip_pos:
 			continue
 		# Only render if hazard is visible (detected or not hidden)
-		if HazardManager.has_visible_hazard(pos):
-			var hazard: Dictionary = HazardManager.active_hazards[pos]
-			var definition: Dictionary = hazard.get("definition", {})
-			var ascii_char: String = definition.get("ascii_char", "^")
-			var color = definition.get("color", Color.RED)
-			# Handle string colors (from serialized data)
-			if color is String:
-				color = Color.from_string(color, Color.RED)
-			# Disarmed hazards appear grey
-			if hazard.get("disarmed", false):
-				color = Color(0.5, 0.5, 0.5)  # Grey
-			renderer.render_entity(pos, ascii_char, color)
+		if not HazardManager.has_visible_hazard(pos):
+			continue
+		# Only render if in player's field of view (FOV check)
+		if not renderer.is_position_visible(pos):
+			continue
+		var hazard: Dictionary = HazardManager.active_hazards[pos]
+		var definition: Dictionary = hazard.get("definition", {})
+		var ascii_char: String = definition.get("ascii_char", "^")
+		var color = definition.get("color", Color.RED)
+		# Handle string colors (from serialized data)
+		if color is String:
+			color = Color.from_string(color, Color.RED)
+		# Disarmed hazards appear grey
+		if hazard.get("disarmed", false):
+			color = Color(0.5, 0.5, 0.5)  # Grey
+		renderer.render_entity(pos, ascii_char, color)
 
 
 ## Find a valid spawn position for the player (walkable, not occupied)
@@ -2494,9 +2634,12 @@ func _update_build_cursor() -> void:
 	renderer.render_entity(cursor_pos, "X", Color(1.0, 1.0, 0.0, 0.8))
 
 
-## Register light sources from structures on the current map
-func _register_light_sources() -> void:
-	# Clear existing light sources
+## OPTIMIZATION: Initialize persistent light sources on map load
+## Only called on map transitions, NOT on every player move
+## Dynamic lights (enemies, ground items) are still scanned each update
+func _initialize_light_sources_for_map() -> void:
+	# Clear registered sources when changing maps
+	LightingSystemClass.clear_registered_sources()
 	LightingSystemClass.clear_light_sources()
 
 	if not MapManager.current_map:
@@ -2504,15 +2647,16 @@ func _register_light_sources() -> void:
 
 	var map_id = MapManager.current_map.map_id
 
-	# Register light sources from structures (campfires, etc.)
+	# Register persistent light sources from structures (campfires, etc.)
 	var structures = StructureManager.get_structures_on_map(map_id)
 	for structure in structures:
 		if structure.has_component("fire"):
 			var fire_comp = structure.get_component("fire")
 			if fire_comp.is_lit:
-				LightingSystemClass.add_light_source(structure.position, LightingSystemClass.LightType.CAMPFIRE)
+				var source_id = "structure_%s_%d_%d" % [map_id, structure.position.x, structure.position.y]
+				LightingSystemClass.register_source(structure.position, LightingSystemClass.LightType.CAMPFIRE, 20, source_id)
 
-	# Register light sources from dungeon features (braziers, glowing moss, etc.)
+	# Register persistent light sources from dungeon features (braziers, glowing moss, etc.)
 	for pos in FeatureManager.active_features:
 		var feature = FeatureManager.active_features[pos]
 		var definition = feature.get("definition", {})
@@ -2520,11 +2664,26 @@ func _register_light_sources() -> void:
 		if definition.get("provides_light", false):
 			var light_type_str = definition.get("light_type", "torch")
 			var light_type = _get_light_type_from_string(light_type_str)
-			LightingSystemClass.add_light_source(pos, light_type)
+			# Use custom light_radius from definition if specified, otherwise use default for type
+			var radius = definition.get("light_radius", LightingSystemClass.LIGHT_RADII.get(light_type, 5))
+			var source_id = "feature_%s_%d_%d" % [map_id, pos.x, pos.y]
+			LightingSystemClass.register_source(pos, light_type, radius, source_id)
 
 	# Register town lights (lampposts) on overworld
 	if map_id == "overworld":
 		_register_town_lights()
+
+	# Dynamic light sources (enemies, ground items) are handled separately
+	# They change position/state frequently so are scanned on-demand
+	_update_dynamic_light_sources()
+
+
+## Update dynamic light sources (enemies with torches, dropped items)
+## Called only when needed (player moves, time changes to/from night)
+func _update_dynamic_light_sources() -> void:
+	# CRITICAL: Rebuild persistent lights from registry first
+	# This ensures structures/features are always in the light_sources array
+	LightingSystemClass.rebuild_light_sources_from_registry()
 
 	# Only scan entities for light sources during night/dusk (performance optimization)
 	# During day, enemies don't need torches and lit ground items are rare
@@ -2602,16 +2761,36 @@ func _update_visibility() -> void:
 	if not player or not MapManager.current_map:
 		return
 
-	# Re-register light sources (enemy positions may have changed)
-	_register_light_sources()
+	# OPTIMIZATION: No longer re-scanning structures every move
+	# Persistent lights are registered once on map load
+	# Dynamic lights (enemies, ground items) are updated separately
+	_update_dynamic_light_sources()
 
-	# Calculate visibility (LOS-based, for entities)
+	# Get all light sources for visibility calculation
+	var light_sources = LightingSystemClass.get_all_light_sources()
+
+	# Calculate visibility using UNIFIED system (LOS + lighting combined)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
-	var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
 
-	# Update FOV - terrain visibility for daytime outdoors is handled in the renderer
-	renderer.update_fov(visible_tiles, player.position)
+	var visibility_result = VisibilitySystemClass.calculate_visibility(
+		player.position,
+		effective_perception,
+		player_light_radius,
+		MapManager.current_map,
+		light_sources
+	)
+
+	# Update fog of war
+	var map_id = MapManager.current_map.map_id
+	var chunk_based = MapManager.current_map.chunk_based
+	FogOfWarSystemClass.set_visible_tiles(visibility_result.visible_tiles)
+	FogOfWarSystemClass.mark_many_explored(map_id, visibility_result.visible_tiles, chunk_based)
+
+	# CRITICAL: Set visibility data BEFORE update_fov
+	# update_fov applies fog of war, which needs current visibility_data
+	renderer.set_visibility_data(visibility_result.tile_data)
+	renderer.update_fov(visibility_result.visible_tiles, player.position)
 
 
 ## Open rest menu (called from input handler)

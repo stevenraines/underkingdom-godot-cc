@@ -2,6 +2,7 @@
   "id": "tilled_soil",
   "display_name": "tilled soil",
   "ascii_char": "▤",
+  "ascii_color": "#8B7355",
   "walkable": true,
   "transparent": true,
   "is_fire_source": false,

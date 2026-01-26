@@ -472,9 +472,6 @@ func clear_entity(position: Vector2i) -> void:
 	hidden_entity_positions.erase(position)  # Clear from hidden cache (prevents ghost entities)
 	_mark_entity_dirty()
 
-	# Force immediate update to ensure cell is cleared before any other rendering
-	_flush_entity_updates()
-
 	# Restore hidden floor tile if there was one
 	if position in hidden_floor_positions:
 		var floor_data = hidden_floor_positions[position]

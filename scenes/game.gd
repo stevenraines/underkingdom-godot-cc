@@ -969,6 +969,11 @@ func _on_entity_visual_changed(pos: Vector2i) -> void:
 	# Clear existing entity rendering at position
 	renderer.clear_entity(pos)
 
+	# Force immediate entity layer flush to prevent ghost visuals
+	# This is ONLY needed here for crop harvesting (not for general entity clearing)
+	if renderer and renderer.has_method("_flush_entity_updates"):
+		renderer._flush_entity_updates()
+
 	# NOTE: We don't re-render here because:
 	# 1. For crop growth: the crop is still in EntityManager.entities,
 	#    incremental rendering will pick it up with new visuals

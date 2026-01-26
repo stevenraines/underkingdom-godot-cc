@@ -472,6 +472,9 @@ func clear_entity(position: Vector2i) -> void:
 	hidden_entity_positions.erase(position)  # Clear from hidden cache (prevents ghost entities)
 	_mark_entity_dirty()
 
+	# Force immediate update to ensure cell is cleared before any other rendering
+	_flush_entity_updates()
+
 	# Restore hidden floor tile if there was one
 	if position in hidden_floor_positions:
 		var floor_data = hidden_floor_positions[position]
@@ -607,23 +610,28 @@ func _apply_fog_of_war_to_terrain() -> void:
 
 				# Apply dimming based on light level
 				# 1.0 = full brightness, 0.0 = very dark (like unexplored)
-				if light_level >= 0.9:
-					# Very bright - full color
+				# ADJUSTED: Lower thresholds and less aggressive dimming for brighter illumination
+				if light_level >= 0.7:
+					# Bright area - full color (lowered from 0.9)
 					terrain_modulated_cells[pos] = original_color
-				elif light_level >= 0.5:
-					# Medium light - slight dimming
-					var dim_factor = light_level  # 0.5 to 0.9 range
-					terrain_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 1.0 - dim_factor)
+				elif light_level >= 0.4:
+					# Medium light - gentle dimming (lowered from 0.5, reduced lerp)
+					var dim_factor = (light_level - 0.4) / 0.3  # Normalize 0.4-0.7 to 0.0-1.0
+					terrain_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.3 * (1.0 - dim_factor))
 				elif light_level > 0.0:
-					# Low light - heavy dimming
-					var dim_factor = light_level * 2.0  # Scale 0.0-0.5 to 0.0-1.0
-					terrain_modulated_cells[pos] = FOG_EXPLORED_COLOR.lerp(FOG_UNEXPLORED_COLOR, 1.0 - dim_factor)
+					# Low light - moderate dimming (less aggressive)
+					var dim_factor = light_level / 0.4  # Normalize 0.0-0.4 to 0.0-1.0
+					terrain_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.5 * (1.0 - dim_factor))
 				else:
 					# No light - very dark
 					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 			else:
-				# No light data - show at full brightness (backwards compatibility)
-				terrain_modulated_cells[pos] = original_color
+				# No light data - apply dark tint to prevent initial spawn brightness
+				# Only do this in dungeons/night (daytime outdoors handles separately)
+				if is_daytime_outdoors:
+					terrain_modulated_cells[pos] = original_color
+				else:
+					terrain_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
 		else:
 			# Interior tiles are ALWAYS black when not visible (never show "explored" state)
 			# This prevents seeing building interiors from outside
@@ -706,35 +714,52 @@ func _apply_fog_of_war_to_entities() -> void:
 			if visibility_data.has(pos) and "light_level" in visibility_data[pos]:
 				var light_level = visibility_data[pos]["light_level"]
 
-				# Apply dimming based on light level (same logic as terrain)
-				if light_level >= 0.9:
-					# Very bright - full color
+				# Apply dimming based on light level (same thresholds as terrain for consistency)
+				# ADJUSTED: Lower thresholds and less aggressive dimming for brighter illumination
+				if light_level >= 0.7:
+					# Bright area - full color (lowered from 0.9)
 					entity_modulated_cells[pos] = original_color
-				elif light_level >= 0.5:
-					# Medium light - slight dimming
-					var dim_factor = light_level
-					entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 1.0 - dim_factor)
+				elif light_level >= 0.4:
+					# Medium light - gentle dimming (lowered from 0.5, reduced lerp)
+					var dim_factor = (light_level - 0.4) / 0.3  # Normalize 0.4-0.7 to 0.0-1.0
+					entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.3 * (1.0 - dim_factor))
 				elif light_level > 0.0:
-					# Low light - heavy dimming
-					var dim_factor = light_level * 2.0
-					entity_modulated_cells[pos] = FOG_EXPLORED_COLOR.lerp(FOG_UNEXPLORED_COLOR, 1.0 - dim_factor)
+					# Low light - moderate dimming (less aggressive)
+					var dim_factor = light_level / 0.4  # Normalize 0.0-0.4 to 0.0-1.0
+					entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.5 * (1.0 - dim_factor))
 				else:
 					# No light - very dark
 					entity_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 			else:
-				# No light data - show at full brightness (backwards compatibility)
-				entity_modulated_cells[pos] = original_color
+				# No light data - apply dark tint to match terrain behavior
+				# This prevents initial spawn brightness when visibility_data is empty
+				entity_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
 		else:
-			# Not in LOS - store entity data and erase the cell
-			var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
-			hidden_entity_positions[pos] = {
-				"atlas": atlas_coords,
-				"color": original_color
-			}
-			entity_layer.erase_cell(pos)
-			entity_modulated_cells.erase(pos)
+			# Not in LOS - check if this is a crop (crops are always visible)
+			var is_crop = _is_crop_at_position(pos)
+			if is_crop:
+				# Crops are always visible (like ground items/structures)
+				# Just apply fog dimming to match explored terrain
+				entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.6)
+			else:
+				# Not a crop - store entity data and erase the cell
+				var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
+				hidden_entity_positions[pos] = {
+					"atlas": atlas_coords,
+					"color": original_color
+				}
+				entity_layer.erase_cell(pos)
+				entity_modulated_cells.erase(pos)
 
 	_mark_entity_dirty()
+
+## Check if a position has a crop entity
+func _is_crop_at_position(pos: Vector2i) -> bool:
+	# Check if any entity at this position is a crop
+	for entity in EntityManager.entities:
+		if entity.position == pos and entity.entity_type == "crop":
+			return true
+	return false
 
 ## Check if an entity at a position should be visible
 ## NOW USES CACHED VISIBILITY DATA from VisibilitySystem when available

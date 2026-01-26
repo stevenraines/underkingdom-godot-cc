@@ -116,12 +116,14 @@ func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRando
 			if placed >= feature_count:
 				break
 			if rng.randf() < spawn_chance:
-				map.metadata.pending_features.append({
-					"feature_id": feature_id,
-					"position": pos,
-					"config": feature_config
-				})
-				placed += 1
+				# Validate placement before adding
+				if _is_valid_feature_placement(pos, feature_id, map):
+					map.metadata.pending_features.append({
+						"feature_id": feature_id,
+						"position": pos,
+						"config": feature_config
+					})
+					placed += 1
 
 
 ## Fallback: Store hazard placement data in map metadata
@@ -171,6 +173,105 @@ func _store_hazard_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom
 					"config": hazard_config
 				})
 				placed += 1
+
+
+## Validate feature placement to prevent blocking narrow hallways or doors
+## Returns true if the position is valid for this feature
+func _is_valid_feature_placement(pos: Vector2i, feature_id: String, map: GameMap) -> bool:
+	# Load feature definition to check if it's blocking
+	var feature_def_path = "res://data/features/%s.json" % feature_id
+	if not FileAccess.file_exists(feature_def_path):
+		return true  # If no definition, allow placement
+
+	var file = FileAccess.open(feature_def_path, FileAccess.READ)
+	if not file:
+		return true  # If can't read, allow placement
+
+	var json = JSON.new()
+	var parse_result = json.parse(file.get_as_text())
+	file.close()
+
+	if parse_result != OK:
+		return true  # If can't parse, allow placement
+
+	var feature_def = json.data
+	var is_blocking = not feature_def.get("walkable", true)
+
+	# If feature is walkable, no placement restrictions
+	if not is_blocking:
+		return true
+
+	# Blocking features have restrictions
+	# 1. Check if adjacent to or near a door (2-tile radius)
+	# This prevents blocking door access in narrow corridors
+	for dx in range(-2, 3):
+		for dy in range(-2, 3):
+			if dx == 0 and dy == 0:
+				continue
+			var check_pos = pos + Vector2i(dx, dy)
+			var tile = map.get_tile(check_pos)
+			if tile and tile.tile_type == "door":
+				# Only reject if we're within 1 tile of the door
+				# OR if there's a narrow path between us and the door
+				var dist = maxi(absi(dx), absi(dy))  # Chebyshev distance
+				if dist == 1:
+					return false  # Directly adjacent to door
+				elif dist == 2:
+					# Check if there's a narrow corridor between us and the door
+					# If the intervening tile is a corridor, don't block it
+					var mid_x = pos.x + (1 if dx > 0 else (-1 if dx < 0 else 0))
+					var mid_y = pos.y + (1 if dy > 0 else (-1 if dy < 0 else 0))
+					var mid_pos = Vector2i(mid_x, mid_y)
+					var mid_tile = map.get_tile(mid_pos)
+					if mid_tile and mid_tile.walkable:
+						# Check if this creates a choke point
+						if _is_narrow_corridor(mid_pos, map):
+							return false
+
+	# 2. Check if in a 1-tile wide corridor
+	# A 1-tile corridor has walls or non-walkable tiles on opposite sides
+	var horizontal_blocked = (
+		not _is_walkable_or_door(map, pos + Vector2i(-1, 0)) and
+		not _is_walkable_or_door(map, pos + Vector2i(1, 0))
+	)
+	var vertical_blocked = (
+		not _is_walkable_or_door(map, pos + Vector2i(0, -1)) and
+		not _is_walkable_or_door(map, pos + Vector2i(0, 1))
+	)
+
+	# If corridor is 1-tile wide (blocked on both sides in either direction), reject
+	if horizontal_blocked or vertical_blocked:
+		return false
+
+	return true
+
+
+## Helper: Check if a position is walkable or a door
+func _is_walkable_or_door(map: GameMap, pos: Vector2i) -> bool:
+	var tile = map.get_tile(pos)
+	if not tile:
+		return false
+	return tile.walkable or tile.tile_type == "door"
+
+
+## Helper: Check if a position is in a narrow corridor (1-2 tiles wide)
+func _is_narrow_corridor(pos: Vector2i, map: GameMap) -> bool:
+	# Count walkable neighbors in each direction
+	var walkable_left = _is_walkable_or_door(map, pos + Vector2i(-1, 0))
+	var walkable_right = _is_walkable_or_door(map, pos + Vector2i(1, 0))
+	var walkable_up = _is_walkable_or_door(map, pos + Vector2i(0, -1))
+	var walkable_down = _is_walkable_or_door(map, pos + Vector2i(0, 1))
+
+	# If it's only 1-tile wide in either direction, it's narrow
+	if (not walkable_left and not walkable_right) or (not walkable_up and not walkable_down):
+		return true
+
+	# If it has openings in only 2 opposite directions, it's a corridor
+	var open_directions = int(walkable_left) + int(walkable_right) + int(walkable_up) + int(walkable_down)
+	if open_directions <= 2:
+		return true
+
+	return false
 
 
 ## Spawn enemies using data-driven spawn_dungeons and CR-based floor filtering

@@ -1,10 +1,8 @@
 # Feature ideas to flesh out with Claude
-
-## Version 1.3 Updates 
----
-
 ---
 ## Unplanned
+- [ ] Hide Cursed status of items
+    Cursed items should never show that they are cursed until used / worn
 - [ ] Feature: Add Ritual to Charge Magic Items
     Wands and other items have charges. Create a ritual that allows for these items to be recharged.
 - [ ] Feature: Dungeon Map 

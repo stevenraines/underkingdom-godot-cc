@@ -3,7 +3,7 @@
   "display_name": "a rock",
   "ascii_char": "◆",
   "walkable": false,
-  "transparent": false,
+  "transparent": true,
   "is_fire_source": false,
   "harvestable_resource_id": "rock"
 }

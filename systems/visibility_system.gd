@@ -55,12 +55,24 @@ static func calculate_visibility(
 
 	var result = VisibilityResult.new()
 
-	# FAST PATH: Daytime outdoors - all exterior tiles visible without LOS
-	var is_daytime_outdoors = _is_daytime_outdoors(map, current_time)
-	if is_daytime_outdoors:
-		result = _calculate_daytime_visibility(origin, perception_range, map)
+	# Determine visibility mode based on location and time
+	var is_overworld = map and map.chunk_based
+	var is_daytime = current_time == "day"
+	var is_twilight = current_time == "dawn" or current_time == "dusk"
+
+	# OVERWORLD TIME-BASED VISIBILITY
+	if is_overworld:
+		if is_daytime:
+			# Day: Full visibility for exterior tiles
+			result = _calculate_daytime_visibility(origin, perception_range, map)
+		elif is_twilight:
+			# Dawn/Dusk: Fixed 7-tile radius (fast path - no light source processing)
+			result = _calculate_twilight_visibility(origin, 7, map)
+		else:  # Night
+			# Night: Only light sources, no ambient perception (fast path)
+			result = _calculate_night_visibility(origin, player_light_radius, map, light_sources)
 	else:
-		# STANDARD PATH: Night/dungeons - use LOS + lighting
+		# DUNGEONS: Always use standard LOS + lighting (not affected by time of day)
 		result = _calculate_los_and_lighting_visibility(
 			origin,
 			perception_range,
@@ -102,16 +114,27 @@ static func _calculate_daytime_visibility(origin: Vector2i, perception_range: in
 	result.visible_tiles.append(origin)
 	result.tile_data[origin] = {"lit": true, "light_level": 1.0, "in_los": true}
 
-	# For interior tiles within perception range, check LOS
-	# Exterior tiles don't need to be in the list - renderer allows all during day
-	for dx in range(-perception_range, perception_range + 1):
-		for dy in range(-perception_range, perception_range + 1):
+	# OPTIMIZATION: Only process interior tiles if player is inside/on a building
+	var origin_tile = map.get_tile(origin)
+	var player_on_door = origin_tile and origin_tile.tile_type == "door"
+	var player_inside = origin_tile and (origin_tile.is_interior or player_on_door)
+
+	if not player_inside:
+		# Player is outside - no interior tiles visible, exterior handled by renderer
+		return result
+
+	# Player is inside a building - only check nearby interior tiles (much smaller area)
+	# Use smaller search radius since buildings are typically 10-15 tiles max
+	var interior_search_radius = min(perception_range, 15)
+
+	for dx in range(-interior_search_radius, interior_search_radius + 1):
+		for dy in range(-interior_search_radius, interior_search_radius + 1):
 			var pos = origin + Vector2i(dx, dy)
 			if pos == origin:
 				continue  # Already added
 
 			var dist_sq = dx * dx + dy * dy
-			if dist_sq > perception_range * perception_range:
+			if dist_sq > interior_search_radius * interior_search_radius:
 				continue
 
 			var tile = map.get_tile(pos)
@@ -124,6 +147,75 @@ static func _calculate_daytime_visibility(origin: Vector2i, perception_range: in
 				if _has_line_of_sight(origin, pos, map):
 					result.visible_tiles.append(pos)
 					result.tile_data[pos] = {"lit": true, "light_level": 1.0, "in_los": true}
+
+	return result
+
+## Twilight path: Fixed radius visibility on overworld (dawn/dusk)
+## SUPER FAST PATH - no LOS checks, just mark everything in radius as visible
+## At twilight, ambient light lets you see nearby terrain without strict LOS
+static func _calculate_twilight_visibility(origin: Vector2i, radius: int, _map) -> VisibilityResult:
+	var result = VisibilityResult.new()
+
+	# Simply mark all tiles within radius as visible (no LOS checks for speed)
+	# At twilight, there's enough ambient light to see the general area
+	for dx in range(-radius, radius + 1):
+		for dy in range(-radius, radius + 1):
+			var pos = origin + Vector2i(dx, dy)
+			# Use Euclidean distance for circular radius
+			var dist_sq = dx * dx + dy * dy
+			var radius_sq = radius * radius
+			if dist_sq > radius_sq:
+				continue
+
+			result.visible_tiles.append(pos)
+			# Twilight has moderate ambient light (0.3)
+			result.tile_data[pos] = {"lit": true, "light_level": 0.3, "in_los": true}
+
+	return result
+
+## Night path: Only light sources visible on overworld
+## Optimized fast path - only processes light source radii, no ambient perception
+static func _calculate_night_visibility(origin: Vector2i, player_light_radius: int, map, light_sources: Array) -> VisibilityResult:
+	var result = VisibilityResult.new()
+
+	# Collect all tiles within range of light sources
+	var lit_positions: Dictionary = {}  # pos -> light_level
+
+	# Add tiles lit by player's light (circular radius using Euclidean distance)
+	if player_light_radius > 0:
+		for dx in range(-player_light_radius, player_light_radius + 1):
+			for dy in range(-player_light_radius, player_light_radius + 1):
+				var pos = origin + Vector2i(dx, dy)
+				var dist_sq = dx * dx + dy * dy
+				var radius_sq = player_light_radius * player_light_radius
+				if dist_sq <= radius_sq:
+					var dist = sqrt(float(dist_sq))
+					var falloff = 1.0 - (dist / float(player_light_radius + 1))
+					lit_positions[pos] = falloff
+
+	# Add tiles lit by map light sources (campfires, braziers, etc.)
+	for light_source in light_sources:
+		var light_pos = light_source.get("position", Vector2i.ZERO)
+		var light_radius = light_source.get("radius", 0)
+
+		for dx in range(-light_radius, light_radius + 1):
+			for dy in range(-light_radius, light_radius + 1):
+				var pos = light_pos + Vector2i(dx, dy)
+				var dist = _chebyshev_distance(light_pos, pos)
+				if dist <= light_radius:
+					# Check if light can reach this tile
+					if _has_line_of_sight(light_pos, pos, map):
+						var falloff = 1.0 - (float(dist) / float(light_radius + 1))
+						# Keep the maximum light level at each position
+						if not lit_positions.has(pos) or falloff > lit_positions[pos]:
+							lit_positions[pos] = falloff
+
+	# Convert lit positions to visibility result
+	for pos in lit_positions:
+		# Check LOS from player to lit position
+		if _has_line_of_sight(origin, pos, map):
+			result.visible_tiles.append(pos)
+			result.tile_data[pos] = {"lit": true, "light_level": lit_positions[pos], "in_los": true}
 
 	return result
 
@@ -179,29 +271,8 @@ static func _calculate_los_and_lighting_visibility(
 		# Check line of sight from player
 		var has_los = _has_line_of_sight(origin, pos, map)
 
-		# Check if this tile itself is the blocker (wall/obstacle we can see)
-		# vs something in between blocking the view (can't see this tile)
-		var is_visible_blocker = false
-		if not has_los:
-			# Check if removing THIS tile would give us LOS
-			var tile = map.get_tile(pos)
-			if tile and not map.is_transparent(pos):
-				# This tile blocks - check if path TO this tile is clear
-				# by checking LOS to adjacent transparent tile
-				var neighbors = [
-					pos + Vector2i(-1, 0), pos + Vector2i(1, 0),
-					pos + Vector2i(0, -1), pos + Vector2i(0, 1)
-				]
-				for neighbor in neighbors:
-					if map.is_transparent(neighbor) and _has_line_of_sight(origin, neighbor, map):
-						is_visible_blocker = true
-						break
-
-		# Skip tiles behind walls (no LOS and not a visible blocker)
-		if not has_los and not is_visible_blocker:
-			continue
-
-		# Calculate light level at this position
+		# Calculate light level at this position FIRST
+		# This allows us to see lit areas even without direct LOS (light leaking through doorways)
 		var light_level = ambient_light
 
 		# Add light from player's equipped light source
@@ -224,8 +295,43 @@ static func _calculate_los_and_lighting_visibility(
 					var falloff = 1.0 - (float(dist_to_light) / float(light_radius + 1))
 					light_level = max(light_level, falloff)
 
-		# Tile is visible if it has any light
-		if light_level > 0.0:
+		# Determine if tile should be visible
+		# A tile is visible if:
+		# 1. It has direct LOS from player
+		# 2. OR it's lit AND adjacent to a tile with LOS (allows light leak through doorways)
+		# 3. OR it's a visible blocker (wall at edge of vision)
+
+		var should_be_visible = false
+
+		if has_los:
+			# Direct LOS - always visible
+			should_be_visible = true
+		elif light_level > 0.0:
+			# Tile is lit but no direct LOS - only visible if adjacent to a tile we can see
+			# This allows seeing light "leak" one tile through doorways without seeing deep into rooms
+			var neighbors = [
+				pos + Vector2i(-1, 0), pos + Vector2i(1, 0),
+				pos + Vector2i(0, -1), pos + Vector2i(0, 1)
+			]
+			for neighbor in neighbors:
+				if _has_line_of_sight(origin, neighbor, map):
+					should_be_visible = true
+					break
+		else:
+			# No LOS, no light - check if it's a visible blocker (wall at edge of vision)
+			var tile = map.get_tile(pos)
+			if tile and not map.is_transparent(pos):
+				# This tile blocks - check if path TO this tile is clear
+				var neighbors = [
+					pos + Vector2i(-1, 0), pos + Vector2i(1, 0),
+					pos + Vector2i(0, -1), pos + Vector2i(0, 1)
+				]
+				for neighbor in neighbors:
+					if map.is_transparent(neighbor) and _has_line_of_sight(origin, neighbor, map):
+						should_be_visible = true
+						break
+
+		if should_be_visible:
 			result.visible_tiles.append(pos)
 			result.tile_data[pos] = {"lit": true, "light_level": light_level, "in_los": has_los}
 
@@ -258,8 +364,9 @@ static func _has_line_of_sight(from: Vector2i, to: Vector2i, map) -> bool:
 
 	# Check each tile along the line
 	while true:
-		# Don't check starting position, but do check ending position
-		if Vector2i(x, y) != from:
+		# Don't check starting position or ending position for transparency
+		# (You can see walls/trees, they just block vision THROUGH them)
+		if Vector2i(x, y) != from and Vector2i(x, y) != to:
 			# Check if this tile blocks vision
 			if not map.is_transparent(Vector2i(x, y)):
 				return false

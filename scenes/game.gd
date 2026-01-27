@@ -802,31 +802,22 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		return
 
 	_processing_player_moved = true
-	print("[Game] _on_player_moved: %v -> %v" % [old_pos, new_pos])
 
 	# Update chunk loading for overworld
 	if MapManager.current_map and MapManager.current_map.chunk_based:
-		print("[Game] Updating active chunks...")
 		ChunkManager.update_active_chunks(new_pos)
-		print("[Game] Active chunks updated")
 
 		# Re-render map for chunk-based worlds (new chunks may have loaded)
 		# Only re-render if player crossed chunk boundary
 		var old_chunk = ChunkManagerClass.world_to_chunk(old_pos)
 		var new_chunk = ChunkManagerClass.world_to_chunk(new_pos)
 		if old_chunk != new_chunk:
-			print("[Game] Crossed chunk boundary: %v -> %v" % [old_chunk, new_chunk])
 			_full_render_needed = true  # New chunks loaded - need full render
-			print("[Game] Rendering map...")
 			_render_map()
-			print("[Game] Map rendered, updating visibility...")
 			# Update visibility after rendering map, before rendering entities
 			_update_visibility()
-			print("[Game] Visibility updated, rendering ground items...")
 			_render_ground_items()
-			print("[Game] Ground items rendered, rendering entities (count: %d)..." % EntityManager.entities.size())
 			_render_all_entities()
-			print("[Game] Entities rendered")
 
 	# Clear old player position
 	renderer.clear_entity(old_pos)
@@ -888,7 +879,6 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Clear reentrancy guard
 	_processing_player_moved = false
-	print("[Game] _on_player_moved complete")
 
 ## Render any non-blocking entity at a specific position (crops, etc.)
 ## Skips rendering if player is at the position (player renders on top)
@@ -1882,7 +1872,6 @@ func _render_all_entities() -> void:
 
 ## Full entity render - used on map transitions or when incremental tracking is lost
 func _full_render_all_entities() -> void:
-	print("[Game] _full_render_all_entities: Rendering %d entities..." % EntityManager.entities.size())
 	_rendered_entities.clear()
 
 	# Get current target for highlighting
@@ -1891,11 +1880,7 @@ func _full_render_all_entities() -> void:
 	# Get player position to skip rendering entities at player's tile
 	var player_pos = player.position if player else Vector2i(-1, -1)
 
-	var rendered_count = 0
 	for entity in EntityManager.entities:
-		rendered_count += 1
-		if rendered_count % 100 == 0:
-			print("[Game] _full_render_all_entities: Rendered %d/%d entities..." % [rendered_count, EntityManager.entities.size()])
 		if entity.is_alive:
 			# Skip entities at player's position - player renders on top
 			if entity.position == player_pos:
@@ -1960,8 +1945,6 @@ func _full_render_all_entities() -> void:
 			color = Color(0.5, 0.5, 0.5)
 		renderer.render_entity(pos, ascii_char, color)
 		_rendered_entities[pos] = hazard
-
-	print("[Game] _full_render_all_entities: Complete. Rendered %d entities total" % _rendered_entities.size())
 
 
 ## Incremental entity render - only updates entities that changed
@@ -2896,20 +2879,14 @@ func _update_dynamic_light_sources() -> void:
 ## Rebuild the enemy light source cache (only intelligent enemies carry torches)
 ## Called only when cache is dirty (enemy moved or map changed)
 func _rebuild_enemy_light_cache() -> void:
-	print("[Game] _rebuild_enemy_light_cache: Processing %d entities..." % EntityManager.entities.size())
 	_enemy_light_cache.clear()
-	var processed = 0
 	for entity in EntityManager.entities:
-		processed += 1
-		if processed % 100 == 0:
-			print("[Game] _rebuild_enemy_light_cache: Processed %d/%d entities..." % [processed, EntityManager.entities.size()])
 		if entity is Enemy and entity.is_alive:
 			# Only intelligent enemies (INT >= 5) carry torches
 			var enemy_int = entity.attributes.get("INT", 1)
 			if enemy_int >= 5:
 				_enemy_light_cache.append(entity.position)
 	_enemy_light_cache_dirty = false
-	print("[Game] _rebuild_enemy_light_cache: Complete. Found %d light sources" % _enemy_light_cache.size())
 
 
 ## Register town lights (lampposts) at night
@@ -2956,23 +2933,18 @@ func _update_visibility() -> void:
 	if not player or not player.is_alive or not MapManager.current_map:
 		return
 
-	print("[Game] _update_visibility: Updating dynamic light sources...")
 	# OPTIMIZATION: No longer re-scanning structures every move
 	# Persistent lights are registered once on map load
 	# Dynamic lights (enemies, ground items) are updated separately
 	_update_dynamic_light_sources()
-	print("[Game] _update_visibility: Dynamic lights updated")
 
 	# Get all light sources for visibility calculation
-	print("[Game] _update_visibility: Getting light sources...")
 	var light_sources = LightingSystemClass.get_all_light_sources()
-	print("[Game] _update_visibility: Got %d light sources" % light_sources.size())
 
 	# Calculate visibility using UNIFIED system (LOS + lighting combined)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
 
-	print("[Game] _update_visibility: Calculating visibility (perception=%d, light_radius=%d)..." % [effective_perception, player_light_radius])
 	var visibility_result = VisibilitySystemClass.calculate_visibility(
 		player.position,
 		effective_perception,
@@ -2980,7 +2952,6 @@ func _update_visibility() -> void:
 		MapManager.current_map,
 		light_sources
 	)
-	print("[Game] _update_visibility: Visibility calculated, visible tiles: %d" % visibility_result.visible_tiles.size())
 
 	# Update fog of war
 	var map_id = MapManager.current_map.map_id

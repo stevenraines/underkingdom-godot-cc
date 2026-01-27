@@ -114,23 +114,17 @@ func advance_turn() -> void:
 ## Process player survival systems each turn
 func _process_player_survival() -> void:
 	if EntityManager.player and EntityManager.player.survival:
-		print("[TurnManager] Processing player survival turn...")
 		var effects = EntityManager.player.process_survival_turn(current_turn)
-		print("[TurnManager] Survival turn processed, effects: %s" % str(effects))
 
 		# Regenerate some stamina each turn (slower rate while active)
-		print("[TurnManager] Regenerating stamina...")
 		EntityManager.player.regenerate_stamina()
 
 		# Regenerate mana each turn (base rate, faster in shelter)
-		print("[TurnManager] Regenerating mana...")
 		EntityManager.player.regenerate_mana()
 
 		# Emit warnings if any
-		print("[TurnManager] Emitting %d warnings..." % effects.get("warnings", []).size())
 		for warning in effects.get("warnings", []):
 			EventBus.survival_warning.emit(warning, _get_warning_severity(warning))
-		print("[TurnManager] Warnings emitted")
 
 ## Process ritual channeling each turn (if active)
 func _process_ritual_channeling() -> void:

@@ -57,7 +57,7 @@ static func calculate_visibility(
 
 	# Determine visibility mode based on location and time
 	var is_overworld = map and map.chunk_based
-	var is_daytime = current_time == "day"
+	var is_daytime = current_time == "day" or current_time == "mid_day"
 	var is_twilight = current_time == "dawn" or current_time == "dusk"
 
 	# OVERWORLD TIME-BASED VISIBILITY
@@ -102,7 +102,7 @@ static func invalidate_cache() -> void:
 static func _is_daytime_outdoors(map, time_of_day: String) -> bool:
 	if not map or map.chunk_based == false:  # Dungeons are not chunk-based
 		return false
-	return time_of_day == "day"
+	return time_of_day == "day" or time_of_day == "mid_day"
 
 ## Fast path: daytime overworld visibility
 ## During day, exterior tiles are visible without limit - renderer handles chunks

@@ -256,6 +256,8 @@ signal load_failed(error: String)
 # UI signals
 @warning_ignore("unused_signal")
 signal message_logged(message: String)
+@warning_ignore("unused_signal")
+signal debug_toggle_perf_overlay()
 
 # Rest/wait signals
 @warning_ignore("unused_signal")

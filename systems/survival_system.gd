@@ -61,6 +61,13 @@ var _last_health_drain_turn: int = 0
 
 # Track previous states for change-only warnings
 var _last_temperature_state: String = "comfortable"
+var _last_fatigue_state: String = "rested"
+
+# Track last warning turn for each survival stat (throttle warnings to once per 20 turns)
+var _last_hunger_warning_turn: int = -999  # Start far back so first warning shows immediately
+var _last_thirst_warning_turn: int = -999
+var _last_stamina_warning_turn: int = -999
+const WARNING_THROTTLE_TURNS: int = 20  # Show warnings at most once every 20 turns
 
 # Track environmental temp separately from player temp (for UI display)
 var environmental_temperature: float = 68.0  # Outside temp before warmth bonuses
@@ -159,7 +166,7 @@ func process_turn(turn_number: int) -> Dictionary:
 				_owner.take_damage(1, death_cause, "survival")
 	
 	# Generate warnings
-	effects.warnings = _generate_warnings()
+	effects.warnings = _generate_warnings(turn_number)
 	
 	return effects
 
@@ -236,24 +243,32 @@ func _min_positive(a: int, b: int) -> int:
 	return min(a, b)
 
 ## Generate warning messages based on survival state
-func _generate_warnings() -> Array[String]:
+func _generate_warnings(turn_number: int) -> Array[String]:
 	var warnings: Array[String] = []
-	
-	# Hunger warnings
-	if hunger <= 0:
-		warnings.append("You are starving to death!")
-	elif hunger <= 25:
-		warnings.append("You are starving!")
-	elif hunger <= 50:
-		warnings.append("You are very hungry.")
-	
-	# Thirst warnings
-	if thirst <= 0:
-		warnings.append("You are dying of thirst!")
-	elif thirst <= 25:
-		warnings.append("You are severely dehydrated!")
-	elif thirst <= 50:
-		warnings.append("You are very thirsty.")
+
+	# Hunger warnings (throttled to once every 20 turns)
+	if turn_number - _last_hunger_warning_turn >= WARNING_THROTTLE_TURNS:
+		if hunger <= 0:
+			warnings.append("You are starving to death!")
+			_last_hunger_warning_turn = turn_number
+		elif hunger <= 25:
+			warnings.append("You are starving!")
+			_last_hunger_warning_turn = turn_number
+		elif hunger <= 50:
+			warnings.append("You are very hungry.")
+			_last_hunger_warning_turn = turn_number
+
+	# Thirst warnings (throttled to once every 20 turns)
+	if turn_number - _last_thirst_warning_turn >= WARNING_THROTTLE_TURNS:
+		if thirst <= 0:
+			warnings.append("You are dying of thirst!")
+			_last_thirst_warning_turn = turn_number
+		elif thirst <= 25:
+			warnings.append("You are severely dehydrated!")
+			_last_thirst_warning_turn = turn_number
+		elif thirst <= 50:
+			warnings.append("You are very thirsty.")
+			_last_thirst_warning_turn = turn_number
 	
 	# Temperature warnings (only show when state changes)
 	var current_temp_state = _get_temperature_state()
@@ -270,20 +285,35 @@ func _generate_warnings() -> Array[String]:
 				warnings.append("You are overheating!")
 			"comfortable":
 				warnings.append("You feel comfortable again.")
+
+	# Fatigue warnings (only show when state changes)
+	var current_fatigue_state = get_fatigue_state()
+	if current_fatigue_state != _last_fatigue_state:
+		var previous_fatigue_state = _last_fatigue_state
+		_last_fatigue_state = current_fatigue_state
+		match current_fatigue_state:
+			"exhausted":
+				warnings.append("You are exhausted!")
+			"very tired":
+				warnings.append("You are very tired.")
+			"tired":
+				warnings.append("You are tired.")
+			"rested":
+				# Only show "You feel rested" when recovering from a tired state
+				if previous_fatigue_state in ["tired", "very tired", "exhausted"]:
+					warnings.append("You feel rested.")
+			"slightly tired":
+				# Don't show a message for slightly tired - not severe enough to nag about
+				pass
 	
-	# Fatigue warnings
-	if fatigue >= 90:
-		warnings.append("You are exhausted!")
-	elif fatigue >= 75:
-		warnings.append("You are very tired.")
-	elif fatigue >= 50:
-		warnings.append("You are tired.")
-	
-	# Stamina warnings
-	if stamina <= 0:
-		warnings.append("You have no stamina!")
-	elif stamina <= get_max_stamina() * 0.25:
-		warnings.append("You are low on stamina.")
+	# Stamina warnings (throttled to once every 20 turns)
+	if turn_number - _last_stamina_warning_turn >= WARNING_THROTTLE_TURNS:
+		if stamina <= 0:
+			warnings.append("You have no stamina!")
+			_last_stamina_warning_turn = turn_number
+		elif stamina <= get_max_stamina() * 0.25:
+			warnings.append("You are low on stamina.")
+			_last_stamina_warning_turn = turn_number
 	
 	return warnings
 

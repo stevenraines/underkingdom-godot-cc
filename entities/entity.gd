@@ -106,8 +106,12 @@ func take_damage(amount: int, source: String = "Unknown", method: String = "") -
 	if name == "Player" and GameManager.debug_god_mode:
 		return  # No damage in god mode
 
+	var old_hp = current_health
 	current_health = max(0, current_health - amount)
+	print("[Entity] %s took %d damage from %s (HP: %d -> %d)" % [name, amount, source, old_hp, current_health])
+
 	if current_health <= 0:
+		print("[Entity] %s HP reached 0 - calling die()" % name)
 		die()
 
 ## Heal
@@ -116,9 +120,11 @@ func heal(amount: int) -> void:
 
 ## Handle death
 func die() -> void:
+	print("[Entity] die() called for %s - setting is_alive=false and emitting entity_died" % name)
 	is_alive = false
 	blocks_movement = false
 	EventBus.entity_died.emit(self)
+	print("[Entity] entity_died signal emitted for %s" % name)
 
 ## Get effective attribute value (base + modifiers)
 func get_effective_attribute(attr_name: String) -> int:

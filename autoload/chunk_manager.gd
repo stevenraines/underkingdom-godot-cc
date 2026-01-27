@@ -19,6 +19,12 @@ var max_cache_size: int = 100  # Maximum cached chunks (prevents memory growth)
 var world_seed: int = 0  # Set when map is loaded
 var is_chunk_mode: bool = false  # True for overworld, false for dungeons
 
+# Circuit breaker: prevent infinite chunk operations in a single turn
+var _chunk_ops_this_turn: int = 0
+var _last_turn_number: int = -1
+const MAX_CHUNK_OPS_PER_TURN: int = 50  # Emergency brake
+var _updating_chunks: bool = false  # Prevent recursive calls
+
 func _ready() -> void:
 	print("ChunkManager initialized")
 	EventBus.map_changed.connect(_on_map_changed)
@@ -66,6 +72,17 @@ func get_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 ## Load/generate a chunk
 func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
+	# Circuit breaker: Track turn and prevent infinite chunk operations
+	var current_turn = TurnManager.current_turn if TurnManager else 0
+	if current_turn != _last_turn_number:
+		_last_turn_number = current_turn
+		_chunk_ops_this_turn = 0
+
+	_chunk_ops_this_turn += 1
+	if _chunk_ops_this_turn > MAX_CHUNK_OPS_PER_TURN:
+		push_error("[ChunkManager] CIRCUIT BREAKER: Too many chunk operations in turn %d (%d ops). Possible infinite loop!" % [current_turn, _chunk_ops_this_turn])
+		return null
+
 	# Check if chunk is within island bounds
 	var island_settings = BiomeManager.get_island_settings()
 	var max_chunk_x = island_settings.get("width_chunks", 50)
@@ -77,29 +94,37 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		# Return null - caller should handle this gracefully
 		return null
 
+	print("[ChunkManager] load_chunk: Creating new WorldChunk at %v" % chunk_coords)
 	var chunk = WorldChunk.new(chunk_coords, world_seed)
+	print("[ChunkManager] load_chunk: Generating chunk...")
 	chunk.generate(world_seed)
+	print("[ChunkManager] load_chunk: Chunk generated")
 
 	active_chunks[chunk_coords] = chunk
 	chunk_cache[chunk_coords] = chunk
 	visited_chunks[chunk_coords] = true  # Mark as visited for minimap
 
 	# Update LRU tracking
+	print("[ChunkManager] load_chunk: Updating LRU tracking...")
 	_touch_chunk_lru(chunk_coords)
 
 	# Evict old chunks if cache is full (LRU policy)
+	print("[ChunkManager] load_chunk: Checking eviction...")
 	_evict_old_chunks_if_needed()
 
 	# Check for dungeon entrance discoveries in this chunk
+	print("[ChunkManager] load_chunk: Checking for dungeon discoveries...")
 	_check_for_dungeon_discoveries(chunk_coords)
 
 	# Emit chunk loaded event
+	print("[ChunkManager] load_chunk: Emitting chunk_loaded signal...")
 	EventBus.chunk_loaded.emit(chunk_coords)
 
 	# Show feedback message for first few chunks (helps player understand world is generating)
 	if visited_chunks.size() <= 5:
 		EventBus.message_logged.emit("Exploring chunk %v..." % chunk_coords)
 
+	print("[ChunkManager] load_chunk: Chunk %v load complete" % chunk_coords)
 	return chunk
 
 ## Update LRU access tracking for a chunk (O(1) check, occasional O(n) rebuild)
@@ -118,12 +143,23 @@ func _touch_chunk_lru(chunk_coords: Vector2i) -> void:
 
 ## Evict least recently used chunks if cache exceeds max size
 func _evict_old_chunks_if_needed() -> void:
-	while chunk_cache.size() > max_cache_size and chunk_access_order.size() > 0:
+	print("[ChunkManager] _evict_old_chunks_if_needed: cache_size=%d, max=%d, access_order_size=%d" % [chunk_cache.size(), max_cache_size, chunk_access_order.size()])
+
+	# CRITICAL: Prevent infinite loop if all chunks are active
+	# Track how many chunks we've checked to avoid cycling forever
+	var checks_remaining = chunk_access_order.size()
+
+	while chunk_cache.size() > max_cache_size and chunk_access_order.size() > 0 and checks_remaining > 0:
+		checks_remaining -= 1
+		print("[ChunkManager] _evict_old_chunks_if_needed: Checking eviction (checks_remaining=%d)..." % checks_remaining)
+
 		# Evict least recently used (first in list)
 		var oldest_chunk = chunk_access_order[0]
+		print("[ChunkManager] _evict_old_chunks_if_needed: Checking chunk %v for eviction..." % oldest_chunk)
 
 		# Don't evict if it's currently active
 		if oldest_chunk in active_chunks:
+			print("[ChunkManager] _evict_old_chunks_if_needed: Chunk %v is active, moving to end" % oldest_chunk)
 			chunk_access_order.remove_at(0)
 			chunk_access_index.erase(oldest_chunk)
 			chunk_access_order.append(oldest_chunk)  # Move to end
@@ -131,12 +167,21 @@ func _evict_old_chunks_if_needed() -> void:
 			continue
 
 		# Evict from cache
+		print("[ChunkManager] _evict_old_chunks_if_needed: Evicting chunk %v..." % oldest_chunk)
 		chunk_cache.erase(oldest_chunk)
 		chunk_access_order.remove_at(0)
 		chunk_access_index.erase(oldest_chunk)
 		# Rebuild index after removal (indices shifted)
 		_rebuild_access_index()
 		print("[ChunkManager] Evicted chunk %v from cache (LRU)" % oldest_chunk)
+		# Reset counter when we successfully evict (we made progress)
+		checks_remaining = chunk_access_order.size()
+
+	# Warn if we couldn't evict enough chunks
+	if chunk_cache.size() > max_cache_size:
+		push_warning("[ChunkManager] Could not evict enough chunks - all %d chunks are active (cache: %d, max: %d)" % [active_chunks.size(), chunk_cache.size(), max_cache_size])
+
+	print("[ChunkManager] _evict_old_chunks_if_needed: Complete")
 
 ## Rebuild the access index after array modifications
 func _rebuild_access_index() -> void:
@@ -146,6 +191,17 @@ func _rebuild_access_index() -> void:
 
 ## Unload a chunk from active memory
 func unload_chunk(chunk_coords: Vector2i) -> void:
+	# Circuit breaker: Track operations
+	var current_turn = TurnManager.current_turn if TurnManager else 0
+	if current_turn != _last_turn_number:
+		_last_turn_number = current_turn
+		_chunk_ops_this_turn = 0
+
+	_chunk_ops_this_turn += 1
+	if _chunk_ops_this_turn > MAX_CHUNK_OPS_PER_TURN:
+		push_error("[ChunkManager] CIRCUIT BREAKER: Too many chunk operations in turn %d (%d ops). Possible infinite loop!" % [current_turn, _chunk_ops_this_turn])
+		return
+
 	if chunk_coords in active_chunks:
 		var chunk = active_chunks[chunk_coords]
 		chunk.unload()
@@ -158,12 +214,22 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 	if not is_chunk_mode:
 		return
 
+	# Prevent recursive calls (reentrancy guard)
+	if _updating_chunks:
+		push_warning("[ChunkManager] Recursive call to update_active_chunks detected, ignoring")
+		return
+
+	_updating_chunks = true
+	print("[ChunkManager] update_active_chunks: player_pos=%v" % player_pos)
+
 	var player_chunk = world_to_chunk(player_pos)
+	print("[ChunkManager] update_active_chunks: player_chunk=%v" % player_chunk)
 
 	# Get island bounds
 	var island_settings = BiomeManager.get_island_settings()
 	var max_chunk_x = island_settings.get("width_chunks", 50)
 	var max_chunk_y = island_settings.get("height_chunks", 50)
+	print("[ChunkManager] update_active_chunks: island bounds=(%d, %d)" % [max_chunk_x, max_chunk_y])
 
 	# Calculate which chunks should be loaded
 	var chunks_to_load: Array[Vector2i] = []
@@ -173,14 +239,21 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 			# Skip chunks outside island bounds
 			if chunk_coords.x >= 0 and chunk_coords.x < max_chunk_x and chunk_coords.y >= 0 and chunk_coords.y < max_chunk_y:
 				chunks_to_load.append(chunk_coords)
+	print("[ChunkManager] update_active_chunks: Need to load %d chunks" % chunks_to_load.size())
 
 	# Load new chunks
+	var loaded_count = 0
 	for coords in chunks_to_load:
 		if coords not in active_chunks:
+			print("[ChunkManager] Loading chunk %v..." % coords)
 			var chunk = load_chunk(coords)
+			loaded_count += 1
 			# load_chunk returns null if outside bounds, skip it
 			if not chunk:
+				print("[ChunkManager] Chunk %v returned null, skipping" % coords)
 				continue
+			print("[ChunkManager] Chunk %v loaded successfully" % coords)
+	print("[ChunkManager] update_active_chunks: Loaded %d new chunks" % loaded_count)
 
 	# Unload distant chunks (using Chebyshev distance for consistent square patterns)
 	var chunks_to_unload: Array[Vector2i] = []
@@ -189,9 +262,16 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		var distance = max(abs(coords.x - player_chunk.x), abs(coords.y - player_chunk.y))
 		if distance > unload_radius:
 			chunks_to_unload.append(coords)
+	print("[ChunkManager] update_active_chunks: Unloading %d chunks" % chunks_to_unload.size())
 
 	for coords in chunks_to_unload:
+		print("[ChunkManager] Unloading chunk %v..." % coords)
 		unload_chunk(coords)
+		print("[ChunkManager] Chunk %v unloaded" % coords)
+
+	# Clear reentrancy guard
+	print("[ChunkManager] update_active_chunks: Complete")
+	_updating_chunks = false
 
 ## Get tile at world position (chunk-based access)
 ## Optimized with fast path for already-active chunks (avoids LRU overhead)

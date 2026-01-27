@@ -360,6 +360,14 @@ const ENEMY_PROCESS_RANGE: int = 20
 ## Process all entity turns (called after player turn)
 func process_entity_turns() -> void:
 	var player_pos = player.position if player else Vector2i.ZERO
+	var turn = TurnManager.current_turn if TurnManager else 0
+
+	print("[EntityManager] Turn %d: Processing entity turns (player at %v, player alive: %s)" % [turn, player_pos, player.is_alive if player else false])
+
+	# CRITICAL: If player is dead, stop processing immediately
+	if player and not player.is_alive:
+		print("[EntityManager] PLAYER IS DEAD - Stopping entity turn processing")
+		return
 
 	# First, process player's summons and tick their durations
 	if player:
@@ -369,7 +377,24 @@ func process_entity_turns() -> void:
 				if summon.tick_duration():
 					summon.take_turn()
 
+			# Check if player died during summon processing
+			if not player.is_alive:
+				print("[EntityManager] Player died during summon processing - stopping")
+				return
+
+	var entities_processed = 0
+	var npcs_processed = 0
+	var enemies_processed = 0
+	var entity_index = 0
+
 	for entity in entities:
+		entity_index += 1
+
+		# EMERGENCY BRAKE: Check if player died
+		if player and not player.is_alive:
+			print("[EntityManager] PLAYER DIED - Stopping entity processing at entity %d/%d" % [entity_index, entities.size()])
+			return
+
 		if entity.is_alive:
 			# Skip summons (already processed above)
 			if "is_summon" in entity and entity.is_summon:
@@ -379,10 +404,26 @@ func process_entity_turns() -> void:
 				# Only process enemies within range of player (performance optimization)
 				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
 				if dist <= ENEMY_PROCESS_RANGE:
+					entities_processed += 1
+					enemies_processed += 1
+					print("[EntityManager] Enemy #%d '%s' taking turn..." % [entity_index, entity.name])
 					(entity as Enemy).take_turn()
+					print("[EntityManager] Enemy #%d '%s' turn complete" % [entity_index, entity.name])
+
+					# Check if player died from this enemy's action
+					if player and not player.is_alive:
+						print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
+						return
 			elif entity.has_method("process_turn"):
-				# NPC or other entity with turn processing
-				entity.process_turn()
+				# NPC or other entity with turn processing - also use spatial filtering
+				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+				if dist <= ENEMY_PROCESS_RANGE:
+					entities_processed += 1
+					npcs_processed += 1
+					print("[EntityManager] Processing NPC at %v (dist: %d)" % [entity.position, dist])
+					entity.process_turn()
+
+	print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs)" % [turn, entities_processed, enemies_processed, npcs_processed])
 
 ## Clear all entities (for map transitions)
 func clear_entities() -> void:

@@ -99,6 +99,8 @@ var tab_commands: Dictionary = {
 		{"text": "Set Date/Time", "action": "set_datetime"},
 		{"text": "Convert Tile", "action": "convert_tile"},
 		{"text": "Reveal Map", "action": "reveal_map"},
+		{"text": "Performance Diagnostics", "action": "perf_diagnostics"},
+		{"text": "Toggle Performance Overlay", "action": "toggle_perf_overlay"},
 	],
 }
 
@@ -545,6 +547,12 @@ func _execute_tab_command(action: String) -> void:
 			_show_tile_submenu()
 		"reveal_map":
 			_do_reveal_map()
+		"perf_diagnostics":
+			_show_performance_diagnostics()
+		"toggle_perf_overlay":
+			EventBus.debug_toggle_perf_overlay.emit()
+			_go_back()
+			closed.emit()
 
 # ============================================================================
 # Submenu builders
@@ -1358,6 +1366,130 @@ func _do_reveal_map() -> void:
 	_show_message("Map Reveal: %s" % status)
 	# Refresh the tab to show updated status
 	_build_current_tab()
+
+func _show_performance_diagnostics() -> void:
+	if not player or not MapManager.current_map:
+		return
+
+	var diagnostics: Array[String] = []
+	diagnostics.append("=== PERFORMANCE DIAGNOSTICS ===")
+	diagnostics.append("")
+
+	# Turn information
+	diagnostics.append("[TURN INFO]")
+	diagnostics.append("Current Turn: %d" % TurnManager.current_turn)
+	diagnostics.append("Time of Day: %s" % TurnManager.time_of_day)
+	diagnostics.append("")
+
+	# Entity counts
+	diagnostics.append("[ENTITIES]")
+	diagnostics.append("Total Entities: %d" % EntityManager.entities.size())
+	var alive_count = 0
+	var dead_count = 0
+	var enemies = 0
+	var npcs = 0
+	var summons = 0
+	var crops = 0
+	var ground_items = 0
+	for entity in EntityManager.entities:
+		if entity is GroundItem:
+			ground_items += 1
+		elif entity.is_alive:
+			alive_count += 1
+			if entity is Enemy:
+				enemies += 1
+			elif "is_summon" in entity and entity.is_summon:
+				summons += 1
+			elif entity.has_method("is_crop") and entity.is_crop():
+				crops += 1
+			elif entity.has_method("is_npc"):
+				npcs += 1
+		else:
+			dead_count += 1
+	diagnostics.append("  Alive: %d" % alive_count)
+	diagnostics.append("  Dead (not cleaned): %d" % dead_count)
+	diagnostics.append("  Enemies: %d" % enemies)
+	diagnostics.append("  NPCs: %d" % npcs)
+	diagnostics.append("  Summons: %d" % summons)
+	diagnostics.append("  Crops: %d" % crops)
+	diagnostics.append("  Ground Items: %d" % ground_items)
+	diagnostics.append("")
+
+	# Structures
+	diagnostics.append("[STRUCTURES]")
+	if StructureManager and StructureManager.has_method("get_structures_on_map"):
+		var structures = StructureManager.get_structures_on_map(MapManager.current_map.map_id)
+		diagnostics.append("Structures on Map: %d" % structures.size())
+	else:
+		diagnostics.append("StructureManager not available")
+	diagnostics.append("")
+
+	# Light sources
+	diagnostics.append("[LIGHTING]")
+	diagnostics.append("Registered Light Sources: %d" % LightingSystem.registered_sources.size())
+	diagnostics.append("Active Light Sources: %d" % LightingSystem.light_sources.size())
+	diagnostics.append("Illuminated Positions: %d" % LightingSystem.illuminated_positions.size())
+	diagnostics.append("")
+
+	# Features and hazards
+	diagnostics.append("[FEATURES & HAZARDS]")
+	diagnostics.append("Active Features: %d" % FeatureManager.active_features.size())
+	diagnostics.append("Active Hazards: %d" % HazardManager.active_hazards.size())
+	diagnostics.append("")
+
+	# Farming
+	diagnostics.append("[FARMING]")
+	diagnostics.append("Active Crops: %d" % FarmingSystem._active_crops.size())
+	diagnostics.append("Tilled Soil: %d" % FarmingSystem._tilled_soil.size())
+	diagnostics.append("")
+
+	# Harvest system
+	diagnostics.append("[HARVEST]")
+	diagnostics.append("Renewable Resources: %d" % HarvestSystem._renewable_resources.size())
+	diagnostics.append("Harvest Progress Tracking: %d" % HarvestSystem._harvest_progress.size())
+	diagnostics.append("")
+
+	# Map info
+	diagnostics.append("[MAP]")
+	diagnostics.append("Map ID: %s" % MapManager.current_map.map_id)
+	diagnostics.append("Chunk Based: %s" % MapManager.current_map.chunk_based)
+	if MapManager.current_map.chunk_based:
+		diagnostics.append("Active Chunks: %d" % ChunkManager.active_chunks.size())
+		diagnostics.append("Cached Chunks: %d" % ChunkManager.chunk_cache.size())
+		diagnostics.append("Visited Chunks: %d" % ChunkManager.visited_chunks.size())
+		diagnostics.append("Max Cache Size: %d" % ChunkManager.max_cache_size)
+	else:
+		diagnostics.append("Map Size: %dx%d" % [MapManager.current_map.width, MapManager.current_map.height])
+	diagnostics.append("")
+
+	# Visibility/FOV
+	diagnostics.append("[VISIBILITY]")
+	diagnostics.append("FOV Explored Tiles: %d" % FogOfWarSystem.explored_tiles.size())
+	diagnostics.append("FOV Currently Visible: %d" % FogOfWarSystem.currently_visible.size())
+	diagnostics.append("")
+
+	# Player info
+	diagnostics.append("[PLAYER]")
+	diagnostics.append("Position: %v" % player.position)
+	diagnostics.append("Level: %d" % player.level)
+	diagnostics.append("HP: %d/%d" % [player.current_health, player.max_health])
+	if player.survival:
+		diagnostics.append("Hunger: %.1f" % player.survival.hunger)
+		diagnostics.append("Thirst: %.1f" % player.survival.thirst)
+		diagnostics.append("Fatigue: %.1f" % player.survival.fatigue)
+		diagnostics.append("Stamina: %.1f/%.1f" % [player.survival.stamina, player.survival.get_max_stamina()])
+	diagnostics.append("")
+
+	diagnostics.append("=== END DIAGNOSTICS ===")
+
+	# Print to console
+	print("\n" + "\n".join(diagnostics) + "\n")
+
+	# Also show in message log
+	EventBus.message_logged.emit("Performance diagnostics printed to console")
+
+	_go_back()
+	closed.emit()
 
 # ============================================================================
 # UI building

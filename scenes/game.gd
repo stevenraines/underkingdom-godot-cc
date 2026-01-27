@@ -16,6 +16,7 @@ const LightingSystemClass = preload("res://systems/lighting_system.gd")
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
 const FarmingSystemClass = preload("res://systems/farming_system.gd")
+const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
 
 var player: Player
 var renderer: ASCIIRenderer
@@ -39,6 +40,12 @@ var spell_list_screen: Control = null
 var ritual_menu: Control = null
 var special_actions_screen: Control = null
 var debug_command_menu: Control = null
+var perf_overlay: Label = null
+var perf_overlay_enabled: bool = false
+# Performance tracking
+var _perf_last_update_time: float = 0.0
+var _perf_entity_process_time: float = 0.0
+var _perf_chunk_operations: int = 0
 # auto_pickup_enabled moved to GameManager for global access
 
 # Spell casting state (targeting handled by TargetingSystem)
@@ -82,6 +89,9 @@ var _cached_has_light: bool = false
 # Performance optimization: Track rendered entities for incremental updates
 var _rendered_entities: Dictionary = {}  # Vector2i -> Entity reference
 var _full_render_needed: bool = true
+
+# Reentrancy guard for _on_player_moved to prevent infinite loops
+var _processing_player_moved: bool = false
 
 @onready var hud: CanvasLayer = $HUD
 @onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
@@ -173,6 +183,9 @@ func _ready() -> void:
 
 	# Create debug command menu
 	_setup_debug_command_menu()
+
+	# Create performance overlay
+	_setup_perf_overlay()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -331,6 +344,93 @@ func _ready() -> void:
 	_add_message("Welcome to the Underkingdom!", Color(0.6, 0.9, 0.6))
 
 	print("Game scene initialized")
+
+## Update performance overlay every frame
+func _process(_delta: float) -> void:
+	if perf_overlay_enabled and perf_overlay:
+		_update_perf_overlay()
+
+## Update performance overlay with current metrics
+func _update_perf_overlay() -> void:
+	if not perf_overlay:
+		return
+
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var update_interval = current_time - _perf_last_update_time
+
+	# Get current metrics
+	var turn = TurnManager.current_turn if TurnManager else 0
+	var active_chunks = ChunkManager.active_chunks.size() if ChunkManager else 0
+	var cached_chunks = ChunkManager.chunk_cache.size() if ChunkManager else 0
+	var active_features = FeatureManager.active_features.size() if FeatureManager else 0
+	var active_hazards = HazardManager.active_hazards.size() if HazardManager else 0
+	var chunk_ops = ChunkManager._chunk_ops_this_turn if ChunkManager else 0
+
+	# Count entities by type
+	var total_entities = 0
+	var enemies = 0
+	var npcs = 0
+	var structures = 0
+	var ground_items = 0
+	var crops = 0
+
+	var entity_start_time = Time.get_ticks_msec() / 1000.0
+	if EntityManager:
+		for entity in EntityManager.entities:
+			total_entities += 1
+			if entity is Enemy:
+				enemies += 1
+			elif entity.has_method("process_turn"):  # NPC
+				npcs += 1
+			elif entity is Structure:
+				structures += 1
+			elif entity is GroundItemClass:
+				ground_items += 1
+			elif "is_crop" in entity and entity.is_crop:
+				crops += 1
+	_perf_entity_process_time = (Time.get_ticks_msec() / 1000.0) - entity_start_time
+
+	# Get player position and chunk
+	var player_pos = Vector2i.ZERO
+	var player_chunk = Vector2i.ZERO
+	if player:
+		player_pos = player.position
+		if MapManager.current_map and MapManager.current_map.chunk_based:
+			player_chunk = ChunkManagerClass.world_to_chunk(player_pos)
+
+	# Frame time
+	var fps = Engine.get_frames_per_second()
+	var frame_time = 1000.0 / fps if fps > 0 else 0.0
+
+	# Build overlay text
+	var text = "=== PERFORMANCE OVERLAY ===\n"
+	text += "Turn: %d | FPS: %d (%.1fms)\n" % [turn, fps, frame_time]
+	text += "Update interval: %.3fs\n" % update_interval
+	text += "\n"
+	text += "CHUNKS:\n"
+	text += "  Active: %d | Cached: %d\n" % [active_chunks, cached_chunks]
+	text += "  Player Chunk: %v\n" % player_chunk
+	text += "  Chunk ops this turn: %d / %d\n" % [chunk_ops, ChunkManager.MAX_CHUNK_OPS_PER_TURN if ChunkManager else 0]
+	if chunk_ops > 10:
+		text += "  WARNING: High chunk activity!\n"
+	text += "\n"
+	text += "ENTITIES: %d total (%.3fms scan)\n" % [total_entities, _perf_entity_process_time * 1000.0]
+	text += "  Enemies: %d | NPCs: %d\n" % [enemies, npcs]
+	text += "  Structures: %d | Ground Items: %d\n" % [structures, ground_items]
+	text += "  Crops: %d\n" % crops
+	text += "\n"
+	text += "FEATURES & HAZARDS:\n"
+	text += "  Features: %d | Hazards: %d\n" % [active_features, active_hazards]
+	if active_features > 300:
+		text += "  WARNING: High feature count!\n"
+	text += "\n"
+	text += "PLAYER:\n"
+	text += "  Position: %v\n" % player_pos
+	if player:
+		text += "  HP: %d/%d | Alive: %s\n" % [player.current_health, player.max_health, player.is_alive]
+
+	perf_overlay.text = text
+	_perf_last_update_time = current_time
 
 ## Setup inventory screen
 func _setup_inventory_screen() -> void:
@@ -545,6 +645,32 @@ func _setup_debug_command_menu() -> void:
 	else:
 		print("[Game] ERROR: Could not load debug_command_menu.tscn scene")
 
+## Setup performance overlay
+func _setup_perf_overlay() -> void:
+	print("[Game] Setting up performance overlay...")
+	perf_overlay = Label.new()
+	perf_overlay.name = "PerformanceOverlay"
+
+	# Position in top-left corner with padding
+	perf_overlay.position = Vector2(10, 10)
+	perf_overlay.size = Vector2(400, 300)
+	perf_overlay.z_index = 1000  # Ensure it's on top
+
+	# Styling
+	perf_overlay.add_theme_font_size_override("font_size", 12)
+	perf_overlay.modulate = Color(1.0, 1.0, 0.0, 0.9)  # Bright yellow with slight transparency
+
+	# Start hidden
+	perf_overlay.visible = false
+
+	# Add to HUD
+	hud.add_child(perf_overlay)
+
+	# Connect to toggle signal
+	EventBus.debug_toggle_perf_overlay.connect(_on_perf_overlay_toggle)
+
+	print("[Game] Performance overlay created (toggle with F12 > Toggle Performance Overlay)")
+
 ## Give player some starter items
 func _give_starter_items() -> void:
 	if not player or not player.inventory:
@@ -670,21 +796,37 @@ func _is_wall_adjacent_to_walkable(pos: Vector2i) -> bool:
 
 ## Called when player moves
 func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
+	# CRITICAL: Prevent recursive calls that cause infinite loops
+	if _processing_player_moved:
+		push_warning("[Game] Recursive _on_player_moved detected! old=%v new=%v" % [old_pos, new_pos])
+		return
+
+	_processing_player_moved = true
+	print("[Game] _on_player_moved: %v -> %v" % [old_pos, new_pos])
+
 	# Update chunk loading for overworld
 	if MapManager.current_map and MapManager.current_map.chunk_based:
+		print("[Game] Updating active chunks...")
 		ChunkManager.update_active_chunks(new_pos)
+		print("[Game] Active chunks updated")
 
 		# Re-render map for chunk-based worlds (new chunks may have loaded)
 		# Only re-render if player crossed chunk boundary
-		var old_chunk = ChunkManager.world_to_chunk(old_pos)
-		var new_chunk = ChunkManager.world_to_chunk(new_pos)
+		var old_chunk = ChunkManagerClass.world_to_chunk(old_pos)
+		var new_chunk = ChunkManagerClass.world_to_chunk(new_pos)
 		if old_chunk != new_chunk:
+			print("[Game] Crossed chunk boundary: %v -> %v" % [old_chunk, new_chunk])
 			_full_render_needed = true  # New chunks loaded - need full render
+			print("[Game] Rendering map...")
 			_render_map()
+			print("[Game] Map rendered, updating visibility...")
 			# Update visibility after rendering map, before rendering entities
 			_update_visibility()
+			print("[Game] Visibility updated, rendering ground items...")
 			_render_ground_items()
+			print("[Game] Ground items rendered, rendering entities (count: %d)..." % EntityManager.entities.size())
 			_render_all_entities()
+			print("[Game] Entities rendered")
 
 	# Clear old player position
 	renderer.clear_entity(old_pos)
@@ -712,6 +854,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
 		# and the incremental check overhead would negate the benefit
 		# Re-render entire map with updated wall visibility
+		_full_render_needed = true  # _render_map() clears entity layer, need full re-render
 		_render_map()
 		# Update visibility again after re-rendering map
 		_update_visibility()
@@ -742,6 +885,10 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Check if standing on stairs and update message
 	_update_message()
+
+	# Clear reentrancy guard
+	_processing_player_moved = false
+	print("[Game] _on_player_moved complete")
 
 ## Render any non-blocking entity at a specific position (crops, etc.)
 ## Skips rendering if player is at the position (player renders on top)
@@ -1105,9 +1252,11 @@ func _find_nearby_spawn_position(center: Vector2i) -> Vector2i:
 
 ## Called when player dies
 func _on_player_died() -> void:
+	print("[Game] !!! _on_player_died() called - Player has died !!!")
 	_add_message("", Color.WHITE)  # Blank line
 	_add_message("*** YOU HAVE DIED ***", Color.RED)
 
+	print("[Game] Collecting player stats for death screen...")
 	# Collect player stats for death screen
 	var player_stats = {
 		"turns": TurnManager.current_turn,
@@ -1120,9 +1269,15 @@ func _on_player_died() -> void:
 		"death_location": player.death_location if player else ""
 	}
 
+	print("[Game] Opening death screen...")
 	# Show death screen with stats
 	if death_screen:
 		death_screen.open(player_stats)
+		print("[Game] Death screen opened successfully")
+	else:
+		print("[Game] ERROR: death_screen is null!")
+
+	print("[Game] _on_player_died() complete")
 
 ## Called when player levels up
 func _on_player_leveled_up(new_level: int, skill_points_gained: int, gained_ability_point: bool) -> void:
@@ -1208,6 +1363,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					build_cursor_offset = Vector2i(1, 0)
 					input_handler.set_ui_blocking(false)  # Re-enable player movement
 					_add_message("Cancelled building", Color(0.7, 0.7, 0.7))
+					_full_render_needed = true  # _render_map() clears entity layer
 					_render_map()  # Clear cursor
 					_render_all_entities()
 					get_viewport().set_input_as_handled()
@@ -1246,7 +1402,8 @@ func _restart_game() -> void:
 
 ## Update HUD display
 func _update_hud() -> void:
-	if not player:
+	# Skip HUD updates if player is dead (death screen handles display)
+	if not player or not player.is_alive:
 		return
 
 	# Update character info line with calendar data and weather (only if turn changed)
@@ -1725,6 +1882,7 @@ func _render_all_entities() -> void:
 
 ## Full entity render - used on map transitions or when incremental tracking is lost
 func _full_render_all_entities() -> void:
+	print("[Game] _full_render_all_entities: Rendering %d entities..." % EntityManager.entities.size())
 	_rendered_entities.clear()
 
 	# Get current target for highlighting
@@ -1733,7 +1891,11 @@ func _full_render_all_entities() -> void:
 	# Get player position to skip rendering entities at player's tile
 	var player_pos = player.position if player else Vector2i(-1, -1)
 
+	var rendered_count = 0
 	for entity in EntityManager.entities:
+		rendered_count += 1
+		if rendered_count % 100 == 0:
+			print("[Game] _full_render_all_entities: Rendered %d/%d entities..." % [rendered_count, EntityManager.entities.size()])
 		if entity.is_alive:
 			# Skip entities at player's position - player renders on top
 			if entity.position == player_pos:
@@ -1798,6 +1960,8 @@ func _full_render_all_entities() -> void:
 			color = Color(0.5, 0.5, 0.5)
 		renderer.render_entity(pos, ascii_char, color)
 		_rendered_entities[pos] = hazard
+
+	print("[Game] _full_render_all_entities: Complete. Rendered %d entities total" % _rendered_entities.size())
 
 
 ## Incremental entity render - only updates entities that changed
@@ -2308,9 +2472,17 @@ func _on_weather_changed(_old_weather: String, _new_weather: String, message: St
 
 ## Called when time of day changes - refresh FOV/lighting and handle shop door locking
 func _on_time_of_day_changed(new_time: String) -> void:
+	print("[Game] _on_time_of_day_changed: %s (player alive: %s)" % [new_time, player.is_alive if player else false])
+
+	# CRITICAL: Don't process time changes if player is dead
+	# This prevents infinite loops in visibility calculations after death
+	if not player or not player.is_alive:
+		print("[Game] Player is dead, skipping time of day processing")
+		return
+
 	# Refresh FOV and lighting since sun position affects visibility
 	# Also recalculates racial bonuses like darkvision that depend on time of day
-	if player and MapManager.current_map:
+	if MapManager.current_map:
 		var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 		var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
 		var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
@@ -2401,7 +2573,18 @@ func _on_debug_menu_closed() -> void:
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
 	input_handler.set_ui_blocking(false)
+
+## Toggle performance overlay
+func _on_perf_overlay_toggle() -> void:
+	if perf_overlay:
+		perf_overlay_enabled = not perf_overlay_enabled
+		perf_overlay.visible = perf_overlay_enabled
+		if perf_overlay_enabled:
+			_add_message("Performance overlay enabled", Color(0.5, 1.0, 0.5))
+		else:
+			_add_message("Performance overlay disabled", Color(0.7, 0.7, 0.7))
 	# Refresh rendering to show spawned entities/items and tile changes
+	_full_render_needed = true  # _render_map() clears entity layer
 	_render_map()
 	_render_ground_items()
 	_render_all_entities()
@@ -2575,6 +2758,8 @@ func _on_structure_placed(_structure: Structure) -> void:
 	build_cursor_offset = Vector2i(1, 0)
 	input_handler.set_ui_blocking(false)  # Re-enable player movement
 	# Re-render map to clear cursor and show the new structure
+	# Force full entity re-render since _render_map() clears the entity layer
+	_full_render_needed = true
 	_render_map()
 	_render_ground_items()
 	_render_all_entities()
@@ -2611,6 +2796,7 @@ func _try_place_structure_at_cursor() -> void:
 		_add_message(result.message, Color(0.6, 0.9, 0.6))
 		_update_hud()  # Update inventory display
 		# Clear cursor after successful placement
+		_full_render_needed = true  # _render_map() clears entity layer
 		_render_map()
 		_render_ground_items()
 		_render_all_entities()
@@ -2624,6 +2810,7 @@ func _update_build_cursor() -> void:
 		return
 
 	# Re-render map to clear old cursor
+	_full_render_needed = true  # _render_map() clears entity layer
 	_render_map()
 	_render_ground_items()
 	_render_all_entities()
@@ -2709,14 +2896,20 @@ func _update_dynamic_light_sources() -> void:
 ## Rebuild the enemy light source cache (only intelligent enemies carry torches)
 ## Called only when cache is dirty (enemy moved or map changed)
 func _rebuild_enemy_light_cache() -> void:
+	print("[Game] _rebuild_enemy_light_cache: Processing %d entities..." % EntityManager.entities.size())
 	_enemy_light_cache.clear()
+	var processed = 0
 	for entity in EntityManager.entities:
+		processed += 1
+		if processed % 100 == 0:
+			print("[Game] _rebuild_enemy_light_cache: Processed %d/%d entities..." % [processed, EntityManager.entities.size()])
 		if entity is Enemy and entity.is_alive:
 			# Only intelligent enemies (INT >= 5) carry torches
 			var enemy_int = entity.attributes.get("INT", 1)
 			if enemy_int >= 5:
 				_enemy_light_cache.append(entity.position)
 	_enemy_light_cache_dirty = false
+	print("[Game] _rebuild_enemy_light_cache: Complete. Found %d light sources" % _enemy_light_cache.size())
 
 
 ## Register town lights (lampposts) at night
@@ -2758,21 +2951,28 @@ func _get_light_type_from_string(type_str: String) -> int:
 
 ## Update visibility after player moves or light sources change
 func _update_visibility() -> void:
-	if not player or not MapManager.current_map:
+	# CRITICAL: Don't update visibility if player is dead
+	# This prevents infinite loops during death processing
+	if not player or not player.is_alive or not MapManager.current_map:
 		return
 
+	print("[Game] _update_visibility: Updating dynamic light sources...")
 	# OPTIMIZATION: No longer re-scanning structures every move
 	# Persistent lights are registered once on map load
 	# Dynamic lights (enemies, ground items) are updated separately
 	_update_dynamic_light_sources()
+	print("[Game] _update_visibility: Dynamic lights updated")
 
 	# Get all light sources for visibility calculation
+	print("[Game] _update_visibility: Getting light sources...")
 	var light_sources = LightingSystemClass.get_all_light_sources()
+	print("[Game] _update_visibility: Got %d light sources" % light_sources.size())
 
 	# Calculate visibility using UNIFIED system (LOS + lighting combined)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
 
+	print("[Game] _update_visibility: Calculating visibility (perception=%d, light_radius=%d)..." % [effective_perception, player_light_radius])
 	var visibility_result = VisibilitySystemClass.calculate_visibility(
 		player.position,
 		effective_perception,
@@ -2780,6 +2980,7 @@ func _update_visibility() -> void:
 		MapManager.current_map,
 		light_sources
 	)
+	print("[Game] _update_visibility: Visibility calculated, visible tiles: %d" % visibility_result.visible_tiles.size())
 
 	# Update fog of war
 	var map_id = MapManager.current_map.map_id

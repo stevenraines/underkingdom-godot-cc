@@ -716,12 +716,21 @@ func schedule_feature_respawn(feature_id: String, pos: Vector2i, biome_id: Strin
 
 
 ## Process respawns (called by TurnManager each turn)
+## OPTIMIZATION: Only processes respawns within reasonable distance of player
 func process_feature_respawns() -> void:
 	var current_turn = TurnManager.current_turn
 	var current_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
 
+	# Get player position for spatial filtering
+	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
+	const RESPAWN_PROCESS_RANGE = 100  # Only process respawns within 100 tiles of player
+
+	print("[FeatureManager] Processing respawns (turn %d, active features: %d)" % [current_turn, active_features.size()])
+
 	# Find any features ready to respawn
 	var turns_to_remove: Array = []
+	var respawns_processed = 0
+	var respawns_skipped_distance = 0
 
 	for respawn_turn in respawning_features:
 		if current_turn >= respawn_turn:
@@ -733,6 +742,12 @@ func process_feature_respawns() -> void:
 					if pos is String:
 						pos = _parse_vector2i(pos)
 
+					# Spatial filter: Only process if near player (Manhattan distance)
+					var dist = abs(pos.x - player_pos.x) + abs(pos.y - player_pos.y)
+					if dist > RESPAWN_PROCESS_RANGE:
+						respawns_skipped_distance += 1
+						continue  # Skip distant respawns, they'll be processed when player gets closer
+
 					# Check if position is clear (no entity or feature there)
 					if not active_features.has(pos):
 						spawn_overworld_feature(
@@ -741,10 +756,51 @@ func process_feature_respawns() -> void:
 							respawn_data.biome_id,
 							MapManager.current_map
 						)
-						print("[FeatureManager] Respawned %s at %v" % [respawn_data.feature_id, pos])
+						respawns_processed += 1
 
 			turns_to_remove.append(respawn_turn)
 
 	# Clean up processed respawns
 	for turn_key in turns_to_remove:
 		respawning_features.erase(turn_key)
+
+	if respawns_processed > 0 or respawns_skipped_distance > 0:
+		print("[FeatureManager] Respawn complete: %d spawned, %d skipped (too far)" % [respawns_processed, respawns_skipped_distance])
+
+	# Periodic cleanup: Remove features outside loaded chunks (every 20 turns)
+	if current_turn % 20 == 0 and MapManager.current_map and MapManager.current_map.chunk_based:
+		print("[FeatureManager] Running periodic cleanup (turn %d)" % current_turn)
+		_cleanup_distant_features()
+
+## Clean up features that are outside currently loaded chunks (called periodically)
+## OPTIMIZATION: Only runs every 20 turns to avoid per-turn overhead
+func _cleanup_distant_features() -> void:
+	const CHUNK_SIZE = 32  # Must match WorldChunk.CHUNK_SIZE
+	var positions_to_remove: Array[Vector2i] = []
+
+	# Get active chunk coordinates from ChunkManager
+	var active_chunk_coords = ChunkManager.get_active_chunk_coords()
+
+	# Build a set of active chunk coords for O(1) lookup
+	var active_chunks_set: Dictionary = {}
+	for chunk_coord in active_chunk_coords:
+		active_chunks_set[chunk_coord] = true
+
+	# Check each feature
+	for pos in active_features:
+		# Calculate chunk coord inline to avoid static function warning
+		var chunk_coord = Vector2i(
+			floori(float(pos.x) / CHUNK_SIZE),
+			floori(float(pos.y) / CHUNK_SIZE)
+		)
+
+		# If feature's chunk is not active, mark for removal
+		if not active_chunks_set.has(chunk_coord):
+			positions_to_remove.append(pos)
+
+	# Remove features outside loaded chunks
+	for pos in positions_to_remove:
+		active_features.erase(pos)
+
+	if positions_to_remove.size() > 0:
+		print("[FeatureManager] Cleaned up %d features outside loaded chunks" % positions_to_remove.size())

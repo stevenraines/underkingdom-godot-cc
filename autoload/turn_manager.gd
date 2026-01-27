@@ -44,37 +44,61 @@ func get_turns_per_day() -> int:
 
 ## Advance the turn counter and update time of day
 func advance_turn() -> void:
+	print("[TurnManager] === Starting turn %d ===" % (current_turn + 1))
+
 	# Player's turn is ending (they just took an action)
 	player_turn_ended.emit()
 
 	current_turn += 1
+	print("[TurnManager] Turn advanced to %d" % current_turn)
+
 	_update_time_of_day()
+	print("[TurnManager] Time of day updated")
 
 	# Process player survival systems
 	_process_player_survival()
+	print("[TurnManager] Player survival processed")
 
 	# Process ritual channeling (if player is channeling a ritual)
 	_process_ritual_channeling()
+	print("[TurnManager] Ritual channeling processed")
 
 	# Process DoT effects (before duration processing)
 	_process_dot_effects()
+	print("[TurnManager] DoT effects processed")
 
 	# Process active magical effect durations
 	_process_effect_durations()
+	print("[TurnManager] Effect durations processed")
 
 	# Process enemy turns
+	print("[TurnManager] Processing entity turns...")
 	EntityManager.process_entity_turns()
+	print("[TurnManager] Entity turns complete")
+
+	# CRITICAL: If player died during entity processing, stop turn advancement immediately
+	# This prevents resource/farming systems from running when player is dead, avoiding infinite loops
+	if EntityManager.player and not EntityManager.player.is_alive:
+		print("[TurnManager] !!! PLAYER DIED DURING TURN - Stopping turn advancement !!!")
+		return
 
 	# Process renewable resource respawns
+	print("[TurnManager] Processing renewable resources...")
 	HarvestSystem.process_renewable_resources()
+	print("[TurnManager] Renewable resources complete")
 
 	# Process feature respawns (flora features)
+	print("[TurnManager] Processing feature respawns...")
 	FeatureManager.process_feature_respawns()
+	print("[TurnManager] Feature respawns complete")
 
 	# Process crop growth and tilled soil decay
+	print("[TurnManager] Processing farming systems...")
 	FarmingSystem.process_crop_growth()
 	FarmingSystem.process_tilled_soil_decay()
+	print("[TurnManager] Farming systems complete")
 
+	print("[TurnManager] Emitting turn_advanced signal")
 	EventBus.turn_advanced.emit(current_turn)
 
 	# Process auto-save if interval reached
@@ -85,21 +109,28 @@ func advance_turn() -> void:
 
 	# Player's turn is starting (they can act again)
 	player_turn_started.emit()
+	print("[TurnManager] === Turn %d complete ===" % current_turn)
 
 ## Process player survival systems each turn
 func _process_player_survival() -> void:
 	if EntityManager.player and EntityManager.player.survival:
+		print("[TurnManager] Processing player survival turn...")
 		var effects = EntityManager.player.process_survival_turn(current_turn)
+		print("[TurnManager] Survival turn processed, effects: %s" % str(effects))
 
 		# Regenerate some stamina each turn (slower rate while active)
+		print("[TurnManager] Regenerating stamina...")
 		EntityManager.player.regenerate_stamina()
 
 		# Regenerate mana each turn (base rate, faster in shelter)
+		print("[TurnManager] Regenerating mana...")
 		EntityManager.player.regenerate_mana()
 
 		# Emit warnings if any
+		print("[TurnManager] Emitting %d warnings..." % effects.get("warnings", []).size())
 		for warning in effects.get("warnings", []):
 			EventBus.survival_warning.emit(warning, _get_warning_severity(warning))
+		print("[TurnManager] Warnings emitted")
 
 ## Process ritual channeling each turn (if active)
 func _process_ritual_channeling() -> void:

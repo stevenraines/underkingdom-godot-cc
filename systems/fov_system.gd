@@ -69,4 +69,4 @@ static func is_daytime_outdoors(map) -> bool:
 	if not map or not map.chunk_based:
 		return false
 	var time_of_day = TurnManager.time_of_day if TurnManager else "day"
-	return time_of_day == "day"
+	return time_of_day == "day" or time_of_day == "mid_day"

@@ -47,6 +47,8 @@ func _ready() -> void:
 	_setup_tilemap_layers()
 	_build_unicode_map()
 	_build_ground_tile_lookup()
+	# Connect to chunk unload signal to clean up cached terrain data
+	EventBus.chunk_unloaded.connect(_on_chunk_unloaded)
 	print("ASCIIRenderer initialized")
 
 # Build lookup table for ground tiles that should be hidden under entities
@@ -553,11 +555,21 @@ func _apply_fog_of_war_to_terrain() -> void:
 
 	# For chunk-based maps, only process positions within active chunks
 	# This prevents performance degradation as the player explores (O(active_tiles) instead of O(all_explored_tiles))
+	var get_pos_start = Time.get_ticks_usec()
 	var all_positions: Array
 	if is_chunk_based:
 		all_positions = _get_active_chunk_positions()
 	else:
 		all_positions = terrain_modulated_cells.keys()
+	var get_pos_time = Time.get_ticks_usec() - get_pos_start
+
+	# DIAGNOSTIC: Log if getting positions is slow (indicates terrain_modulated_cells is too large)
+	if get_pos_time > 5000:
+		print("[ASCIIRenderer] _get_active_chunk_positions() took %.2fms (terrain_modulated_cells size: %d, result size: %d)" % [
+			get_pos_time / 1000.0,
+			terrain_modulated_cells.size(),
+			all_positions.size()
+		])
 
 	# Check if we're in daytime outdoors mode (can skip many checks)
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
@@ -872,6 +884,30 @@ func _restore_all_colors() -> void:
 
 	_mark_terrain_dirty()
 	_mark_entity_dirty()
+
+## Clean up cached terrain data when a chunk unloads
+## This prevents terrain_modulated_cells from growing unbounded
+func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
+	const CHUNK_SIZE = 32  # Must match WorldChunk.CHUNK_SIZE
+	var removed_count = 0
+	var positions_to_remove: Array[Vector2i] = []
+
+	# Find all positions in the unloaded chunk
+	var chunk_start = chunk_coords * CHUNK_SIZE
+	var chunk_end = chunk_start + Vector2i(CHUNK_SIZE, CHUNK_SIZE)
+
+	for pos in terrain_modulated_cells:
+		if pos.x >= chunk_start.x and pos.x < chunk_end.x and pos.y >= chunk_start.y and pos.y < chunk_end.y:
+			positions_to_remove.append(pos)
+
+	# Remove them from all cached dictionaries
+	for pos in positions_to_remove:
+		terrain_modulated_cells.erase(pos)
+		terrain_original_colors.erase(pos)
+		removed_count += 1
+
+	if removed_count > 0:
+		print("[ASCIIRenderer] Cleaned up %d terrain cells from chunk %v (total now: %d)" % [removed_count, chunk_coords, terrain_modulated_cells.size()])
 
 ## Center camera on position
 func center_camera(pos: Vector2i) -> void:

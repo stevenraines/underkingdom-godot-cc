@@ -13,7 +13,7 @@ var chunk_access_order: Array[Vector2i] = []  # LRU tracking: most recent at end
 var chunk_access_index: Dictionary = {}  # Vector2i -> index in chunk_access_order for O(1) lookup
 var visited_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> bool (for minimap)
 var load_radius: int = 2  # Load chunks within 2 chunk distance (5x5 grid = 160x160 tiles covers 80x40 viewport)
-var unload_radius: int = 4  # Unload chunks beyond 4 chunk distance
+var unload_radius: int = 2  # Unload chunks beyond 2 chunk distance (same as load radius - unload immediately when leaving area)
 var max_cache_size: int = 100  # Maximum cached chunks (prevents memory growth)
 
 var world_seed: int = 0  # Set when map is loaded
@@ -92,8 +92,13 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		# Return null - caller should handle this gracefully
 		return null
 
+	var load_start = Time.get_ticks_usec()
+
+	# Generate chunk
+	var gen_start = Time.get_ticks_usec()
 	var chunk = WorldChunk.new(chunk_coords, world_seed)
 	chunk.generate(world_seed)
+	var gen_time = Time.get_ticks_usec() - gen_start
 
 	active_chunks[chunk_coords] = chunk
 	chunk_cache[chunk_coords] = chunk
@@ -103,13 +108,32 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	_touch_chunk_lru(chunk_coords)
 
 	# Evict old chunks if cache is full (LRU policy)
+	var evict_start = Time.get_ticks_usec()
 	_evict_old_chunks_if_needed()
+	var evict_time = Time.get_ticks_usec() - evict_start
 
 	# Check for dungeon entrance discoveries in this chunk
+	var discovery_start = Time.get_ticks_usec()
 	_check_for_dungeon_discoveries(chunk_coords)
+	var discovery_time = Time.get_ticks_usec() - discovery_start
 
 	# Emit chunk loaded event
+	var event_start = Time.get_ticks_usec()
 	EventBus.chunk_loaded.emit(chunk_coords)
+	var event_time = Time.get_ticks_usec() - event_start
+
+	var total_time = Time.get_ticks_usec() - load_start
+
+	# Log timing if load took >5ms
+	if total_time > 5000:
+		print("[ChunkManager] load_chunk %v: gen=%.2fms, evict=%.2fms, discovery=%.2fms, event=%.2fms, total=%.2fms" % [
+			chunk_coords,
+			gen_time / 1000.0,
+			evict_time / 1000.0,
+			discovery_time / 1000.0,
+			event_time / 1000.0,
+			total_time / 1000.0
+		])
 
 	# Show feedback message for first few chunks (helps player understand world is generating)
 	if visited_chunks.size() <= 5:
@@ -133,36 +157,65 @@ func _touch_chunk_lru(chunk_coords: Vector2i) -> void:
 
 ## Evict least recently used chunks if cache exceeds max size
 func _evict_old_chunks_if_needed() -> void:
-	# CRITICAL: Prevent infinite loop if all chunks are active
-	# Track how many chunks we've checked to avoid cycling forever
-	var checks_remaining = chunk_access_order.size()
+	# Skip eviction if we're within limits
+	if chunk_cache.size() <= max_cache_size:
+		return
 
-	while chunk_cache.size() > max_cache_size and chunk_access_order.size() > 0 and checks_remaining > 0:
-		checks_remaining -= 1
+	# DIAGNOSTIC: Check data structure consistency
+	var chunks_in_cache_not_active = 0
+	for chunk_coord in chunk_cache:
+		if chunk_coord not in active_chunks:
+			chunks_in_cache_not_active += 1
+
+	# DIAGNOSTIC: Check first 10 chunks in access order to see if any are inactive
+	var first_10_status: Array = []
+	for i in range(min(10, chunk_access_order.size())):
+		var chunk = chunk_access_order[i]
+		var is_active = chunk in active_chunks
+		first_10_status.append("%v:%s" % [chunk, "A" if is_active else "I"])
+
+	# CRITICAL: Prevent infinite loop if all chunks are active
+	# Track progress - if we check every chunk once without evicting, stop
+	var evicted_count = 0
+	var moved_count = 0
+	var checks_since_eviction = 0  # How many chunks checked without evicting
+	var original_size = chunk_access_order.size()
+
+	while chunk_cache.size() > max_cache_size and chunk_access_order.size() > 0:
+		# Safety: if we've checked every chunk without evicting, give up
+		if checks_since_eviction >= original_size:
+			break
 
 		# Evict least recently used (first in list)
 		var oldest_chunk = chunk_access_order[0]
+		checks_since_eviction += 1
 
 		# Don't evict if it's currently active
 		if oldest_chunk in active_chunks:
+			# Move active chunk to end (it's being used, shouldn't be evicted)
 			chunk_access_order.remove_at(0)
 			chunk_access_index.erase(oldest_chunk)
-			chunk_access_order.append(oldest_chunk)  # Move to end
+			chunk_access_order.append(oldest_chunk)
 			chunk_access_index[oldest_chunk] = chunk_access_order.size() - 1
+			moved_count += 1
 			continue
 
-		# Evict from cache
+		# Found an inactive chunk to evict
 		chunk_cache.erase(oldest_chunk)
 		chunk_access_order.remove_at(0)
 		chunk_access_index.erase(oldest_chunk)
-		# Rebuild index after removal (indices shifted)
 		_rebuild_access_index()
-		# Reset counter when we successfully evict (we made progress)
-		checks_remaining = chunk_access_order.size()
+		evicted_count += 1
+
+		# Reset counter after successful eviction (we made progress)
+		checks_since_eviction = 0
+		original_size = chunk_access_order.size()  # Update since size changed
 
 	# Warn if we couldn't evict enough chunks
 	if chunk_cache.size() > max_cache_size:
-		push_warning("[ChunkManager] Could not evict enough chunks - all %d chunks are active (cache: %d, max: %d)" % [active_chunks.size(), chunk_cache.size(), max_cache_size])
+		push_warning("[ChunkManager] Could not evict enough chunks - moved %d active, evicted %d, checks=%d. Active: %d, Cache: %d (max: %d), Inactive: %d. First 10 in order: %s" % [
+			moved_count, evicted_count, checks_since_eviction, active_chunks.size(), chunk_cache.size(), max_cache_size, chunks_in_cache_not_active, first_10_status
+		])
 
 ## Rebuild the access index after array modifications
 func _rebuild_access_index() -> void:
@@ -201,6 +254,7 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		return
 
 	_updating_chunks = true
+	var start_time = Time.get_ticks_usec()
 
 	var player_chunk = world_to_chunk(player_pos)
 
@@ -208,6 +262,20 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 	var island_settings = BiomeManager.get_island_settings()
 	var max_chunk_x = island_settings.get("width_chunks", 50)
 	var max_chunk_y = island_settings.get("height_chunks", 50)
+
+	# IMPORTANT: Unload distant chunks FIRST, before loading new ones
+	# This ensures that when load_chunk tries to evict from cache, there are inactive chunks available
+	var chunks_to_unload: Array[Vector2i] = []
+	for coords in active_chunks:
+		# Chebyshev distance (max of x/y differences) for square loading area
+		var distance = max(abs(coords.x - player_chunk.x), abs(coords.y - player_chunk.y))
+		if distance > unload_radius:
+			chunks_to_unload.append(coords)
+
+	var unload_start = Time.get_ticks_usec()
+	for coords in chunks_to_unload:
+		unload_chunk(coords)
+	var unload_time = Time.get_ticks_usec() - unload_start
 
 	# Calculate which chunks should be loaded
 	var chunks_to_load: Array[Vector2i] = []
@@ -218,24 +286,27 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 			if chunk_coords.x >= 0 and chunk_coords.x < max_chunk_x and chunk_coords.y >= 0 and chunk_coords.y < max_chunk_y:
 				chunks_to_load.append(chunk_coords)
 
-	# Load new chunks
+	# Load new chunks (after unloading, so cache has room)
+	var load_start = Time.get_ticks_usec()
+	var chunks_loaded = 0
 	for coords in chunks_to_load:
 		if coords not in active_chunks:
 			var chunk = load_chunk(coords)
 			# load_chunk returns null if outside bounds, skip it
 			if not chunk:
 				continue
+			chunks_loaded += 1
+	var load_time = Time.get_ticks_usec() - load_start
 
-	# Unload distant chunks (using Chebyshev distance for consistent square patterns)
-	var chunks_to_unload: Array[Vector2i] = []
-	for coords in active_chunks:
-		# Chebyshev distance (max of x/y differences) for square loading area
-		var distance = max(abs(coords.x - player_chunk.x), abs(coords.y - player_chunk.y))
-		if distance > unload_radius:
-			chunks_to_unload.append(coords)
+	var total_time = Time.get_ticks_usec() - start_time
 
-	for coords in chunks_to_unload:
-		unload_chunk(coords)
+	# Only log if any chunks were loaded/unloaded or if operation took >5ms
+	if chunks_loaded > 0 or chunks_to_unload.size() > 0 or total_time > 5000:
+		print("[ChunkManager] update_active_chunks: loaded=%d (%.2fms), unloaded=%d (%.2fms), total=%.2fms" % [
+			chunks_loaded, load_time / 1000.0,
+			chunks_to_unload.size(), unload_time / 1000.0,
+			total_time / 1000.0
+		])
 
 	# Clear reentrancy guard
 	_updating_chunks = false

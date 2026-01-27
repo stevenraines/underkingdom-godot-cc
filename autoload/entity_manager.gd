@@ -5,6 +5,8 @@ extends Node
 ## Keeps track of all entities (enemies, NPCs, items), handles spawning,
 ## and coordinates entity updates during turns.
 
+const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
+
 # All active entities (excluding player)
 var entities: Array[Entity] = []
 
@@ -387,7 +389,18 @@ func process_entity_turns() -> void:
 	var enemies_processed = 0
 	var entity_index = 0
 
-	for entity in entities:
+	# CRITICAL: Duplicate array to prevent modification during iteration
+	# Chunk unloads can happen during entity turns (e.g., cross-chunk combat),
+	# which would modify the entities array and cause freezes/crashes
+	var entities_snapshot = entities.duplicate()
+
+	# Get active chunks once for O(1) checks
+	var active_chunk_coords = ChunkManager.get_active_chunk_coords()
+	var active_chunks_set: Dictionary = {}
+	for coords in active_chunk_coords:
+		active_chunks_set[coords] = true
+
+	for entity in entities_snapshot:
 		entity_index += 1
 
 		# EMERGENCY BRAKE: Check if player died
@@ -395,33 +408,44 @@ func process_entity_turns() -> void:
 			print("[EntityManager] PLAYER DIED - Stopping entity processing at entity %d/%d" % [entity_index, entities.size()])
 			return
 
-		if entity.is_alive:
-			# Skip summons (already processed above)
-			if "is_summon" in entity and entity.is_summon:
-				continue
+		# Safety check: skip dead entities (may have died during previous entity's turn)
+		if not entity.is_alive:
+			continue
 
-			if entity is Enemy:
-				# Only process enemies within range of player (performance optimization)
-				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
-				if dist <= ENEMY_PROCESS_RANGE:
-					entities_processed += 1
-					enemies_processed += 1
-					print("[EntityManager] Enemy #%d '%s' taking turn..." % [entity_index, entity.name])
-					(entity as Enemy).take_turn()
-					print("[EntityManager] Enemy #%d '%s' turn complete" % [entity_index, entity.name])
+		# Safety check: skip entities whose CURRENT position chunk was unloaded (O(1) dictionary check)
+		# NPCs have source_chunk = Vector2i(-999, -999) so they're persistent
+		# Check the chunk the entity is CURRENTLY in, not where it spawned
+		var current_chunk = ChunkManagerClass.world_to_chunk(entity.position)
+		if entity.source_chunk != Vector2i(-999, -999) and current_chunk not in active_chunks_set:
+			print("[EntityManager] Entity '%s' at %v (chunk %v) in unloaded chunk - skipping" % [entity.name, entity.position, current_chunk])
+			continue
 
-					# Check if player died from this enemy's action
-					if player and not player.is_alive:
-						print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
-						return
-			elif entity.has_method("process_turn"):
-				# NPC or other entity with turn processing - also use spatial filtering
-				var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
-				if dist <= ENEMY_PROCESS_RANGE:
-					entities_processed += 1
-					npcs_processed += 1
-					print("[EntityManager] Processing NPC at %v (dist: %d)" % [entity.position, dist])
-					entity.process_turn()
+		# Skip summons (already processed above)
+		if "is_summon" in entity and entity.is_summon:
+			continue
+
+		if entity is Enemy:
+			# Only process enemies within range of player (performance optimization)
+			var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+			if dist <= ENEMY_PROCESS_RANGE:
+				entities_processed += 1
+				enemies_processed += 1
+				print("[EntityManager] Enemy #%d '%s' taking turn..." % [entity_index, entity.name])
+				(entity as Enemy).take_turn()
+				print("[EntityManager] Enemy #%d '%s' turn complete" % [entity_index, entity.name])
+
+				# Check if player died from this enemy's action
+				if player and not player.is_alive:
+					print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
+					return
+		elif entity.has_method("process_turn"):
+			# NPC or other entity with turn processing - also use spatial filtering
+			var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+			if dist <= ENEMY_PROCESS_RANGE:
+				entities_processed += 1
+				npcs_processed += 1
+				print("[EntityManager] Processing NPC at %v (dist: %d)" % [entity.position, dist])
+				entity.process_turn()
 
 	print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs)" % [turn, entities_processed, enemies_processed, npcs_processed])
 

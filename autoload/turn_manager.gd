@@ -208,9 +208,14 @@ func _process_dot_effects() -> void:
 		EntityManager.player.process_dot_effects()
 
 	# Only process nearby entities (same range as AI processing)
+	# CRITICAL: Duplicate array to prevent modification during iteration (chunk unloads can happen)
 	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
-	for entity in EntityManager.entities:
+	for entity in EntityManager.entities.duplicate():
 		if entity == EntityManager.player:
+			continue
+
+		# Safety check: entity might have been removed by chunk unload
+		if entity not in EntityManager.entities:
 			continue
 
 		# Range check using Manhattan distance (faster than Euclidean)
@@ -227,9 +232,14 @@ func _process_effect_durations() -> void:
 		EntityManager.player.process_effect_durations()
 
 	# Only process nearby entities (same range as AI processing)
+	# CRITICAL: Duplicate array to prevent modification during iteration (chunk unloads can happen)
 	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
-	for entity in EntityManager.entities:
+	for entity in EntityManager.entities.duplicate():
 		if entity == EntityManager.player:
+			continue
+
+		# Safety check: entity might have been removed by chunk unload
+		if entity not in EntityManager.entities:
 			continue
 
 		# Range check using Manhattan distance (faster than Euclidean)

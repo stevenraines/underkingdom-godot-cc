@@ -6,6 +6,7 @@ extends Entity
 ## Handles enemy-specific behavior, AI, and loot.
 
 const _FOVSystem = preload("res://systems/fov_system.gd")
+const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
 
 # AI properties
 var behavior_type: String = "wander"  # "wander", "guardian", "aggressive", "pack"
@@ -249,6 +250,16 @@ func _move_toward_target(target: Vector2i) -> void:
 
 	# Try to move in that direction
 	var new_pos = position + move_dir
+
+	# CRITICAL: For chunk-based maps, only pathfind within active chunks
+	# Prevent enemies from triggering chunk loads during pathfinding (causes infinite recursion)
+	if MapManager.current_map and MapManager.current_map.chunk_based:
+		var new_chunk = ChunkManagerClass.world_to_chunk(new_pos)
+		var current_chunk = ChunkManagerClass.world_to_chunk(position)
+		# Only move if target chunk is already active OR we're moving within same chunk
+		if new_chunk != current_chunk and new_chunk not in ChunkManager.active_chunks:
+			# Target chunk not loaded - stay put
+			return
 
 	# Check if player is at the target position (don't move into player)
 	if EntityManager.player and EntityManager.player.position == new_pos:

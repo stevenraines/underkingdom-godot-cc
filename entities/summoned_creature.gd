@@ -165,7 +165,8 @@ func _find_nearest_enemy() -> Enemy:
 	var nearest: Enemy = null
 	var nearest_distance = 999
 
-	for entity in EntityManager.entities:
+	# CRITICAL: Duplicate array to prevent modification during iteration
+	for entity in EntityManager.entities.duplicate():
 		if entity is Enemy and not (entity is SummonedCreature) and entity.is_alive:
 			var distance = _distance_to(entity.position)
 			if distance < nearest_distance:

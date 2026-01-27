@@ -805,19 +805,40 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Update chunk loading for overworld
 	if MapManager.current_map and MapManager.current_map.chunk_based:
+		var chunk_update_start = Time.get_ticks_usec()
 		ChunkManager.update_active_chunks(new_pos)
+		var chunk_update_time = Time.get_ticks_usec() - chunk_update_start
 
 		# Re-render map for chunk-based worlds (new chunks may have loaded)
 		# Only re-render if player crossed chunk boundary
 		var old_chunk = ChunkManagerClass.world_to_chunk(old_pos)
 		var new_chunk = ChunkManagerClass.world_to_chunk(new_pos)
 		if old_chunk != new_chunk:
+			var render_start = Time.get_ticks_usec()
 			_full_render_needed = true  # New chunks loaded - need full render
+
+			var map_render_start = Time.get_ticks_usec()
 			_render_map()
+			var map_render_time = Time.get_ticks_usec() - map_render_start
+
 			# Update visibility after rendering map, before rendering entities
+			var visibility_start = Time.get_ticks_usec()
 			_update_visibility()
+			var visibility_time = Time.get_ticks_usec() - visibility_start
+
 			# NOTE: No need to call _render_ground_items() - _render_all_entities() handles it
+			var entity_render_start = Time.get_ticks_usec()
 			_render_all_entities()
+			var entity_render_time = Time.get_ticks_usec() - entity_render_start
+
+			var total_render_time = Time.get_ticks_usec() - render_start
+			print("[Game] Chunk crossing: chunk_update=%.2fms, map_render=%.2fms, visibility=%.2fms, entities=%.2fms, total=%.2fms" % [
+				chunk_update_time / 1000.0,
+				map_render_time / 1000.0,
+				visibility_time / 1000.0,
+				entity_render_time / 1000.0,
+				total_render_time / 1000.0
+			])
 
 	# Clear old player position
 	renderer.clear_entity(old_pos)
@@ -2888,7 +2909,8 @@ func _update_dynamic_light_sources() -> void:
 
 		# Register light sources from lit ground items (dropped torches, lanterns)
 		# Only scan GroundItems, not all entities
-		for entity in EntityManager.entities:
+		# CRITICAL: Duplicate array to prevent modification during iteration
+		for entity in EntityManager.entities.duplicate():
 			if entity is GroundItem:
 				var item = entity.item
 				if item and item.provides_light and item.is_lit:
@@ -2899,7 +2921,8 @@ func _update_dynamic_light_sources() -> void:
 ## Called only when cache is dirty (enemy moved or map changed)
 func _rebuild_enemy_light_cache() -> void:
 	_enemy_light_cache.clear()
-	for entity in EntityManager.entities:
+	# CRITICAL: Duplicate array to prevent modification during iteration
+	for entity in EntityManager.entities.duplicate():
 		if entity is Enemy and entity.is_alive:
 			# Only intelligent enemies (INT >= 5) carry torches
 			var enemy_int = entity.attributes.get("INT", 1)
@@ -2952,18 +2975,25 @@ func _update_visibility() -> void:
 	if not player or not player.is_alive or not MapManager.current_map:
 		return
 
+	var total_start = Time.get_ticks_usec()
+
 	# OPTIMIZATION: No longer re-scanning structures every move
 	# Persistent lights are registered once on map load
 	# Dynamic lights (enemies, ground items) are updated separately
+	var dynamic_lights_start = Time.get_ticks_usec()
 	_update_dynamic_light_sources()
+	var dynamic_lights_time = Time.get_ticks_usec() - dynamic_lights_start
 
 	# Get all light sources for visibility calculation
+	var get_lights_start = Time.get_ticks_usec()
 	var light_sources = LightingSystemClass.get_all_light_sources()
+	var get_lights_time = Time.get_ticks_usec() - get_lights_start
 
 	# Calculate visibility using UNIFIED system (LOS + lighting combined)
 	var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
 	var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
 
+	var calc_start = Time.get_ticks_usec()
 	var visibility_result = VisibilitySystemClass.calculate_visibility(
 		player.position,
 		effective_perception,
@@ -2971,17 +3001,37 @@ func _update_visibility() -> void:
 		MapManager.current_map,
 		light_sources
 	)
+	var calc_time = Time.get_ticks_usec() - calc_start
 
 	# Update fog of war
 	var map_id = MapManager.current_map.map_id
 	var chunk_based = MapManager.current_map.chunk_based
+
+	var fow_start = Time.get_ticks_usec()
 	FogOfWarSystemClass.set_visible_tiles(visibility_result.visible_tiles)
 	FogOfWarSystemClass.mark_many_explored(map_id, visibility_result.visible_tiles, chunk_based)
+	var fow_time = Time.get_ticks_usec() - fow_start
 
 	# CRITICAL: Set visibility data BEFORE update_fov
 	# update_fov applies fog of war, which needs current visibility_data
+	var renderer_start = Time.get_ticks_usec()
 	renderer.set_visibility_data(visibility_result.tile_data)
 	renderer.update_fov(visibility_result.visible_tiles, player.position)
+	var renderer_time = Time.get_ticks_usec() - renderer_start
+
+	var total_time = Time.get_ticks_usec() - total_start
+
+	# Log if visibility update took >10ms
+	if total_time > 10000:
+		print("[Game] _update_visibility: dynamic_lights=%.2fms, get_lights=%.2fms, calc=%.2fms (tiles=%d), fow=%.2fms, renderer=%.2fms, total=%.2fms" % [
+			dynamic_lights_time / 1000.0,
+			get_lights_time / 1000.0,
+			calc_time / 1000.0,
+			visibility_result.visible_tiles.size(),
+			fow_time / 1000.0,
+			renderer_time / 1000.0,
+			total_time / 1000.0
+		])
 
 
 ## Open rest menu (called from input handler)

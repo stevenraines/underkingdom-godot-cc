@@ -8,6 +8,7 @@ class_name FeatureManagerClass
 
 const FEATURE_DATA_PATH = "res://data/features"
 const _LockSystem = preload("res://systems/lock_system.gd")
+const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
 
 ## Signal emitted when a feature is interacted with
 signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)
@@ -33,6 +34,9 @@ var respawning_features: Dictionary = {}
 func _ready() -> void:
 	_load_feature_definitions_recursive(FEATURE_DATA_PATH)
 	print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
+
+	# Connect to chunk unload signal to clean up features from unloaded chunks
+	EventBus.chunk_unloaded.connect(_on_chunk_unloaded)
 
 
 ## Load all feature definitions recursively from JSON files
@@ -725,7 +729,9 @@ func process_feature_respawns() -> void:
 	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
 	const RESPAWN_PROCESS_RANGE = 100  # Only process respawns within 100 tiles of player
 
-	print("[FeatureManager] Processing respawns (turn %d, active features: %d)" % [current_turn, active_features.size()])
+	# DIAGNOSTIC: Log feature count and active chunks
+	var active_chunk_coords = ChunkManager.get_active_chunk_coords()
+	print("[FeatureManager] Processing respawns (turn %d, active features: %d, active chunks: %d)" % [current_turn, active_features.size(), active_chunk_coords.size()])
 
 	# Find any features ready to respawn
 	var turns_to_remove: Array = []
@@ -804,3 +810,22 @@ func _cleanup_distant_features() -> void:
 
 	if positions_to_remove.size() > 0:
 		print("[FeatureManager] Cleaned up %d features outside loaded chunks" % positions_to_remove.size())
+
+## Called when a chunk is unloaded - removes features that were spawned in that chunk
+func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
+	var removed_count = 0
+	var positions_to_remove: Array[Vector2i] = []
+
+	# Find all features in the unloaded chunk
+	for pos in active_features:
+		var feature_chunk = ChunkManagerClass.world_to_chunk(pos)
+		if feature_chunk == chunk_coords:
+			positions_to_remove.append(pos)
+
+	# Remove them
+	for pos in positions_to_remove:
+		active_features.erase(pos)
+		removed_count += 1
+
+	# DIAGNOSTIC: Always log, even if no features removed
+	print("[FeatureManager] Chunk %v unloaded: removed %d features (total now: %d)" % [chunk_coords, removed_count, active_features.size()])

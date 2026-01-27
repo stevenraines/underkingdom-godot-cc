@@ -816,7 +816,7 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 			_render_map()
 			# Update visibility after rendering map, before rendering entities
 			_update_visibility()
-			_render_ground_items()
+			# NOTE: No need to call _render_ground_items() - _render_all_entities() handles it
 			_render_all_entities()
 
 	# Clear old player position
@@ -1059,6 +1059,10 @@ func _on_tile_changed(pos: Vector2i) -> void:
 
 ## Called when turn advances
 func _on_turn_advanced(_turn_number: int) -> void:
+	# Mark enemy light cache as dirty once per turn (enemies may have moved)
+	# This is more efficient than marking it dirty on every enemy move
+	_enemy_light_cache_dirty = true
+
 	_update_hud()
 	_update_survival_display()
 
@@ -1086,9 +1090,8 @@ func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> v
 	renderer.clear_entity(old_pos)
 	renderer.render_entity(new_pos, entity.ascii_char, entity.color)
 
-	# Mark enemy light cache as dirty if an enemy moved (performance optimization)
-	if entity is Enemy:
-		_enemy_light_cache_dirty = true
+	# NOTE: Don't mark enemy light cache dirty here - it causes too many rebuilds
+	# Cache is invalidated once per turn via turn_advanced signal instead
 
 	# Update target highlight if this entity is the current target
 	if input_handler:
@@ -2226,8 +2229,27 @@ func _setup_ui_colors() -> void:
 
 ## Render all ground items on the map (except under player)
 func _render_ground_items() -> void:
-	for entity in EntityManager.entities:
-		if entity is GroundItemClass:
+	# OPTIMIZATION: Only check visible tiles instead of all entities
+	# Get visible tiles from renderer (fog of war system)
+	var visible_tiles = renderer.visible_tiles if renderer else []
+
+	# If we don't have visible tiles info, fall back to scanning all (shouldn't happen)
+	if visible_tiles.is_empty():
+		for entity in EntityManager.entities:
+			if entity is GroundItemClass:
+				if player and entity.position == player.position:
+					continue
+				var render_color = entity.color
+				if entity.item and entity.item.provides_light and entity.item.is_lit:
+					render_color = Color(1.0, 0.7, 0.2)
+				renderer.render_entity(entity.position, entity.ascii_char, render_color)
+		return
+
+	# Only check entities at visible positions (much faster)
+	for pos in visible_tiles:
+		var ground_items = EntityManager.get_ground_items_at(pos)
+		if ground_items.size() > 0:
+			var entity = ground_items[0]
 			# Don't render items under the player - player renders on top
 			if player and entity.position == player.position:
 				continue
@@ -2455,21 +2477,18 @@ func _on_weather_changed(_old_weather: String, _new_weather: String, message: St
 
 ## Called when time of day changes - refresh FOV/lighting and handle shop door locking
 func _on_time_of_day_changed(new_time: String) -> void:
-	print("[Game] _on_time_of_day_changed: %s (player alive: %s)" % [new_time, player.is_alive if player else false])
-
 	# CRITICAL: Don't process time changes if player is dead
 	# This prevents infinite loops in visibility calculations after death
 	if not player or not player.is_alive:
-		print("[Game] Player is dead, skipping time of day processing")
 		return
 
-	# Refresh FOV and lighting since sun position affects visibility
-	# Also recalculates racial bonuses like darkvision that depend on time of day
+	# Refresh visibility using unified system (handles both LOS and lighting)
+	# Time of day affects lighting calculations (day/night) and racial bonuses (darkvision)
 	if MapManager.current_map:
-		var player_light_radius = (player.inventory.get_equipped_light_radius() if player.inventory else 0) + player.get_light_radius_bonus()
-		var effective_perception = player.get_effective_perception_range() if player.has_method("get_effective_perception_range") else player.perception_range
-		var visible_tiles = FOVSystemClass.calculate_visibility(player.position, effective_perception, player_light_radius, MapManager.current_map)
-		renderer.update_fov(visible_tiles, player.position)
+		# Mark enemy light cache dirty since lighting conditions changed
+		_enemy_light_cache_dirty = true
+		# Recalculate visibility with new lighting
+		_update_visibility()
 
 	# Handle shop door locking on overworld
 	if not MapManager.current_map or MapManager.current_map.map_id != "overworld":
@@ -2855,9 +2874,9 @@ func _update_dynamic_light_sources() -> void:
 	# This ensures structures/features are always in the light_sources array
 	LightingSystemClass.rebuild_light_sources_from_registry()
 
-	# Only scan entities for light sources during night/dusk (performance optimization)
+	# Only scan entities for light sources during night/dusk/midnight (performance optimization)
 	# During day, enemies don't need torches and lit ground items are rare
-	var is_dark = TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk"
+	var is_dark = TurnManager.time_of_day == "night" or TurnManager.time_of_day == "dusk" or TurnManager.time_of_day == "midnight"
 	if is_dark:
 		# Rebuild enemy light cache only when dirty (enemies moved or map changed)
 		if _enemy_light_cache_dirty:

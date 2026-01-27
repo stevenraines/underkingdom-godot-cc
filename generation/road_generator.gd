@@ -8,8 +8,6 @@ extends RefCounted
 ## - Town square paving
 ## - Inter-town roads connecting nearby towns
 
-const GameTile = preload("res://maps/game_tile.gd")
-
 ## Road material types based on distance from structures
 enum RoadMaterial {
 	COBBLESTONE,  # Near structures (within towns)
@@ -26,7 +24,7 @@ enum RoadMaterial {
 ## has_town_square: Whether to pave a central town square
 static func generate_town_roads(tiles_dict: Dictionary, town_center: Vector2i, town_size: Vector2i, buildings: Array, building_defs: Dictionary, has_town_square: bool = false) -> void:
 	var half_size = town_size / 2
-	var town_start = town_center - half_size
+	var _town_start = town_center - half_size
 
 	# If town has a square, pave the central area
 	if has_town_square:
@@ -121,7 +119,7 @@ static func _create_road_path(tiles_dict: Dictionary, from_pos: Vector2i, to_pos
 
 
 ## Place a road tile at position, respecting existing structures
-static func _place_road_tile(tiles_dict: Dictionary, pos: Vector2i, road_type: String, town_center: Vector2i, town_radius: int) -> void:
+static func _place_road_tile(tiles_dict: Dictionary, pos: Vector2i, road_type: String, _town_center: Vector2i, _town_radius: int) -> void:
 	if pos not in tiles_dict:
 		return
 

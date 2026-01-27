@@ -7,6 +7,7 @@ extends Node
 
 # Preload Structure class
 const Structure = preload("res://entities/structure.gd")
+const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
 
 # Structure data cache (id -> data dictionary)
 var structure_definitions: Dictionary = {}
@@ -20,6 +21,9 @@ const STRUCTURE_DATA_PATH: String = "res://data/structures"
 func _ready() -> void:
 	_load_structure_definitions()
 	print("StructureManager: Loaded %d structure definitions" % structure_definitions.size())
+
+	# Connect to chunk unload signal to clean up structures from unloaded chunks
+	EventBus.chunk_unloaded.connect(_on_chunk_unloaded)
 
 ## Load all structure definitions from JSON files
 func _load_structure_definitions() -> void:
@@ -247,3 +251,11 @@ func deserialize(data: Dictionary) -> void:
 			var structure = Structure.deserialize(structure_data, structure_definitions)
 			if structure:
 				placed_structures[map_id].append(structure)
+
+## Called when a chunk is unloaded - removes structures from unloaded chunks on overworld
+## NOTE: We don't actually remove structures - they're persistent and player-built
+## This is here for consistency with other managers, but structures stay in memory
+func _on_chunk_unloaded(_chunk_coords: Vector2i) -> void:
+	# Structures are persistent - we keep them in memory even when chunks unload
+	# They'll be saved with the game and restored on load
+	pass

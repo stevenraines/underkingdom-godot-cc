@@ -5,7 +5,7 @@ extends Node
 ## Loads recipe definitions from JSON, provides recipe lookup and discovery.
 
 # Preload Recipe class
-const Recipe = preload("res://crafting/recipe.gd")
+const RecipeClass = preload("res://crafting/recipe.gd")
 
 # All recipes indexed by recipe ID
 var all_recipes: Dictionary = {}
@@ -71,7 +71,7 @@ func _load_recipe_from_file(file_path: String) -> void:
 	var data = json.data
 
 	if data is Dictionary and "id" in data:
-		var recipe = Recipe.create_from_data(data)
+		var recipe = RecipeClass.create_from_data(data)
 		all_recipes[recipe.id] = recipe
 
 		# Index by result item

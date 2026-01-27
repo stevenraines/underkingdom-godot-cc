@@ -59,13 +59,11 @@ func get_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		_touch_chunk_lru(chunk_coords)
 		return active_chunks[chunk_coords]
 
-	# Check cache
+	# Check cache - but DON'T automatically re-add to active_chunks
+	# Only update_active_chunks() should control what's active
 	if chunk_coords in chunk_cache:
-		var chunk = chunk_cache[chunk_coords]
-		chunk.is_loaded = true
-		active_chunks[chunk_coords] = chunk
 		_touch_chunk_lru(chunk_coords)
-		return chunk
+		return chunk_cache[chunk_coords]
 
 	# Generate new chunk
 	return load_chunk(chunk_coords)

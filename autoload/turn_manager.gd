@@ -25,6 +25,10 @@ var turns_since_autosave: int = 0
 # Cached time periods from CalendarManager (array of {id, duration, temp_modifier, start, end})
 var _time_periods: Array = []
 
+# Message deduplication tracking
+var _last_log_message: String = ""
+var _log_repeat_count: int = 0
+
 func _ready() -> void:
 	# Load time periods from CalendarManager (will be available after CalendarManager._ready())
 	call_deferred("_load_time_periods")
@@ -38,13 +42,27 @@ func _ready() -> void:
 func _load_time_periods() -> void:
 	_time_periods = CalendarManager.get_time_periods()
 
+## Print message with deduplication - skips if same as last message
+func _log(message: String) -> void:
+	if message == _last_log_message:
+		_log_repeat_count += 1
+		return
+
+	# If we had repeats, flush the count before printing new message
+	if _log_repeat_count > 0:
+		print("  (repeated %d times)" % _log_repeat_count)
+		_log_repeat_count = 0
+
+	print(message)
+	_last_log_message = message
+
 ## Get turns per day from CalendarManager
 func get_turns_per_day() -> int:
 	return CalendarManager.get_turns_per_day()
 
 ## Advance the turn counter and update time of day
 func advance_turn() -> void:
-	print("[TurnManager] === Starting turn %d ===" % (current_turn + 1))
+	_log("[TurnManager] === Starting turn %d ===" % (current_turn + 1))
 
 	# ========================================================================
 	# PHASE 1: PRE-TURN (Setup & Freeze World State)
@@ -53,26 +71,26 @@ func advance_turn() -> void:
 	# Player's turn is ending (they just took an action)
 	player_turn_ended.emit()
 	current_turn += 1
-	print("[TurnManager] Turn advanced to %d" % current_turn)
+	_log("[TurnManager] Turn advanced to %d" % current_turn)
 
 	# Update time/calendar before freezing
 	_update_time_of_day()
-	print("[TurnManager] Time of day updated")
+	_log("[TurnManager] Time of day updated")
 
 	# FREEZE chunk operations to prevent signal cascade during entity processing
 	ChunkManager.freeze_chunk_operations()
-	print("[TurnManager] Chunk operations FROZEN")
+	_log("[TurnManager] Chunk operations FROZEN")
 
 	# Prepare entity snapshot for safe iteration
 	EntityManager.prepare_turn_snapshot()
-	print("[TurnManager] Entity snapshot prepared")
+	_log("[TurnManager] Entity snapshot prepared")
 
 	# Process player-only systems (survival, rituals)
 	_process_player_survival()
-	print("[TurnManager] Player survival processed")
+	_log("[TurnManager] Player survival processed")
 
 	_process_ritual_channeling()
-	print("[TurnManager] Ritual channeling processed")
+	_log("[TurnManager] Ritual channeling processed")
 
 	# Process PLAYER effects (player is not in entities array, must be done separately)
 	if EntityManager.player:
@@ -80,22 +98,22 @@ func advance_turn() -> void:
 			EntityManager.player.process_dot_effects()
 		if EntityManager.player.has_method("process_effect_durations"):
 			EntityManager.player.process_effect_durations()
-	print("[TurnManager] Player effects processed")
+	_log("[TurnManager] Player effects processed")
 
 	# ========================================================================
 	# PHASE 2: EXECUTION (Process All Entity Actions with Frozen Chunks)
 	# ========================================================================
 
 	# Process entity turns (DoTs + Effects + AI actions in single consolidated loop)
-	print("[TurnManager] Processing entity turns...")
+	_log("[TurnManager] Processing entity turns...")
 	EntityManager.process_entity_turns()
-	print("[TurnManager] Entity turns complete")
+	_log("[TurnManager] Entity turns complete")
 
 	# EMERGENCY BRAKE: If player died, stop immediately
 	if EntityManager.player and not EntityManager.player.is_alive:
 		# Emergency unfreeze without applying operations (prevents signal cascade)
 		ChunkManager.emergency_unfreeze()
-		print("[TurnManager] !!! PLAYER DIED - Stopping turn advancement !!!")
+		_log("[TurnManager] !!! PLAYER DIED - Stopping turn advancement !!!")
 		return
 
 	# ========================================================================
@@ -104,24 +122,24 @@ func advance_turn() -> void:
 
 	# UNFREEZE chunk operations and apply queued loads/unloads
 	ChunkManager.unfreeze_and_apply_queued_operations()
-	print("[TurnManager] Chunk operations UNFROZEN and applied")
+	_log("[TurnManager] Chunk operations UNFROZEN and applied")
 
 	# Process world systems (now safe to modify chunks)
-	print("[TurnManager] Processing renewable resources...")
+	_log("[TurnManager] Processing renewable resources...")
 	HarvestSystem.process_renewable_resources()
-	print("[TurnManager] Renewable resources complete")
+	_log("[TurnManager] Renewable resources complete")
 
-	print("[TurnManager] Processing feature respawns...")
+	_log("[TurnManager] Processing feature respawns...")
 	FeatureManager.process_feature_respawns()
-	print("[TurnManager] Feature respawns complete")
+	_log("[TurnManager] Feature respawns complete")
 
-	print("[TurnManager] Processing farming systems...")
+	_log("[TurnManager] Processing farming systems...")
 	FarmingSystem.process_crop_growth()
 	FarmingSystem.process_tilled_soil_decay()
-	print("[TurnManager] Farming systems complete")
+	_log("[TurnManager] Farming systems complete")
 
 	# Emit turn advanced signal
-	print("[TurnManager] Emitting turn_advanced signal")
+	_log("[TurnManager] Emitting turn_advanced signal")
 	EventBus.turn_advanced.emit(current_turn)
 
 	# Process auto-save if interval reached
@@ -130,7 +148,7 @@ func advance_turn() -> void:
 	# Reset player turn flag and emit signal
 	is_player_turn = true
 	player_turn_started.emit()
-	print("[TurnManager] === Turn %d complete ===" % current_turn)
+	_log("[TurnManager] === Turn %d complete ===" % current_turn)
 
 ## Process player survival systems each turn
 func _process_player_survival() -> void:

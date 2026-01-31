@@ -2,7 +2,8 @@
 ---
 ## Unplanned
 
-- [ ] Add "Barrel" or "Cistern" as sources of fresh water.
+- [ ] Add more sources of fresh water
+    Add additional sources of water to the underworld, like  "Barrel" and "Cistern". In the overworld, add periodic "Spring" spots. All should act like wells.
 - [ ] Hide Cursed status of items
     Cursed items should never show that they are cursed until used / worn
 - [ ] Feature: Add Ritual to Charge Magic Items

@@ -46,6 +46,13 @@ func _load_time_periods() -> void:
 func _log(message: String) -> void:
 	if message == _last_log_message:
 		_log_repeat_count += 1
+		# CRITICAL: If message repeats too many times, we may have an infinite loop
+		if _log_repeat_count > 10:
+			push_error("[TurnManager] INFINITE LOOP DETECTED: Message repeated %d times: %s" % [_log_repeat_count, message])
+			# Emergency brake - force stop
+			if ChunkManager:
+				ChunkManager.emergency_unfreeze()
+			return
 		return
 
 	# If we had repeats, flush the count before printing new message

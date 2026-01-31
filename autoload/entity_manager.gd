@@ -377,10 +377,13 @@ const ENEMY_PROCESS_RANGE: int = 20
 
 ## Process all entity turns (CONSOLIDATED: DoTs + Effects + Turns in single loop)
 func process_entity_turns() -> void:
+	var start_time = Time.get_ticks_msec()
 	var player_pos = player.position if player else Vector2i.ZERO
 	var turn = TurnManager.current_turn if TurnManager else 0
 
-	print("[EntityManager] Turn %d: Processing entity turns (player at %v, player alive: %s)" % [turn, player_pos, player.is_alive if player else false])
+	# Minimal logging - only when debugging is needed
+	if turn % 10 == 0:  # Log every 10 turns instead of every turn
+		print("[EntityManager] Turn %d: %d entities in snapshot" % [turn, _entity_snapshot.size()])
 
 	# CRITICAL: If player is dead at start of turn, stop processing immediately
 	if player and not player.is_alive:
@@ -423,6 +426,13 @@ func process_entity_turns() -> void:
 
 	for entity in _entity_snapshot:
 		entity_index += 1
+
+		# TIMEOUT SAFEGUARD: Check if processing is taking too long (10 seconds)
+		var elapsed = Time.get_ticks_msec() - start_time
+		if elapsed > 10000:
+			push_error("[EntityManager] TIMEOUT: Entity processing exceeded 10 seconds at entity %d/%d! Forcing stop." % [entity_index, _entity_snapshot.size()])
+			ChunkManager.emergency_unfreeze()
+			return
 
 		# MAX ITERATION SAFEGUARD: Prevent infinite loops
 		if entity_index > MAX_ENTITIES_PER_TURN:
@@ -483,9 +493,15 @@ func process_entity_turns() -> void:
 		if entity is Enemy:
 			entities_processed += 1
 			enemies_processed += 1
-			print("[EntityManager] Enemy #%d '%s' taking turn..." % [entity_index, entity.name])
+			var enemy_start = Time.get_ticks_msec()
 			(entity as Enemy).take_turn()
-			print("[EntityManager] Enemy #%d '%s' turn complete" % [entity_index, entity.name])
+			var enemy_duration = Time.get_ticks_msec() - enemy_start
+
+			# CRITICAL: Detect if a single enemy is taking too long (possible infinite loop)
+			if enemy_duration > 1000:
+				push_error("[EntityManager] !!! Enemy '%s' at %v took %dms - POSSIBLE INFINITE LOOP !!!" % [entity.name, entity.position, enemy_duration])
+				ChunkManager.emergency_unfreeze()
+				return
 
 			# Check if player died from this enemy's action
 			if player and not player.is_alive:
@@ -495,10 +511,14 @@ func process_entity_turns() -> void:
 		elif entity.has_method("process_turn"):
 			entities_processed += 1
 			npcs_processed += 1
-			print("[EntityManager] Processing NPC at %v (dist: %d)" % [entity.position, dist])
 			entity.process_turn()
 
-	print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs)" % [turn, entities_processed, enemies_processed, npcs_processed])
+	var total_duration = Time.get_ticks_msec() - start_time
+	print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs) in %dms" % [turn, entities_processed, enemies_processed, npcs_processed, total_duration])
+
+	# Warn if processing took too long
+	if total_duration > 5000:
+		push_warning("[EntityManager] Entity processing took %dms - this is unusually long!" % total_duration)
 
 ## Clear all entities (for map transitions)
 func clear_entities() -> void:

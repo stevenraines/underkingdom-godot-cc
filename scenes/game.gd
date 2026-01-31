@@ -78,6 +78,9 @@ var _cached_max_stamina: float = -1
 var _cached_mana: float = -1
 var _cached_max_mana: float = -1
 var _cached_hunger: float = -1
+
+# Message deduplication for stamina warning
+var _last_stamina_warning_turn: int = -999  # Track when last stamina warning was shown
 var _cached_thirst: float = -1
 var _cached_temperature: float = -999
 var _cached_env_temperature: float = -999
@@ -1104,6 +1107,12 @@ func _on_survival_warning(message: String, severity: String) -> void:
 
 ## Called when stamina is depleted
 func _on_stamina_depleted() -> void:
+	# Debounce: Only show message once per 3 turns to avoid spam
+	var current_turn = TurnManager.current_turn if TurnManager else 0
+	if current_turn - _last_stamina_warning_turn < 3:
+		return
+
+	_last_stamina_warning_turn = current_turn
 	_add_message("You are out of stamina!", Color(1.0, 0.5, 0.5))
 
 ## Called when any entity moves

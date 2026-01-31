@@ -159,6 +159,7 @@ var default_terrain_colors: Dictionary = {
 
 var visible_tiles: Array[Vector2i] = []
 var visible_tiles_set: Dictionary = {}  # Dictionary for O(1) lookups
+var previous_visible_tiles_set: Dictionary = {}  # Track tiles that were visible last frame
 
 # Visibility data from VisibilitySystem (unified FOV + lighting)
 var visibility_data: Dictionary = {}  # pos -> {lit: bool, light_level: float, in_los: bool}
@@ -486,6 +487,9 @@ func clear_entity(position: Vector2i) -> void:
 ## visible_tiles: tiles visible for entities (requires LOS)
 ## origin: player position for LOS calculations (optional but recommended)
 func update_fov(new_visible_tiles: Array[Vector2i], origin: Vector2i = Vector2i(-1, -1)) -> void:
+	# Save previous FOV before updating
+	previous_visible_tiles_set = visible_tiles_set.duplicate()
+
 	visible_tiles = new_visible_tiles
 	if origin.x >= 0:
 		player_position = origin
@@ -547,29 +551,58 @@ func set_fow_enabled(enabled: bool) -> void:
 		# Restore all original colors
 		_restore_all_colors()
 
+## Debug logging (console only, filtered to reduce spam)
+func _debug_log(message: String) -> void:
+	# Only log key events
+	if "Viewport filtering" in message or "complete" in message or "WARNING" in message:
+		print(message)
+
 ## Apply fog of war dimming to terrain tiles
 ## Uses efficient per-tile visibility checks instead of array lookup
 func _apply_fog_of_war_to_terrain() -> void:
+	var function_start = Time.get_ticks_msec()
+	_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_terrain() starting...")
+
 	if not terrain_layer:
+		_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_terrain() - no terrain layer, returning")
 		return
 
-	# For chunk-based maps, only process positions within active chunks
-	# This prevents performance degradation as the player explores (O(active_tiles) instead of O(all_explored_tiles))
+	# OPTIMIZATION: Only process tiles within viewport bounds (not all 25k+ tiles in active chunks!)
+	# PLUS tiles that just left FOV (to update them to "explored" state)
 	var get_pos_start = Time.get_ticks_usec()
 	var all_positions: Array
-	if is_chunk_based:
-		all_positions = _get_active_chunk_positions()
-	else:
-		all_positions = terrain_modulated_cells.keys()
+	var positions_set: Dictionary = {}  # Track duplicates
+
+	# Calculate viewport bounds (tiles that could possibly be visible)
+	# Viewport is ~80x40 tiles, so we need margin of 40 to cover full screen width + some buffer
+	var viewport_margin = 45  # Covers screen width (80/2=40) + 5 tile buffer for edges
+	var viewport_min = player_position - Vector2i(viewport_margin, viewport_margin)
+	var viewport_max = player_position + Vector2i(viewport_margin, viewport_margin)
+
+	# First, add tiles that just left FOV (were visible last frame, not visible now)
+	# These MUST be updated to "explored" state even if outside viewport
+	for pos in previous_visible_tiles_set.keys():
+		if not visible_tiles_set.has(pos):
+			all_positions.append(pos)
+			positions_set[pos] = true
+
+	# Then add tiles within viewport bounds
+	# OPTIMIZATION: Directly filter terrain_modulated_cells by viewport instead of calling
+	# _get_active_chunk_positions() which iterates through all 25k+ tiles unnecessarily
+	for pos in terrain_modulated_cells.keys():
+		if pos.x >= viewport_min.x and pos.x <= viewport_max.x and pos.y >= viewport_min.y and pos.y <= viewport_max.y:
+			if not positions_set.has(pos):  # Avoid duplicates
+				all_positions.append(pos)
+				positions_set[pos] = true
+
 	var get_pos_time = Time.get_ticks_usec() - get_pos_start
 
-	# DIAGNOSTIC: Log if getting positions is slow (indicates terrain_modulated_cells is too large)
-	if get_pos_time > 5000:
-		print("[ASCIIRenderer] _get_active_chunk_positions() took %.2fms (terrain_modulated_cells size: %d, result size: %d)" % [
-			get_pos_time / 1000.0,
-			terrain_modulated_cells.size(),
-			all_positions.size()
-		])
+	# DIAGNOSTIC: Log position filtering performance
+	_debug_log("[ASCIIRenderer] Viewport filtering: %d tiles in viewport (from %d total) - took %.2fms" % [
+		all_positions.size(),
+		terrain_modulated_cells.size() if not is_chunk_based else _get_active_chunk_positions().size(),
+		get_pos_time / 1000.0
+	])
 
 	# Check if we're in daytime outdoors mode (can skip many checks)
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
@@ -579,7 +612,18 @@ func _apply_fog_of_war_to_terrain() -> void:
 	var player_on_door = player_tile and player_tile.tile_type == "door"
 	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
 
+	var loop_start = Time.get_ticks_msec()
+	var tiles_processed = 0
 	for pos in all_positions:
+		tiles_processed += 1
+
+		# TIMEOUT CHECK: Prevent infinite loops
+		if tiles_processed % 1000 == 0:  # Check every 1000 tiles
+			var elapsed = Time.get_ticks_msec() - loop_start
+			if elapsed > 5000:  # 5 second timeout
+				push_error("[ASCIIRenderer] TIMEOUT: _apply_fog_of_war_to_terrain exceeded 5 seconds after processing %d/%d tiles!" % [tiles_processed, all_positions.size()])
+				return
+
 		# Check if tile is visible based on current conditions
 		var is_terrain_visible: bool
 		var tile = current_map.get_tile(pos) if current_map else null
@@ -665,6 +709,11 @@ func _apply_fog_of_war_to_terrain() -> void:
 
 	_mark_terrain_dirty()
 
+	var function_duration = Time.get_ticks_msec() - function_start
+	_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_terrain() complete - processed %d tiles in %dms" % [tiles_processed, function_duration])
+	if function_duration > 1000:
+		_debug_log("[ASCIIRenderer] WARNING: _apply_fog_of_war_to_terrain() took %dms - this is very slow!" % function_duration)
+
 ## Get all terrain positions within active chunks (for chunk-based maps)
 ## Returns positions that are currently in terrain_modulated_cells AND within active chunks
 func _get_active_chunk_positions() -> Array:
@@ -691,14 +740,25 @@ func _get_active_chunk_positions() -> Array:
 ## Entities (NPCs, enemies, items) require LOS to be visible - completely hidden otherwise
 ## Interior tiles also require strict LOS even if the FOV algorithm marks them visible
 func _apply_fog_of_war_to_entities() -> void:
+	var function_start = Time.get_ticks_msec()
+	_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_entities() starting...")
+
 	if not entity_layer:
+		_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_entities() - no entity layer, returning")
 		return
 
+	# OPTIMIZATION: Use same viewport bounds as terrain fog-of-war
+	var viewport_margin = 45
+	var viewport_min = player_position - Vector2i(viewport_margin, viewport_margin)
+	var viewport_max = player_position + Vector2i(viewport_margin, viewport_margin)
+
 	# First, check if any hidden entities should be restored (now visible)
+	# Only check hidden entities within viewport
 	var hidden_to_restore: Array = []
 	for pos in hidden_entity_positions.keys():
-		if _is_entity_visible_at(pos):
-			hidden_to_restore.append(pos)
+		if pos.x >= viewport_min.x and pos.x <= viewport_max.x and pos.y >= viewport_min.y and pos.y <= viewport_max.y:
+			if _is_entity_visible_at(pos):
+				hidden_to_restore.append(pos)
 
 	for pos in hidden_to_restore:
 		var hidden_data = hidden_entity_positions[pos]
@@ -708,9 +768,33 @@ func _apply_fog_of_war_to_entities() -> void:
 		hidden_entity_positions.erase(pos)
 
 	# Now process currently rendered entities
-	var all_positions: Array = entity_modulated_cells.keys().duplicate()
+	# Include: 1) entities in viewport, 2) entities in current FOV (to ensure they're visible)
+	var all_positions: Array = []
+	var positions_set: Dictionary = {}
 
+	# Add entities in viewport
+	for pos in entity_modulated_cells.keys():
+		if pos.x >= viewport_min.x and pos.x <= viewport_max.x and pos.y >= viewport_min.y and pos.y <= viewport_max.y:
+			all_positions.append(pos)
+			positions_set[pos] = true
+
+	# Also add entities in current FOV (even if outside viewport) to ensure they're visible
+	for pos in visible_tiles_set.keys():
+		if pos in entity_modulated_cells and not positions_set.has(pos):
+			all_positions.append(pos)
+			positions_set[pos] = true
+
+	var loop_start = Time.get_ticks_msec()
+	var entities_processed = 0
 	for pos in all_positions:
+		entities_processed += 1
+
+		# TIMEOUT CHECK: Prevent infinite loops
+		if entities_processed % 500 == 0:  # Check every 500 entities
+			var elapsed = Time.get_ticks_msec() - loop_start
+			if elapsed > 5000:  # 5 second timeout
+				push_error("[ASCIIRenderer] TIMEOUT: _apply_fog_of_war_to_entities exceeded 5 seconds after processing %d/%d entities!" % [entities_processed, all_positions.size()])
+				return
 		var pos_is_visible = _is_entity_visible_at(pos)
 		var original_color = entity_original_colors.get(pos, entity_modulated_cells.get(pos, Color.WHITE))
 
@@ -762,6 +846,11 @@ func _apply_fog_of_war_to_entities() -> void:
 
 	_mark_entity_dirty()
 
+	var function_duration = Time.get_ticks_msec() - function_start
+	_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_entities() complete - processed %d entities in %dms" % [entities_processed, function_duration])
+	if function_duration > 1000:
+		_debug_log("[ASCIIRenderer] WARNING: _apply_fog_of_war_to_entities() took %dms - this is very slow!" % function_duration)
+
 ## Check if a position has a crop entity
 func _is_crop_at_position(pos: Vector2i) -> bool:
 	# Check if any entity at this position is a crop
@@ -777,17 +866,17 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 	# During daytime, exterior tiles aren't added to visibility_data to save memory
 	var is_daytime_outdoors = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 
+	# Check if entity is on interior tile (used by both day and night logic)
+	var entity_tile = current_map.get_tile(pos) if current_map else null
+	var is_interior_tile = entity_tile and entity_tile.is_interior
+
+	# Check if player is inside a building (used by both day and night logic)
+	var player_tile = current_map.get_tile(player_position) if current_map else null
+	var player_on_door = player_tile and player_tile.tile_type == "door"
+	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
+
 	if is_daytime_outdoors:
-		# Check if entity is on interior tile
-		var entity_tile = current_map.get_tile(pos) if current_map else null
-		var is_interior_tile = entity_tile and entity_tile.is_interior
-
 		if is_interior_tile:
-			# Check if player is inside a building or standing in a doorway
-			var player_tile = current_map.get_tile(player_position) if current_map else null
-			var player_on_door = player_tile and player_tile.tile_type == "door"
-			var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
-
 			if not player_inside_building:
 				# Player outside: interior entities completely hidden
 				return false
@@ -802,6 +891,12 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 
 	# Night/dungeons: Use cached visibility data from VisibilitySystem
 	# This includes LOS + lighting checks
+	# BUT also check if entity is inside a building and player is outside
+	if is_interior_tile and not player_inside_building:
+		# Player outside at night: interior entities completely hidden (can't see through walls)
+		return false
+
+	# Normal visibility check
 	if not visibility_data.is_empty():
 		return visibility_data.has(pos)
 

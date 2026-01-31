@@ -174,8 +174,9 @@ static func _calculate_twilight_visibility(origin: Vector2i, radius: int, _map) 
 	return result
 
 ## Night path: Only light sources visible on overworld
-## Optimized fast path - only processes light source radii, no ambient perception
-static func _calculate_night_visibility(origin: Vector2i, player_light_radius: int, map, light_sources: Array) -> VisibilityResult:
+## SUPER FAST PATH - no LOS checks, like twilight but only for lit areas
+## At night, only tiles within light source radii are visible
+static func _calculate_night_visibility(origin: Vector2i, player_light_radius: int, _map, light_sources: Array) -> VisibilityResult:
 	var result = VisibilityResult.new()
 
 	# Collect all tiles within range of light sources
@@ -194,6 +195,7 @@ static func _calculate_night_visibility(origin: Vector2i, player_light_radius: i
 					lit_positions[pos] = falloff
 
 	# Add tiles lit by map light sources (campfires, braziers, etc.)
+	# No LOS checks - light sources illuminate their full radius (like twilight)
 	for light_source in light_sources:
 		var light_pos = light_source.get("position", Vector2i.ZERO)
 		var light_radius = light_source.get("radius", 0)
@@ -201,21 +203,20 @@ static func _calculate_night_visibility(origin: Vector2i, player_light_radius: i
 		for dx in range(-light_radius, light_radius + 1):
 			for dy in range(-light_radius, light_radius + 1):
 				var pos = light_pos + Vector2i(dx, dy)
-				var dist = _chebyshev_distance(light_pos, pos)
-				if dist <= light_radius:
-					# Check if light can reach this tile
-					if _has_line_of_sight(light_pos, pos, map):
-						var falloff = 1.0 - (float(dist) / float(light_radius + 1))
-						# Keep the maximum light level at each position
-						if not lit_positions.has(pos) or falloff > lit_positions[pos]:
-							lit_positions[pos] = falloff
+				# Use Euclidean distance for circular radius (like twilight)
+				var dist_sq = dx * dx + dy * dy
+				var radius_sq = light_radius * light_radius
+				if dist_sq <= radius_sq:
+					var dist = sqrt(float(dist_sq))
+					var falloff = 1.0 - (dist / float(light_radius + 1))
+					# Keep the maximum light level at each position
+					if not lit_positions.has(pos) or falloff > lit_positions[pos]:
+						lit_positions[pos] = falloff
 
-	# Convert lit positions to visibility result
+	# Convert lit positions to visibility result (no LOS checks - like twilight)
 	for pos in lit_positions:
-		# Check LOS from player to lit position
-		if _has_line_of_sight(origin, pos, map):
-			result.visible_tiles.append(pos)
-			result.tile_data[pos] = {"lit": true, "light_level": lit_positions[pos], "in_los": true}
+		result.visible_tiles.append(pos)
+		result.tile_data[pos] = {"lit": true, "light_level": lit_positions[pos], "in_los": true}
 
 	return result
 

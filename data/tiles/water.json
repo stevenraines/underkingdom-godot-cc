@@ -2,6 +2,7 @@
   "id": "water",
   "display_name": "water",
   "ascii_char": "~",
+  "ascii_color": "#3366FF",
   "walkable": false,
   "transparent": true,
   "is_fire_source": false,

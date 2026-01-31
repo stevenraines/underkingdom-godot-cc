@@ -77,8 +77,11 @@ var _cached_stamina: float = -1
 var _cached_max_stamina: float = -1
 var _cached_mana: float = -1
 var _cached_max_mana: float = -1
-var _cached_hunger: float = -1
-var _cached_thirst: float = -1
+var _cached_evasion: int = -1
+var _cached_armor: int = -1
+
+# Message deduplication for stamina warning
+var _last_stamina_warning_turn: int = -999  # Track when last stamina warning was shown
 var _cached_temperature: float = -999
 var _cached_env_temperature: float = -999
 var _cached_location: String = ""
@@ -335,6 +338,7 @@ func _ready() -> void:
 	EventBus.item_unequipped.connect(_on_item_unequipped)
 	EventBus.weather_changed.connect(_on_weather_changed)
 	EventBus.entity_visual_changed.connect(_on_entity_visual_changed)
+	EventBus.chunk_loaded.connect(_on_chunk_loaded)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -901,6 +905,28 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	# Clear reentrancy guard
 	_processing_player_moved = false
 
+## Called when a chunk finishes loading (async or sync)
+## Triggers re-render for nearby chunks so player sees new content
+func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
+	# Only trigger re-render if we're in chunk mode and have a player
+	if not MapManager.current_map or not MapManager.current_map.chunk_based:
+		return
+	if not player:
+		return
+
+	# Check if this chunk is adjacent to or contains the player
+	var player_chunk = ChunkManagerClass.world_to_chunk(player.position)
+	var distance = max(abs(chunk_coords.x - player_chunk.x), abs(chunk_coords.y - player_chunk.y))
+
+	# Only re-render for nearby chunks (within load radius)
+	if distance <= ChunkManager.load_radius:
+		_full_render_needed = true
+		_render_map()
+		_update_visibility()
+		_render_all_entities()
+		# Re-render player on top
+		renderer.render_entity(player.position, "@", Color.YELLOW)
+
 ## Render any non-blocking entity at a specific position (crops, etc.)
 ## Skips rendering if player is at the position (player renders on top)
 func _render_entity_at(pos: Vector2i) -> void:
@@ -1104,6 +1130,12 @@ func _on_survival_warning(message: String, severity: String) -> void:
 
 ## Called when stamina is depleted
 func _on_stamina_depleted() -> void:
+	# Debounce: Only show message once per 3 turns to avoid spam
+	var current_turn = TurnManager.current_turn if TurnManager else 0
+	if current_turn - _last_stamina_warning_turn < 3:
+		return
+
+	_last_stamina_warning_turn = current_turn
 	_add_message("You are out of stamina!", Color(1.0, 0.5, 0.5))
 
 ## Called when any entity moves
@@ -1462,22 +1494,22 @@ func _update_hud() -> void:
 			var max_stam = s.get_max_stamina()
 			var mana = s.mana
 			var max_mana = s.get_max_mana()
-			var hunger = s.hunger
-			var thirst = s.thirst
+			var evasion = CombatSystem.get_evasion(player)
+			var armor = player.get_total_armor() if player.has_method("get_total_armor") else player.armor
 			var env_temp = s.get_environmental_temperature()
 			var player_temp = s.temperature
 
 			if stam != _cached_stamina or max_stam != _cached_max_stamina or \
 			   mana != _cached_mana or max_mana != _cached_max_mana or \
-			   hunger != _cached_hunger or thirst != _cached_thirst or \
+			   evasion != _cached_evasion or armor != _cached_armor or \
 			   abs(env_temp - _cached_env_temperature) > 0.5 or \
 			   abs(player_temp - _cached_temperature) > 0.5:
 				_cached_stamina = stam
 				_cached_max_stamina = max_stam
 				_cached_mana = mana
 				_cached_max_mana = max_mana
-				_cached_hunger = hunger
-				_cached_thirst = thirst
+				_cached_evasion = evasion
+				_cached_armor = armor
 				_cached_env_temperature = env_temp
 				_cached_temperature = player_temp
 				needs_update = true
@@ -1506,12 +1538,12 @@ func _update_hud() -> void:
 			if player.survival:
 				var stam_text = "Stam: %d/%d" % [int(_cached_stamina), int(_cached_max_stamina)]
 				var mana_text = "Mana: %d/%d" % [int(_cached_mana), int(_cached_max_mana)]
-				var hunger_text = "Hun: %d%%" % int(_cached_hunger)
-				var thirst_text = "Thr: %d%%" % int(_cached_thirst)
+				var evasion_text = "Eva: %d%%" % _cached_evasion
+				var armor_text = "Arm: %d" % _cached_armor
 				var env_temp = roundi(_cached_env_temperature)
 				var player_temp = roundi(_cached_temperature)
 				var temp_text = "Tmp: %d→%d°F" % [env_temp, player_temp]
-				survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, hunger_text, thirst_text, temp_text]
+				survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, evasion_text, armor_text, temp_text]
 
 			# Light source indicator
 			var light_text = ""
@@ -2312,10 +2344,15 @@ func open_crafting_screen() -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Common cleanup after closing any menu - refreshes display and HUD
+func _refresh_after_menu_close() -> void:
+	input_handler.set_ui_blocking(false)
+	_update_visibility()
+	_update_hud()
+
 func _on_crafting_closed() -> void:
 	# Called when crafting screen closes to re-enable player input
-	if input_handler:
-		input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Toggle build mode (called from input handler)
 func toggle_build_mode() -> void:
@@ -2396,15 +2433,14 @@ func toggle_debug_menu() -> void:
 
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
-	# Resume normal gameplay
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when build mode screen is closed
 func _on_build_mode_closed() -> void:
 	# Only clear if we're not in placement mode
 	if selected_structure_id == "":
 		build_mode_active = false
-		input_handler.set_ui_blocking(false)
+		_refresh_after_menu_close()
 
 ## Called when a structure is selected from build mode
 func _on_structure_selected(structure_id: String) -> void:
@@ -2419,7 +2455,7 @@ func _on_structure_selected(structure_id: String) -> void:
 
 ## Called when container screen is closed
 func _on_container_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when shop is opened
 func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
@@ -2429,7 +2465,7 @@ func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when training is opened
 func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
@@ -2439,7 +2475,7 @@ func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
 
 ## Called when training screen is closed
 func _on_training_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when shop screen requests switch to training
 func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
@@ -2461,7 +2497,7 @@ func _on_npc_menu_opened(menu_npc: NPC, menu_player: Player) -> void:
 
 ## Called when NPC menu screen is closed
 func _on_npc_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when trade is selected from NPC menu
 func _on_npc_menu_trade_selected(menu_npc: NPC, menu_player: Player) -> void:
@@ -2570,28 +2606,26 @@ func _unlock_shop_door(door_pos: Vector2i) -> void:
 
 ## Called when pause menu is closed
 func _on_pause_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when character sheet is closed
 func _on_character_sheet_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when level-up screen is closed
 func _on_level_up_screen_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 	# Reopen character sheet (it was hidden when level-up opened)
 	if character_sheet and player:
 		character_sheet.open(player)
-	# Refresh HUD
-	_update_hud()
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when debug menu is closed
 func _on_debug_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
@@ -2616,11 +2650,11 @@ func _on_perf_overlay_toggle() -> void:
 
 ## Called when world map is closed
 func _on_world_map_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when spell list is closed
 func _on_spell_list_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when player requests to cast a spell from the spell list
 func _on_spell_cast_requested(spell_id: String) -> void:
@@ -2689,7 +2723,7 @@ func _on_ritual_menu_requested() -> void:
 
 ## Called when ritual menu is closed
 func _on_ritual_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when player begins a ritual from the ritual menu
 func _on_ritual_started(ritual_id: String) -> void:
@@ -2699,7 +2733,7 @@ func _on_ritual_started(ritual_id: String) -> void:
 
 ## Called when special actions screen is closed
 func _on_special_actions_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 
 ## Called when a special action is used
@@ -2731,7 +2765,7 @@ func toggle_fast_travel() -> void:
 
 ## Called when fast travel screen is closed
 func _on_fast_travel_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when an item is picked up
 func _on_item_picked_up(item) -> void:
@@ -3042,7 +3076,7 @@ func open_rest_menu() -> void:
 
 ## Called when rest menu is closed
 func _on_rest_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when player requests rest from menu
 func _on_rest_requested(type: String, turns: int) -> void:

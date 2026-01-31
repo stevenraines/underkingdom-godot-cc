@@ -3,27 +3,33 @@ extends Control
 ## RestMenu - Rest/wait menu for resting multiple turns
 ##
 ## Allows player to rest until:
-## 1. Fully rested (stamina restored)
-## 2. Next time period (dawn, day, dusk, night)
-## 3. Specific number of turns
-## 4. Fully healed (only when on shelter tile)
-## 5. Mana restored (only if player has mana pool)
+## - Fully rested (stamina restored)
+## - Next time period (dawn, day, dusk, night)
+## - Fully healed (only when on shelter tile)
+## - Mana restored (only if player has mana pool)
+## - Specific number of turns (always last option)
 
 signal closed()
 signal rest_requested(rest_type: String, turns: int)
 
 @onready var title_label: Label = $Panel/MarginContainer/VBoxContainer/Title
-@onready var option1_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option1
-@onready var option2_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option2
-@onready var turns_input: LineEdit = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option3Container/TurnsInput
+@onready var option_rested: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionRested
+@onready var option_time: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionTime
+@onready var option_healed: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionHealed
+@onready var option_mana: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionMana
+@onready var option_custom_container: HBoxContainer = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionCustomContainer
+@onready var option_custom_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionCustomContainer/OptionCustomLabel
+@onready var turns_input: NumberInput = $Panel/MarginContainer/VBoxContainer/OptionsContainer/OptionCustomContainer/TurnsInput
 @onready var status_label: Label = $Panel/MarginContainer/VBoxContainer/StatusLabel
-@onready var option4_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option4
-@onready var option5_label: Label = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option5
+@onready var footer_label: Label = $Panel/MarginContainer/VBoxContainer/Footer
 
 var selected_index: int = 0
 var player: Player = null
 var is_on_shelter: bool = false  # Whether player is on a shelter tile
 var has_mana: bool = false  # Whether player has a mana pool (magic user)
+
+# Option types in display order (custom is always last)
+enum OptionType { RESTED, TIME, HEALED, MANA, CUSTOM }
 
 # Colors
 const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
@@ -32,10 +38,9 @@ const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Ensure LineEdit can receive focus when game is paused
-	# Note: @onready vars are set before _ready is called
-	turns_input.process_mode = Node.PROCESS_MODE_ALWAYS
-	turns_input.focus_mode = Control.FOCUS_ALL
+	# Connect NumberInput signals
+	turns_input.value_submitted.connect(_on_turns_submitted)
+	turns_input.cancelled.connect(_on_turns_cancelled)
 
 func _input(event: InputEvent) -> void:
 	if not visible:
@@ -46,72 +51,30 @@ func _input(event: InputEvent) -> void:
 		if not viewport:
 			return
 
-		# If the turns input has focus, let it handle digit keys and most input
-		if turns_input.has_focus():
-			match event.keycode:
-				KEY_ESCAPE:
-					turns_input.release_focus()
-					viewport.set_input_as_handled()
-				KEY_ENTER:
-					_confirm_turns_input()
-					viewport.set_input_as_handled()
-				KEY_UP:
-					turns_input.release_focus()
-					_navigate(-1)
-					viewport.set_input_as_handled()
-				KEY_TAB:
-					turns_input.release_focus()
-					# Tab from option 3: forward goes to next available option, Shift+Tab goes back
-					if event.shift_pressed:
-						selected_index = 1
-					else:
-						if is_on_shelter:
-							selected_index = 3  # Go to "Until fully healed"
-						elif has_mana:
-							selected_index = 4  # Go to "Until mana restored"
-						else:
-							selected_index = 0  # Wrap to first option
-					_update_selection()
-					viewport.set_input_as_handled()
-				_:
-					# Let other keys (digits, backspace, etc.) pass through to LineEdit
-					pass
-			return
+		var max_options = _get_max_options()
 
-		# Calculate max options: base 3 + shelter + mana
-		var max_options = 3
-		if is_on_shelter:
-			max_options += 1
-		if has_mana:
-			max_options += 1
+		# If the turns input is active, let it handle digit keys and most input
+		if turns_input.is_active:
+			# NumberInput handles Enter, Escape, digits, backspace
+			if turns_input.handle_input(event):
+				viewport.set_input_as_handled()
+				return
+			# For navigation keys, deactivate and fall through to normal handling
+			if event.keycode in [KEY_UP, KEY_DOWN, KEY_TAB]:
+				turns_input.deactivate()
+			else:
+				# Other keys not handled when input is active
+				return
+
 		match event.keycode:
 			KEY_ESCAPE:
 				_close()
 				viewport.set_input_as_handled()
-			KEY_1:
-				_select_option(0)
+			KEY_UP:
+				_navigate(-1, max_options)
 				viewport.set_input_as_handled()
-			KEY_2:
-				_select_option(1)
-				viewport.set_input_as_handled()
-			KEY_3:
-				# Focus on turns input
-				selected_index = 2
-				_update_selection()
-				turns_input.call_deferred("grab_focus")
-				viewport.set_input_as_handled()
-			KEY_4:
-				# Until fully healed (only if on shelter)
-				if is_on_shelter:
-					_select_option(3)
-				viewport.set_input_as_handled()
-			KEY_5:
-				# Until mana restored (only if player has mana)
-				if has_mana:
-					_select_option(4)
-				viewport.set_input_as_handled()
-			KEY_UP, KEY_DOWN:
-				# Consume arrow keys to prevent them from doing anything
+			KEY_DOWN:
+				_navigate(1, max_options)
 				viewport.set_input_as_handled()
 			KEY_TAB:
 				# Tab wraps around, Shift+Tab goes backwards
@@ -122,13 +85,11 @@ func _input(event: InputEvent) -> void:
 				else:
 					selected_index = (selected_index + 1) % max_options
 				_update_selection()
-				if selected_index == 2:
-					turns_input.call_deferred("grab_focus")
-				else:
-					turns_input.release_focus()
+				_update_focus()
 				viewport.set_input_as_handled()
 			KEY_ENTER:
 				_select_option(selected_index)
+				viewport.set_input_as_handled()
 
 		# Always consume keyboard input while rest menu is open
 		viewport.set_input_as_handled()
@@ -141,65 +102,79 @@ func open(p: Player) -> void:
 	_update_options()
 	_update_selection()
 	_update_status()
+	_update_focus()  # Ensure NumberInput state matches selected_index
 	show()
 	get_tree().paused = true
 
 func _close() -> void:
+	turns_input.deactivate()  # Ensure clean state for next open
 	hide()
 	get_tree().paused = false
 	closed.emit()
 
-func _navigate(direction: int) -> void:
-	selected_index = clamp(selected_index + direction, 0, 2)
-	_update_selection()
-	_update_focus()
-
-func _navigate_wrap(direction: int) -> void:
-	# Navigate with wrapping (for Tab key)
-	selected_index = (selected_index + direction) % 3
-	if selected_index < 0:
-		selected_index = 2
+func _navigate(direction: int, max_options: int = 3) -> void:
+	selected_index = clamp(selected_index + direction, 0, max_options - 1)
 	_update_selection()
 	_update_focus()
 
 func _update_focus() -> void:
-	# If selecting option 3, focus on input
-	if selected_index == 2:
-		# Grab focus immediately - the issue was likely something else
-		turns_input.grab_focus()
+	# Custom turns is always the last option
+	var custom_index = _get_max_options() - 1
+	if selected_index == custom_index:
+		turns_input.activate()
 	else:
-		turns_input.release_focus()
+		turns_input.deactivate()
+
+## Get the list of visible option types in order
+func _get_visible_options() -> Array:
+	var options = [OptionType.RESTED, OptionType.TIME]
+	if is_on_shelter:
+		options.append(OptionType.HEALED)
+	if has_mana:
+		options.append(OptionType.MANA)
+	options.append(OptionType.CUSTOM)  # Always last
+	return options
+
+## Get the option type at a given index
+func _get_option_at_index(index: int) -> int:
+	var options = _get_visible_options()
+	if index >= 0 and index < options.size():
+		return options[index]
+	return -1
 
 func _update_selection() -> void:
-	option1_label.modulate = COLOR_SELECTED if selected_index == 0 else COLOR_NORMAL
-	option2_label.modulate = COLOR_SELECTED if selected_index == 1 else COLOR_NORMAL
+	var options = _get_visible_options()
 
-	# Option 3 container highlighting
-	var opt3_container = $Panel/MarginContainer/VBoxContainer/OptionsContainer/Option3Container
-	for child in opt3_container.get_children():
-		if child is Label:
-			child.modulate = COLOR_SELECTED if selected_index == 2 else COLOR_NORMAL
+	# Update each option's highlight based on its position in visible options
+	for i in range(options.size()):
+		var is_selected = (i == selected_index)
+		var color = COLOR_SELECTED if is_selected else COLOR_NORMAL
 
-	# Option 4 highlighting (only visible when on shelter)
-	if option4_label:
-		option4_label.modulate = COLOR_SELECTED if selected_index == 3 else COLOR_NORMAL
-
-	# Option 5 highlighting (only visible when player has mana)
-	if option5_label:
-		option5_label.modulate = COLOR_SELECTED if selected_index == 4 else COLOR_NORMAL
+		match options[i]:
+			OptionType.RESTED:
+				option_rested.modulate = color
+			OptionType.TIME:
+				option_time.modulate = color
+			OptionType.HEALED:
+				option_healed.modulate = color
+			OptionType.MANA:
+				option_mana.modulate = color
+			OptionType.CUSTOM:
+				option_custom_label.modulate = color
+				turns_input.modulate = color
+				# Also highlight the suffix label
+				var suffix = option_custom_container.get_node("OptionCustomSuffix")
+				if suffix:
+					suffix.modulate = color
 
 func _update_options() -> void:
-	# Update option 2 with the next time period
+	# Update option visibility
+	option_healed.visible = is_on_shelter
+	option_mana.visible = has_mana
+
+	# Update time period text
 	var next_period = _get_next_time_period()
-	option2_label.text = "2. Until %s" % next_period.capitalize()
-
-	# Show/hide option 4 based on shelter status
-	if option4_label:
-		option4_label.visible = is_on_shelter
-
-	# Show/hide option 5 based on mana status
-	if option5_label:
-		option5_label.visible = has_mana
+	option_time.text = "Until %s" % next_period.capitalize()
 
 func _update_status() -> void:
 	if player and player.survival:
@@ -291,40 +266,49 @@ func _get_turns_until_next_period() -> int:
 	return 10  # Fallback
 
 func _select_option(index: int) -> void:
-	match index:
-		0:
-			# Until fully rested (stamina restored)
+	var option_type = _get_option_at_index(index)
+
+	match option_type:
+		OptionType.RESTED:
 			var turns_needed = _calculate_turns_to_full_stamina()
 			rest_requested.emit("stamina", turns_needed)
 			_close()
-		1:
-			# Until next time period
+		OptionType.TIME:
 			var turns_needed = _get_turns_until_next_period()
 			rest_requested.emit("time", turns_needed)
 			_close()
-		2:
-			# Custom turns - validate input
+		OptionType.HEALED:
+			var turns_needed = _calculate_turns_to_full_health()
+			rest_requested.emit("health", turns_needed)
+			_close()
+		OptionType.MANA:
+			var turns_needed = _calculate_turns_to_full_mana()
+			rest_requested.emit("mana", turns_needed)
+			_close()
+		OptionType.CUSTOM:
 			_confirm_turns_input()
-		3:
-			# Until fully healed (only available on shelter)
-			if is_on_shelter:
-				var turns_needed = _calculate_turns_to_full_health()
-				rest_requested.emit("health", turns_needed)
-				_close()
-		4:
-			# Until mana restored (only available if player has mana)
-			if has_mana:
-				var turns_needed = _calculate_turns_to_full_mana()
-				rest_requested.emit("mana", turns_needed)
-				_close()
 
 func _confirm_turns_input() -> void:
-	var text = turns_input.text.strip_edges()
-	if text.is_valid_int():
-		var turns = int(text)
-		if turns > 0 and turns <= 10000:
-			rest_requested.emit("custom", turns)
-			_close()
+	var turns = turns_input.get_value()
+	if turns > 0:
+		rest_requested.emit("custom", turns)
+		_close()
+
+## Called when NumberInput submits a value (Enter pressed)
+func _on_turns_submitted(value: int) -> void:
+	if value > 0:
+		rest_requested.emit("custom", value)
+		_close()
+
+## Called when NumberInput is cancelled (Escape pressed while input active)
+func _on_turns_cancelled() -> void:
+	turns_input.deactivate()
+	_navigate(-1, _get_max_options())
+	_update_selection()
+
+## Helper to get current max options count
+func _get_max_options() -> int:
+	return _get_visible_options().size()
 
 func _calculate_turns_to_full_stamina() -> int:
 	if not player or not player.survival:

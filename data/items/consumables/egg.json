@@ -13,10 +13,10 @@
   },
   "weight": 0.1,
   "value": 3,
-  "max_stack": 20,
+  "max_stack": 12,
   "ascii_char": "o",
   "ascii_color": "#FFFAF0",
   "effects": {
-    "hunger": 5
+    "hunger": 20
   }
 }

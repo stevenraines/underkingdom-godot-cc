@@ -18,13 +18,15 @@ signal cancelled()
 @onready var label: Label = $Label
 @onready var value_display: Label = $ValueDisplay
 
-var current_value: String = "1"
+var current_value: String = ""
 var is_active: bool = false
 var user_has_typed: bool = false  # Track if user has started typing (to replace default on first keystroke)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	label.text = label_text
+	# Initialize with default value
+	current_value = str(default_value)
 	_update_display()
 
 func activate(initial_value: int = -1) -> void:

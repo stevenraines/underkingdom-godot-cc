@@ -16,6 +16,6 @@
   "ascii_char": "%",
   "ascii_color": "#AA8855",
   "effects": {
-    "hunger": 25
+    "hunger": 100
   }
 }

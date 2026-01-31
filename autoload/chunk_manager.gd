@@ -13,7 +13,7 @@ var chunk_access_order: Array[Vector2i] = []  # LRU tracking: most recent at end
 var chunk_access_index: Dictionary = {}  # Vector2i -> index in chunk_access_order for O(1) lookup
 var visited_chunks: Dictionary = {}  # Vector2i (chunk_coords) -> bool (for minimap)
 var load_radius: int = 1  # Load chunks within 1 chunk distance (3x3 grid = 96x96 tiles covers 80x40 viewport)
-var unload_radius: int = 2  # Unload chunks beyond 2 chunk distance (same as load radius - unload immediately when leaving area)
+var unload_radius: int = 2  # Unload chunks beyond 2 chunk distance
 var max_cache_size: int = 100  # Maximum cached chunks (prevents memory growth)
 
 var world_seed: int = 0  # Set when map is loaded

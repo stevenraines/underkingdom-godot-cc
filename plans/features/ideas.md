@@ -1,6 +1,8 @@
 # Feature ideas to flesh out with Claude
 ---
 ## Unplanned
+
+- [ ] Add "Barrel" or "Cistern" as sources of fresh water.
 - [ ] Hide Cursed status of items
     Cursed items should never show that they are cursed until used / worn
 - [ ] Feature: Add Ritual to Charge Magic Items

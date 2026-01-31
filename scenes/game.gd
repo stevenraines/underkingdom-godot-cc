@@ -260,6 +260,12 @@ func _ready() -> void:
 		player = EntityManager.player
 		input_handler.set_player(player)
 
+	# Setup fog of war and map info BEFORE rendering (required for visibility checks)
+	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
+	renderer.set_map_info(map_id, chunk_based, MapManager.current_map)
+	renderer.set_fow_enabled(true)
+
 	# Load initial chunks for overworld
 	if MapManager.current_map and MapManager.current_map.chunk_based:
 		ChunkManager.update_active_chunks(player.position)
@@ -279,12 +285,6 @@ func _ready() -> void:
 	# Ensure input is enabled after initialization
 	if input_handler:
 		input_handler.set_ui_blocking(false)
-
-	# Setup fog of war
-	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
-	var chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
-	renderer.set_map_info(map_id, chunk_based, MapManager.current_map)
-	renderer.set_fow_enabled(true)
 
 	# Initialize light sources from structures (persistent lights only)
 	_initialize_light_sources_for_map()
@@ -2070,11 +2070,17 @@ func _incremental_render_entities() -> void:
 			continue
 
 		# Features require direct line of sight (not just light leak visibility)
+		# EXCEPT during daytime outdoors for exterior tiles (visibility_data is empty by design)
 		var vis_data = renderer.visibility_data if renderer else {}
-		if not vis_data.is_empty() and vis_data.has(pos):
-			# We have visibility data - check for direct LOS
-			if not vis_data[pos].get("in_los", false):
-				continue  # No direct LOS - skip rendering feature
+		var is_daytime_outdoors = MapManager.current_map and FOVSystemClass.is_daytime_outdoors(MapManager.current_map)
+		var tile = MapManager.current_map.get_tile(pos) if MapManager.current_map else null
+		var is_exterior = tile and not tile.is_interior
+
+		if not is_daytime_outdoors or not is_exterior:
+			# Night/interior: require LOS check
+			if not vis_data.is_empty() and vis_data.has(pos):
+				if not vis_data[pos].get("in_los", false):
+					continue  # No direct LOS - skip rendering feature
 
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})

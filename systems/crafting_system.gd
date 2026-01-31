@@ -95,8 +95,9 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 			result.message = "Error: Could not create item " + recipe.result_item_id
 			push_error("CraftingSystem: ItemManager failed to create " + recipe.result_item_id)
 	else:
-		# Failed craft - make failure very clear
-		result.message = "CRAFT FAILED! Ingredients lost. %s" % roll_info
+		# Failed craft - make failure very clear in both UI and game log
+		result.message = "CRAFT FAILED! %s - Ingredients lost. %s" % [recipe.get_display_name(), roll_info]
+		EventBus.message_logged.emit("Crafting failed! Your %s attempt failed and ingredients were consumed." % recipe.get_display_name())
 		EventBus.craft_failed.emit(recipe)
 
 	EventBus.craft_attempted.emit(recipe, success)

@@ -94,8 +94,9 @@ func generate(world_seed: int) -> void:
 				else:
 					tile.color = biome.color_grass
 			elif biome.base_tile == "water":
-				# Water tiles get their color from the biome (blue for fresh_water, etc.)
-				tile.color = biome.color_grass
+				# Water tiles keep their blue color from tile definition (#3366FF)
+				# Don't override - swamp/marsh water should still be blue, not green
+				pass
 
 			# Check for dungeon entrances at this position
 			if world_pos in entrance_lookup:

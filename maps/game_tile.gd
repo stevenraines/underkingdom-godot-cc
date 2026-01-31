@@ -98,6 +98,16 @@ static func create(type: String) -> GameTile:
 			tile.color = Color.html(definition.get("ascii_color"))
 		return tile
 
+	# Hardcoded fallback for water tiles (ensures blue color even if cache fails)
+	if type == "water":
+		tile.tile_type = "water"
+		tile.walkable = false
+		tile.transparent = true
+		tile.ascii_char = "~"
+		tile.color = Color(0.2, 0.4, 1.0)  # Blue water
+		tile.harvestable_resource_id = "water"
+		return tile
+
 	# Fallback for unknown types
 	push_warning("Unknown tile type: " + type + ", defaulting to floor")
 	tile.tile_type = "floor"

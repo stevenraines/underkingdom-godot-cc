@@ -443,10 +443,11 @@ func _update_details_panel(recipe: Recipe) -> void:
 			have_count = player.inventory.get_item_count_with_flag(ingredient["flag"])
 			ingredient_name = ingredient.get("display_name", "Any " + ingredient["flag"].capitalize())
 		else:
-			# Item-based ingredient
+			# Item-based ingredient - use get_ingredient_count to include provider items
+			# (e.g., waterskin_full provides fresh_water)
 			var ingredient_item_data = ItemManager.get_item_data(ingredient["item"])
 			if not ingredient_item_data.is_empty():
-				have_count = player.inventory.get_item_count(ingredient["item"])
+				have_count = player.inventory.get_ingredient_count(ingredient["item"])
 				ingredient_name = ingredient_item_data.get("name", ingredient["item"])
 			else:
 				continue  # Skip unknown items

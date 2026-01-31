@@ -1,9 +1,8 @@
 ## Version 1.6 Updates 
 ---
 
-- [ ] Can't craft receipes that require consumable item "fresh water" (#105)
-    not available from NPC sell lists, not provided by full waterskin, no crafting recipe. Full waterskin or a bollte of water should supply this.
-
+- [ ] "Fresh Water" not recognized when crafting because it is contained in a container(#105)
+    not available from NPC sell lists, not provided by full waterskin, no crafting recipe. Full waterskin or a flask, or bottle of water should supply this, but only when it is filled.
 - [ ] "blocked by stone floor" bug (#103)
     A player can receive an error message that they are blocked by a stone floor.  this may be caused by the spawn location of a zombie that was defeated in combat, but not sure
 - [ ] Some overworld drops cannot be picked up (#102)

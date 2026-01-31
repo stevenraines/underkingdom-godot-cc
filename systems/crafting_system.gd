@@ -302,7 +302,7 @@ static func _consume_workstation_tool_durability(workstation_type: String, inven
 				return
 
 
-## Format d20 roll breakdown for display (grey colored)
+## Format d20 roll breakdown for display
 ## Returns: "[X (Roll) +Y (ATTR) +Z (Skill) = total vs DC N]"
 static func _format_d20_roll(dice_roll: int, modifier: int, attr_name: String, skill: int, total: int, dc: int) -> String:
 	var parts: Array[String] = ["%d (Roll)" % dice_roll]
@@ -310,4 +310,4 @@ static func _format_d20_roll(dice_roll: int, modifier: int, attr_name: String, s
 	if skill > 0:
 		parts.append("+%d (Skill)" % skill)
 	parts.append("= %d vs DC %d" % [total, dc])
-	return "[color=gray][%s][/color]" % " ".join(parts)
+	return "[%s]" % " ".join(parts)

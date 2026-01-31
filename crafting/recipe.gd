@@ -111,10 +111,12 @@ func _get_seeded_ids_for_config(config: Dictionary, world_seed: int) -> Array[St
 	if all_variants.is_empty():
 		return []
 
-	# Create shuffled list using seeded random
+	# Create sorted list of variant names for deterministic selection
+	# (Dictionary iteration order is not guaranteed, so we must sort first)
 	var variant_names: Array[String] = []
 	for variant_name in all_variants:
 		variant_names.append(variant_name)
+	variant_names.sort()
 
 	# Use SeededRandom to deterministically select variants
 	var rng = SeededRandom.new(world_seed + seed_offset)

@@ -630,15 +630,15 @@ func _apply_fog_of_war_to_terrain() -> void:
 		var is_interior_tile = tile and tile.is_interior
 
 		if is_daytime_outdoors:
-			if is_interior_tile:
-				if player_inside_building:
-					# Player inside building: interior tiles visible with LOS
-					is_terrain_visible = _has_clear_los_to(pos)
-				else:
-					# Player outside: interior tiles completely hidden
-					is_terrain_visible = false
+			if player_inside_building:
+				# Player inside building: use interior LOS that blocks on exterior tiles
+				# This prevents seeing walls/interiors of other buildings
+				is_terrain_visible = _has_interior_los_to(pos)
+			elif is_interior_tile:
+				# Player outside: interior tiles completely hidden
+				is_terrain_visible = false
 			else:
-				# Exterior tiles always visible during daytime
+				# Player outside: exterior tiles always visible during daytime
 				is_terrain_visible = true
 		else:
 			# Night/dungeons: require LOS from FOV calculation
@@ -686,26 +686,34 @@ func _apply_fog_of_war_to_terrain() -> void:
 				else:
 					terrain_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
 		else:
-			# Interior tiles are ALWAYS black when not visible (never show "explored" state)
-			# This prevents seeing building interiors from outside
-			if is_interior_tile and not player_inside_building:
-				terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+			# Tile is NOT visible - decide whether to show explored state or hide completely
+			if is_daytime_outdoors:
+				if player_inside_building:
+					# Player inside building: hide tiles that failed LOS check
+					# This prevents seeing other buildings' walls/interiors
+					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+				elif is_interior_tile:
+					# Player outside: interior tiles completely hidden
+					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+				else:
+					# Player outside: exterior tiles show explored state
+					var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+					if tile_state == "explored":
+						terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
+					else:
+						terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 			else:
-				# Normal tiles show explored state
-				var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
-				match tile_state:
-					"explored":
-						# Dungeons: make explored areas very dark (barely visible)
-						# Overworld: lighter explored state for better navigation
-						if is_daytime_outdoors:
-							# Overworld: medium dark tint
-							terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_EXPLORED_COLOR, 0.7)
-						else:
+				# Night/dungeons: show explored state for non-interior tiles
+				if is_interior_tile and not player_inside_building:
+					terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+				else:
+					var tile_state = FogOfWarSystemClass.get_tile_state(current_map_id, pos, is_chunk_based)
+					match tile_state:
+						"explored":
 							# Dungeons: very dark, almost black
 							terrain_modulated_cells[pos] = _apply_fog_tint(original_color, FOG_UNEXPLORED_COLOR, 0.9)
-					_:  # "unexplored"
-						# Very dark gray
-						terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
+						_:  # "unexplored"
+							terrain_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 
 	_mark_terrain_dirty()
 
@@ -829,10 +837,14 @@ func _apply_fog_of_war_to_entities() -> void:
 				entity_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
 		else:
 			# Not in LOS - check if this is a crop during daytime (crops only always visible in daylight)
+			# But NOT when player is inside a building
 			var is_daytime_outdoors_for_crop = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
+			var player_tile_for_crop = current_map.get_tile(player_position) if current_map else null
+			var player_on_door_for_crop = player_tile_for_crop and player_tile_for_crop.tile_type == "door"
+			var player_inside_for_crop = player_tile_for_crop and (player_tile_for_crop.is_interior or player_on_door_for_crop)
 			var is_crop = _is_crop_at_position(pos)
-			if is_crop and is_daytime_outdoors_for_crop:
-				# Crops are always visible during daytime (like ground items/structures)
+			if is_crop and is_daytime_outdoors_for_crop and not player_inside_for_crop:
+				# Crops are always visible during daytime when player is outside
 				# Just apply fog dimming to match explored terrain
 				entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.6)
 			elif is_crop:
@@ -886,18 +898,16 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
 
 	if is_daytime_outdoors:
-		if is_interior_tile:
-			if not player_inside_building:
-				# Player outside: interior entities completely hidden
-				return false
-
-			# Interior entity, player inside: check visibility_data if available
-			if not visibility_data.is_empty():
-				return visibility_data.has(pos)
-			return visible_tiles_set.has(pos)
-
-		# Exterior entity during daytime - always visible
-		return true
+		if player_inside_building:
+			# Player inside building: use interior LOS that blocks on exterior tiles
+			# This prevents seeing NPCs/features in other buildings
+			return _has_interior_los_to(pos)
+		elif is_interior_tile:
+			# Player outside: interior entities completely hidden
+			return false
+		else:
+			# Player outside: exterior entities always visible during daytime
+			return true
 
 	# Night/dungeons: Use cached visibility data from VisibilitySystem
 	# This includes LOS + lighting checks
@@ -962,6 +972,52 @@ func _has_clear_los_to(target: Vector2i) -> bool:
 		# Remember previous position
 		prev_x = x
 		prev_y = y
+
+		var e2 = 2 * err
+		if e2 > -dy:
+			err -= dy
+			x += sx
+		if e2 < dx:
+			err += dx
+			y += sy
+
+	return true
+
+## LOS check for when player is inside a building
+## Blocks if path crosses exterior (outdoor) tiles - prevents seeing other buildings
+func _has_interior_los_to(target: Vector2i) -> bool:
+	if not current_map:
+		return false
+
+	var x0 = player_position.x
+	var y0 = player_position.y
+	var x1 = target.x
+	var y1 = target.y
+
+	var dx = abs(x1 - x0)
+	var dy = abs(y1 - y0)
+	var sx = 1 if x0 < x1 else -1
+	var sy = 1 if y0 < y1 else -1
+	var err = dx - dy
+
+	var x = x0
+	var y = y0
+
+	while true:
+		# Skip the start and end positions
+		if not (x == x0 and y == y0) and not (x == x1 and y == y1):
+			var check_pos = Vector2i(x, y)
+			var tile = current_map.get_tile(check_pos)
+			if tile:
+				# Block on non-transparent tiles (walls, closed doors)
+				if not tile.transparent:
+					return false
+				# Block on exterior tiles (outdoor ground) - this is what separates buildings
+				if not tile.is_interior and tile.tile_type != "door":
+					return false
+
+		if x == x1 and y == y1:
+			break
 
 		var e2 = 2 * err
 		if e2 > -dy:

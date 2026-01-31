@@ -2344,10 +2344,15 @@ func open_crafting_screen() -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Common cleanup after closing any menu - refreshes display and HUD
+func _refresh_after_menu_close() -> void:
+	input_handler.set_ui_blocking(false)
+	_update_visibility()
+	_update_hud()
+
 func _on_crafting_closed() -> void:
 	# Called when crafting screen closes to re-enable player input
-	if input_handler:
-		input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Toggle build mode (called from input handler)
 func toggle_build_mode() -> void:
@@ -2428,15 +2433,14 @@ func toggle_debug_menu() -> void:
 
 ## Called when inventory screen is closed
 func _on_inventory_closed() -> void:
-	# Resume normal gameplay
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when build mode screen is closed
 func _on_build_mode_closed() -> void:
 	# Only clear if we're not in placement mode
 	if selected_structure_id == "":
 		build_mode_active = false
-		input_handler.set_ui_blocking(false)
+		_refresh_after_menu_close()
 
 ## Called when a structure is selected from build mode
 func _on_structure_selected(structure_id: String) -> void:
@@ -2451,7 +2455,7 @@ func _on_structure_selected(structure_id: String) -> void:
 
 ## Called when container screen is closed
 func _on_container_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when shop is opened
 func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
@@ -2461,7 +2465,7 @@ func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 
 ## Called when shop screen is closed
 func _on_shop_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when training is opened
 func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
@@ -2471,7 +2475,7 @@ func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
 
 ## Called when training screen is closed
 func _on_training_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when shop screen requests switch to training
 func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
@@ -2493,7 +2497,7 @@ func _on_npc_menu_opened(menu_npc: NPC, menu_player: Player) -> void:
 
 ## Called when NPC menu screen is closed
 func _on_npc_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when trade is selected from NPC menu
 func _on_npc_menu_trade_selected(menu_npc: NPC, menu_player: Player) -> void:
@@ -2602,28 +2606,26 @@ func _unlock_shop_door(door_pos: Vector2i) -> void:
 
 ## Called when pause menu is closed
 func _on_pause_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when character sheet is closed
 func _on_character_sheet_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when level-up screen is closed
 func _on_level_up_screen_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 	# Reopen character sheet (it was hidden when level-up opened)
 	if character_sheet and player:
 		character_sheet.open(player)
-	# Refresh HUD
-	_update_hud()
 
 ## Called when help screen is closed
 func _on_help_screen_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when debug menu is closed
 func _on_debug_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
@@ -2648,11 +2650,11 @@ func _on_perf_overlay_toggle() -> void:
 
 ## Called when world map is closed
 func _on_world_map_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when spell list is closed
 func _on_spell_list_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when player requests to cast a spell from the spell list
 func _on_spell_cast_requested(spell_id: String) -> void:
@@ -2721,7 +2723,7 @@ func _on_ritual_menu_requested() -> void:
 
 ## Called when ritual menu is closed
 func _on_ritual_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when player begins a ritual from the ritual menu
 func _on_ritual_started(ritual_id: String) -> void:
@@ -2731,7 +2733,7 @@ func _on_ritual_started(ritual_id: String) -> void:
 
 ## Called when special actions screen is closed
 func _on_special_actions_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 
 ## Called when a special action is used
@@ -2763,7 +2765,7 @@ func toggle_fast_travel() -> void:
 
 ## Called when fast travel screen is closed
 func _on_fast_travel_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when an item is picked up
 func _on_item_picked_up(item) -> void:
@@ -3074,7 +3076,7 @@ func open_rest_menu() -> void:
 
 ## Called when rest menu is closed
 func _on_rest_menu_closed() -> void:
-	input_handler.set_ui_blocking(false)
+	_refresh_after_menu_close()
 
 ## Called when player requests rest from menu
 func _on_rest_requested(type: String, turns: int) -> void:

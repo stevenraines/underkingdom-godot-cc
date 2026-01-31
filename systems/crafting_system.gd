@@ -185,17 +185,22 @@ static func get_discovery_hint(recipe: Recipe, intelligence: int) -> String:
 	else:
 		return "You're not sure what these could make."
 
-## Calculate success chance for crafting
-## Base success = 100% - (difficulty - 1) * 10%
-## INT bonus = (INT - 10) * 5%
-## Crafting skill bonus = crafting_skill * 1%
-## Clamped to 50%-100%
+## Calculate success chance for crafting based on actual D20 roll mechanics
+## DC = difficulty * 2 + 8
+## Roll = d20 + INT_modifier + crafting_skill
+## INT_modifier = floor((INT - 10) / 2)
+## Chance = (21 - (DC - total_modifier)) / 20
 static func calculate_success_chance(difficulty: int, intelligence: int, crafting_skill: int = 0) -> float:
-	var base_success = 1.0 - (difficulty - 1) * 0.10
-	var int_bonus = (intelligence - 10) * 0.05
-	var skill_bonus = crafting_skill * 0.01  # +1% per skill level
-	var final_success = base_success + int_bonus + skill_bonus
-	return clampf(final_success, 0.5, 1.0)
+	var dc: int = difficulty * 2 + 8
+	var int_modifier: int = int((intelligence - 10) / 2.0)
+	var total_modifier: int = int_modifier + crafting_skill
+	var min_roll_needed: int = dc - total_modifier
+
+	# Calculate chance: need to roll min_roll_needed or higher on d20
+	# If min_roll_needed <= 1, auto-success (100%)
+	# If min_roll_needed > 20, impossible (0%)
+	var chance: float = (21.0 - float(min_roll_needed)) / 20.0
+	return clampf(chance, 0.0, 1.0)
 
 ## Check if there are enemies nearby (within specified range)
 ## Returns true if enemies are too close to craft safely

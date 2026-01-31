@@ -1,7 +1,7 @@
 ## Version 1.6 Updates 
 ---
 
-- [x] "Fresh Water" not recognized when crafting because it is contained in a container(#105)
+- [X] "Fresh Water" not recognized when crafting because it is contained in a container(#105)
     Fixed: Added `provides_ingredient` property to items. Full Waterskin now provides fresh_water for crafting and transforms to Empty Waterskin when used.
 - [ ] Healing Salve receipe can't be created (#101)
     This receipe does not have ingredients so it can't be made.

@@ -46,68 +46,89 @@ func get_turns_per_day() -> int:
 func advance_turn() -> void:
 	print("[TurnManager] === Starting turn %d ===" % (current_turn + 1))
 
+	# ========================================================================
+	# PHASE 1: PRE-TURN (Setup & Freeze World State)
+	# ========================================================================
+
 	# Player's turn is ending (they just took an action)
 	player_turn_ended.emit()
-
 	current_turn += 1
 	print("[TurnManager] Turn advanced to %d" % current_turn)
 
+	# Update time/calendar before freezing
 	_update_time_of_day()
 	print("[TurnManager] Time of day updated")
 
-	# Process player survival systems
+	# FREEZE chunk operations to prevent signal cascade during entity processing
+	ChunkManager.freeze_chunk_operations()
+	print("[TurnManager] Chunk operations FROZEN")
+
+	# Prepare entity snapshot for safe iteration
+	EntityManager.prepare_turn_snapshot()
+	print("[TurnManager] Entity snapshot prepared")
+
+	# Process player-only systems (survival, rituals)
 	_process_player_survival()
 	print("[TurnManager] Player survival processed")
 
-	# Process ritual channeling (if player is channeling a ritual)
 	_process_ritual_channeling()
 	print("[TurnManager] Ritual channeling processed")
 
-	# Process DoT effects (before duration processing)
-	_process_dot_effects()
-	print("[TurnManager] DoT effects processed")
+	# Process PLAYER effects (player is not in entities array, must be done separately)
+	if EntityManager.player:
+		if EntityManager.player.has_method("process_dot_effects"):
+			EntityManager.player.process_dot_effects()
+		if EntityManager.player.has_method("process_effect_durations"):
+			EntityManager.player.process_effect_durations()
+	print("[TurnManager] Player effects processed")
 
-	# Process active magical effect durations
-	_process_effect_durations()
-	print("[TurnManager] Effect durations processed")
+	# ========================================================================
+	# PHASE 2: EXECUTION (Process All Entity Actions with Frozen Chunks)
+	# ========================================================================
 
-	# Process enemy turns
+	# Process entity turns (DoTs + Effects + AI actions in single consolidated loop)
 	print("[TurnManager] Processing entity turns...")
 	EntityManager.process_entity_turns()
 	print("[TurnManager] Entity turns complete")
 
-	# CRITICAL: If player died during entity processing, stop turn advancement immediately
-	# This prevents resource/farming systems from running when player is dead, avoiding infinite loops
+	# EMERGENCY BRAKE: If player died, stop immediately
 	if EntityManager.player and not EntityManager.player.is_alive:
-		print("[TurnManager] !!! PLAYER DIED DURING TURN - Stopping turn advancement !!!")
+		# Emergency unfreeze without applying operations (prevents signal cascade)
+		ChunkManager.emergency_unfreeze()
+		print("[TurnManager] !!! PLAYER DIED - Stopping turn advancement !!!")
 		return
 
-	# Process renewable resource respawns
+	# ========================================================================
+	# PHASE 3: POST-TURN (Cleanup & Apply Deferred Changes)
+	# ========================================================================
+
+	# UNFREEZE chunk operations and apply queued loads/unloads
+	ChunkManager.unfreeze_and_apply_queued_operations()
+	print("[TurnManager] Chunk operations UNFROZEN and applied")
+
+	# Process world systems (now safe to modify chunks)
 	print("[TurnManager] Processing renewable resources...")
 	HarvestSystem.process_renewable_resources()
 	print("[TurnManager] Renewable resources complete")
 
-	# Process feature respawns (flora features)
 	print("[TurnManager] Processing feature respawns...")
 	FeatureManager.process_feature_respawns()
 	print("[TurnManager] Feature respawns complete")
 
-	# Process crop growth and tilled soil decay
 	print("[TurnManager] Processing farming systems...")
 	FarmingSystem.process_crop_growth()
 	FarmingSystem.process_tilled_soil_decay()
 	print("[TurnManager] Farming systems complete")
 
+	# Emit turn advanced signal
 	print("[TurnManager] Emitting turn_advanced signal")
 	EventBus.turn_advanced.emit(current_turn)
 
 	# Process auto-save if interval reached
 	_process_autosave()
 
-	# Reset player turn flag
+	# Reset player turn flag and emit signal
 	is_player_turn = true
-
-	# Player's turn is starting (they can act again)
 	player_turn_started.emit()
 	print("[TurnManager] === Turn %d complete ===" % current_turn)
 
@@ -198,55 +219,6 @@ func _generate_daily_weather() -> void:
 func wait_for_player() -> void:
 	is_player_turn = false
 	await EventBus.turn_advanced
-
-## Process DoT (Damage over Time) effects for player and all entities
-## Must be called BEFORE _process_effect_durations so damage happens before durations tick down
-## OPTIMIZATION: Only processes entities within ENEMY_PROCESS_RANGE of player
-func _process_dot_effects() -> void:
-	# Process player DoT effects
-	if EntityManager.player and EntityManager.player.has_method("process_dot_effects"):
-		EntityManager.player.process_dot_effects()
-
-	# Only process nearby entities (same range as AI processing)
-	# CRITICAL: Duplicate array to prevent modification during iteration (chunk unloads can happen)
-	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
-	for entity in EntityManager.entities.duplicate():
-		if entity == EntityManager.player:
-			continue
-
-		# Safety check: entity might have been removed by chunk unload
-		if entity not in EntityManager.entities:
-			continue
-
-		# Range check using Manhattan distance (faster than Euclidean)
-		var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
-		if dist <= EntityManager.ENEMY_PROCESS_RANGE and entity.has_method("process_dot_effects"):
-			entity.process_dot_effects()
-
-
-## Process active magical effect durations for player and all entities
-## OPTIMIZATION: Only processes entities within ENEMY_PROCESS_RANGE of player
-func _process_effect_durations() -> void:
-	# Process player effects
-	if EntityManager.player and EntityManager.player.has_method("process_effect_durations"):
-		EntityManager.player.process_effect_durations()
-
-	# Only process nearby entities (same range as AI processing)
-	# CRITICAL: Duplicate array to prevent modification during iteration (chunk unloads can happen)
-	var player_pos = EntityManager.player.position if EntityManager.player else Vector2i.ZERO
-	for entity in EntityManager.entities.duplicate():
-		if entity == EntityManager.player:
-			continue
-
-		# Safety check: entity might have been removed by chunk unload
-		if entity not in EntityManager.entities:
-			continue
-
-		# Range check using Manhattan distance (faster than Euclidean)
-		var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
-		if dist <= EntityManager.ENEMY_PROCESS_RANGE and entity.has_method("process_effect_durations"):
-			entity.process_effect_durations()
-
 
 ## Get severity level for a warning message
 func _get_warning_severity(warning: String) -> String:

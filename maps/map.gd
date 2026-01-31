@@ -51,6 +51,9 @@ func is_walkable(pos: Vector2i) -> bool:
 			return false
 
 	var tile = get_tile(pos)
+	# Handle null tile (chunk not loaded when frozen)
+	if not tile:
+		return false
 	if not tile.walkable:
 		return false
 
@@ -84,7 +87,11 @@ func is_transparent(pos: Vector2i) -> bool:
 		if chunk_coords not in ChunkManager.active_chunks:
 			return false  # Unloaded chunks are considered opaque
 
-	return get_tile(pos).transparent
+	var tile = get_tile(pos)
+	# Handle null tile (shouldn't happen but safety check)
+	if not tile:
+		return false
+	return tile.transparent
 
 ## Fill entire map with a tile type
 func fill(tile_type: String) -> void:

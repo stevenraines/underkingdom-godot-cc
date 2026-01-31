@@ -25,6 +25,11 @@ var _last_turn_number: int = -1
 const MAX_CHUNK_OPS_PER_TURN: int = 50  # Emergency brake
 var _updating_chunks: bool = false  # Prevent recursive calls
 
+# Chunk operation freezing (prevents chunk loading during entity processing)
+var _chunk_ops_frozen: bool = false
+var _queued_loads: Dictionary = {}  # Vector2i -> true (Dictionary for auto-deduplication)
+var _queued_unloads: Dictionary = {}  # Vector2i -> true
+
 func _ready() -> void:
 	print("ChunkManager initialized")
 	EventBus.map_changed.connect(_on_map_changed)
@@ -44,6 +49,46 @@ func enable_chunk_mode(map_id: String, seed: int) -> void:
 	else:
 		is_chunk_mode = false
 		print("[ChunkManager] Chunk mode disabled for %s" % map_id)
+
+## Freeze chunk loading/unloading (during entity processing)
+func freeze_chunk_operations() -> void:
+	_chunk_ops_frozen = true
+	_queued_loads.clear()
+	_queued_unloads.clear()
+	print("[ChunkManager] Chunk operations FROZEN")
+
+## Unfreeze and apply queued operations
+func unfreeze_and_apply_queued_operations() -> void:
+	_chunk_ops_frozen = false
+
+	var load_count = _queued_loads.size()
+	var unload_count = _queued_unloads.size()
+	print("[ChunkManager] Unfreezing and applying %d loads, %d unloads" % [load_count, unload_count])
+
+	# Unload first (frees memory)
+	for coords in _queued_unloads:
+		if coords in active_chunks:
+			unload_chunk(coords)
+	_queued_unloads.clear()
+
+	# Load requested chunks
+	for coords in _queued_loads:
+		if coords not in active_chunks:
+			load_chunk(coords)
+	_queued_loads.clear()
+
+	print("[ChunkManager] Chunk operations UNFROZEN")
+
+## Check if operations are frozen (for external checks)
+func is_frozen() -> bool:
+	return _chunk_ops_frozen
+
+## Emergency unfreeze without applying queued operations (for player death, etc.)
+func emergency_unfreeze() -> void:
+	_chunk_ops_frozen = false
+	_queued_loads.clear()
+	_queued_unloads.clear()
+	print("[ChunkManager] EMERGENCY UNFREEZE - queued operations discarded")
 
 ## Convert world position to chunk coordinates
 static func world_to_chunk(world_pos: Vector2i) -> Vector2i:
@@ -70,6 +115,18 @@ func get_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 ## Load/generate a chunk
 func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
+	# If frozen, queue the load and return cached chunk or null
+	if _chunk_ops_frozen:
+		_queued_loads[chunk_coords] = true  # Queue for later (auto-deduplicates)
+		print("[ChunkManager] Chunk load QUEUED: %v" % chunk_coords)
+
+		# Return cached chunk if available
+		if chunk_coords in chunk_cache:
+			return chunk_cache[chunk_coords]
+
+		# Return null - caller must handle gracefully
+		return null
+
 	# Circuit breaker: Track turn and prevent infinite chunk operations
 	var current_turn = TurnManager.current_turn if TurnManager else 0
 	if current_turn != _last_turn_number:
@@ -225,6 +282,12 @@ func _rebuild_access_index() -> void:
 
 ## Unload a chunk from active memory
 func unload_chunk(chunk_coords: Vector2i) -> void:
+	# If frozen, queue the unload
+	if _chunk_ops_frozen:
+		_queued_unloads[chunk_coords] = true  # Queue for later (auto-deduplicates)
+		print("[ChunkManager] Chunk unload QUEUED: %v" % chunk_coords)
+		return
+
 	# Circuit breaker: Track operations
 	var current_turn = TurnManager.current_turn if TurnManager else 0
 	if current_turn != _last_turn_number:
@@ -329,6 +392,11 @@ func get_tile(world_pos: Vector2i) -> GameTile:
 		local_pos.x = clampi(local_pos.x, 0, WorldChunk.CHUNK_SIZE - 1)
 		local_pos.y = clampi(local_pos.y, 0, WorldChunk.CHUNK_SIZE - 1)
 		return chunk.get_tile(local_pos)
+
+	# If frozen and chunk not available, return null (caller handles gracefully)
+	# This prevents LOF checks from seeing through walls when chunks are frozen
+	if _chunk_ops_frozen:
+		return null
 
 	# Outside island bounds - return ocean tile
 	return GameTile.create("water")

@@ -19,6 +19,10 @@ const ENEMY_DATA_BASE_PATH: String = "res://data/enemies"
 # Player reference (set by game scene)
 var player: Player = null
 
+# Turn processing snapshots (for chunk freeze safety)
+var _entity_snapshot: Array[Entity] = []
+var _active_chunks_snapshot: Dictionary = {}
+
 func _ready() -> void:
 	print("EntityManager initialized")
 	_load_enemy_definitions()
@@ -355,97 +359,144 @@ func get_blocking_entity_at(pos: Vector2i) -> Entity:
 
 	return null
 
+## Prepare snapshot for turn processing (called before chunk operations freeze)
+func prepare_turn_snapshot() -> void:
+	_entity_snapshot = entities.duplicate()
+	_active_chunks_snapshot = {}
+	for coords in ChunkManager.get_active_chunk_coords():
+		_active_chunks_snapshot[coords] = true
+	print("[EntityManager] Snapshot prepared: %d entities, %d active chunks" % [_entity_snapshot.size(), _active_chunks_snapshot.size()])
+
+## Check if chunk is in snapshot (O(1) lookup)
+func _is_chunk_active_snapshot(chunk_coords: Vector2i) -> bool:
+	return chunk_coords in _active_chunks_snapshot
+
 ## Maximum distance from player to process enemy AI (performance optimization)
 ## Enemies beyond this range don't take turns - they're effectively "frozen"
 const ENEMY_PROCESS_RANGE: int = 20
 
-## Process all entity turns (called after player turn)
+## Process all entity turns (CONSOLIDATED: DoTs + Effects + Turns in single loop)
 func process_entity_turns() -> void:
 	var player_pos = player.position if player else Vector2i.ZERO
 	var turn = TurnManager.current_turn if TurnManager else 0
 
 	print("[EntityManager] Turn %d: Processing entity turns (player at %v, player alive: %s)" % [turn, player_pos, player.is_alive if player else false])
 
-	# CRITICAL: If player is dead, stop processing immediately
+	# CRITICAL: If player is dead at start of turn, stop processing immediately
 	if player and not player.is_alive:
-		print("[EntityManager] PLAYER IS DEAD - Stopping entity turn processing")
+		print("[EntityManager] PLAYER IS DEAD at turn start - Stopping entity turn processing")
+		ChunkManager.emergency_unfreeze()
 		return
 
-	# First, process player's summons and tick their durations
+	# First, process player's summons (process ALL effects inline)
 	if player:
-		for summon in player.active_summons.duplicate():  # Duplicate to avoid modification during iteration
-			if summon.is_alive:
-				# Tick duration first - may dismiss the summon
-				if summon.tick_duration():
-					summon.take_turn()
+		print("[EntityManager] Processing %d player summons..." % player.active_summons.size())
+		for summon in player.active_summons.duplicate():
+			if not summon.is_alive:
+				continue
 
-			# Check if player died during summon processing
+			# Tick duration first - may dismiss the summon
+			if summon.tick_duration():
+				# Process all effects for this summon inline
+				if summon.has_method("process_dot_effects"):
+					summon.process_dot_effects()
+
+				if summon.has_method("process_effect_durations"):
+					summon.process_effect_durations()
+
+				# Take turn
+				summon.take_turn()
+
+			# Emergency brake
 			if not player.is_alive:
 				print("[EntityManager] Player died during summon processing - stopping")
+				ChunkManager.emergency_unfreeze()
 				return
 
+	# CONSOLIDATED ENTITY LOOP (DoTs + Effects + Turns in single pass)
+	print("[EntityManager] Processing %d entities from snapshot..." % _entity_snapshot.size())
 	var entities_processed = 0
 	var npcs_processed = 0
 	var enemies_processed = 0
 	var entity_index = 0
+	const MAX_ENTITIES_PER_TURN: int = 1000  # Safety limit to prevent infinite loops
 
-	# CRITICAL: Duplicate array to prevent modification during iteration
-	# Chunk unloads can happen during entity turns (e.g., cross-chunk combat),
-	# which would modify the entities array and cause freezes/crashes
-	var entities_snapshot = entities.duplicate()
-
-	# Get active chunks once for O(1) checks
-	var active_chunk_coords = ChunkManager.get_active_chunk_coords()
-	var active_chunks_set: Dictionary = {}
-	for coords in active_chunk_coords:
-		active_chunks_set[coords] = true
-
-	for entity in entities_snapshot:
+	for entity in _entity_snapshot:
 		entity_index += 1
+
+		# MAX ITERATION SAFEGUARD: Prevent infinite loops
+		if entity_index > MAX_ENTITIES_PER_TURN:
+			push_error("[EntityManager] EMERGENCY BRAKE: Processed %d entities, exceeds max limit! Stopping." % entity_index)
+			ChunkManager.emergency_unfreeze()
+			return
 
 		# EMERGENCY BRAKE: Check if player died
 		if player and not player.is_alive:
-			print("[EntityManager] PLAYER DIED - Stopping entity processing at entity %d/%d" % [entity_index, entities.size()])
+			print("[EntityManager] PLAYER DIED - Stopping entity processing at entity %d/%d" % [entity_index, _entity_snapshot.size()])
+			ChunkManager.emergency_unfreeze()
 			return
 
 		# Safety check: skip dead entities (may have died during previous entity's turn)
 		if not entity.is_alive:
 			continue
 
-		# Safety check: skip entities whose CURRENT position chunk was unloaded (O(1) dictionary check)
-		# NPCs have source_chunk = Vector2i(-999, -999) so they're persistent
-		# Check the chunk the entity is CURRENTLY in, not where it spawned
-		var current_chunk = ChunkManagerClass.world_to_chunk(entity.position)
-		if entity.source_chunk != Vector2i(-999, -999) and current_chunk not in active_chunks_set:
-			print("[EntityManager] Entity '%s' at %v (chunk %v) in unloaded chunk - skipping" % [entity.name, entity.position, current_chunk])
+		# Safety check: skip if removed from entities array (death during this turn)
+		if entity not in entities:
 			continue
 
 		# Skip summons (already processed above)
 		if "is_summon" in entity and entity.is_summon:
 			continue
 
-		if entity is Enemy:
-			# Only process enemies within range of player (performance optimization)
-			var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
-			if dist <= ENEMY_PROCESS_RANGE:
-				entities_processed += 1
-				enemies_processed += 1
-				print("[EntityManager] Enemy #%d '%s' taking turn..." % [entity_index, entity.name])
-				(entity as Enemy).take_turn()
-				print("[EntityManager] Enemy #%d '%s' turn complete" % [entity_index, entity.name])
+		# Check if entity's chunk is active (use snapshot, not live state)
+		# NPCs have source_chunk = Vector2i(-999, -999) so they're persistent
+		var current_chunk = ChunkManagerClass.world_to_chunk(entity.position)
+		if entity.source_chunk != Vector2i(-999, -999) and not _is_chunk_active_snapshot(current_chunk):
+			print("[EntityManager] Entity '%s' at %v (chunk %v) in unloaded chunk - skipping" % [entity.name, entity.position, current_chunk])
+			continue
 
-				# Check if player died from this enemy's action
-				if player and not player.is_alive:
-					print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
-					return
+		# Range check: Only process entities within ENEMY_PROCESS_RANGE
+		var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
+		if dist > ENEMY_PROCESS_RANGE:
+			continue
+
+		# === PROCESS ALL EFFECTS FOR THIS ENTITY IN SEQUENCE ===
+		# 1. DoT effects (damage over time)
+		if entity.has_method("process_dot_effects"):
+			entity.process_dot_effects()
+			# Emergency brake: Check if player died from DoT
+			if player and not player.is_alive:
+				print("[EntityManager] !!! PLAYER DIED from DoT effects - stopping entity processing !!!")
+				ChunkManager.emergency_unfreeze()
+				return
+
+		# 2. Effect durations (expire effects)
+		if entity.has_method("process_effect_durations"):
+			entity.process_effect_durations()
+			# Emergency brake: Check if player died from effect expiration
+			if player and not player.is_alive:
+				print("[EntityManager] !!! PLAYER DIED from effect expiration - stopping entity processing !!!")
+				ChunkManager.emergency_unfreeze()
+				return
+
+		# 3. Take turn (AI action)
+		if entity is Enemy:
+			entities_processed += 1
+			enemies_processed += 1
+			print("[EntityManager] Enemy #%d '%s' taking turn..." % [entity_index, entity.name])
+			(entity as Enemy).take_turn()
+			print("[EntityManager] Enemy #%d '%s' turn complete" % [entity_index, entity.name])
+
+			# Check if player died from this enemy's action
+			if player and not player.is_alive:
+				print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
+				ChunkManager.emergency_unfreeze()
+				return
 		elif entity.has_method("process_turn"):
-			# NPC or other entity with turn processing - also use spatial filtering
-			var dist = abs(entity.position.x - player_pos.x) + abs(entity.position.y - player_pos.y)
-			if dist <= ENEMY_PROCESS_RANGE:
-				entities_processed += 1
-				npcs_processed += 1
-				print("[EntityManager] Processing NPC at %v (dist: %d)" % [entity.position, dist])
-				entity.process_turn()
+			entities_processed += 1
+			npcs_processed += 1
+			print("[EntityManager] Processing NPC at %v (dist: %d)" % [entity.position, dist])
+			entity.process_turn()
 
 	print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs)" % [turn, entities_processed, enemies_processed, npcs_processed])
 

@@ -1047,6 +1047,16 @@ func _try_pickup_item() -> void:
 		var ground_item = ground_items[0]  # Pick up first item
 		if player.pickup_item(ground_item):
 			EntityManager.remove_entity(ground_item)
+		else:
+			# Pickup failed - provide feedback
+			var game = get_parent()
+			if game and game.has_method("_add_message") and ground_item and ground_item.item:
+				game._add_message("Cannot pick up %s (inventory full or too heavy)" % ground_item.item.name, Color(0.9, 0.6, 0.4))
+	else:
+		# No items at position
+		var game = get_parent()
+		if game and game.has_method("_add_message"):
+			game._add_message("No items here to pick up.", Color(0.7, 0.7, 0.7))
 
 ## Try to interact with an adjacent NPC
 func _try_interact_npc() -> void:

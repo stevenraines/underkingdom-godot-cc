@@ -1010,6 +1010,10 @@ func _auto_pickup_items() -> void:
 	for ground_item in ground_items:
 		if player.pickup_item(ground_item):
 			EntityManager.remove_entity(ground_item)
+		else:
+			# Pickup failed - provide feedback (only show once per position)
+			if ground_item and ground_item.item:
+				_add_message("Cannot pick up %s (inventory full or too heavy)" % ground_item.item.name, Color(0.9, 0.6, 0.4))
 
 ## Toggle auto-pickup on/off
 func toggle_auto_pickup() -> void:

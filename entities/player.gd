@@ -1061,15 +1061,18 @@ func get_total_armor() -> int:
 ## Pick up a ground item
 func pickup_item(ground_item: GroundItem) -> bool:
 	if not ground_item or not ground_item.item:
+		print("[Player] pickup_item failed: ground_item or item is null")
 		return false
 
 	if not inventory:
+		print("[Player] pickup_item failed: no inventory")
 		return false
 
 	# Check encumbrance before picking up
 	var new_weight = inventory.get_total_weight() + ground_item.item.get_total_weight()
 	if new_weight / inventory.max_weight > 1.25:
 		# Would be too heavy to move at all
+		print("[Player] pickup_item failed: too heavy (weight: %.1f / %.1f)" % [new_weight, inventory.max_weight])
 		return false
 
 	var item = ground_item.item
@@ -1098,6 +1101,7 @@ func pickup_item(ground_item: GroundItem) -> bool:
 		EventBus.item_picked_up.emit(item)
 		return true
 
+	print("[Player] pickup_item failed: inventory.add_item returned false (likely full)")
 	return false
 
 ## Drop an item from inventory

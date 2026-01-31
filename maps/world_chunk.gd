@@ -651,9 +651,18 @@ func _spawn_town_npcs(npc_spawns: Array, town_id: String) -> void:
 		push_warning("[WorldChunk] EntityManager not available for NPC spawning")
 		return
 
+	# Get MapManager to store NPC spawn data for respawning after map transitions
+	var map_manager = _get_autoload("MapManager")
+
 	for spawn in npc_spawns:
 		spawn["town_id"] = town_id
 		entity_manager.spawn_npc(spawn)
+
+		# Store spawn data in map metadata so NPCs can be respawned after dungeon return
+		if map_manager and map_manager.current_map:
+			var metadata_spawns = map_manager.current_map.metadata.get("npc_spawns", [])
+			metadata_spawns.append(spawn)
+			map_manager.current_map.metadata["npc_spawns"] = metadata_spawns
 
 	print("[WorldChunk] Spawned %d NPCs for %s" % [npc_spawns.size(), town_id])
 

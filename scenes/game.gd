@@ -1042,6 +1042,12 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
 
+	# Setup fog of war for new map BEFORE chunk loading and rendering
+	# This ensures renderer.current_map is set so is_position_visible() works for features/NPCs
+	var fow_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
+	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
+	renderer.set_map_info(fow_map_id, fow_chunk_based, MapManager.current_map)
+
 	# Spawn or restore enemies for the new map
 	print("[Game] 3/8 Spawning/restoring enemies")
 	# Try to restore from saved state first (for visited maps)
@@ -1056,29 +1062,26 @@ func _on_map_changed(map_id: String) -> void:
 		ChunkManager.update_active_chunks(player.position)
 		print("[Game] 4/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
 
-	# Render map and entities
-	print("[Game] 5/8 Rendering map")
+	# Initialize light sources for new map (braziers, torches, etc.)
+	# MUST happen before visibility calculation
+	print("[Game] 5/8 Initializing light sources")
+	_initialize_light_sources_for_map()
+
+	# Clear stale visibility data and calculate fresh visibility BEFORE rendering
+	# This is critical for interior tile visibility (NPCs in shops, etc.)
+	print("[Game] 6/8 Calculating visibility")
+	renderer.set_visibility_data({})  # Clear stale dungeon visibility data
+	_update_visibility()
+
+	# Render map and entities (now with correct visibility data)
+	print("[Game] 7/8 Rendering map and entities")
 	_render_map()
-	print("[Game] 6/8 Rendering entities")
 	_render_all_entities()
 
 	# Re-render player at new position
-	print("[Game] 7/8 Rendering player")
+	print("[Game] 8/8 Rendering player")
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
-
-	# Setup fog of war for new map
-	var fow_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
-	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
-	renderer.set_map_info(fow_map_id, fow_chunk_based, MapManager.current_map)
-
-	# Initialize light sources for new map (braziers, torches, etc.)
-	print("[Game] 8a/8 Initializing light sources")
-	_initialize_light_sources_for_map()
-
-	# Update visibility (FOV + lighting)
-	print("[Game] 8b/8 Calculating visibility")
-	_update_visibility()
 
 	# Update message
 	_update_message()

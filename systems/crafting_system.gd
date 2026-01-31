@@ -73,6 +73,10 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 			# Add to player inventory
 			player.inventory.add_item(result.result_item)
 
+			# Auto-identify crafted items - if you made it, you know what it is
+			if result.result_item.unidentified:
+				IdentificationManager.identify_item(recipe.result_item_id)
+
 			# Consume workstation tool durability
 			if recipe.workstation_required != "":
 				_consume_workstation_tool_durability(recipe.workstation_required, player.inventory)
@@ -85,14 +89,16 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 
 			result.success = true
 			result.message = "Successfully crafted %s! %s" % [recipe.get_display_name(), roll_info]
+			EventBus.message_logged.emit("You crafted %s." % recipe.get_display_name())
 
 			EventBus.craft_succeeded.emit(recipe, result.result_item)
 		else:
 			result.message = "Error: Could not create item " + recipe.result_item_id
 			push_error("CraftingSystem: ItemManager failed to create " + recipe.result_item_id)
 	else:
-		# Failed craft
-		result.message = "Failed to craft %s. %s Components were consumed." % [recipe.get_display_name(), roll_info]
+		# Failed craft - make failure very clear in both UI and game log
+		result.message = "CRAFT FAILED! %s - Ingredients lost. %s" % [recipe.get_display_name(), roll_info]
+		EventBus.message_logged.emit("Crafting failed! Your %s attempt failed and ingredients were consumed." % recipe.get_display_name())
 		EventBus.craft_failed.emit(recipe)
 
 	EventBus.craft_attempted.emit(recipe, success)
@@ -163,7 +169,7 @@ static func attempt_experiment(player: Player, ingredient_ids: Array[String], ne
 		return result
 
 ## Get hint for failed experiment based on INT
-static func get_experiment_hint(ingredient_ids: Array[String], intelligence: int) -> String:
+static func get_experiment_hint(_ingredient_ids: Array[String], intelligence: int) -> String:
 	if intelligence >= 14:
 		return "These materials don't seem compatible. Experiment failed, components lost."
 	elif intelligence >= 10:
@@ -180,17 +186,22 @@ static func get_discovery_hint(recipe: Recipe, intelligence: int) -> String:
 	else:
 		return "You're not sure what these could make."
 
-## Calculate success chance for crafting
-## Base success = 100% - (difficulty - 1) * 10%
-## INT bonus = (INT - 10) * 5%
-## Crafting skill bonus = crafting_skill * 1%
-## Clamped to 50%-100%
+## Calculate success chance for crafting based on actual D20 roll mechanics
+## DC = difficulty * 2 + 8
+## Roll = d20 + INT_modifier + crafting_skill
+## INT_modifier = floor((INT - 10) / 2)
+## Chance = (21 - (DC - total_modifier)) / 20
 static func calculate_success_chance(difficulty: int, intelligence: int, crafting_skill: int = 0) -> float:
-	var base_success = 1.0 - (difficulty - 1) * 0.10
-	var int_bonus = (intelligence - 10) * 0.05
-	var skill_bonus = crafting_skill * 0.01  # +1% per skill level
-	var final_success = base_success + int_bonus + skill_bonus
-	return clampf(final_success, 0.5, 1.0)
+	var dc: int = difficulty * 2 + 8
+	var int_modifier: int = int((intelligence - 10) / 2.0)
+	var total_modifier: int = int_modifier + crafting_skill
+	var min_roll_needed: int = dc - total_modifier
+
+	# Calculate chance: need to roll min_roll_needed or higher on d20
+	# If min_roll_needed <= 1, auto-success (100%)
+	# If min_roll_needed > 20, impossible (0%)
+	var chance: float = (21.0 - float(min_roll_needed)) / 20.0
+	return clampf(chance, 0.0, 1.0)
 
 ## Check if there are enemies nearby (within specified range)
 ## Returns true if enemies are too close to craft safely
@@ -297,7 +308,7 @@ static func _consume_workstation_tool_durability(workstation_type: String, inven
 				return
 
 
-## Format d20 roll breakdown for display (grey colored)
+## Format d20 roll breakdown for display
 ## Returns: "[X (Roll) +Y (ATTR) +Z (Skill) = total vs DC N]"
 static func _format_d20_roll(dice_roll: int, modifier: int, attr_name: String, skill: int, total: int, dc: int) -> String:
 	var parts: Array[String] = ["%d (Roll)" % dice_roll]
@@ -305,4 +316,4 @@ static func _format_d20_roll(dice_roll: int, modifier: int, attr_name: String, s
 	if skill > 0:
 		parts.append("+%d (Skill)" % skill)
 	parts.append("= %d vs DC %d" % [total, dc])
-	return "[color=gray][%s][/color]" % " ".join(parts)
+	return "[%s]" % " ".join(parts)

@@ -102,6 +102,9 @@ var passive_effects: Dictionary = {} # {stat_bonuses: {STR: +1}, resistances: {f
 # Transform on use (e.g., full waterskin -> empty waterskin)
 var transforms_into: String = ""    # Item ID to transform into after use
 
+# Crafting ingredient provision (e.g., waterskin_full provides fresh_water)
+var provides_ingredient: String = "" # Item ID this item can provide as a crafting ingredient
+
 # Template/variant tracking (for factory-generated items)
 var template_id: String = ""        # Original template ID (e.g., "knife")
 var applied_variants: Dictionary = {} # {variant_type: variant_name}
@@ -229,6 +232,9 @@ static func create_from_data(data: Dictionary) -> Item:
 	# Transform on use
 	item.transforms_into = data.get("transforms_into", "")
 
+	# Crafting ingredient provision
+	item.provides_ingredient = data.get("provides_ingredient", "")
+
 	# Template/variant tracking (for factory-generated items)
 	if "_template_id" in data:
 		item.template_id = data.get("_template_id", "")
@@ -294,6 +300,7 @@ func duplicate_item() -> Item:
 	copy.inscription = inscription
 	copy.effects = effects.duplicate()
 	copy.transforms_into = transforms_into
+	copy.provides_ingredient = provides_ingredient
 	copy.template_id = template_id
 	copy.applied_variants = applied_variants.duplicate()
 	copy.is_templated = is_templated

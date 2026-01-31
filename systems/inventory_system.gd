@@ -213,6 +213,82 @@ func get_item_with_flag(flag_name: String) -> Item:
 			return item
 	return null
 
+## Check if inventory has an ingredient (direct item OR item that provides it)
+## This is used by crafting to allow water containers to satisfy fresh_water requirements
+func has_ingredient(ingredient_id: String, count: int = 1) -> bool:
+	return get_ingredient_count(ingredient_id) >= count
+
+## Get total count of an ingredient (direct items + items that provide it)
+## Each provider item counts as 1 of the ingredient it provides
+func get_ingredient_count(ingredient_id: String) -> int:
+	var total = 0
+	for item in items:
+		if item.id == ingredient_id:
+			total += item.stack_size
+		elif item.provides_ingredient == ingredient_id:
+			# Each provider item counts as 1 (can't stack water in a waterskin)
+			total += item.stack_size
+	return total
+
+## Get first item that provides a specific ingredient
+func get_ingredient_provider(ingredient_id: String) -> Item:
+	for item in items:
+		if item.provides_ingredient == ingredient_id:
+			return item
+	return null
+
+## Consume an ingredient from inventory (handles both direct items and providers)
+## For providers: transforms the item instead of removing it
+## Returns the actual number consumed
+func consume_ingredient(ingredient_id: String, count: int = 1) -> int:
+	var consumed = 0
+	var to_remove: Array[Item] = []
+	var to_add: Array[Item] = []
+
+	# First try direct items
+	for item in items:
+		if item.id == ingredient_id and consumed < count:
+			var can_consume = mini(item.stack_size, count - consumed)
+			item.remove_from_stack(can_consume)
+			consumed += can_consume
+
+			if item.is_empty():
+				to_remove.append(item)
+
+	# Then try provider items
+	for item in items:
+		if consumed >= count:
+			break
+		if item.provides_ingredient == ingredient_id:
+			# Each provider provides 1 ingredient and transforms
+			var can_consume = mini(item.stack_size, count - consumed)
+			for i in range(can_consume):
+				consumed += 1
+				# Transform the item (e.g., waterskin_full -> waterskin_empty)
+				if item.transforms_into != "":
+					var transformed_item = ItemManager.create_item(item.transforms_into, 1)
+					if transformed_item:
+						to_add.append(transformed_item)
+				# Remove one from stack
+				item.remove_from_stack(1)
+				if item.is_empty():
+					to_remove.append(item)
+					break
+
+	# Clean up empty stacks
+	for item in to_remove:
+		items.erase(item)
+
+	# Add transformed items
+	for item in to_add:
+		add_item(item)
+
+	if consumed > 0:
+		EventBus.inventory_changed.emit()
+		EventBus.encumbrance_changed.emit(get_encumbrance_ratio())
+
+	return consumed
+
 ## Get total count of an item by ID
 func get_item_count(item_id: String) -> int:
 	var total = 0

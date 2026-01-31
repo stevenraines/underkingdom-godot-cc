@@ -17,7 +17,7 @@
   "ascii_char": "!",
   "ascii_color": "#FFFFF0",
   "effects": {
-    "hunger": 8,
-    "thirst": 10
+    "hunger": 20,
+    "thirst": 80
   }
 }

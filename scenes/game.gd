@@ -77,11 +77,11 @@ var _cached_stamina: float = -1
 var _cached_max_stamina: float = -1
 var _cached_mana: float = -1
 var _cached_max_mana: float = -1
-var _cached_hunger: float = -1
+var _cached_evasion: int = -1
+var _cached_armor: int = -1
 
 # Message deduplication for stamina warning
 var _last_stamina_warning_turn: int = -999  # Track when last stamina warning was shown
-var _cached_thirst: float = -1
 var _cached_temperature: float = -999
 var _cached_env_temperature: float = -999
 var _cached_location: String = ""
@@ -1494,22 +1494,22 @@ func _update_hud() -> void:
 			var max_stam = s.get_max_stamina()
 			var mana = s.mana
 			var max_mana = s.get_max_mana()
-			var hunger = s.hunger
-			var thirst = s.thirst
+			var evasion = CombatSystem.get_evasion(player)
+			var armor = player.get_total_armor() if player.has_method("get_total_armor") else player.armor
 			var env_temp = s.get_environmental_temperature()
 			var player_temp = s.temperature
 
 			if stam != _cached_stamina or max_stam != _cached_max_stamina or \
 			   mana != _cached_mana or max_mana != _cached_max_mana or \
-			   hunger != _cached_hunger or thirst != _cached_thirst or \
+			   evasion != _cached_evasion or armor != _cached_armor or \
 			   abs(env_temp - _cached_env_temperature) > 0.5 or \
 			   abs(player_temp - _cached_temperature) > 0.5:
 				_cached_stamina = stam
 				_cached_max_stamina = max_stam
 				_cached_mana = mana
 				_cached_max_mana = max_mana
-				_cached_hunger = hunger
-				_cached_thirst = thirst
+				_cached_evasion = evasion
+				_cached_armor = armor
 				_cached_env_temperature = env_temp
 				_cached_temperature = player_temp
 				needs_update = true
@@ -1538,12 +1538,12 @@ func _update_hud() -> void:
 			if player.survival:
 				var stam_text = "Stam: %d/%d" % [int(_cached_stamina), int(_cached_max_stamina)]
 				var mana_text = "Mana: %d/%d" % [int(_cached_mana), int(_cached_max_mana)]
-				var hunger_text = "Hun: %d%%" % int(_cached_hunger)
-				var thirst_text = "Thr: %d%%" % int(_cached_thirst)
+				var evasion_text = "Eva: %d%%" % _cached_evasion
+				var armor_text = "Arm: %d" % _cached_armor
 				var env_temp = roundi(_cached_env_temperature)
 				var player_temp = roundi(_cached_temperature)
 				var temp_text = "Tmp: %d→%d°F" % [env_temp, player_temp]
-				survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, hunger_text, thirst_text, temp_text]
+				survival_text = "  %s  %s  %s  %s  %s" % [stam_text, mana_text, evasion_text, armor_text, temp_text]
 
 			# Light source indicator
 			var light_text = ""

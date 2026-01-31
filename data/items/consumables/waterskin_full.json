@@ -16,7 +16,7 @@
   "ascii_char": "!",
   "ascii_color": "#4488FF",
   "effects": {
-    "thirst": 50
+    "thirst": 100
   },
   "transforms_into": "waterskin_empty"
 }

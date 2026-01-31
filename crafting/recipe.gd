@@ -111,20 +111,30 @@ func _get_seeded_ids_for_config(config: Dictionary, world_seed: int) -> Array[St
 	if all_variants.is_empty():
 		return []
 
-	# Create shuffled list using seeded random
+	# Create sorted list of variant names for deterministic selection
+	# (Dictionary iteration order is not guaranteed, so we must sort first)
 	var variant_names: Array[String] = []
 	for variant_name in all_variants:
 		variant_names.append(variant_name)
+	variant_names.sort()
 
-	# Use SeededRandom to deterministically select variants
-	var rng = SeededRandom.new(world_seed + seed_offset)
-	rng.shuffle_array(variant_names)
+	# Use deterministic selection instead of shuffle
+	# (Godot's RNG shuffle has issues with typed arrays)
+	var rng = RandomNumberGenerator.new()
+	rng.seed = world_seed + seed_offset
 
-	# Take first 'count' variants and create item IDs
+	# Select 'count' unique items using indices calculated from seed
 	var result: Array[String] = []
-	for i in range(mini(count, variant_names.size())):
-		# Item ID format: variant_template (e.g., "chamomile_herb")
-		result.append(variant_names[i] + "_" + template)
+	var available_indices: Array[int] = []
+	for i in range(variant_names.size()):
+		available_indices.append(i)
+
+	for _i in range(mini(count, variant_names.size())):
+		# Use a deterministic calculation based on seed to pick index
+		var pick_index = rng.randi() % available_indices.size()
+		var variant_index = available_indices[pick_index]
+		result.append(variant_names[variant_index] + "_" + template)
+		available_indices.remove_at(pick_index)
 
 	return result
 

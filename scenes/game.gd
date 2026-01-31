@@ -1688,7 +1688,7 @@ func _update_survival_display() -> void:
 		effects_list.append(s.get_thirst_state().capitalize())
 	if s.temperature < 15 or s.temperature > 25:
 		effects_list.append(s.get_temperature_state().capitalize())
-	if s.fatigue >= 25:
+	if s.fatigue >= 50:
 		effects_list.append(s.get_fatigue_state().capitalize())
 	
 	# Check for nearby enemies and show target info

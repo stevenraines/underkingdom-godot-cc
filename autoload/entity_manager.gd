@@ -253,6 +253,9 @@ func get_ground_items_at(pos: Vector2i) -> Array[GroundItem]:
 		if entity.position == pos and entity is GroundItem:
 			result.append(entity as GroundItem)
 
+	if result.size() > 0:
+		print("[EntityManager] Found %d ground items at %v" % [result.size(), pos])
+	
 	return result
 
 ## Spawn a ground item at a position
@@ -262,6 +265,12 @@ func spawn_ground_item(item: Item, pos: Vector2i, despawn_turns: int = -1) -> Gr
 
 	if MapManager.current_map:
 		MapManager.current_map.entities.append(ground_item)
+	
+	print("[EntityManager] Spawned ground item '%s' at %v (chunk-based: %s)" % [
+		item.name if item else "Unknown",
+		pos,
+		MapManager.current_map.chunk_based if MapManager.current_map else "N/A"
+	])
 
 	return ground_item
 

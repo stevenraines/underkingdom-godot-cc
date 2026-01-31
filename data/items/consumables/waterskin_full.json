@@ -18,5 +18,6 @@
   "effects": {
     "thirst": 100
   },
-  "transforms_into": "waterskin_empty"
+  "transforms_into": "waterskin_empty",
+  "provides_ingredient": "fresh_water"
 }

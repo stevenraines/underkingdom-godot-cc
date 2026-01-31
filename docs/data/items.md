@@ -32,6 +32,7 @@ Items are all objects that can be carried, used, equipped, or traded. Every item
 | `ascii_color` | string | "#FFFFFF" | Hex color code | Renderer |
 | `durability` | int | -1 | Max durability (-1 = indestructible) | Future durability system |
 | `transforms_into` | string | "" | Item ID to create when consumed | InventorySystem |
+| `provides_ingredient` | string | "" | Item ID this item can substitute in crafting | CraftingSystem |
 
 ## Categories
 
@@ -224,6 +225,22 @@ List of valid equipment slots. Item can be equipped to any slot in this list.
 Item ID to create when this item is consumed. Used for reusable containers.
 
 **Example**: `waterskin_full` transforms into `waterskin_empty` when drunk.
+
+### `provides_ingredient`
+**Type**: string
+**Required**: No
+**Default**: ""
+
+Item ID that this item can substitute for in crafting recipes. Used for containers that hold ingredients.
+
+When a recipe requires an ingredient (e.g., `fresh_water`), the crafting system will also accept items that have `provides_ingredient` set to that ingredient ID. When consumed during crafting, the provider item transforms (via `transforms_into`) instead of being destroyed.
+
+**Example**: `waterskin_full` has `provides_ingredient: "fresh_water"` and `transforms_into: "waterskin_empty"`. When a recipe requires `fresh_water`, the waterskin can be used and it transforms to empty.
+
+**Use Cases**:
+- Water containers providing `fresh_water` for potions
+- Oil lamps providing `oil` for lantern crafting
+- Any container whose contents are the actual ingredient
 
 ## Complete Examples
 

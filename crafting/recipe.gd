@@ -170,8 +170,9 @@ func has_requirements(inventory: Inventory, near_fire: bool, workstation_info: D
 			if inventory.get_item_count_with_flag(ingredient["flag"]) < ingredient["count"]:
 				return false
 		else:
-			# Item-based ingredient
-			if not inventory.has_item(ingredient["item"], ingredient["count"]):
+			# Item-based ingredient - also accepts items that provide this ingredient
+			# (e.g., waterskin_full provides fresh_water)
+			if not inventory.has_ingredient(ingredient["item"], ingredient["count"]):
 				return false
 
 	# Check seeded ingredients
@@ -218,8 +219,8 @@ func get_missing_requirements(inventory: Inventory, near_fire: bool, workstation
 				var display_name = ingredient.get("display_name", "Any " + ingredient["flag"].capitalize())
 				missing.append("%s (need %d, have %d)" % [display_name, needed, have])
 		else:
-			# Item-based ingredient
-			var have = inventory.get_item_count(ingredient["item"])
+			# Item-based ingredient - count includes items that provide this ingredient
+			var have = inventory.get_ingredient_count(ingredient["item"])
 			if have < needed:
 				var item_name = ItemManager.get_item_data(ingredient["item"]).get("name", ingredient["item"])
 				missing.append("%s (need %d, have %d)" % [item_name, needed, have])
@@ -267,8 +268,8 @@ func consume_ingredients(inventory: Inventory) -> bool:
 				push_error("Recipe.consume_ingredients: Missing flag-based ingredient %s" % ingredient["flag"])
 				return false
 		else:
-			# Item-based ingredient
-			if not inventory.has_item(ingredient["item"], ingredient["count"]):
+			# Item-based ingredient - check for direct items or providers
+			if not inventory.has_ingredient(ingredient["item"], ingredient["count"]):
 				push_error("Recipe.consume_ingredients: Missing ingredient %s" % ingredient["item"])
 				return false
 
@@ -291,8 +292,9 @@ func consume_ingredients(inventory: Inventory) -> bool:
 				push_error("Recipe.consume_ingredients: Failed to remove flag-based %s" % ingredient["flag"])
 				return false
 		else:
-			# Item-based ingredient
-			var removed = inventory.remove_item_by_id(ingredient["item"], ingredient["count"])
+			# Item-based ingredient - use consume_ingredient which handles providers
+			# (e.g., transforms waterskin_full to waterskin_empty instead of destroying)
+			var removed = inventory.consume_ingredient(ingredient["item"], ingredient["count"])
 			if removed != ingredient["count"]:
 				push_error("Recipe.consume_ingredients: Failed to remove %s" % ingredient["item"])
 				return false

@@ -89,6 +89,7 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 
 			result.success = true
 			result.message = "Successfully crafted %s! %s" % [recipe.get_display_name(), roll_info]
+			EventBus.message_logged.emit("You crafted %s." % recipe.get_display_name())
 
 			EventBus.craft_succeeded.emit(recipe, result.result_item)
 		else:
@@ -168,7 +169,7 @@ static func attempt_experiment(player: Player, ingredient_ids: Array[String], ne
 		return result
 
 ## Get hint for failed experiment based on INT
-static func get_experiment_hint(ingredient_ids: Array[String], intelligence: int) -> String:
+static func get_experiment_hint(_ingredient_ids: Array[String], intelligence: int) -> String:
 	if intelligence >= 14:
 		return "These materials don't seem compatible. Experiment failed, components lost."
 	elif intelligence >= 10:

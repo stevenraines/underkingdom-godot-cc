@@ -828,12 +828,22 @@ func _apply_fog_of_war_to_entities() -> void:
 				# This prevents initial spawn brightness when visibility_data is empty
 				entity_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
 		else:
-			# Not in LOS - check if this is a crop (crops are always visible)
+			# Not in LOS - check if this is a crop during daytime (crops only always visible in daylight)
+			var is_daytime_outdoors_for_crop = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
 			var is_crop = _is_crop_at_position(pos)
-			if is_crop:
-				# Crops are always visible (like ground items/structures)
+			if is_crop and is_daytime_outdoors_for_crop:
+				# Crops are always visible during daytime (like ground items/structures)
 				# Just apply fog dimming to match explored terrain
 				entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.6)
+			elif is_crop:
+				# Crop at night/twilight but not in lit area - hide it like other entities
+				var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
+				hidden_entity_positions[pos] = {
+					"atlas": atlas_coords,
+					"color": original_color
+				}
+				entity_layer.erase_cell(pos)
+				entity_modulated_cells.erase(pos)
 			else:
 				# Not a crop - store entity data and erase the cell
 				var atlas_coords = entity_layer.get_cell_atlas_coords(pos)

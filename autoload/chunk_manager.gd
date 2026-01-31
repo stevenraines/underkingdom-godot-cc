@@ -386,7 +386,6 @@ func unload_chunk(chunk_coords: Vector2i) -> void:
 		EventBus.chunk_unloaded.emit(chunk_coords)
 
 ## Update active chunks based on player position
-## Uses hybrid sync/async loading: player's chunk loads immediately, rest queued
 func update_active_chunks(player_pos: Vector2i) -> void:
 	if not is_chunk_mode:
 		return
@@ -400,14 +399,14 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 	var start_time = Time.get_ticks_usec()
 
 	var player_chunk = world_to_chunk(player_pos)
-	_current_player_chunk = player_chunk  # Store for priority sorting
 
 	# Get island bounds
 	var island_settings = BiomeManager.get_island_settings()
 	var max_chunk_x = island_settings.get("width_chunks", 50)
 	var max_chunk_y = island_settings.get("height_chunks", 50)
 
-	# STEP 1: Unload distant chunks FIRST (synchronous - fast operation)
+	# IMPORTANT: Unload distant chunks FIRST, before loading new ones
+	# This ensures that when load_chunk tries to evict from cache, there are inactive chunks available
 	var chunks_to_unload: Array[Vector2i] = []
 	for coords in active_chunks:
 		# Chebyshev distance (max of x/y differences) for square loading area
@@ -420,48 +419,34 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		unload_chunk(coords)
 	var unload_time = Time.get_ticks_usec() - unload_start
 
-	# STEP 2: Calculate which chunks should be loaded
+	# Calculate which chunks should be loaded
 	var chunks_to_load: Array[Vector2i] = []
 	for dy in range(-load_radius, load_radius + 1):
 		for dx in range(-load_radius, load_radius + 1):
 			var chunk_coords = player_chunk + Vector2i(dx, dy)
 			# Skip chunks outside island bounds
 			if chunk_coords.x >= 0 and chunk_coords.x < max_chunk_x and chunk_coords.y >= 0 and chunk_coords.y < max_chunk_y:
-				if chunk_coords not in active_chunks:
-					chunks_to_load.append(chunk_coords)
+				chunks_to_load.append(chunk_coords)
 
-	# STEP 3: Load player's CURRENT chunk IMMEDIATELY (synchronous)
-	# This ensures the player always has valid ground beneath them
-	var sync_loaded = 0
+	# Load new chunks (after unloading, so cache has room)
 	var load_start = Time.get_ticks_usec()
-
-	if player_chunk not in active_chunks:
-		# Check bounds
-		if player_chunk.x >= 0 and player_chunk.x < max_chunk_x and player_chunk.y >= 0 and player_chunk.y < max_chunk_y:
-			var chunk = load_chunk(player_chunk)
-			if chunk:
-				sync_loaded += 1
-		# Remove from chunks_to_load since we just loaded it
-		var idx = chunks_to_load.find(player_chunk)
-		if idx >= 0:
-			chunks_to_load.remove_at(idx)
-
-	var sync_load_time = Time.get_ticks_usec() - load_start
-
-	# STEP 4: Queue remaining chunks for async loading
-	var queued_count = 0
+	var chunks_loaded = 0
 	for coords in chunks_to_load:
-		_queue_chunk_for_loading(coords)
-		queued_count += 1
+		if coords not in active_chunks:
+			var chunk = load_chunk(coords)
+			# load_chunk returns null if outside bounds, skip it
+			if not chunk:
+				continue
+			chunks_loaded += 1
+	var load_time = Time.get_ticks_usec() - load_start
 
 	var total_time = Time.get_ticks_usec() - start_time
 
-	# Log performance
-	if sync_loaded > 0 or chunks_to_unload.size() > 0 or queued_count > 0 or total_time > 5000:
-		print("[ChunkManager] update_active_chunks: sync_loaded=%d (%.2fms), unloaded=%d (%.2fms), queued=%d, total=%.2fms" % [
-			sync_loaded, sync_load_time / 1000.0,
+	# Only log if any chunks were loaded/unloaded or if operation took >5ms
+	if chunks_loaded > 0 or chunks_to_unload.size() > 0 or total_time > 5000:
+		print("[ChunkManager] update_active_chunks: loaded=%d (%.2fms), unloaded=%d (%.2fms), total=%.2fms" % [
+			chunks_loaded, load_time / 1000.0,
 			chunks_to_unload.size(), unload_time / 1000.0,
-			queued_count,
 			total_time / 1000.0
 		])
 
@@ -520,14 +505,10 @@ func clear_chunks() -> void:
 	visited_chunks.clear()
 	chunk_access_order.clear()  # Clear LRU tracking
 	chunk_access_index.clear()  # Clear LRU index
-	_clear_async_queue()  # Clear pending async loads
 	print("[ChunkManager] All chunks cleared")
 
 ## Handle map changes
 func _on_map_changed(map_id: String) -> void:
-	# Clear async queue to prevent stale loads
-	_clear_async_queue()
-
 	if map_id != "overworld":
 		# Disable chunk mode for dungeons
 		is_chunk_mode = false

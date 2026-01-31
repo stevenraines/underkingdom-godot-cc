@@ -73,6 +73,10 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 			# Add to player inventory
 			player.inventory.add_item(result.result_item)
 
+			# Auto-identify crafted items - if you made it, you know what it is
+			if result.result_item.unidentified:
+				IdentificationManager.identify_item(recipe.result_item_id)
+
 			# Consume workstation tool durability
 			if recipe.workstation_required != "":
 				_consume_workstation_tool_durability(recipe.workstation_required, player.inventory)
@@ -91,8 +95,8 @@ static func attempt_craft(player: Player, recipe: Recipe, near_fire: bool, works
 			result.message = "Error: Could not create item " + recipe.result_item_id
 			push_error("CraftingSystem: ItemManager failed to create " + recipe.result_item_id)
 	else:
-		# Failed craft
-		result.message = "Failed to craft %s. %s Components were consumed." % [recipe.get_display_name(), roll_info]
+		# Failed craft - make failure very clear
+		result.message = "CRAFT FAILED! Ingredients lost. %s" % roll_info
 		EventBus.craft_failed.emit(recipe)
 
 	EventBus.craft_attempted.emit(recipe, success)

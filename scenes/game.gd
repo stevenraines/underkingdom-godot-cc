@@ -338,6 +338,7 @@ func _ready() -> void:
 	EventBus.item_unequipped.connect(_on_item_unequipped)
 	EventBus.weather_changed.connect(_on_weather_changed)
 	EventBus.entity_visual_changed.connect(_on_entity_visual_changed)
+	EventBus.chunk_loaded.connect(_on_chunk_loaded)
 	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
 
 	# Update HUD
@@ -903,6 +904,28 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Clear reentrancy guard
 	_processing_player_moved = false
+
+## Called when a chunk finishes loading (async or sync)
+## Triggers re-render for nearby chunks so player sees new content
+func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
+	# Only trigger re-render if we're in chunk mode and have a player
+	if not MapManager.current_map or not MapManager.current_map.chunk_based:
+		return
+	if not player:
+		return
+
+	# Check if this chunk is adjacent to or contains the player
+	var player_chunk = ChunkManagerClass.world_to_chunk(player.position)
+	var distance = max(abs(chunk_coords.x - player_chunk.x), abs(chunk_coords.y - player_chunk.y))
+
+	# Only re-render for nearby chunks (within load radius)
+	if distance <= ChunkManager.load_radius:
+		_full_render_needed = true
+		_render_map()
+		_update_visibility()
+		_render_all_entities()
+		# Re-render player on top
+		renderer.render_entity(player.position, "@", Color.YELLOW)
 
 ## Render any non-blocking entity at a specific position (crops, etc.)
 ## Skips rendering if player is at the position (player renders on top)

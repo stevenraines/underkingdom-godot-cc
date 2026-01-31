@@ -6,7 +6,7 @@
 - [X] Healing Salve receipe can't be created (#101)
     Fixed: The crafting screen now displays seeded ingredients (world-seed-based dynamic herb requirements). The recipe was working correctly but the UI wasn't showing the required herbs.
 - [ ] "blocked by stone floor" bug (#103)
-    A player can receive an error message that they are blocked by a stone floor.  this may be caused by the spawn location of a zombie that was defeated in combat, but not sure
+    A player can receive an error message that they are blocked by a stone floor. A stone floor tile appears where the player is trying to move. Yhis may be caused by the spawn location of an enemy that was defeated in combat, or maybe because something is actually there but not being rendered properly.
 - [ ] Some overworld drops cannot be picked up (#102)
     After defeating opponents in combat, player was unable to pick up loot drops
 

@@ -66,8 +66,8 @@ static func calculate_visibility(
 			# Day: Full visibility for exterior tiles
 			result = _calculate_daytime_visibility(origin, perception_range, map)
 		elif is_twilight:
-			# Dawn/Dusk: Fixed 7-tile radius (fast path - no light source processing)
-			result = _calculate_twilight_visibility(origin, 7, map)
+			# Dawn/Dusk: Ambient 7-tile radius + light sources for town illumination
+			result = _calculate_twilight_visibility(origin, 7, map, player_light_radius, light_sources)
 		else:  # Night
 			# Night: Only light sources, no ambient perception (fast path)
 			result = _calculate_night_visibility(origin, player_light_radius, map, light_sources)
@@ -151,13 +151,20 @@ static func _calculate_daytime_visibility(origin: Vector2i, perception_range: in
 	return result
 
 ## Twilight path: Fixed radius visibility on overworld (dawn/dusk)
-## SUPER FAST PATH - no LOS checks, just mark everything in radius as visible
-## At twilight, ambient light lets you see nearby terrain without strict LOS
-static func _calculate_twilight_visibility(origin: Vector2i, radius: int, _map) -> VisibilityResult:
+## Fast path with interior building filtering
+## At twilight, ambient light lets you see nearby terrain
+## But interior tiles require LOS to prevent seeing into other buildings
+## Also processes light sources so town lights illuminate properly
+static func _calculate_twilight_visibility(origin: Vector2i, radius: int, map, player_light_radius: int = 0, light_sources: Array = []) -> VisibilityResult:
 	var result = VisibilityResult.new()
+	var lit_positions: Dictionary = {}  # pos -> light_level
 
-	# Simply mark all tiles within radius as visible (no LOS checks for speed)
-	# At twilight, there's enough ambient light to see the general area
+	# Check if player is inside a building
+	var origin_tile = map.get_tile(origin) if map else null
+	var player_on_door = origin_tile and origin_tile.tile_type == "door"
+	var player_inside = origin_tile and (origin_tile.is_interior or player_on_door)
+
+	# Mark tiles within radius as visible, with interior filtering
 	for dx in range(-radius, radius + 1):
 		for dy in range(-radius, radius + 1):
 			var pos = origin + Vector2i(dx, dy)
@@ -167,17 +174,85 @@ static func _calculate_twilight_visibility(origin: Vector2i, radius: int, _map) 
 			if dist_sq > radius_sq:
 				continue
 
+			# Check if this tile is an interior tile
+			var tile = map.get_tile(pos) if map else null
+			var tile_is_interior = tile and tile.is_interior
+
+			# Interior tile filtering:
+			# - If player is outside: skip interior tiles (can't see into buildings)
+			# - If player is inside: only show interior tiles with LOS (same building)
+			if tile_is_interior:
+				if not player_inside:
+					continue  # Outside player can't see building interiors
+				# Inside player needs LOS to see interior tiles (same building check)
+				if not _has_line_of_sight(origin, pos, map):
+					continue
+
 			result.visible_tiles.append(pos)
 			# Twilight has moderate ambient light (0.3)
-			result.tile_data[pos] = {"lit": true, "light_level": 0.3, "in_los": true}
+			lit_positions[pos] = 0.3
+
+	# Add player light (if carrying torch/lantern)
+	if player_light_radius > 0:
+		for dx in range(-player_light_radius, player_light_radius + 1):
+			for dy in range(-player_light_radius, player_light_radius + 1):
+				var pos = origin + Vector2i(dx, dy)
+				var dist_sq = dx * dx + dy * dy
+				var radius_sq = player_light_radius * player_light_radius
+				if dist_sq <= radius_sq:
+					var dist = sqrt(float(dist_sq))
+					var falloff = 1.0 - (dist / float(player_light_radius + 1))
+					var light_level = clamp(falloff, 0.0, 1.0)
+					if not lit_positions.has(pos) or lit_positions[pos] < light_level:
+						lit_positions[pos] = light_level
+
+	# Add external light sources (town torches, campfires, etc.)
+	for light_source in light_sources:
+		var light_pos = light_source.get("position", Vector2i.ZERO)
+		var light_radius = light_source.get("radius", 5)
+
+		for dx in range(-light_radius, light_radius + 1):
+			for dy in range(-light_radius, light_radius + 1):
+				var pos = light_pos + Vector2i(dx, dy)
+				var dist_sq = dx * dx + dy * dy
+				var radius_sq = light_radius * light_radius
+				if dist_sq <= radius_sq:
+					var dist = sqrt(float(dist_sq))
+					var falloff = 1.0 - (dist / float(light_radius + 1))
+					var light_level = clamp(falloff, 0.0, 1.0)
+					if not lit_positions.has(pos) or lit_positions[pos] < light_level:
+						lit_positions[pos] = light_level
+
+	# Convert to tile_data and visible_tiles with interior filtering
+	for pos in lit_positions:
+		# Check if this tile is an interior tile
+		var tile = map.get_tile(pos) if map else null
+		var tile_is_interior = tile and tile.is_interior
+
+		# Interior tile filtering for lit tiles
+		if tile_is_interior:
+			if not player_inside:
+				continue  # Outside player can't see building interiors
+			if not _has_line_of_sight(origin, pos, map):
+				continue
+
+		if pos not in result.visible_tiles:
+			result.visible_tiles.append(pos)
+		result.tile_data[pos] = {"lit": true, "light_level": lit_positions[pos], "in_los": true}
 
 	return result
 
 ## Night path: Only light sources visible on overworld
-## SUPER FAST PATH - no LOS checks, like twilight but only for lit areas
+## Fast path with interior building filtering
 ## At night, only tiles within light source radii are visible
-static func _calculate_night_visibility(origin: Vector2i, player_light_radius: int, _map, light_sources: Array) -> VisibilityResult:
+## But interior tiles require LOS to prevent seeing into other buildings
+static func _calculate_night_visibility(origin: Vector2i, player_light_radius: int, map, light_sources: Array) -> VisibilityResult:
 	var result = VisibilityResult.new()
+
+	# Check if player is inside a building
+	var origin_tile = map.get_tile(origin) if map else null
+	var player_on_door = origin_tile and origin_tile.tile_type == "door"
+	var player_inside = origin_tile and (origin_tile.is_interior or player_on_door)
 
 	# Collect all tiles within range of light sources
 	var lit_positions: Dictionary = {}  # pos -> light_level
@@ -195,7 +270,6 @@ static func _calculate_night_visibility(origin: Vector2i, player_light_radius: i
 					lit_positions[pos] = falloff
 
 	# Add tiles lit by map light sources (campfires, braziers, etc.)
-	# No LOS checks - light sources illuminate their full radius (like twilight)
 	for light_source in light_sources:
 		var light_pos = light_source.get("position", Vector2i.ZERO)
 		var light_radius = light_source.get("radius", 0)
@@ -203,7 +277,7 @@ static func _calculate_night_visibility(origin: Vector2i, player_light_radius: i
 		for dx in range(-light_radius, light_radius + 1):
 			for dy in range(-light_radius, light_radius + 1):
 				var pos = light_pos + Vector2i(dx, dy)
-				# Use Euclidean distance for circular radius (like twilight)
+				# Use Euclidean distance for circular radius
 				var dist_sq = dx * dx + dy * dy
 				var radius_sq = light_radius * light_radius
 				if dist_sq <= radius_sq:
@@ -213,8 +287,22 @@ static func _calculate_night_visibility(origin: Vector2i, player_light_radius: i
 					if not lit_positions.has(pos) or falloff > lit_positions[pos]:
 						lit_positions[pos] = falloff
 
-	# Convert lit positions to visibility result (no LOS checks - like twilight)
+	# Convert lit positions to visibility result with interior filtering
 	for pos in lit_positions:
+		# Check if this tile is an interior tile
+		var tile = map.get_tile(pos) if map else null
+		var tile_is_interior = tile and tile.is_interior
+
+		# Interior tile filtering:
+		# - If player is outside: skip interior tiles (can't see into buildings)
+		# - If player is inside: only show interior tiles with LOS (same building)
+		if tile_is_interior:
+			if not player_inside:
+				continue  # Outside player can't see building interiors
+			# Inside player needs LOS to see interior tiles (same building check)
+			if not _has_line_of_sight(origin, pos, map):
+				continue
+
 		result.visible_tiles.append(pos)
 		result.tile_data[pos] = {"lit": true, "light_level": lit_positions[pos], "in_los": true}
 

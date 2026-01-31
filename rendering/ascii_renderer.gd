@@ -832,9 +832,13 @@ func _apply_fog_of_war_to_entities() -> void:
 					# No light - very dark
 					entity_modulated_cells[pos] = FOG_UNEXPLORED_COLOR
 			else:
-				# No light data - apply dark tint to match terrain behavior
-				# This prevents initial spawn brightness when visibility_data is empty
-				entity_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
+				# No light data - apply dark tint only at night/dungeons
+				# During daytime outdoors, use full color (visibility_data is intentionally empty)
+				var is_daytime_outdoors_check = current_map and FOVSystemClass.is_daytime_outdoors(current_map)
+				if is_daytime_outdoors_check:
+					entity_modulated_cells[pos] = original_color
+				else:
+					entity_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
 		else:
 			# Not in LOS - check if this is a crop during daytime (crops only always visible in daylight)
 			# But NOT when player is inside a building

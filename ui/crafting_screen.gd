@@ -464,6 +464,30 @@ func _update_details_panel(recipe: Recipe) -> void:
 
 		details_container.add_child(ingredient_label)
 
+	# Show seeded ingredients (world-seed-based dynamic ingredients)
+	if recipe.has_seeded_ingredients():
+		var world_seed = GameManager.world_seed if GameManager else 0
+		var seeded_ids = recipe.get_seeded_ingredient_ids(world_seed)
+		var seeded_names = recipe.get_seeded_ingredient_names(world_seed)
+
+		for i in range(seeded_ids.size()):
+			var item_id = seeded_ids[i]
+			var display_name = seeded_names[i] if i < seeded_names.size() else item_id
+			var have_count = player.inventory.get_item_count(item_id)
+			var need_count = 1
+
+			var ingredient_label = Label.new()
+			ingredient_label.text = "  %s: %d/%d" % [display_name, have_count, need_count]
+			ingredient_label.add_theme_font_size_override("font_size", 13)
+
+			# Color: green if have enough, red if not
+			if have_count >= need_count:
+				ingredient_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1))
+			else:
+				ingredient_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5, 1))
+
+			details_container.add_child(ingredient_label)
+
 	# Tool requirement
 	if recipe.tool_required != "":
 		var tool_label = Label.new()

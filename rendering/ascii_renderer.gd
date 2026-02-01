@@ -79,6 +79,10 @@ func _build_unicode_map() -> void:
 	for i in range(0x0370, 0x0400):
 		chars.append(char(i))
 
+	# Mathematical Operators (0x2200-0x22FF) - includes ∴, ∞, ∑, √, etc.
+	for i in range(0x2200, 0x2300):
+		chars.append(char(i))
+
 	# Miscellaneous Technical (0x2300-0x23FF) - includes ⌂, ⌐, ⌠, etc.
 	for i in range(0x2300, 0x2400):
 		chars.append(char(i))

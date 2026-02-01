@@ -418,14 +418,14 @@ func load_hazards_from_map(map: GameMap) -> void:
 	for hazard_data in map.metadata.hazards:
 		var pos: Vector2i = _parse_vector2i(hazard_data.position)
 
-		# Ensure hazard has its definition reference
-		if not hazard_data.has("definition"):
-			var hazard_id: String = hazard_data.get("hazard_id", "")
-			if hazard_definitions.has(hazard_id):
-				hazard_data["definition"] = hazard_definitions[hazard_id]
-			else:
-				push_warning("[HazardManager] Unknown hazard type: %s" % hazard_id)
-				continue
+		# ALWAYS use fresh definition from hazard_definitions
+		# (serialized definitions may have corrupted Color objects from JSON)
+		var hazard_id: String = hazard_data.get("hazard_id", "")
+		if hazard_definitions.has(hazard_id):
+			hazard_data["definition"] = hazard_definitions[hazard_id]
+		else:
+			push_warning("[HazardManager] Unknown hazard type: %s" % hazard_id)
+			continue
 
 		active_hazards[pos] = hazard_data
 

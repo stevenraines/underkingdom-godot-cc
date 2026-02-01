@@ -517,14 +517,14 @@ func load_features_from_map(map: GameMap) -> void:
 		elif not pos is Vector2i:
 			pos = Vector2i.ZERO
 
-		# Ensure feature has its definition reference
-		if not feature_data.has("definition"):
-			var feature_id: String = feature_data.get("feature_id", "")
-			if feature_definitions.has(feature_id):
-				feature_data["definition"] = feature_definitions[feature_id]
-			else:
-				push_warning("[FeatureManager] Unknown feature type: %s" % feature_id)
-				continue
+		# ALWAYS use fresh definition from feature_definitions
+		# (serialized definitions may have corrupted Color objects from JSON)
+		var feature_id: String = feature_data.get("feature_id", "")
+		if feature_definitions.has(feature_id):
+			feature_data["definition"] = feature_definitions[feature_id]
+		else:
+			push_warning("[FeatureManager] Unknown feature type: %s" % feature_id)
+			continue
 
 		active_features[pos] = feature_data
 

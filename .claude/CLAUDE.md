@@ -108,7 +108,36 @@ ManagerName="*res://autoload/manager_name.gd"
 - MapManager, ChunkManager, BiomeManager, DungeonManager, EntityManager
 - ItemManager, RecipeManager, StructureManager, SaveManager, VariantManager
 - WeatherManager, LootTableManager, SpellManager, IdentificationManager, RitualManager
-- SkillManager, CreatureTypeManager
+- SkillManager, CreatureTypeManager, RaceManager, ClassManager, UITheme
+
+### UI Color Constants (CRITICAL)
+**MANDATORY**: All UI color constants MUST use the `UITheme` autoload. Never define local color constants in UI files.
+
+```gdscript
+# CORRECT - Use UITheme constants
+label.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
+button.modulate = UITheme.COLOR_NORMAL
+
+# WRONG - Don't define local constants
+const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)  # NO!
+```
+
+**When adding new colors:**
+1. Add the constant to `autoload/ui_theme.gd` in the appropriate category
+2. Use descriptive names with `COLOR_` prefix (e.g., `COLOR_MANA`, `COLOR_EQUIPPED`)
+3. Add a doc comment explaining the color's purpose
+
+**Common UITheme colors:**
+- `COLOR_SELECTED_GOLD` - Gold selection highlight (dialogs, menus)
+- `COLOR_SELECTED` - Green selection highlight (inventory style)
+- `COLOR_NORMAL` - Default unselected text
+- `COLOR_HIGHLIGHT` - Emphasized/hovered items
+- `COLOR_EMPTY` - Empty slots, placeholders
+- `COLOR_VALUE` - Positive values (green)
+- `COLOR_LABEL` - Label text
+- `COLOR_SECTION` - Section headers
+- `COLOR_ERROR` - Error messages
+- `COLOR_AFFORDABLE` / `COLOR_EXPENSIVE` - Price colors
 
 ### GDScript Runtime Loading Pattern
 For scripts with complex dependency chains, use runtime `load()` instead of `preload()`:
@@ -188,6 +217,6 @@ Before committing changes, verify:
 
 ---
 
-**Last Updated**: January 18, 2026
-**Current Branch**: `feature/reduce-context-usage`
+**Last Updated**: February 1, 2026
+**Current Branch**: `main`
 **Next Phase**: 1.16 - UI Polish

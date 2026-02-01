@@ -673,9 +673,26 @@ func move(direction: Vector2i) -> bool:
 	return true
 
 
-## Notify player when blocked by a non-walkable tile or structure
+## Notify player when blocked by a non-walkable tile, entity, feature, or structure
 func _notify_blocked_by_tile(pos: Vector2i) -> void:
-	# First check for blocking structures at this position
+	# Check for blocking entities at this position (fixes #103 - "blocked by stone floor" bug)
+	# This catches entities that weren't found by EntityManager.get_blocking_entity_at()
+	# (e.g., entities in map.entities but not EntityManager.entities, or edge cases)
+	if MapManager.current_map:
+		for entity in MapManager.current_map.entities:
+			if entity.position == pos and entity.blocks_movement:
+				EventBus.message_logged.emit("Your path is blocked by %s." % entity.name.to_lower())
+				return
+
+	# Check for blocking features at this position
+	if FeatureManager.has_blocking_feature(pos):
+		var feature = FeatureManager.get_feature_at(pos)
+		if feature:
+			var feature_name = feature.get("definition", {}).get("name", "an obstacle")
+			EventBus.message_logged.emit("Your path is blocked by %s." % feature_name.to_lower())
+			return
+
+	# Check for blocking structures at this position
 	if MapManager.current_map:
 		var structures = StructureManager.get_structures_at(pos, MapManager.current_map.map_id)
 		for structure in structures:
@@ -683,12 +700,10 @@ func _notify_blocked_by_tile(pos: Vector2i) -> void:
 				EventBus.message_logged.emit("Your path is blocked by %s." % structure.name.to_lower())
 				return
 
+	# Fall back to tile-based blocking message
 	var tile = MapManager.current_map.get_tile(pos) if MapManager.current_map else null
 	if not tile:
 		return
-
-	# Debug: print tile properties
-	print("[BLOCKED] tile_type='%s', ascii_char='%s', walkable=%s" % [tile.tile_type, tile.ascii_char, tile.walkable])
 
 	# Get a human-readable name for the blocking tile
 	var tile_name = _get_tile_display_name(tile)

@@ -33,7 +33,7 @@ func _ready() -> void:
 ## Load all enemy definitions by recursively scanning folders
 func _load_enemy_definitions() -> void:
 	_load_enemies_from_folder(ENEMY_DATA_BASE_PATH)
-	print("EntityManager: Loaded %d enemy definitions" % enemy_definitions.size())
+	#print("EntityManager: Loaded %d enemy definitions" % enemy_definitions.size())
 
 ## Recursively load enemies from a folder and all subfolders
 func _load_enemies_from_folder(path: String) -> void:
@@ -315,7 +315,7 @@ func spawn_npc(spawn_data: Dictionary):
 		for recipe_data in recipes:
 			npc.recipes_for_sale.append(recipe_data.duplicate())
 
-		print("[EntityManager] Spawned data-driven NPC: %s (%s) at %v" % [npc.name, npc_id, position])
+		#print("[EntityManager] Spawned data-driven NPC: %s (%s) at %v" % [npc.name, npc_id, position])
 	else:
 		# Legacy fallback: use spawn_data fields directly
 		npc = NPCClassRef.new(
@@ -342,7 +342,7 @@ func spawn_npc(spawn_data: Dictionary):
 			}
 			npc.load_shop_inventory()
 
-		print("[EntityManager] Spawned legacy NPC: %s at %v" % [npc.name, position])
+		#print("[EntityManager] Spawned legacy NPC: %s at %v" % [npc.name, position])
 
 	entities.append(npc)
 
@@ -365,7 +365,7 @@ func prepare_turn_snapshot() -> void:
 	_active_chunks_snapshot = {}
 	for coords in ChunkManager.get_active_chunk_coords():
 		_active_chunks_snapshot[coords] = true
-	print("[EntityManager] Snapshot prepared: %d entities, %d active chunks" % [_entity_snapshot.size(), _active_chunks_snapshot.size()])
+	#print("[EntityManager] Snapshot prepared: %d entities, %d active chunks" % [_entity_snapshot.size(), _active_chunks_snapshot.size()])
 
 ## Check if chunk is in snapshot (O(1) lookup)
 func _is_chunk_active_snapshot(chunk_coords: Vector2i) -> bool:
@@ -383,17 +383,18 @@ func process_entity_turns() -> void:
 
 	# Minimal logging - only when debugging is needed
 	if turn % 10 == 0:  # Log every 10 turns instead of every turn
-		print("[EntityManager] Turn %d: %d entities in snapshot" % [turn, _entity_snapshot.size()])
+		#print("[EntityManager] Turn %d: %d entities in snapshot" % [turn, _entity_snapshot.size()])
+		pass
 
 	# CRITICAL: If player is dead at start of turn, stop processing immediately
 	if player and not player.is_alive:
-		print("[EntityManager] PLAYER IS DEAD at turn start - Stopping entity turn processing")
+		#print("[EntityManager] PLAYER IS DEAD at turn start - Stopping entity turn processing")
 		ChunkManager.emergency_unfreeze()
 		return
 
 	# First, process player's summons (process ALL effects inline)
 	if player:
-		print("[EntityManager] Processing %d player summons..." % player.active_summons.size())
+		#print("[EntityManager] Processing %d player summons..." % player.active_summons.size())
 		for summon in player.active_summons.duplicate():
 			if not summon.is_alive:
 				continue
@@ -412,12 +413,12 @@ func process_entity_turns() -> void:
 
 			# Emergency brake
 			if not player.is_alive:
-				print("[EntityManager] Player died during summon processing - stopping")
+				#print("[EntityManager] Player died during summon processing - stopping")
 				ChunkManager.emergency_unfreeze()
 				return
 
 	# CONSOLIDATED ENTITY LOOP (DoTs + Effects + Turns in single pass)
-	print("[EntityManager] Processing %d entities from snapshot..." % _entity_snapshot.size())
+	#print("[EntityManager] Processing %d entities from snapshot..." % _entity_snapshot.size())
 	var entities_processed = 0
 	var npcs_processed = 0
 	var enemies_processed = 0
@@ -442,7 +443,7 @@ func process_entity_turns() -> void:
 
 		# EMERGENCY BRAKE: Check if player died
 		if player and not player.is_alive:
-			print("[EntityManager] PLAYER DIED - Stopping entity processing at entity %d/%d" % [entity_index, _entity_snapshot.size()])
+			#print("[EntityManager] PLAYER DIED - Stopping entity processing at entity %d/%d" % [entity_index, _entity_snapshot.size()])
 			ChunkManager.emergency_unfreeze()
 			return
 
@@ -462,7 +463,7 @@ func process_entity_turns() -> void:
 		# NPCs have source_chunk = Vector2i(-999, -999) so they're persistent
 		var current_chunk = ChunkManagerClass.world_to_chunk(entity.position)
 		if entity.source_chunk != Vector2i(-999, -999) and not _is_chunk_active_snapshot(current_chunk):
-			print("[EntityManager] Entity '%s' at %v (chunk %v) in unloaded chunk - skipping" % [entity.name, entity.position, current_chunk])
+			#print("[EntityManager] Entity '%s' at %v (chunk %v) in unloaded chunk - skipping" % [entity.name, entity.position, current_chunk])
 			continue
 
 		# Range check: Only process entities within ENEMY_PROCESS_RANGE
@@ -476,7 +477,7 @@ func process_entity_turns() -> void:
 			entity.process_dot_effects()
 			# Emergency brake: Check if player died from DoT
 			if player and not player.is_alive:
-				print("[EntityManager] !!! PLAYER DIED from DoT effects - stopping entity processing !!!")
+				#print("[EntityManager] !!! PLAYER DIED from DoT effects - stopping entity processing !!!")
 				ChunkManager.emergency_unfreeze()
 				return
 
@@ -485,7 +486,7 @@ func process_entity_turns() -> void:
 			entity.process_effect_durations()
 			# Emergency brake: Check if player died from effect expiration
 			if player and not player.is_alive:
-				print("[EntityManager] !!! PLAYER DIED from effect expiration - stopping entity processing !!!")
+				#print("[EntityManager] !!! PLAYER DIED from effect expiration - stopping entity processing !!!")
 				ChunkManager.emergency_unfreeze()
 				return
 
@@ -505,7 +506,7 @@ func process_entity_turns() -> void:
 
 			# Check if player died from this enemy's action
 			if player and not player.is_alive:
-				print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
+				#print("[EntityManager] !!! PLAYER DIED from enemy '%s' attack - stopping entity processing !!!" % entity.name)
 				ChunkManager.emergency_unfreeze()
 				return
 		elif entity.has_method("process_turn"):
@@ -514,7 +515,7 @@ func process_entity_turns() -> void:
 			entity.process_turn()
 
 	var total_duration = Time.get_ticks_msec() - start_time
-	print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs) in %dms" % [turn, entities_processed, enemies_processed, npcs_processed, total_duration])
+	#print("[EntityManager] Turn %d: Processed %d entities (%d enemies, %d NPCs) in %dms" % [turn, entities_processed, enemies_processed, npcs_processed, total_duration])
 
 	# Warn if processing took too long
 	if total_duration > 5000:
@@ -570,7 +571,7 @@ func save_entity_states_to_map(map: GameMap) -> void:
 	map.metadata["saved_items"] = saved_items
 	map.metadata["saved_npcs"] = saved_npcs
 	map.metadata["visited"] = true
-	print("EntityManager: Saved %d enemies, %d items, %d NPCs to map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
+	#print("EntityManager: Saved %d enemies, %d items, %d NPCs to map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 
 ## Restore entity states from map metadata (for returning to visited maps)
 func restore_entity_states_from_map(map: GameMap) -> bool:
@@ -614,7 +615,7 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 		if item:
 			spawn_ground_item(item, _parse_vector2i(item_data.get("position", Vector2i.ZERO)))
 
-	print("EntityManager: Restored %d enemies, %d items, %d NPCs from map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
+	#print("EntityManager: Restored %d enemies, %d items, %d NPCs from map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 	return true
 
 ## Called when a chunk is unloaded - removes entities that were spawned by that chunk
@@ -634,7 +635,8 @@ func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
 			removed_count += 1
 
 	if removed_count > 0:
-		print("[EntityManager] Cleaned up %d entities from unloaded chunk %v" % [removed_count, chunk_coords])
+		#print("[EntityManager] Cleaned up %d entities from unloaded chunk %v" % [removed_count, chunk_coords])
+		pass
 
 
 ## Parse Vector2i from string format (handles save data serialization)

@@ -47,7 +47,7 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 			var dock_result = _place_dock_toward_ocean(tiles_dict, building_def, center_pos, town_size, world_seed)
 			door_facing = dock_result.direction
 			building_pos = dock_result.position
-			print("[TownGenerator] Auto-oriented dock to face %s at %v" % [door_facing, building_pos])
+			#print("[TownGenerator] Auto-oriented dock to face %s at %v" % [door_facing, building_pos])
 
 		var npc_pos = _place_building(tiles_dict, building_def, building_pos, rng, door_facing)
 
@@ -90,7 +90,7 @@ static func generate_town(town_id: String, center_pos: Vector2i, world_seed: int
 		"roads_connected": roads_config.get("connected_to_other_towns", false)
 	}
 
-	print("[TownGenerator] Generated %s at %v (size %v, %d NPCs)" % [town_data.name, center_pos, town_size, npc_spawns.size()])
+	#print("[TownGenerator] Generated %s at %v (size %v, %d NPCs)" % [town_data.name, center_pos, town_size, npc_spawns.size()])
 	return town_data
 
 ## Clear the town area to walkable floor
@@ -150,7 +150,7 @@ static func _place_feature(tiles_dict: Dictionary, building_def: Dictionary, pos
 	# Apply custom ascii_char and color if specified
 	if building_def.has("ascii_char"):
 		tile.ascii_char = building_def.get("ascii_char")
-		print("[TownGenerator] Feature '%s' placed at %v with char '%s' (U+%04X)" % [building_def.get("id", "unknown"), pos, tile.ascii_char, tile.ascii_char.unicode_at(0)])
+		#print("[TownGenerator] Feature '%s' placed at %v with char '%s' (U+%04X)" % [building_def.get("id", "unknown"), pos, tile.ascii_char, tile.ascii_char.unicode_at(0)])
 	if building_def.has("ascii_color"):
 		tile.color = Color.html(building_def.get("ascii_color"))
 
@@ -344,7 +344,7 @@ static func _place_custom_building(tiles_dict: Dictionary, building_def: Diction
 		if structure:
 			var map_id = "overworld"  # Town structures are placed in overworld
 			StructureManager.place_structure(map_id, structure)
-			print("[TownGenerator] Placed structure '%s' at %v" % [structure_id, structure_pos])
+			#print("[TownGenerator] Placed structure '%s' at %v" % [structure_id, structure_pos])
 
 	return npc_pos
 
@@ -536,7 +536,7 @@ static func _generate_crop_field(tiles_dict: Dictionary, center_pos: Vector2i, f
 				"mature": mature
 			})
 
-	print("[TownGenerator] Generated %dx%d crop field of %s at %v (mature=%s)" % [width, height, crop_id, field_start, mature])
+	#print("[TownGenerator] Generated %dx%d crop field of %s at %v (mature=%s)" % [width, height, crop_id, field_start, mature])
 	return crop_spawns
 
 
@@ -563,7 +563,7 @@ static func _place_dock_toward_ocean(_tiles_dict: Dictionary, building_def: Dict
 
 			if biome.biome_name in water_biomes:
 				direction_distances[dir.name] = dist
-				print("[TownGenerator] Water found %s at distance %d (biome: %s)" % [dir.name, dist, biome.biome_name])
+				#print("[TownGenerator] Water found %s at distance %d (biome: %s)" % [dir.name, dist, biome.biome_name])
 				break
 
 	# Find the direction with the shortest distance to water
@@ -582,7 +582,7 @@ static func _place_dock_toward_ocean(_tiles_dict: Dictionary, building_def: Dict
 		min_distance = 10  # Default distance
 
 	var cardinal_direction = best_direction
-	print("[TownGenerator] Best water direction: %s at %d tiles" % [cardinal_direction, min_distance])
+	#print("[TownGenerator] Best water direction: %s at %d tiles" % [cardinal_direction, min_distance])
 
 	# Get dock size - the long dimension (height) extends toward water
 	var size_array = building_def.get("size", [3, 8])
@@ -603,7 +603,7 @@ static func _place_dock_toward_ocean(_tiles_dict: Dictionary, building_def: Dict
 
 	var dock_pos = town_center
 
-	print("[TownGenerator] Dock calc: min_distance=%d, dock_length=%d, half_dock=%d, center_offset=%d" % [min_distance, dock_length, half_dock, center_offset])
+	#print("[TownGenerator] Dock calc: min_distance=%d, dock_length=%d, half_dock=%d, center_offset=%d" % [min_distance, dock_length, half_dock, center_offset])
 
 	match cardinal_direction:
 		"north":
@@ -615,7 +615,7 @@ static func _place_dock_toward_ocean(_tiles_dict: Dictionary, building_def: Dict
 		"west":
 			dock_pos = town_center + Vector2i(-center_offset, 0)
 
-	print("[TownGenerator] Placing dock at %v facing %s (water at %d tiles from town center)" % [dock_pos, cardinal_direction, min_distance])
+	#print("[TownGenerator] Placing dock at %v facing %s (water at %d tiles from town center)" % [dock_pos, cardinal_direction, min_distance])
 
 	return {
 		"direction": cardinal_direction,

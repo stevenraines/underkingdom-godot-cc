@@ -62,6 +62,10 @@ UNICODE_CHARS.extend([chr(i) for i in range(0x00A0, 0x0100)])
 # Includes Δ (Delta), Ω (Omega), α, β, γ, etc.
 UNICODE_CHARS.extend([chr(i) for i in range(0x0370, 0x0400)])
 
+# Mathematical Operators (0x2200-0x22FF) - 256 chars
+# Includes ∴ (therefore), ∞ (infinity), ∑ (summation), √ (square root), etc.
+UNICODE_CHARS.extend([chr(i) for i in range(0x2200, 0x2300)])
+
 # Miscellaneous Technical (0x2300-0x23FF) - 256 chars
 # Includes ⌂ (House), ⌐ (Reversed Not), ⌠ (Top Half Integral), etc.
 UNICODE_CHARS.extend([chr(i) for i in range(0x2300, 0x2400)])

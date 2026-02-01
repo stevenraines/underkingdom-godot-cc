@@ -105,7 +105,7 @@ func start_new_game(character_name_input: String = "", race_id: String = "human"
 ## Update the current map being played
 func set_current_map(map_id: String) -> void:
 	current_map_id = map_id
-	print("Current map set to: ", map_id)
+	#print("Current map set to: ", map_id)
 
 ## Pause the game
 func pause_game() -> void:

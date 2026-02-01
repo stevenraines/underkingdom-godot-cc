@@ -33,7 +33,7 @@ func _init(coords: Vector2i, world_seed: int) -> void:
 
 ## Generate chunk content (terrain + resources)
 func generate(world_seed: int) -> void:
-	#print("[WorldChunk] Generating chunk %v with seed %d" % [chunk_coords, seed])
+	##print("[WorldChunk] Generating chunk %v with seed %d" % [chunk_coords, seed])
 
 	var rng = SeededRandom.new(seed)
 
@@ -107,7 +107,7 @@ func generate(world_seed: int) -> void:
 				tile.color = Color.html(entrance.entrance_color)
 				tile.set_meta("dungeon_type", entrance.dungeon_type)
 				tile.set_meta("dungeon_name", entrance.name)
-				print("[WorldChunk] Placed %s entrance at %v" % [entrance.dungeon_type, world_pos])
+				#print("[WorldChunk] Placed %s entrance at %v" % [entrance.dungeon_type, world_pos])
 			else:
 				# Check if within any town area
 				var in_town = _is_in_any_town(world_pos, towns_data)
@@ -261,7 +261,7 @@ func _generate_towns_in_chunk(towns_data: Array, world_seed: int) -> void:
 		)
 		var is_primary_chunk = (chunk_coords == town_chunk)
 
-		print("[WorldChunk] Generating %s structures in chunk %v (primary=%s)" % [town_id, chunk_coords, is_primary_chunk])
+		#print("[WorldChunk] Generating %s structures in chunk %v (primary=%s)" % [town_id, chunk_coords, is_primary_chunk])
 
 		# Get definitions from TownManager (or use defaults)
 		var town_def: Dictionary = {}
@@ -618,7 +618,8 @@ func _spawn_overworld_enemies(towns_data: Array, rng: SeededRandom) -> void:
 		spawned += 1
 
 	if spawned > 0:
-		print("[WorldChunk] Spawned %d enemies in chunk %v" % [spawned, chunk_coords])
+		#print("[WorldChunk] Spawned %d enemies in chunk %v" % [spawned, chunk_coords])
+		pass
 
 
 ## Pick a weighted random enemy from a list of {enemy_id, weight} entries
@@ -651,11 +652,20 @@ func _spawn_town_npcs(npc_spawns: Array, town_id: String) -> void:
 		push_warning("[WorldChunk] EntityManager not available for NPC spawning")
 		return
 
+	# Get MapManager to store NPC spawn data for respawning after map transitions
+	var map_manager = _get_autoload("MapManager")
+
 	for spawn in npc_spawns:
 		spawn["town_id"] = town_id
 		entity_manager.spawn_npc(spawn)
 
-	print("[WorldChunk] Spawned %d NPCs for %s" % [npc_spawns.size(), town_id])
+		# Store spawn data in map metadata so NPCs can be respawned after dungeon return
+		if map_manager and map_manager.current_map:
+			var metadata_spawns = map_manager.current_map.metadata.get("npc_spawns", [])
+			metadata_spawns.append(spawn)
+			map_manager.current_map.metadata["npc_spawns"] = metadata_spawns
+
+	#print("[WorldChunk] Spawned %d NPCs for %s" % [npc_spawns.size(), town_id])
 
 ## Spawn crops for farm fields
 func _spawn_town_crops(crop_spawns: Array, town_id: String) -> void:
@@ -701,7 +711,7 @@ func _spawn_town_crops(crop_spawns: Array, town_id: String) -> void:
 		entity_manager.entities.append(crop)
 		crop_count += 1
 
-	print("[WorldChunk] Spawned %d crops for %s" % [crop_count, town_id])
+	#print("[WorldChunk] Spawned %d crops for %s" % [crop_count, town_id])
 
 ## Get tile at local coordinates (0-31)
 func get_tile(local_pos: Vector2i) -> GameTile:
@@ -737,7 +747,7 @@ func get_world_bounds() -> Dictionary:
 func unload() -> void:
 	# Keep chunk data for potential re-loading, just mark as unloaded
 	is_loaded = false
-	print("[WorldChunk] Unloaded chunk %v" % [chunk_coords])
+	#print("[WorldChunk] Unloaded chunk %v" % [chunk_coords])
 
 ## Serialize chunk for saving
 func to_dict() -> Dictionary:
@@ -853,4 +863,4 @@ func _generate_town_structures(town_center: Vector2i, world_seed: int) -> void:
 		var well_tile = GameTile.create("water")
 		tiles[well_local] = well_tile
 
-	print("[WorldChunk] Generated town structures in chunk %v" % [chunk_coords])
+	#print("[WorldChunk] Generated town structures in chunk %v" % [chunk_coords])

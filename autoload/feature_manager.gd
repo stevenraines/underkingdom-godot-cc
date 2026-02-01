@@ -33,7 +33,7 @@ var respawning_features: Dictionary = {}
 
 func _ready() -> void:
 	_load_feature_definitions_recursive(FEATURE_DATA_PATH)
-	print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
+	#print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
 
 	# Connect to chunk unload signal to clean up features from unloaded chunks
 	EventBus.chunk_unloaded.connect(_on_chunk_unloaded)
@@ -94,7 +94,7 @@ func _load_feature_file(file_path: String) -> void:
 ## Set hints for the current dungeon (called when entering a dungeon)
 func set_dungeon_hints(hints: Array) -> void:
 	current_dungeon_hints = hints
-	print("[FeatureManager] Loaded %d hints for current dungeon" % hints.size())
+	#print("[FeatureManager] Loaded %d hints for current dungeon" % hints.size())
 
 
 ## Clear all active features (called on map transition)
@@ -362,7 +362,7 @@ func _remove_feature(pos: Vector2i) -> void:
 				features.remove_at(i)
 				break
 
-	print("[FeatureManager] Removed feature '%s' at %v" % [feature_id, pos])
+	#print("[FeatureManager] Removed feature '%s' at %v" % [feature_id, pos])
 
 
 ## Generate a random hint from the current dungeon's hints
@@ -492,7 +492,8 @@ func has_blocking_feature(pos: Vector2i) -> bool:
 	var feature: Dictionary = active_features[pos]
 	var is_blocking = feature.definition.get("blocking", false)
 	if is_blocking:
-		print("[FeatureManager] Blocking feature found at %v: %s" % [pos, feature.feature_id])
+		#print("[FeatureManager] Blocking feature found at %v: %s" % [pos, feature.feature_id])
+		pass
 	return is_blocking
 
 
@@ -516,18 +517,18 @@ func load_features_from_map(map: GameMap) -> void:
 		elif not pos is Vector2i:
 			pos = Vector2i.ZERO
 
-		# Ensure feature has its definition reference
-		if not feature_data.has("definition"):
-			var feature_id: String = feature_data.get("feature_id", "")
-			if feature_definitions.has(feature_id):
-				feature_data["definition"] = feature_definitions[feature_id]
-			else:
-				push_warning("[FeatureManager] Unknown feature type: %s" % feature_id)
-				continue
+		# ALWAYS use fresh definition from feature_definitions
+		# (serialized definitions may have corrupted Color objects from JSON)
+		var feature_id: String = feature_data.get("feature_id", "")
+		if feature_definitions.has(feature_id):
+			feature_data["definition"] = feature_definitions[feature_id]
+		else:
+			push_warning("[FeatureManager] Unknown feature type: %s" % feature_id)
+			continue
 
 		active_features[pos] = feature_data
 
-	print("[FeatureManager] Loaded %d features from map" % active_features.size())
+	#print("[FeatureManager] Loaded %d features from map" % active_features.size())
 
 
 ## Process pending features stored by generator and convert to active features
@@ -573,7 +574,7 @@ func _process_pending_features(map: GameMap) -> void:
 		var should_have_loot = config.get("contains_loot", false) or config.has("loot_table")
 		if feature_def.get("can_contain_loot", false) and should_have_loot:
 			feature_data.state["loot"] = _generate_feature_loot(config, rng)
-			print("[FeatureManager] Generated loot for %s at %v: %s" % [feature_id, pos, feature_data.state.loot])
+			#print("[FeatureManager] Generated loot for %s at %v: %s" % [feature_id, pos, feature_data.state.loot])
 
 		# Set enemy to summon if applicable
 		if feature_def.get("can_summon_enemy", false) and config.has("summons_enemy"):
@@ -585,7 +586,7 @@ func _process_pending_features(map: GameMap) -> void:
 
 	# Clear pending after processing
 	map.metadata.pending_features.clear()
-	print("[FeatureManager] Processed %d pending features" % pending.size())
+	#print("[FeatureManager] Processed %d pending features" % pending.size())
 
 
 ## Parse Vector2i from string representation (handles JSON deserialization)
@@ -716,7 +717,7 @@ func schedule_feature_respawn(feature_id: String, pos: Vector2i, biome_id: Strin
 		"map_id": map_id
 	})
 
-	print("[FeatureManager] Scheduled respawn for %s at %v in %d turns" % [feature_id, pos, respawn_turns])
+	#print("[FeatureManager] Scheduled respawn for %s at %v in %d turns" % [feature_id, pos, respawn_turns])
 
 
 ## Process respawns (called by TurnManager each turn)
@@ -731,7 +732,7 @@ func process_feature_respawns() -> void:
 
 	# DIAGNOSTIC: Log feature count and active chunks
 	var active_chunk_coords = ChunkManager.get_active_chunk_coords()
-	print("[FeatureManager] Processing respawns (turn %d, active features: %d, active chunks: %d)" % [current_turn, active_features.size(), active_chunk_coords.size()])
+	#print("[FeatureManager] Processing respawns (turn %d, active features: %d, active chunks: %d)" % [current_turn, active_features.size(), active_chunk_coords.size()])
 
 	# Find any features ready to respawn
 	var turns_to_remove: Array = []
@@ -771,11 +772,12 @@ func process_feature_respawns() -> void:
 		respawning_features.erase(turn_key)
 
 	if respawns_processed > 0 or respawns_skipped_distance > 0:
-		print("[FeatureManager] Respawn complete: %d spawned, %d skipped (too far)" % [respawns_processed, respawns_skipped_distance])
+		#print("[FeatureManager] Respawn complete: %d spawned, %d skipped (too far)" % [respawns_processed, respawns_skipped_distance])
+		pass
 
 	# Periodic cleanup: Remove features outside loaded chunks (every 20 turns)
 	if current_turn % 20 == 0 and MapManager.current_map and MapManager.current_map.chunk_based:
-		print("[FeatureManager] Running periodic cleanup (turn %d)" % current_turn)
+		#print("[FeatureManager] Running periodic cleanup (turn %d)" % current_turn)
 		_cleanup_distant_features()
 
 ## Clean up features that are outside currently loaded chunks (called periodically)
@@ -809,7 +811,8 @@ func _cleanup_distant_features() -> void:
 		active_features.erase(pos)
 
 	if positions_to_remove.size() > 0:
-		print("[FeatureManager] Cleaned up %d features outside loaded chunks" % positions_to_remove.size())
+		#print("[FeatureManager] Cleaned up %d features outside loaded chunks" % positions_to_remove.size())
+		pass
 
 ## Called when a chunk is unloaded - removes features that were spawned in that chunk
 func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
@@ -828,4 +831,4 @@ func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
 		removed_count += 1
 
 	# DIAGNOSTIC: Always log, even if no features removed
-	print("[FeatureManager] Chunk %v unloaded: removed %d features (total now: %d)" % [chunk_coords, removed_count, active_features.size()])
+	#print("[FeatureManager] Chunk %v unloaded: removed %d features (total now: %d)" % [chunk_coords, removed_count, active_features.size()])

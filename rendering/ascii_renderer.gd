@@ -10,6 +10,7 @@ extends RenderInterface
 
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
+const LogManagerClass = preload("res://autoload/log_manager.gd")
 
 const TILE_WIDTH = 38
 const TILE_HEIGHT = 64
@@ -32,7 +33,7 @@ var current_highlight_position: Vector2i = Vector2i(-1, -1)
 var current_highlight_color: Color = Color.CYAN
 
 # Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, 1295 characters (41 rows)
+# Unicode tileset: 32 columns, 1551 characters (49 rows)
 # Characters indexed sequentially: col = index % 32, row = index / 32
 const TILES_PER_ROW = 32
 
@@ -76,6 +77,10 @@ func _build_unicode_map() -> void:
 
 	# Greek and Coptic (0x0370-0x03FF) - includes Δ, Ω, α, β, γ, etc.
 	for i in range(0x0370, 0x0400):
+		chars.append(char(i))
+
+	# Mathematical Operators (0x2200-0x22FF) - includes ∴, ∞, ∑, √, etc.
+	for i in range(0x2200, 0x2300):
 		chars.append(char(i))
 
 	# Miscellaneous Technical (0x2300-0x23FF) - includes ⌂, ⌐, ⌠, etc.
@@ -287,9 +292,9 @@ func _create_ascii_tileset() -> TileSet:
 	source.separation = Vector2i(0, 0)  # No spacing between tiles
 	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
-	# Add tiles for all 1295 Unicode characters in 32-column grid
-	# Characters laid out left-to-right, top-to-bottom (41 rows)
-	var num_tiles = 1295
+	# Add tiles for all 1551 Unicode characters in 32-column grid
+	# Characters laid out left-to-right, top-to-bottom (49 rows)
+	var num_tiles = 1551
 	for i in range(num_tiles):
 		var col = i % TILES_PER_ROW
 		var row = i / TILES_PER_ROW
@@ -526,6 +531,13 @@ func is_position_visible(pos: Vector2i) -> bool:
 		if tile and not tile.is_interior:
 			return true  # Exterior tiles always visible during day
 
+		# DIAGNOSTIC: If tile is null during daytime, log it (should be rare)
+		if tile == null:
+			# Tile is null - this might happen for positions in unloaded chunks
+			# During daytime outdoors, we should still consider exterior positions visible
+			# Return true as a safe default (exterior positions are visible during day)
+			return true
+
 		# Interior tiles need to be in visibility data
 		if not visibility_data.is_empty():
 			return visibility_data.has(pos)
@@ -755,6 +767,11 @@ func _apply_fog_of_war_to_entities() -> void:
 		_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_entities() - no entity layer, returning")
 		return
 
+	# DIAGNOSTIC: Track how many entities are visible vs hidden
+	var entities_kept_visible = 0
+	var entities_hidden = 0
+	var entities_restored = 0
+
 	# OPTIMIZATION: Use same viewport bounds as terrain fog-of-war
 	var viewport_margin = 45
 	var viewport_min = player_position - Vector2i(viewport_margin, viewport_margin)
@@ -774,6 +791,7 @@ func _apply_fog_of_war_to_entities() -> void:
 		entity_layer.set_cell(pos, 0, hidden_data["atlas"])
 		entity_modulated_cells[pos] = hidden_data["color"]
 		hidden_entity_positions.erase(pos)
+		entities_restored += 1
 
 	# Now process currently rendered entities
 	# Include: 1) entities in viewport, 2) entities in current FOV (to ensure they're visible)
@@ -839,6 +857,7 @@ func _apply_fog_of_war_to_entities() -> void:
 					entity_modulated_cells[pos] = original_color
 				else:
 					entity_modulated_cells[pos] = original_color.lerp(FOG_UNEXPLORED_COLOR, 0.7)
+			entities_kept_visible += 1
 		else:
 			# Not in LOS - check if this is a crop during daytime (crops only always visible in daylight)
 			# But NOT when player is inside a building
@@ -851,6 +870,7 @@ func _apply_fog_of_war_to_entities() -> void:
 				# Crops are always visible during daytime when player is outside
 				# Just apply fog dimming to match explored terrain
 				entity_modulated_cells[pos] = original_color.lerp(FOG_EXPLORED_COLOR, 0.6)
+				entities_kept_visible += 1
 			elif is_crop:
 				# Crop at night/twilight but not in lit area - hide it like other entities
 				var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
@@ -860,6 +880,7 @@ func _apply_fog_of_war_to_entities() -> void:
 				}
 				entity_layer.erase_cell(pos)
 				entity_modulated_cells.erase(pos)
+				entities_hidden += 1
 			else:
 				# Not a crop - store entity data and erase the cell
 				var atlas_coords = entity_layer.get_cell_atlas_coords(pos)
@@ -869,11 +890,13 @@ func _apply_fog_of_war_to_entities() -> void:
 				}
 				entity_layer.erase_cell(pos)
 				entity_modulated_cells.erase(pos)
+				entities_hidden += 1
 
 	_mark_entity_dirty()
 
 	var function_duration = Time.get_ticks_msec() - function_start
-	_debug_log("[ASCIIRenderer] _apply_fog_of_war_to_entities() complete - processed %d entities in %dms" % [entities_processed, function_duration])
+	# Always print FOW summary for debugging visibility issues
+	LogManager.fow("entities: visible=%d hidden=%d restored=%d (processed %d in %dms)" % [entities_kept_visible, entities_hidden, entities_restored, entities_processed, function_duration])
 	if function_duration > 1000:
 		_debug_log("[ASCIIRenderer] WARNING: _apply_fog_of_war_to_entities() took %dms - this is very slow!" % function_duration)
 
@@ -894,12 +917,13 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 
 	# Check if entity is on interior tile (used by both day and night logic)
 	var entity_tile = current_map.get_tile(pos) if current_map else null
-	var is_interior_tile = entity_tile and entity_tile.is_interior
+	# Explicit bool conversion to handle null tile case (null tiles are treated as exterior)
+	var is_interior_tile = entity_tile != null and entity_tile.is_interior
 
 	# Check if player is inside a building (used by both day and night logic)
 	var player_tile = current_map.get_tile(player_position) if current_map else null
-	var player_on_door = player_tile and player_tile.tile_type == "door"
-	var player_inside_building = player_tile and (player_tile.is_interior or player_on_door)
+	var player_on_door = player_tile != null and player_tile.tile_type == "door"
+	var player_inside_building = player_tile != null and (player_tile.is_interior or player_on_door)
 
 	if is_daytime_outdoors:
 		if player_inside_building:
@@ -911,6 +935,7 @@ func _is_entity_visible_at(pos: Vector2i) -> bool:
 			return false
 		else:
 			# Player outside: exterior entities always visible during daytime
+			# This includes entities where tile lookup fails (treated as exterior)
 			return true
 
 	# Night/dungeons: Use cached visibility data from VisibilitySystem

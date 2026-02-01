@@ -2700,6 +2700,13 @@ func _on_debug_menu_closed() -> void:
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
 	input_handler.set_ui_blocking(false)
+	# Refresh rendering to show spawned entities/items and tile changes
+	_full_render_needed = true
+	_render_map()
+	_render_ground_items()
+	_render_all_entities()
+	renderer.render_entity(player.position, "@", Color.YELLOW)
+	_update_visibility()
 
 ## Toggle performance overlay
 func _on_perf_overlay_toggle() -> void:

@@ -24,59 +24,13 @@ func _ready() -> void:
 
 ## Load all templates by recursively scanning folders
 func _load_templates() -> void:
-	_load_templates_from_folder(TEMPLATE_PATH)
+	var files = JsonHelper.load_all_from_directory(TEMPLATE_PATH)
+	for file_entry in files:
+		_process_template_data(file_entry.path, file_entry.data)
 
 
-## Recursively load templates from a folder and all subfolders
-func _load_templates_from_folder(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if not dir:
-		# Directory might not exist yet - that's OK
-		return
-
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		var full_path = path + "/" + file_name
-
-		if dir.current_is_dir():
-			# Skip hidden folders and navigate into subfolders
-			if not file_name.begins_with("."):
-				_load_templates_from_folder(full_path)
-		elif file_name.ends_with(".json"):
-			# Load JSON file as template data
-			_load_template_from_file(full_path)
-
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-
-## Load a single template from a JSON file
-func _load_template_from_file(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		push_warning("VariantManager: Template file not found: %s" % path)
-		return
-
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		push_error("VariantManager: Could not open file: %s" % path)
-		return
-
-	var json_text = file.get_as_text()
-	file.close()
-
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("VariantManager: JSON parse error in %s at line %d: %s" % [
-			path, json.get_error_line(), json.get_error_message()
-		])
-		return
-
-	var data = json.data
-
+## Process loaded template data
+func _process_template_data(path: String, data) -> void:
 	if data is Dictionary and "template_id" in data:
 		var template_id = data.get("template_id", "")
 		if template_id != "":
@@ -89,46 +43,13 @@ func _load_template_from_file(path: String) -> void:
 
 ## Load all variant definitions
 func _load_variants() -> void:
-	var dir = DirAccess.open(VARIANT_PATH)
-	if not dir:
-		# Directory might not exist yet - that's OK
-		return
-
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		if file_name.ends_with(".json"):
-			_load_variant_from_file(VARIANT_PATH + "/" + file_name)
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
+	var files = JsonHelper.load_all_from_directory(VARIANT_PATH, false)
+	for file_entry in files:
+		_process_variant_data(file_entry.path, file_entry.data)
 
 
-## Load a single variant file
-func _load_variant_from_file(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		push_warning("VariantManager: Variant file not found: %s" % path)
-		return
-
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		push_error("VariantManager: Could not open file: %s" % path)
-		return
-
-	var json_text = file.get_as_text()
-	file.close()
-
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("VariantManager: JSON parse error in %s at line %d: %s" % [
-			path, json.get_error_line(), json.get_error_message()
-		])
-		return
-
-	var data = json.data
-
+## Process loaded variant data
+func _process_variant_data(path: String, data) -> void:
 	if data is Dictionary and "variant_type" in data and "variants" in data:
 		var variant_type = data.get("variant_type", "")
 		if variant_type != "":

@@ -35,38 +35,17 @@ func _ready() -> void:
 
 ## Load all hazard definitions from JSON files
 func _load_hazard_definitions() -> void:
-	var dir = DirAccess.open(HAZARD_DATA_PATH)
-	if not dir:
-		push_error("[HazardManager] Failed to open hazard data directory: " + HAZARD_DATA_PATH)
+	var files = JsonHelper.load_all_from_directory(HAZARD_DATA_PATH)
+	for file_entry in files:
+		_process_hazard_data(file_entry.path, file_entry.data)
+
+
+## Process loaded hazard data
+func _process_hazard_data(file_path: String, data) -> void:
+	if not data is Dictionary:
+		push_error("[HazardManager] Invalid hazard data in: " + file_path)
 		return
 
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		if file_name.ends_with(".json"):
-			var file_path = HAZARD_DATA_PATH + "/" + file_name
-			_load_hazard_file(file_path)
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-
-## Load a single hazard definition from JSON
-func _load_hazard_file(file_path: String) -> void:
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	if not file:
-		push_error("[HazardManager] Failed to open hazard file: " + file_path)
-		return
-
-	var json = JSON.new()
-	var error = json.parse(file.get_as_text())
-
-	if error != OK:
-		push_error("[HazardManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
-		return
-
-	var data: Dictionary = json.data
 	if not data.has("id"):
 		push_error("[HazardManager] Hazard definition missing 'id' field: " + file_path)
 		return
@@ -416,7 +395,7 @@ func load_hazards_from_map(map: GameMap) -> void:
 		return
 
 	for hazard_data in map.metadata.hazards:
-		var pos: Vector2i = _parse_vector2i(hazard_data.position)
+		var pos: Vector2i = JsonHelper.parse_vector2i(hazard_data.position)
 
 		# ALWAYS use fresh definition from hazard_definitions
 		# (serialized definitions may have corrupted Color objects from JSON)
@@ -444,7 +423,7 @@ func _process_pending_hazards(map: GameMap) -> void:
 
 	for pending_data in pending:
 		var hazard_id: String = pending_data.get("hazard_id", "")
-		var pos: Vector2i = _parse_vector2i(pending_data.get("position", Vector2i.ZERO))
+		var pos: Vector2i = JsonHelper.parse_vector2i(pending_data.get("position", Vector2i.ZERO))
 		var config: Dictionary = pending_data.get("config", {})
 
 		if hazard_id.is_empty() or not hazard_definitions.has(hazard_id):
@@ -507,29 +486,6 @@ func check_proximity_hazards(center: Vector2i, _max_radius: int, entity) -> Arra
 
 	return triggered
 
-
-## Parse Vector2i from string format (handles save data serialization)
-## Strings are in format "(x, y)" from JSON serialization
-func _parse_vector2i(value) -> Vector2i:
-	# Already a Vector2i - return as is
-	if value is Vector2i:
-		return value
-
-	# String format - parse it
-	if value is String:
-		var cleaned = value.strip_edges().replace("(", "").replace(")", "")
-		var parts = cleaned.split(",")
-		if parts.size() != 2:
-			push_warning("[HazardManager] Invalid Vector2i string format: %s" % value)
-			return Vector2i.ZERO
-		return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
-
-	# Dictionary format (alternative serialization)
-	if value is Dictionary:
-		return Vector2i(value.get("x", 0), value.get("y", 0))
-
-	push_warning("[HazardManager] Cannot parse Vector2i from type: %s" % typeof(value))
-	return Vector2i.ZERO
 
 ## Called when a chunk is unloaded - removes hazards that were spawned in that chunk
 func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:

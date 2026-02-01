@@ -32,54 +32,14 @@ func _ready() -> void:
 
 ## Load all enemy definitions by recursively scanning folders
 func _load_enemy_definitions() -> void:
-	_load_enemies_from_folder(ENEMY_DATA_BASE_PATH)
+	var files = JsonHelper.load_all_from_directory(ENEMY_DATA_BASE_PATH)
+	for file_entry in files:
+		_process_enemy_data(file_entry.path, file_entry.data)
 	#print("EntityManager: Loaded %d enemy definitions" % enemy_definitions.size())
 
-## Recursively load enemies from a folder and all subfolders
-func _load_enemies_from_folder(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if not dir:
-		push_warning("EntityManager: Could not open directory: %s" % path)
-		return
-	
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	
-	while file_name != "":
-		var full_path = path + "/" + file_name
-		
-		if dir.current_is_dir():
-			# Skip hidden folders and navigate into subfolders
-			if not file_name.begins_with("."):
-				_load_enemies_from_folder(full_path)
-		elif file_name.ends_with(".json"):
-			# Load JSON file as enemy data
-			_load_enemy_from_file(full_path)
-		
-		file_name = dir.get_next()
-	
-	dir.list_dir_end()
 
-## Load a single enemy from a JSON file
-func _load_enemy_from_file(file_path: String) -> void:
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	
-	if not file:
-		push_error("EntityManager: Failed to load enemy file: " + file_path)
-		return
-	
-	var json_string = file.get_as_text()
-	file.close()
-	
-	var json = JSON.new()
-	var parse_result = json.parse(json_string)
-	
-	if parse_result != OK:
-		push_error("EntityManager: Failed to parse enemy JSON: %s at line %d" % [file_path, json.get_error_line()])
-		return
-	
-	var data = json.data
-	
+## Process loaded enemy data (handles both single and multi-enemy formats)
+func _process_enemy_data(file_path: String, data) -> void:
 	# Handle single enemy file (new format with "id" field)
 	if data is Dictionary and "id" in data:
 		var enemy_id = data.get("id", "")
@@ -98,7 +58,7 @@ func _load_enemy_from_file(file_path: String) -> void:
 			else:
 				push_warning("EntityManager: Enemy without ID in %s" % file_path)
 	else:
-		push_warning("EntityManager: Invalid enemy file format in %s" % file_path)
+		push_warning("EntityManager: Invalid enemy format in %s" % file_path)
 
 ## Check if an enemy ID exists
 func has_enemy_definition(enemy_id: String) -> bool:
@@ -280,7 +240,7 @@ func spawn_ground_item(item: Item, pos: Vector2i, despawn_turns: int = -1) -> Gr
 func spawn_npc(spawn_data: Dictionary):
 	var NPCClassRef = load("res://entities/npc.gd")
 	var npc_id = spawn_data.get("npc_id", "npc")
-	var position = _parse_vector2i(spawn_data.get("position", Vector2i.ZERO))
+	var position = JsonHelper.parse_vector2i(spawn_data.get("position", Vector2i.ZERO))
 
 	# Check for duplicate NPC by ID - prevent double spawning
 	for entity in entities:
@@ -597,7 +557,7 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 		if enemy_id == "" or not has_enemy_definition(enemy_id):
 			continue
 
-		var enemy = spawn_enemy(enemy_id, _parse_vector2i(enemy_data.get("position", Vector2i.ZERO)))
+		var enemy = spawn_enemy(enemy_id, JsonHelper.parse_vector2i(enemy_data.get("position", Vector2i.ZERO)))
 		if enemy:
 			enemy.current_health = enemy_data.get("current_health", enemy.max_health)
 
@@ -622,7 +582,7 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 
 		var item = ItemManager.create_item(item_id, item_data.get("item_count", 1))
 		if item:
-			spawn_ground_item(item, _parse_vector2i(item_data.get("position", Vector2i.ZERO)))
+			spawn_ground_item(item, JsonHelper.parse_vector2i(item_data.get("position", Vector2i.ZERO)))
 
 	#print("EntityManager: Restored %d enemies, %d items, %d NPCs from map %s" % [saved_enemies.size(), saved_items.size(), saved_npcs.size(), map.map_id])
 	return true
@@ -646,27 +606,3 @@ func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
 	if removed_count > 0:
 		#print("[EntityManager] Cleaned up %d entities from unloaded chunk %v" % [removed_count, chunk_coords])
 		pass
-
-
-## Parse Vector2i from string format (handles save data serialization)
-## Strings are in format "(x, y)" from JSON serialization
-func _parse_vector2i(value) -> Vector2i:
-	# Already a Vector2i - return as is
-	if value is Vector2i:
-		return value
-
-	# String format - parse it
-	if value is String:
-		var cleaned = value.strip_edges().replace("(", "").replace(")", "")
-		var parts = cleaned.split(",")
-		if parts.size() != 2:
-			push_warning("[EntityManager] Invalid Vector2i string format: %s" % value)
-			return Vector2i.ZERO
-		return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
-
-	# Dictionary format (alternative serialization)
-	if value is Dictionary:
-		return Vector2i(value.get("x", 0), value.get("y", 0))
-
-	push_warning("[EntityManager] Cannot parse Vector2i from type: %s" % typeof(value))
-	return Vector2i.ZERO

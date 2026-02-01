@@ -30,60 +30,13 @@ func _ready() -> void:
 
 ## Load all spell definitions by recursively scanning folders
 func _load_all_spells() -> void:
-	_load_spells_from_folder(SPELL_DATA_PATH)
+	var files = JsonHelper.load_all_from_directory(SPELL_DATA_PATH)
+	for file_entry in files:
+		_process_spell_data(file_entry.data)
 
-## Recursively load spells from a folder and all subfolders
-func _load_spells_from_folder(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if not dir:
-		# Don't warn if the spells directory doesn't exist yet
-		if path == SPELL_DATA_PATH:
-			print("SpellManager: No spell data directory found at %s" % path)
-		return
 
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		var full_path = path + "/" + file_name
-
-		if dir.current_is_dir():
-			# Skip hidden folders and navigate into subfolders
-			if not file_name.begins_with("."):
-				_load_spells_from_folder(full_path)
-		elif file_name.ends_with(".json"):
-			# Load JSON file as spell data
-			_load_spell_from_file(full_path)
-
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-## Load a single spell from a JSON file
-func _load_spell_from_file(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		push_warning("SpellManager: Spell file not found: %s" % path)
-		return
-
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		push_error("SpellManager: Could not open file: %s" % path)
-		return
-
-	var json_text = file.get_as_text()
-	file.close()
-
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("SpellManager: JSON parse error in %s at line %d: %s" % [
-			path, json.get_error_line(), json.get_error_message()
-		])
-		return
-
-	var data = json.data
-
-	# Handle spell data
+## Process loaded spell data
+func _process_spell_data(data) -> void:
 	if data is Dictionary and "id" in data:
 		var spell = SpellClass.from_dict(data)
 		_register_spell(spell)

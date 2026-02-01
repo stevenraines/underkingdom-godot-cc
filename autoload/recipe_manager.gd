@@ -22,54 +22,14 @@ func _ready() -> void:
 
 ## Load all recipes by recursively scanning folders
 func _load_all_recipes() -> void:
-	_load_recipes_from_folder(RECIPE_DATA_BASE_PATH)
+	var files = JsonHelper.load_all_from_directory(RECIPE_DATA_BASE_PATH)
+	for file_entry in files:
+		_process_recipe_data(file_entry.path, file_entry.data)
 	print("RecipeManager: Loaded %d recipes" % all_recipes.size())
 
-## Recursively load recipes from a folder and all subfolders
-func _load_recipes_from_folder(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if not dir:
-		push_warning("RecipeManager: Could not open directory: %s" % path)
-		return
 
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		var full_path = path + "/" + file_name
-
-		if dir.current_is_dir():
-			# Skip hidden folders and navigate into subfolders
-			if not file_name.begins_with("."):
-				_load_recipes_from_folder(full_path)
-		elif file_name.ends_with(".json"):
-			# Load JSON file as recipe data
-			_load_recipe_from_file(full_path)
-
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-## Load a single recipe from a JSON file
-func _load_recipe_from_file(file_path: String) -> void:
-	var file = FileAccess.open(file_path, FileAccess.READ)
-
-	if not file:
-		push_error("RecipeManager: Failed to load recipe file: " + file_path)
-		return
-
-	var json_string = file.get_as_text()
-	file.close()
-
-	var json = JSON.new()
-	var parse_result = json.parse(json_string)
-
-	if parse_result != OK:
-		push_error("RecipeManager: Failed to parse recipe JSON: %s at line %d" % [file_path, json.get_error_line()])
-		return
-
-	var data = json.data
-
+## Process loaded recipe data
+func _process_recipe_data(file_path: String, data) -> void:
 	if data is Dictionary and "id" in data:
 		var recipe = RecipeClass.create_from_data(data)
 		all_recipes[recipe.id] = recipe

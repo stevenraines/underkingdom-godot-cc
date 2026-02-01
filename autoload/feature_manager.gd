@@ -32,7 +32,7 @@ var respawning_features: Dictionary = {}
 
 
 func _ready() -> void:
-	_load_feature_definitions_recursive(FEATURE_DATA_PATH)
+	_load_feature_definitions()
 	#print("[FeatureManager] Initialized with %d feature definitions" % feature_definitions.size())
 
 	# Connect to chunk unload signal to clean up features from unloaded chunks
@@ -40,46 +40,18 @@ func _ready() -> void:
 
 
 ## Load all feature definitions recursively from JSON files
-func _load_feature_definitions_recursive(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if not dir:
-		push_error("[FeatureManager] Failed to open feature data directory: " + path)
+func _load_feature_definitions() -> void:
+	var files = JsonHelper.load_all_from_directory(FEATURE_DATA_PATH)
+	for file_entry in files:
+		_process_feature_data(file_entry.path, file_entry.data)
+
+
+## Process loaded feature data
+func _process_feature_data(file_path: String, data) -> void:
+	if not data is Dictionary:
+		push_error("[FeatureManager] Invalid feature data in: " + file_path)
 		return
 
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		if file_name.begins_with("."):
-			file_name = dir.get_next()
-			continue
-
-		var full_path = path + "/" + file_name
-		if dir.current_is_dir():
-			# Recursively load from subdirectory
-			_load_feature_definitions_recursive(full_path)
-		elif file_name.ends_with(".json"):
-			_load_feature_file(full_path)
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-
-## Load a single feature definition from JSON
-func _load_feature_file(file_path: String) -> void:
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	if not file:
-		push_error("[FeatureManager] Failed to open feature file: " + file_path)
-		return
-
-	var json = JSON.new()
-	var error = json.parse(file.get_as_text())
-
-	if error != OK:
-		push_error("[FeatureManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
-		return
-
-	var data: Dictionary = json.data
 	if not data.has("id"):
 		push_error("[FeatureManager] Feature definition missing 'id' field: " + file_path)
 		return
@@ -357,7 +329,7 @@ func _remove_feature(pos: Vector2i) -> void:
 			var f_pos = f.get("position", Vector2i.ZERO)
 			# Handle both Vector2i (in memory) and String (from save data)
 			if f_pos is String:
-				f_pos = _parse_vector2i(f_pos)
+				f_pos = JsonHelper.parse_vector2i(f_pos)
 			if f_pos == pos:
 				features.remove_at(i)
 				break
@@ -395,7 +367,7 @@ func _try_unlock_feature(feature: Dictionary, player) -> Dictionary:
 		var pos = feature.get("position", Vector2i.ZERO)
 		# Handle both Vector2i (in memory) and String (from save data)
 		if pos is String:
-			pos = _parse_vector2i(pos)
+			pos = JsonHelper.parse_vector2i(pos)
 		EventBus.lock_opened.emit(pos, "key")
 		return {"success": true, "message": unlock_result.message}
 
@@ -513,7 +485,7 @@ func load_features_from_map(map: GameMap) -> void:
 		var pos = feature_data.position
 		# Handle both Vector2i (in memory) and String (from save data)
 		if pos is String:
-			pos = _parse_vector2i(pos)
+			pos = JsonHelper.parse_vector2i(pos)
 		elif not pos is Vector2i:
 			pos = Vector2i.ZERO
 
@@ -550,7 +522,7 @@ func _process_pending_features(map: GameMap) -> void:
 		var pos = pending_data.get("position", Vector2i.ZERO)
 		# Handle both Vector2i (in memory) and String (from save data)
 		if pos is String:
-			pos = _parse_vector2i(pos)
+			pos = JsonHelper.parse_vector2i(pos)
 		elif not pos is Vector2i:
 			pos = Vector2i.ZERO
 		var config: Dictionary = pending_data.get("config", {})
@@ -587,18 +559,6 @@ func _process_pending_features(map: GameMap) -> void:
 	# Clear pending after processing
 	map.metadata.pending_features.clear()
 	#print("[FeatureManager] Processed %d pending features" % pending.size())
-
-
-## Parse Vector2i from string representation (handles JSON deserialization)
-## Godot's JSON saves Vector2i as string like "(x, y)"
-func _parse_vector2i(value: String) -> Vector2i:
-	# Remove parentheses and split by comma
-	var cleaned = value.strip_edges().replace("(", "").replace(")", "")
-	var parts = cleaned.split(",")
-	if parts.size() != 2:
-		push_warning("[FeatureManager] Failed to parse Vector2i from string: %s" % value)
-		return Vector2i.ZERO
-	return Vector2i(int(parts[0].strip_edges()), int(parts[1].strip_edges()))
 
 
 # =============================================================================
@@ -747,7 +707,7 @@ func process_feature_respawns() -> void:
 					var pos = respawn_data.position
 					# Handle position as string or Vector2i
 					if pos is String:
-						pos = _parse_vector2i(pos)
+						pos = JsonHelper.parse_vector2i(pos)
 
 					# Spatial filter: Only process if near player (Manhattan distance)
 					var dist = abs(pos.x - player_pos.x) + abs(pos.y - player_pos.y)

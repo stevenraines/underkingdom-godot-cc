@@ -6,6 +6,7 @@ extends Node
 ## and coordinates entity updates during turns.
 
 const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
+const ChunkCleanupHelper = preload("res://autoload/chunk_cleanup_helper.gd")
 
 # All active entities (excluding player)
 var entities: Array[Entity] = []
@@ -590,19 +591,8 @@ func restore_entity_states_from_map(map: GameMap) -> bool:
 ## Called when a chunk is unloaded - removes entities that were spawned by that chunk
 ## This prevents entity accumulation as player explores the overworld
 func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
-	var removed_count = 0
-	# Iterate backwards to safely remove while iterating
-	for i in range(entities.size() - 1, -1, -1):
-		var entity = entities[i]
-		# Only remove entities that belong to this chunk
-		# NPCs are persistent (source_chunk stays at default -999)
-		# Dead enemies can be cleaned up
-		if entity.source_chunk == chunk_coords:
-			entities.remove_at(i)
-			if MapManager.current_map:
-				MapManager.current_map.entities.erase(entity)
-			removed_count += 1
-
-	if removed_count > 0:
-		#print("[EntityManager] Cleaned up %d entities from unloaded chunk %v" % [removed_count, chunk_coords])
-		pass
+	var removed = ChunkCleanupHelper.cleanup_array_by_chunk(entities, chunk_coords, "EntityManager")
+	# Also remove from current map's entity list
+	if MapManager.current_map and removed.size() > 0:
+		for entity in removed:
+			MapManager.current_map.entities.erase(entity)

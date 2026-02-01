@@ -43,25 +43,27 @@ func _load_time_periods() -> void:
 	_time_periods = CalendarManager.get_time_periods()
 
 ## Print message with deduplication - skips if same as last message
-func _log(message: String) -> void:
-	if message == _last_log_message:
-		_log_repeat_count += 1
-		# CRITICAL: If message repeats too many times, we may have an infinite loop
-		if _log_repeat_count > 10:
-			push_error("[TurnManager] INFINITE LOOP DETECTED: Message repeated %d times: %s" % [_log_repeat_count, message])
-			# Emergency brake - force stop
-			if ChunkManager:
-				ChunkManager.emergency_unfreeze()
-			return
-		return
-
-	# If we had repeats, flush the count before printing new message
-	if _log_repeat_count > 0:
-		print("  (repeated %d times)" % _log_repeat_count)
-		_log_repeat_count = 0
-
-	print(message)
-	_last_log_message = message
+## DISABLED: Commenting out for cleaner debug output
+func _log(_message: String) -> void:
+	return  # Temporarily disabled for debugging
+	#if message == _last_log_message:
+	#	_log_repeat_count += 1
+	#	# CRITICAL: If message repeats too many times, we may have an infinite loop
+	#	if _log_repeat_count > 10:
+	#		push_error("[TurnManager] INFINITE LOOP DETECTED: Message repeated %d times: %s" % [_log_repeat_count, message])
+	#		# Emergency brake - force stop
+	#		if ChunkManager:
+	#			ChunkManager.emergency_unfreeze()
+	#		return
+	#	return
+	#
+	## If we had repeats, flush the count before printing new message
+	#if _log_repeat_count > 0:
+	#	print("  (repeated %d times)" % _log_repeat_count)
+	#	_log_repeat_count = 0
+	#
+	#print(message)
+	#_last_log_message = message
 
 ## Get turns per day from CalendarManager
 func get_turns_per_day() -> int:
@@ -213,7 +215,7 @@ func _update_time_of_day() -> void:
 		if time_of_day == "night" and new_time == "dawn":
 			CalendarManager.advance_day(GameManager.world_seed)
 			_generate_daily_weather()
-			print("[TurnManager] %s" % CalendarManager.get_full_date_string())
+			#print("[TurnManager] %s" % CalendarManager.get_full_date_string())
 		time_of_day = new_time
 		EventBus.time_of_day_changed.emit(time_of_day)
 		print("Time of day changed to: ", time_of_day)

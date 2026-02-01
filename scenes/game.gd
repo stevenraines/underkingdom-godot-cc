@@ -17,6 +17,7 @@ const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
 const FarmingSystemClass = preload("res://systems/farming_system.gd")
 const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
+const LogManagerClass = preload("res://autoload/log_manager.gd")
 
 var player: Player
 var renderer: ASCIIRenderer
@@ -821,26 +822,32 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 			var render_start = Time.get_ticks_usec()
 			_full_render_needed = true  # New chunks loaded - need full render
 
+			# Calculate visibility BEFORE rendering (features need visibility_data)
+			var visibility_calc_start = Time.get_ticks_usec()
+			_update_visibility(false)  # Sets visibility_data but doesn't apply FOW
+			var visibility_calc_time = Time.get_ticks_usec() - visibility_calc_start
+
 			var map_render_start = Time.get_ticks_usec()
 			_render_map()
 			var map_render_time = Time.get_ticks_usec() - map_render_start
-
-			# Update visibility after rendering map, before rendering entities
-			var visibility_start = Time.get_ticks_usec()
-			_update_visibility()
-			var visibility_time = Time.get_ticks_usec() - visibility_start
 
 			# NOTE: No need to call _render_ground_items() - _render_all_entities() handles it
 			var entity_render_start = Time.get_ticks_usec()
 			_render_all_entities()
 			var entity_render_time = Time.get_ticks_usec() - entity_render_start
 
+			# Apply FOW to rendered entities
+			var visibility_fow_start = Time.get_ticks_usec()
+			_update_visibility(true)  # Re-calculates and applies FOW
+			var visibility_fow_time = Time.get_ticks_usec() - visibility_fow_start
+
 			var total_render_time = Time.get_ticks_usec() - render_start
-			print("[Game] Chunk crossing: chunk_update=%.2fms, map_render=%.2fms, visibility=%.2fms, entities=%.2fms, total=%.2fms" % [
+			print("[Game] Chunk crossing: chunk_update=%.2fms, vis_calc=%.2fms, map_render=%.2fms, entities=%.2fms, vis_fow=%.2fms, total=%.2fms" % [
 				chunk_update_time / 1000.0,
+				visibility_calc_time / 1000.0,
 				map_render_time / 1000.0,
-				visibility_time / 1000.0,
 				entity_render_time / 1000.0,
+				visibility_fow_time / 1000.0,
 				total_render_time / 1000.0
 			])
 
@@ -860,11 +867,6 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 	# So we need to re-render the entire map when player moves
 	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
 
-	# CRITICAL: Update visibility AFTER map render but BEFORE entity render
-	# This must be after render_tile() sets base colors (for fog of war dimming)
-	# but BEFORE entity rendering (so entities can check current visibility data)
-	_update_visibility()
-
 	if is_dungeon:
 		# Note: For dungeons, we still do full entity re-render every move
 		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
@@ -872,10 +874,14 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		# Re-render entire map with updated wall visibility
 		_full_render_needed = true  # _render_map() clears entity layer, need full re-render
 		_render_map()
-		# Update visibility again after re-rendering map
-		_update_visibility()
 		_render_ground_items()  # Render loot first so creatures appear on top
-		_render_all_entities()  # Will use incremental rendering automatically
+		_render_all_entities()  # Renders entities to entity layer
+		# Update visibility AFTER entities are rendered so FOW is applied correctly
+		_update_visibility()
+	else:
+		# Overworld: update visibility for incremental entity rendering
+		# Entities are not fully re-rendered on every move, so FOW is applied to existing entities
+		_update_visibility()
 
 	# CRITICAL: Render player AFTER everything else
 	# Must be after visibility update so fog of war doesn't hide the player
@@ -921,9 +927,12 @@ func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
 	# Only re-render for nearby chunks (within load radius)
 	if distance <= ChunkManager.load_radius:
 		_full_render_needed = true
+		# Calculate visibility data before rendering (features need visibility_data)
+		_update_visibility(false)
 		_render_map()
-		_update_visibility()
 		_render_all_entities()
+		# Apply FOW to rendered entities
+		_update_visibility(true)
 		# Re-render player on top
 		renderer.render_entity(player.position, "@", Color.YELLOW)
 
@@ -968,7 +977,9 @@ func _render_feature_at(pos: Vector2i) -> void:
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
-		var color: Color = definition.get("color", Color.WHITE)
+		var color = definition.get("color", Color.WHITE)
+		if color is String:
+			color = Color.from_string(color, Color.WHITE)
 		renderer.render_entity(pos, ascii_char, color)
 
 
@@ -1042,10 +1053,19 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] 2/8 Clearing entities")
 	EntityManager.clear_entities()
 
+	# Clear features and hazards when transitioning to overworld
+	# This removes leftover dungeon features that could interfere with rendering
+	# Overworld features will be spawned during chunk generation
+	if MapManager.current_map and MapManager.current_map.chunk_based:
+		print("[Game] 2/8 Clearing features/hazards for overworld transition")
+		FeatureManager.clear_features()
+		HazardManager.clear_hazards()
+
 	# Setup fog of war for new map BEFORE chunk loading and rendering
 	# This ensures renderer.current_map is set so is_position_visible() works for features/NPCs
 	var fow_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
 	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
+	print("[Game] 2.5/8 Setting renderer map info: map_id=%s, chunk_based=%s, map_set=%s" % [fow_map_id, fow_chunk_based, MapManager.current_map != null])
 	renderer.set_map_info(fow_map_id, fow_chunk_based, MapManager.current_map)
 
 	# Spawn or restore enemies for the new map
@@ -1059,27 +1079,37 @@ func _on_map_changed(map_id: String) -> void:
 	# Player position has been set before map transition in input_handler
 	if MapManager.current_map and MapManager.current_map.chunk_based and player:
 		print("[Game] 4/8 Loading chunks at player position %v" % player.position)
+		print("[Game] 4/8 Before chunk load: active_chunks=%d, cache=%d" % [ChunkManager.active_chunks.size(), ChunkManager.chunk_cache.size()])
 		ChunkManager.update_active_chunks(player.position)
 		print("[Game] 4/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
+		print("[Game] 4/8 After chunk load: features=%d, structures=%d, entities=%d" % [
+			FeatureManager.active_features.size(),
+			StructureManager.get_structures_on_map("overworld").size(),
+			EntityManager.entities.size()
+		])
 
 	# Initialize light sources for new map (braziers, torches, etc.)
 	# MUST happen before visibility calculation
 	print("[Game] 5/8 Initializing light sources")
 	_initialize_light_sources_for_map()
 
-	# Clear stale visibility data and calculate fresh visibility BEFORE rendering
-	# This is critical for interior tile visibility (NPCs in shops, etc.)
-	print("[Game] 6/8 Calculating visibility")
-	renderer.set_visibility_data({})  # Clear stale dungeon visibility data
-	_update_visibility()
+	# Calculate visibility data BEFORE rendering (needed for features/hazards visibility checks)
+	# But DON'T apply FOW yet - entity layer will be cleared and re-rendered
+	print("[Game] 6/8 Calculating visibility data")
+	_update_visibility(false)  # Sets visibility_data but doesn't apply FOW
 
-	# Render map and entities (now with correct visibility data)
+	# Render map (calls clear_all which clears entity layer)
 	print("[Game] 7/8 Rendering map and entities")
 	_render_map()
+	_full_render_needed = true  # _render_map() calls clear_all(), must do full re-render
 	_render_all_entities()
 
-	# Re-render player at new position
-	print("[Game] 8/8 Rendering player")
+	# Apply FOW to the rendered entities
+	# This hides entities outside player's view
+	print("[Game] 8/8 Applying fog of war to entities")
+	_update_visibility(true)  # Re-calculates and applies FOW to rendered entities
+
+	# Re-render player at new position (ensure player renders on top)
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	renderer.center_camera(player.position)
 
@@ -1933,6 +1963,14 @@ func _render_all_entities() -> void:
 func _full_render_all_entities() -> void:
 	_rendered_entities.clear()
 
+	# DIAGNOSTIC: Log entity/structure/feature counts for debugging
+	var map_id_diag = MapManager.current_map.map_id if MapManager.current_map else "null"
+	var is_daytime_diag = TurnManager.time_of_day if TurnManager else "unknown"
+	var entity_count = EntityManager.entities.size()
+	var structure_count = StructureManager.get_structures_on_map(map_id_diag).size()
+	var feature_count = FeatureManager.active_features.size()
+	LogManager.game("RENDER: map=%s time=%s entities=%d structures=%d features=%d" % [map_id_diag, is_daytime_diag, entity_count, structure_count, feature_count])
+
 	# Get current target for highlighting
 	var current_target = input_handler.get_current_target() if input_handler else null
 
@@ -1956,16 +1994,26 @@ func _full_render_all_entities() -> void:
 	var structures = StructureManager.get_structures_on_map(map_id)
 	for structure in structures:
 		if structure.position != player_pos:
-			renderer.render_entity(structure.position, structure.ascii_char, structure.color)
+			var struct_color = structure.color
+			if struct_color is String:
+				struct_color = Color.from_string(struct_color, Color.WHITE)
+			renderer.render_entity(structure.position, structure.ascii_char, struct_color)
 			_rendered_entities[structure.position] = structure
 
 	# Render dungeon features (skip player position) and add to tracking
+	var is_overworld_map = MapManager.current_map and MapManager.current_map.chunk_based
 	for pos in FeatureManager.active_features:
 		if pos == player_pos:
 			continue
 		if MapManager.current_map:
 			var tile = MapManager.current_map.get_tile(pos)
-			if tile == null or not tile.walkable:
+			# For dungeons: strictly check tile validity (walls shouldn't have features)
+			# For overworld: be lenient - if tile is null, chunk may be loading, allow render
+			if not is_overworld_map:
+				if tile == null or not tile.walkable:
+					continue
+			elif tile != null and not tile.walkable:
+				# Overworld: only skip if we CAN verify tile is non-walkable
 				continue
 		# Check if feature is visible
 		if not renderer.is_position_visible(pos):
@@ -1982,7 +2030,10 @@ func _full_render_all_entities() -> void:
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
-		var color: Color = definition.get("color", Color.WHITE)
+		var color = definition.get("color", Color.WHITE)
+		# Handle color stored as string in JSON
+		if color is String:
+			color = Color.from_string(color, Color.WHITE)
 		renderer.render_entity(pos, ascii_char, color)
 		_rendered_entities[pos] = feature
 
@@ -2088,7 +2139,9 @@ func _incremental_render_entities() -> void:
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
-		var color: Color = definition.get("color", Color.WHITE)
+		var color = definition.get("color", Color.WHITE)
+		if color is String:
+			color = Color.from_string(color, Color.WHITE)
 		renderer.render_entity(pos, ascii_char, color)
 		_rendered_entities[pos] = feature
 		rendered_features.append(pos)
@@ -2135,7 +2188,9 @@ func _render_features(skip_pos: Vector2i = Vector2i(-1, -1)) -> void:
 		var feature: Dictionary = FeatureManager.active_features[pos]
 		var definition: Dictionary = feature.get("definition", {})
 		var ascii_char: String = definition.get("ascii_char", "?")
-		var color: Color = definition.get("color", Color.WHITE)
+		var color = definition.get("color", Color.WHITE)
+		if color is String:
+			color = Color.from_string(color, Color.WHITE)
 		renderer.render_entity(pos, ascii_char, color)
 
 
@@ -3012,7 +3067,9 @@ func _get_light_type_from_string(type_str: String) -> int:
 
 
 ## Update visibility after player moves or light sources change
-func _update_visibility() -> void:
+## If apply_fow is false, only calculates visibility data without applying fog of war to entities
+## This is useful when you need visibility data for rendering, but will apply FOW later
+func _update_visibility(apply_fow: bool = true) -> void:
 	# CRITICAL: Don't update visibility if player is dead
 	# This prevents infinite loops during death processing
 	if not player or not player.is_alive or not MapManager.current_map:
@@ -3055,11 +3112,18 @@ func _update_visibility() -> void:
 	FogOfWarSystemClass.mark_many_explored(map_id, visibility_result.visible_tiles, chunk_based)
 	var fow_time = Time.get_ticks_usec() - fow_start
 
-	# CRITICAL: Set visibility data BEFORE update_fov
-	# update_fov applies fog of war, which needs current visibility_data
+	# Set visibility data on renderer (needed for is_position_visible checks)
 	var renderer_start = Time.get_ticks_usec()
 	renderer.set_visibility_data(visibility_result.tile_data)
-	renderer.update_fov(visibility_result.visible_tiles, player.position)
+
+	# CRITICAL: Always update player_position in renderer for visibility checks (_is_entity_visible_at)
+	# This must happen even when we're not applying FOW, because interior visibility checks use player_position
+	renderer.player_position = player.position
+
+	# Only apply FOW to entities if requested
+	# When rendering fresh entities, call with apply_fow=false first, render, then call with apply_fow=true
+	if apply_fow:
+		renderer.update_fov(visibility_result.visible_tiles, player.position)
 	var renderer_time = Time.get_ticks_usec() - renderer_start
 
 	var total_time = Time.get_ticks_usec() - total_start

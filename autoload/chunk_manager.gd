@@ -44,7 +44,7 @@ func _ready() -> void:
 	var chunk_settings = BiomeManager.get_chunk_settings()
 	if chunk_settings.has("cache_max_size"):
 		max_cache_size = chunk_settings["cache_max_size"]
-		print("[ChunkManager] Max cache size set to %d chunks" % max_cache_size)
+		#print("[ChunkManager] Max cache size set to %d chunks" % max_cache_size)
 
 	# Enable process for async chunk loading
 	set_process(true)
@@ -81,10 +81,11 @@ func _process_async_loads() -> void:
 			chunks_loaded_this_frame += 1
 
 	if chunks_loaded_this_frame > 0:
-		print("[ChunkManager] Async loaded %d chunks, %d remaining" % [
-			chunks_loaded_this_frame,
-			_pending_loads.size()
-		])
+		#print("[ChunkManager] Async loaded %d chunks, %d remaining" % [
+		#	chunks_loaded_this_frame,
+		#	_pending_loads.size()
+		#])
+		pass
 
 ## Queue a chunk for async loading (closer chunks have higher priority)
 func _queue_chunk_for_loading(chunk_coords: Vector2i) -> void:
@@ -124,17 +125,17 @@ func enable_chunk_mode(map_id: String, seed: int) -> void:
 	if map_id == "overworld":
 		is_chunk_mode = true
 		world_seed = seed
-		print("[ChunkManager] Chunk mode enabled for overworld")
+		#print("[ChunkManager] Chunk mode enabled for overworld")
 	else:
 		is_chunk_mode = false
-		print("[ChunkManager] Chunk mode disabled for %s" % map_id)
+		#print("[ChunkManager] Chunk mode disabled for %s" % map_id)
 
 ## Freeze chunk loading/unloading (during entity processing)
 func freeze_chunk_operations() -> void:
 	_chunk_ops_frozen = true
 	_queued_loads.clear()
 	_queued_unloads.clear()
-	print("[ChunkManager] Chunk operations FROZEN")
+	#print("[ChunkManager] Chunk operations FROZEN")
 
 ## Unfreeze and apply queued operations
 func unfreeze_and_apply_queued_operations() -> void:
@@ -142,7 +143,7 @@ func unfreeze_and_apply_queued_operations() -> void:
 
 	var load_count = _queued_loads.size()
 	var unload_count = _queued_unloads.size()
-	print("[ChunkManager] Unfreezing and applying %d loads, %d unloads" % [load_count, unload_count])
+	#print("[ChunkManager] Unfreezing and applying %d loads, %d unloads" % [load_count, unload_count])
 
 	# Unload first (frees memory)
 	for coords in _queued_unloads:
@@ -156,7 +157,7 @@ func unfreeze_and_apply_queued_operations() -> void:
 			load_chunk(coords)
 	_queued_loads.clear()
 
-	print("[ChunkManager] Chunk operations UNFROZEN")
+	#print("[ChunkManager] Chunk operations UNFROZEN")
 
 ## Check if operations are frozen (for external checks)
 func is_frozen() -> bool:
@@ -167,7 +168,7 @@ func emergency_unfreeze() -> void:
 	_chunk_ops_frozen = false
 	_queued_loads.clear()
 	_queued_unloads.clear()
-	print("[ChunkManager] EMERGENCY UNFREEZE - queued operations discarded")
+	#print("[ChunkManager] EMERGENCY UNFREEZE - queued operations discarded")
 
 ## Convert world position to chunk coordinates
 static func world_to_chunk(world_pos: Vector2i) -> Vector2i:
@@ -197,7 +198,7 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	# If frozen, queue the load and return cached chunk or null
 	if _chunk_ops_frozen:
 		_queued_loads[chunk_coords] = true  # Queue for later (auto-deduplicates)
-		print("[ChunkManager] Chunk load QUEUED: %v" % chunk_coords)
+		#print("[ChunkManager] Chunk load QUEUED: %v" % chunk_coords)
 
 		# Return cached chunk if available
 		if chunk_coords in chunk_cache:
@@ -224,7 +225,7 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 	# Prevent generation outside island bounds (return ocean chunk)
 	if chunk_coords.x < 0 or chunk_coords.x >= max_chunk_x or chunk_coords.y < 0 or chunk_coords.y >= max_chunk_y:
-		print("[ChunkManager] Chunk %v is outside island bounds (%d×%d), skipping generation" % [chunk_coords, max_chunk_x, max_chunk_y])
+		#print("[ChunkManager] Chunk %v is outside island bounds (%d×%d), skipping generation" % [chunk_coords, max_chunk_x, max_chunk_y])
 		# Return null - caller should handle this gracefully
 		return null
 
@@ -262,14 +263,15 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 	# Log timing if load took >5ms
 	if total_time > 5000:
-		print("[ChunkManager] load_chunk %v: gen=%.2fms, evict=%.2fms, discovery=%.2fms, event=%.2fms, total=%.2fms" % [
-			chunk_coords,
-			gen_time / 1000.0,
-			evict_time / 1000.0,
-			discovery_time / 1000.0,
-			event_time / 1000.0,
-			total_time / 1000.0
-		])
+		#print("[ChunkManager] load_chunk %v: gen=%.2fms, evict=%.2fms, discovery=%.2fms, event=%.2fms, total=%.2fms" % [
+		#	chunk_coords,
+		#	gen_time / 1000.0,
+		#	evict_time / 1000.0,
+		#	discovery_time / 1000.0,
+		#	event_time / 1000.0,
+		#	total_time / 1000.0
+		#])
+		pass
 
 	# Show feedback message for first few chunks (helps player understand world is generating)
 	if visited_chunks.size() <= 5:
@@ -364,7 +366,7 @@ func unload_chunk(chunk_coords: Vector2i) -> void:
 	# If frozen, queue the unload
 	if _chunk_ops_frozen:
 		_queued_unloads[chunk_coords] = true  # Queue for later (auto-deduplicates)
-		print("[ChunkManager] Chunk unload QUEUED: %v" % chunk_coords)
+		#print("[ChunkManager] Chunk unload QUEUED: %v" % chunk_coords)
 		return
 
 	# Circuit breaker: Track operations
@@ -444,11 +446,12 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 
 	# Only log if any chunks were loaded/unloaded or if operation took >5ms
 	if chunks_loaded > 0 or chunks_to_unload.size() > 0 or total_time > 5000:
-		print("[ChunkManager] update_active_chunks: loaded=%d (%.2fms), unloaded=%d (%.2fms), total=%.2fms" % [
-			chunks_loaded, load_time / 1000.0,
-			chunks_to_unload.size(), unload_time / 1000.0,
-			total_time / 1000.0
-		])
+		#print("[ChunkManager] update_active_chunks: loaded=%d (%.2fms), unloaded=%d (%.2fms), total=%.2fms" % [
+		#	chunks_loaded, load_time / 1000.0,
+		#	chunks_to_unload.size(), unload_time / 1000.0,
+		#	total_time / 1000.0
+		#])
+		pass
 
 	# Clear reentrancy guard
 	_updating_chunks = false
@@ -505,7 +508,7 @@ func clear_chunks() -> void:
 	visited_chunks.clear()
 	chunk_access_order.clear()  # Clear LRU tracking
 	chunk_access_index.clear()  # Clear LRU index
-	print("[ChunkManager] All chunks cleared")
+	#print("[ChunkManager] All chunks cleared")
 
 ## Handle map changes
 func _on_map_changed(map_id: String) -> void:
@@ -573,4 +576,4 @@ func load_chunks(chunks_data: Array) -> void:
 		visited_chunks[chunk.chunk_coords] = true  # Mark as visited
 		# Don't add to active_chunks yet - will load on demand
 
-	print("[ChunkManager] Loaded %d chunks from save" % chunks_data.size())
+	#print("[ChunkManager] Loaded %d chunks from save" % chunks_data.size())

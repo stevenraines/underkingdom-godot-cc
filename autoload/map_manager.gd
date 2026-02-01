@@ -18,12 +18,12 @@ func get_or_generate_map(map_id: String, world_seed: int) -> GameMap:
 	# Check cache first
 	if map_id in loaded_maps:
 		var cached_map = loaded_maps[map_id]
-		print("Loading cached map: %s (internal map_id=%s, tiles=%d)" % [map_id, cached_map.map_id, cached_map.tiles.size()])
+		#print("Loading cached map: %s (internal map_id=%s, tiles=%d)" % [map_id, cached_map.map_id, cached_map.tiles.size()])
 		return cached_map
 
 	# Generate new map
 	var map = _generate_map(map_id, world_seed)
-	print("Generated new map: %s (internal map_id=%s, tiles=%d)" % [map_id, map.map_id, map.tiles.size()])
+	#print("Generated new map: %s (internal map_id=%s, tiles=%d)" % [map_id, map.map_id, map.tiles.size()])
 	loaded_maps[map_id] = map
 	return map
 
@@ -47,15 +47,15 @@ func transition_to_map(map_id: String) -> void:
 		_load_features_and_hazards(current_map)
 
 	EventBus.map_changed.emit(map_id)
-	print("Transitioned to map: ", map_id)
+	#print("Transitioned to map: ", map_id)
 
 
 ## Load features and hazards from map metadata into managers
 func _load_features_and_hazards(map: GameMap) -> void:
-	print("[MapManager] Loading features/hazards for: %s" % map.map_id)
-	print("[MapManager] Map metadata keys: %s" % str(map.metadata.keys()))
-	print("[MapManager] pending_features: %d" % map.metadata.get("pending_features", []).size())
-	print("[MapManager] pending_hazards: %d" % map.metadata.get("pending_hazards", []).size())
+	#print("[MapManager] Loading features/hazards for: %s" % map.map_id)
+	#print("[MapManager] Map metadata keys: %s" % str(map.metadata.keys()))
+	#print("[MapManager] pending_features: %d" % map.metadata.get("pending_features", []).size())
+	#print("[MapManager] pending_hazards: %d" % map.metadata.get("pending_hazards", []).size())
 
 	# Load dungeon hints from dungeon definition
 	var dungeon_id: String = map.metadata.get("dungeon_id", "")
@@ -65,7 +65,7 @@ func _load_features_and_hazards(map: GameMap) -> void:
 
 	FeatureManager.load_features_from_map(map)
 	HazardManager.load_hazards_from_map(map)
-	print("[MapManager] After loading - active_features: %d, active_hazards: %d" % [FeatureManager.active_features.size(), HazardManager.active_hazards.size()])
+	#print("[MapManager] After loading - active_features: %d, active_hazards: %d" % [FeatureManager.active_features.size(), HazardManager.active_hazards.size()])
 
 
 ## Load hints from a dungeon definition file
@@ -89,7 +89,7 @@ func _load_dungeon_hints(dungeon_id: String) -> Array:
 func _generate_map(map_id: String, world_seed: int) -> GameMap:
 	if map_id == "overworld":
 		# For overworld, create empty map shell - chunks generated on demand
-		print("[MapManager] Creating chunk-based overworld map")
+		#print("[MapManager] Creating chunk-based overworld map")
 		var map = GameMap.new("overworld", 10000, 10000, world_seed)  # Virtually infinite bounds
 		map.chunk_based = true
 
@@ -136,9 +136,10 @@ func _generate_map(map_id: String, world_seed: int) -> GameMap:
 		# Initialize empty NPC spawns array (will be populated when town chunks generate)
 		map.metadata["npc_spawns"] = []
 
-		print("[MapManager] Special features placed: %d towns, %d dungeons, %d road paths, spawn=%v" % [towns.size(), dungeon_entrances.size(), road_paths.size(), player_spawn])
+		#print("[MapManager] Special features placed: %d towns, %d dungeons, %d road paths, spawn=%v" % [towns.size(), dungeon_entrances.size(), road_paths.size(), player_spawn])
 		for town in towns:
-			print("[MapManager]   - %s at %v" % [town.name, town.position])
+			#print("[MapManager]   - %s at %v" % [town.name, town.position])
+			pass
 
 		return map
 
@@ -150,7 +151,7 @@ func _generate_map(map_id: String, world_seed: int) -> GameMap:
 		var floor_str = map_id.substr(floor_idx + 7)  # Skip "_floor_"
 		var floor_number = int(floor_str)
 
-		print("[MapManager] Generating %s floor %d" % [dungeon_type, floor_number])
+		#print("[MapManager] Generating %s floor %d" % [dungeon_type, floor_number])
 
 		# Use DungeonManager to generate the floor with the correct generator
 		return DungeonManager.generate_floor(dungeon_type, floor_number, world_seed)
@@ -242,7 +243,7 @@ func _generate_inter_town_road_paths(towns: Array, world_seed: int) -> Array:
 			var path = _generate_road_path_between_towns(town_pos, other_pos, world_seed)
 			road_paths.append(path)
 
-	print("[MapManager] Generated %d inter-town road paths" % road_paths.size())
+	#print("[MapManager] Generated %d inter-town road paths" % road_paths.size())
 	return road_paths
 
 

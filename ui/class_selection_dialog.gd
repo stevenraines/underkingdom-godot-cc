@@ -25,9 +25,6 @@ var selected_button_index: int = 0
 var action_buttons: Array[Button] = []
 var in_button_mode: bool = false
 
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_HOVER = Color(0.8, 0.8, 0.6, 1.0)
 const RANDOM_ID = "random"
 
 
@@ -171,10 +168,10 @@ func _update_class_selection() -> void:
 	for i in range(class_buttons.size()):
 		var base_text = class_buttons[i].text.trim_prefix("► ")
 		if i == selected_class_index and not in_button_mode:
-			class_buttons[i].modulate = COLOR_SELECTED
+			class_buttons[i].modulate = UITheme.COLOR_SELECTED_GOLD
 			class_buttons[i].text = "► " + base_text
 		else:
-			class_buttons[i].modulate = COLOR_NORMAL
+			class_buttons[i].modulate = UITheme.COLOR_NORMAL
 			class_buttons[i].text = base_text
 
 	# Update info panel
@@ -239,9 +236,9 @@ func _update_info_panel(class_id: String) -> void:
 func _update_button_colors() -> void:
 	for i in range(action_buttons.size()):
 		if in_button_mode and i == selected_button_index:
-			action_buttons[i].modulate = COLOR_SELECTED
+			action_buttons[i].modulate = UITheme.COLOR_SELECTED_GOLD
 		else:
-			action_buttons[i].modulate = COLOR_NORMAL
+			action_buttons[i].modulate = UITheme.COLOR_NORMAL
 
 
 func _on_class_hover(idx: int) -> void:

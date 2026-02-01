@@ -31,15 +31,6 @@ var player: Player = null
 var rituals: Array = []
 var selected_index: int = 0
 
-# Colors (matching spell list screen)
-const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_EMPTY = Color(0.4, 0.4, 0.4, 1.0)
-const COLOR_HIGHLIGHT = Color(1.0, 1.0, 0.6, 1.0)
-const COLOR_RITUAL = Color(0.8, 0.4, 1.0, 1.0)  # Purple for rituals
-const COLOR_REQ_MET = Color(0.5, 1.0, 0.5, 1.0)
-const COLOR_REQ_NOT_MET = Color(1.0, 0.5, 0.5, 1.0)
-
 # School abbreviations
 const SCHOOL_ABBREVS = {
 	"evocation": "Evo",
@@ -133,7 +124,7 @@ func _update_info_display() -> void:
 	if info_label:
 		var known_count = rituals.size()
 		info_label.text = "Known Rituals: %d" % known_count
-		info_label.add_theme_color_override("font_color", COLOR_RITUAL)
+		info_label.add_theme_color_override("font_color", UITheme.COLOR_RITUAL)
 
 func _update_ritual_list() -> void:
 	if not ritual_list:
@@ -155,7 +146,7 @@ func _update_ritual_list() -> void:
 	if rituals.is_empty():
 		var label = Label.new()
 		label.text = "  (No rituals learned)"
-		label.add_theme_color_override("font_color", COLOR_EMPTY)
+		label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 		label.add_theme_font_size_override("font_size", 13)
 		ritual_list.add_child(label)
 	else:
@@ -184,7 +175,7 @@ func _create_ritual_row(ritual) -> HBoxContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.text = ritual.name
-	name_label.add_theme_color_override("font_color", COLOR_NORMAL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 	container.add_child(name_label)
 
 	# School abbreviation
@@ -194,7 +185,7 @@ func _create_ritual_row(ritual) -> HBoxContainer:
 	school_label.add_theme_font_size_override("font_size", 12)
 	school_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	school_label.text = SCHOOL_ABBREVS.get(ritual.school, ritual.school.substr(0, 3).capitalize())
-	var school_color = SCHOOL_COLORS.get(ritual.school, COLOR_NORMAL)
+	var school_color = SCHOOL_COLORS.get(ritual.school, UITheme.COLOR_NORMAL)
 	school_label.add_theme_color_override("font_color", school_color)
 	container.add_child(school_label)
 
@@ -231,10 +222,10 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 		if name_node and name_node is Label:
 			if highlighted:
 				name_node.text = "> " + name_node.text.trim_prefix("> ")
-				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 			else:
 				name_node.text = name_node.text.trim_prefix("> ")
-				name_node.add_theme_color_override("font_color", COLOR_NORMAL)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 func _scroll_to_ritual(ritual_row: Control) -> void:
 	if not ritual_scroll or not ritual_row or not is_instance_valid(ritual_row):
@@ -268,7 +259,7 @@ func _update_detail_panel() -> void:
 func _clear_detail_panel() -> void:
 	if ritual_name_label:
 		ritual_name_label.text = "No ritual selected"
-		ritual_name_label.add_theme_color_override("font_color", COLOR_EMPTY)
+		ritual_name_label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 	if ritual_desc_label:
 		ritual_desc_label.text = "Learn rituals from ancient tomes"
 	if stat_line_1:
@@ -314,10 +305,10 @@ func _populate_ritual_details(ritual) -> void:
 	# Assign stats to lines
 	if stat_line_1:
 		stat_line_1.text = stats[0] if stats.size() > 0 else ""
-		stat_line_1.add_theme_color_override("font_color", SCHOOL_COLORS.get(ritual.school, COLOR_NORMAL))
+		stat_line_1.add_theme_color_override("font_color", SCHOOL_COLORS.get(ritual.school, UITheme.COLOR_NORMAL))
 	if stat_line_2:
 		stat_line_2.text = stats[1] if stats.size() > 1 else ""
-		stat_line_2.add_theme_color_override("font_color", COLOR_RITUAL)
+		stat_line_2.add_theme_color_override("font_color", UITheme.COLOR_RITUAL)
 	if stat_line_3:
 		stat_line_3.text = stats[2] if stats.size() > 2 else ""
 		stat_line_3.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
@@ -340,7 +331,7 @@ func _update_requirements_display(ritual) -> void:
 
 	if req_line_1:
 		req_line_1.text = "INT: %d required" % required_int
-		req_line_1.add_theme_color_override("font_color", COLOR_REQ_MET if int_met else COLOR_REQ_NOT_MET)
+		req_line_1.add_theme_color_override("font_color", UITheme.COLOR_REQ_MET if int_met else UITheme.COLOR_REQ_NOT_MET)
 
 	# Special requirements (altar, night)
 	var special_reqs: Array[String] = []
@@ -352,7 +343,7 @@ func _update_requirements_display(ritual) -> void:
 	if req_line_2:
 		if special_reqs.is_empty():
 			req_line_2.text = "No special requirements"
-			req_line_2.add_theme_color_override("font_color", COLOR_REQ_MET)
+			req_line_2.add_theme_color_override("font_color", UITheme.COLOR_REQ_MET)
 		else:
 			req_line_2.text = "Requires: %s" % ", ".join(special_reqs)
 			req_line_2.add_theme_color_override("font_color", Color(0.9, 0.7, 0.4))
@@ -362,10 +353,10 @@ func _update_requirements_display(ritual) -> void:
 		var can_perform = RitualSystemClass.can_perform_ritual(player, ritual)
 		if can_perform.can_perform:
 			req_line_3.text = "Can perform"
-			req_line_3.add_theme_color_override("font_color", COLOR_REQ_MET)
+			req_line_3.add_theme_color_override("font_color", UITheme.COLOR_REQ_MET)
 		else:
 			req_line_3.text = can_perform.reason
-			req_line_3.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+			req_line_3.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 
 func _navigate(direction: int) -> void:
 	if rituals.is_empty():

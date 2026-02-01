@@ -27,14 +27,6 @@ var available_ability_points_remaining: int = 0
 var navigable_items: Array = []  # Array of {type: "skill"/"ability", name: String, line_index: int}
 var selected_index: int = 0
 
-# Colors
-const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
-const COLOR_LABEL = Color(0.85, 0.85, 0.7)
-const COLOR_VALUE = Color(0.7, 0.9, 0.7)
-const COLOR_PENDING = Color(1.0, 0.85, 0.3)
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -102,7 +94,7 @@ func _populate_skills_tab() -> void:
 	if available_skill_points_remaining > 0:
 		points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.95))
 	else:
-		points_label.add_theme_color_override("font_color", COLOR_LABEL)
+		points_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	points_label.add_theme_font_size_override("font_size", 14)
 	skills_content.add_child(points_label)
 
@@ -151,7 +143,7 @@ func _populate_abilities_tab() -> void:
 	if available_ability_points_remaining > 0:
 		points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.7))
 	else:
-		points_label.add_theme_color_override("font_color", COLOR_LABEL)
+		points_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	points_label.add_theme_font_size_override("font_size", 14)
 	abilities_content.add_child(points_label)
 
@@ -195,7 +187,7 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 	var marker = Label.new()
 	marker.name = "Marker"
 	marker.text = "  "
-	marker.add_theme_color_override("font_color", COLOR_SELECTED)
+	marker.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 	marker.add_theme_font_size_override("font_size", 14)
 	line.add_child(marker)
 
@@ -204,7 +196,7 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 	name_label.name = "Name"
 	name_label.text = skill_name
 	name_label.custom_minimum_size.x = 180
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
@@ -215,13 +207,13 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 	value_label.name = "Value"
 	if pending_increases > 0:
 		value_label.text = "%d (+%d) / %d" % [current_level, pending_increases, player.level]
-		value_label.add_theme_color_override("font_color", COLOR_PENDING)
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_PENDING)
 	else:
 		value_label.text = "%d / %d" % [current_level, player.level]
 		if current_level >= player.level:
-			value_label.add_theme_color_override("font_color", COLOR_PENDING)
+			value_label.add_theme_color_override("font_color", UITheme.COLOR_PENDING)
 		else:
-			value_label.add_theme_color_override("font_color", COLOR_VALUE)
+			value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 	value_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(value_label)
 
@@ -236,7 +228,7 @@ func _add_ability_line(ability_code: String, ability_name: String, current_value
 	var marker = Label.new()
 	marker.name = "Marker"
 	marker.text = "  "
-	marker.add_theme_color_override("font_color", COLOR_SELECTED)
+	marker.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 	marker.add_theme_font_size_override("font_size", 14)
 	line.add_child(marker)
 
@@ -245,7 +237,7 @@ func _add_ability_line(ability_code: String, ability_name: String, current_value
 	name_label.name = "Name"
 	name_label.text = ability_name
 	name_label.custom_minimum_size.x = 180
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
@@ -256,10 +248,10 @@ func _add_ability_line(ability_code: String, ability_name: String, current_value
 	value_label.name = "Value"
 	if pending_increases > 0:
 		value_label.text = "%d (+%d)" % [current_value, pending_increases]
-		value_label.add_theme_color_override("font_color", COLOR_PENDING)
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_PENDING)
 	else:
 		value_label.text = "%d" % current_value
-		value_label.add_theme_color_override("font_color", COLOR_VALUE)
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 	value_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(value_label)
 
@@ -418,7 +410,7 @@ func _update_selection_visual() -> void:
 			if marker:
 				marker.text = "  "
 			if name_node:
-				name_node.add_theme_color_override("font_color", COLOR_LABEL)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 
 	# Highlight selected line with arrow marker
 	var line_name = ("Skill_" if item.type == "skill" else "Ability_") + item.name
@@ -429,7 +421,7 @@ func _update_selection_visual() -> void:
 		if marker:
 			marker.text = "► "
 		if name_node:
-			name_node.add_theme_color_override("font_color", COLOR_SELECTED)
+			name_node.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 
 ## Scroll to selected item
 func _scroll_to_selected() -> void:
@@ -532,7 +524,7 @@ func _create_section_header(text: String) -> Label:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_color_override("font_color", COLOR_SECTION)
+	header.add_theme_color_override("font_color", UITheme.COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	return header
 

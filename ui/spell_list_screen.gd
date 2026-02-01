@@ -29,15 +29,6 @@ var player: Player = null
 var spells: Array = []
 var selected_index: int = 0
 
-# Colors (matching inventory screen)
-const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_EMPTY = Color(0.4, 0.4, 0.4, 1.0)
-const COLOR_HIGHLIGHT = Color(1.0, 1.0, 0.6, 1.0)
-const COLOR_MANA = Color(0.3, 0.6, 1.0, 1.0)
-const COLOR_REQ_MET = Color(0.5, 1.0, 0.5, 1.0)
-const COLOR_REQ_NOT_MET = Color(1.0, 0.5, 0.5, 1.0)
-
 # School abbreviations
 const SCHOOL_ABBREVS = {
 	"evocation": "Evo",
@@ -151,7 +142,7 @@ func _show_no_spellbook_message() -> void:
 	# Add no spellbook message
 	var label = Label.new()
 	label.text = "You need a spellbook to access your spells"
-	label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+	label.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 	label.add_theme_font_size_override("font_size", 14)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	spell_list.add_child(label)
@@ -159,7 +150,7 @@ func _show_no_spellbook_message() -> void:
 	# Update header
 	if mana_label:
 		mana_label.text = "No Spellbook"
-		mana_label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+		mana_label.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 
 	if spell_list_title:
 		spell_list_title.text = "══ SPELLBOOK ══"
@@ -178,7 +169,7 @@ func _show_no_magic_ability_message() -> void:
 	# Add message for non-caster class
 	var label = Label.new()
 	label.text = "Your class cannot cast magic"
-	label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+	label.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 	label.add_theme_font_size_override("font_size", 14)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	spell_list.add_child(label)
@@ -186,7 +177,7 @@ func _show_no_magic_ability_message() -> void:
 	# Update header
 	if mana_label:
 		mana_label.text = "No Magic"
-		mana_label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+		mana_label.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 
 	if spell_list_title:
 		spell_list_title.text = "══ MAGIC ══"
@@ -214,7 +205,7 @@ func _show_missing_focus_message(magic_types: Array, has_arcane: bool, has_divin
 		label.text = "You need %s" % missing[0]
 	else:
 		label.text = "You need %s" % " and ".join(missing)
-	label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+	label.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 	label.add_theme_font_size_override("font_size", 14)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -223,7 +214,7 @@ func _show_missing_focus_message(magic_types: Array, has_arcane: bool, has_divin
 	# Update header
 	if mana_label:
 		mana_label.text = "Missing Focus"
-		mana_label.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+		mana_label.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 
 	if spell_list_title:
 		spell_list_title.text = "══ MAGIC ══"
@@ -253,7 +244,7 @@ func _update_mana_display() -> void:
 
 	if mana_label:
 		mana_label.text = "Mana: %d / %d" % [current_mana, max_mana]
-		mana_label.add_theme_color_override("font_color", COLOR_MANA)
+		mana_label.add_theme_color_override("font_color", UITheme.COLOR_MANA)
 
 func _update_spell_list() -> void:
 	if not spell_list:
@@ -278,7 +269,7 @@ func _update_spell_list() -> void:
 	if spells.is_empty():
 		var label = Label.new()
 		label.text = "  (No spells learned)"
-		label.add_theme_color_override("font_color", COLOR_EMPTY)
+		label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 		label.add_theme_font_size_override("font_size", 13)
 		spell_list.add_child(label)
 	else:
@@ -307,7 +298,7 @@ func _create_spell_row(spell) -> HBoxContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.text = spell.name
-	name_label.add_theme_color_override("font_color", COLOR_NORMAL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 	container.add_child(name_label)
 
 	# School abbreviation
@@ -317,7 +308,7 @@ func _create_spell_row(spell) -> HBoxContainer:
 	school_label.add_theme_font_size_override("font_size", 12)
 	school_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	school_label.text = SCHOOL_ABBREVS.get(spell.school, spell.school.substr(0, 3).capitalize())
-	var school_color = SCHOOL_COLORS.get(spell.school, COLOR_NORMAL)
+	var school_color = SCHOOL_COLORS.get(spell.school, UITheme.COLOR_NORMAL)
 	school_label.add_theme_color_override("font_color", school_color)
 	container.add_child(school_label)
 
@@ -356,10 +347,10 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 		if name_node and name_node is Label:
 			if highlighted:
 				name_node.text = "► " + name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 			else:
 				name_node.text = name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_NORMAL)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 func _scroll_to_spell(spell_row: Control) -> void:
 	if not spell_scroll or not spell_row or not is_instance_valid(spell_row):
@@ -393,7 +384,7 @@ func _update_detail_panel() -> void:
 func _clear_detail_panel() -> void:
 	if spell_name_label:
 		spell_name_label.text = "No spell selected"
-		spell_name_label.add_theme_color_override("font_color", COLOR_EMPTY)
+		spell_name_label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 	if spell_desc_label:
 		spell_desc_label.text = "Learn spells from tomes or scrolls"
 	if stat_line_1:
@@ -428,11 +419,11 @@ func _populate_spell_details(spell) -> void:
 	var school_name = spell.school.capitalize()
 	var level_text = "Cantrip" if spell.level == 0 else "Level %d" % spell.level
 	stats.append("%s - %s" % [school_name, level_text])
-	stat_colors.append(SCHOOL_COLORS.get(spell.school, COLOR_NORMAL))
+	stat_colors.append(SCHOOL_COLORS.get(spell.school, UITheme.COLOR_NORMAL))
 
 	# Mana cost
 	stats.append("Mana Cost: %d" % spell.mana_cost)
-	stat_colors.append(COLOR_MANA)
+	stat_colors.append(UITheme.COLOR_MANA)
 
 	# Effect info based on spell type
 	if spell.is_damage_spell():
@@ -458,10 +449,10 @@ func _populate_spell_details(spell) -> void:
 	# Assign stats to lines
 	if stat_line_1:
 		stat_line_1.text = stats[0] if stats.size() > 0 else ""
-		stat_line_1.add_theme_color_override("font_color", stat_colors[0] if stat_colors.size() > 0 else COLOR_NORMAL)
+		stat_line_1.add_theme_color_override("font_color", stat_colors[0] if stat_colors.size() > 0 else UITheme.COLOR_NORMAL)
 	if stat_line_2:
 		stat_line_2.text = stats[1] if stats.size() > 1 else ""
-		stat_line_2.add_theme_color_override("font_color", stat_colors[1] if stat_colors.size() > 1 else COLOR_MANA)
+		stat_line_2.add_theme_color_override("font_color", stat_colors[1] if stat_colors.size() > 1 else UITheme.COLOR_MANA)
 	if stat_line_3:
 		stat_line_3.text = stats[2] if stats.size() > 2 else ""
 		stat_line_3.add_theme_color_override("font_color", stat_colors[2] if stat_colors.size() > 2 else Color(0.7, 0.7, 0.7))
@@ -484,7 +475,7 @@ func _update_requirements_display(spell) -> void:
 
 	if req_line_1:
 		req_line_1.text = "INT: %d required" % required_int
-		req_line_1.add_theme_color_override("font_color", COLOR_REQ_MET if int_met else COLOR_REQ_NOT_MET)
+		req_line_1.add_theme_color_override("font_color", UITheme.COLOR_REQ_MET if int_met else UITheme.COLOR_REQ_NOT_MET)
 
 	# Level requirement
 	var required_level = spell.get_min_level()
@@ -493,17 +484,17 @@ func _update_requirements_display(spell) -> void:
 
 	if req_line_2:
 		req_line_2.text = "Level: %d required" % required_level
-		req_line_2.add_theme_color_override("font_color", COLOR_REQ_MET if level_met else COLOR_REQ_NOT_MET)
+		req_line_2.add_theme_color_override("font_color", UITheme.COLOR_REQ_MET if level_met else UITheme.COLOR_REQ_NOT_MET)
 
 	# Castable status
 	if req_line_3:
 		var can_cast_result = SpellManager.can_cast(player, spell)
 		if can_cast_result.can_cast:
 			req_line_3.text = "Can cast"
-			req_line_3.add_theme_color_override("font_color", COLOR_REQ_MET)
+			req_line_3.add_theme_color_override("font_color", UITheme.COLOR_REQ_MET)
 		else:
 			req_line_3.text = can_cast_result.reason
-			req_line_3.add_theme_color_override("font_color", COLOR_REQ_NOT_MET)
+			req_line_3.add_theme_color_override("font_color", UITheme.COLOR_REQ_NOT_MET)
 
 func _navigate(direction: int) -> void:
 	if spells.is_empty():

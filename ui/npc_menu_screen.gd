@@ -18,9 +18,7 @@ var current_npc: NPC = null
 var selected_index: int = 0
 var options: Array = []  # Array of {id, label}
 
-# Colors
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -137,8 +135,8 @@ func _refresh_display() -> void:
 
 		# Color based on selection
 		if i == selected_index:
-			label.add_theme_color_override("font_color", COLOR_SELECTED)
+			label.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 		else:
-			label.add_theme_color_override("font_color", COLOR_NORMAL)
+			label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 		options_container.add_child(label)

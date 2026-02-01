@@ -23,13 +23,7 @@ var distributed_points: Dictionary = {}  # {skill_id: points_added}
 var navigable_items: Array = []  # Array of {name: skill_id}
 var selected_index: int = 0
 
-# Colors matching level-up screen
-const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
-const COLOR_LABEL = Color(0.85, 0.85, 0.7)
-const COLOR_VALUE = Color(0.7, 0.9, 0.7)
-const COLOR_PENDING = Color(1.0, 0.85, 0.3)
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -81,7 +75,7 @@ func _populate_ui() -> void:
 		if available_points > 0:
 			points_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.95))
 		else:
-			points_label.add_theme_color_override("font_color", COLOR_LABEL)
+			points_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 
 	# Get all skills and sort them
 	var all_skills = SkillManager.get_all_skills()
@@ -140,7 +134,7 @@ func _add_skill_line_to_container(skill_id: String, skill_display_name: String, 
 	var marker = Label.new()
 	marker.name = "Marker"
 	marker.text = "  "
-	marker.add_theme_color_override("font_color", COLOR_SELECTED)
+	marker.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 	marker.add_theme_font_size_override("font_size", 14)
 	line.add_child(marker)
 
@@ -149,7 +143,7 @@ func _add_skill_line_to_container(skill_id: String, skill_display_name: String, 
 	name_label.name = "Name"
 	name_label.text = skill_display_name
 	name_label.custom_minimum_size.x = 140
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
@@ -162,10 +156,10 @@ func _add_skill_line_to_container(skill_id: String, skill_display_name: String, 
 	value_label.name = "Value"
 	if distributed > 0:
 		value_label.text = "%d (+%d)" % [total, distributed]
-		value_label.add_theme_color_override("font_color", COLOR_PENDING)
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_PENDING)
 	else:
 		value_label.text = "%d" % total
-		value_label.add_theme_color_override("font_color", COLOR_VALUE if total > 0 else COLOR_NORMAL)
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE if total > 0 else UITheme.COLOR_NORMAL)
 	value_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(value_label)
 
@@ -276,7 +270,7 @@ func _update_selection_visual() -> void:
 		if marker:
 			marker.text = "► "
 		if name_node:
-			name_node.add_theme_color_override("font_color", COLOR_SELECTED)
+			name_node.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 
 ## Recursively reset all skill lines
 func _reset_all_skill_lines(node: Node) -> void:
@@ -287,7 +281,7 @@ func _reset_all_skill_lines(node: Node) -> void:
 			if marker:
 				marker.text = "  "
 			if name_node:
-				name_node.add_theme_color_override("font_color", COLOR_LABEL)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 		elif child.get_child_count() > 0:
 			_reset_all_skill_lines(child)
 
@@ -341,7 +335,7 @@ func _create_section_header(text: String) -> Label:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_color_override("font_color", COLOR_SECTION)
+	header.add_theme_color_override("font_color", UITheme.COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	return header
 

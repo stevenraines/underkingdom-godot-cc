@@ -31,9 +31,7 @@ var has_mana: bool = false  # Whether player has a mana pool (magic user)
 # Option types in display order (custom is always last)
 enum OptionType { RESTED, TIME, HEALED, MANA, CUSTOM }
 
-# Colors
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -148,7 +146,7 @@ func _update_selection() -> void:
 	# Update each option's highlight based on its position in visible options
 	for i in range(options.size()):
 		var is_selected = (i == selected_index)
-		var color = COLOR_SELECTED if is_selected else COLOR_NORMAL
+		var color = UITheme.COLOR_SELECTED_GOLD if is_selected else UITheme.COLOR_NORMAL
 
 		match options[i]:
 			OptionType.RESTED:

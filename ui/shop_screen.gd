@@ -55,14 +55,6 @@ var shop_system: ShopSystem = null
 var shop_filter: Inventory.FilterType = Inventory.FilterType.ALL
 var player_filter: Inventory.FilterType = Inventory.FilterType.ALL
 
-# Colors
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_GOLD = Color(0.9, 0.7, 0.2, 1.0)
-const COLOR_AFFORDABLE = Color(0.6, 0.9, 0.6, 1.0)
-const COLOR_EXPENSIVE = Color(0.9, 0.5, 0.5, 1.0)
-const COLOR_HIGHLIGHT = Color(0.6, 0.9, 0.6, 1.0)
-
 # Slot display names for equip info
 const SLOT_DISPLAY_NAMES = {
 	"main_hand": "Weapon",
@@ -317,7 +309,7 @@ func _refresh_display() -> void:
 
 	# Update gold label
 	gold_label.text = "Your Gold: %d" % player.gold
-	gold_label.modulate = COLOR_GOLD
+	gold_label.modulate = UITheme.COLOR_GOLD
 
 	# Populate shop inventory (with filtering)
 	var filtered_shop_items = _get_filtered_shop_items()
@@ -346,11 +338,11 @@ func _refresh_display() -> void:
 
 		# Color based on selection and affordability
 		if is_shop_focused and i == selected_index:
-			label.modulate = COLOR_SELECTED
+			label.modulate = UITheme.COLOR_SELECTED_GOLD
 			if player.gold < total_price:
-				label.modulate = COLOR_EXPENSIVE
+				label.modulate = UITheme.COLOR_EXPENSIVE
 		else:
-			label.modulate = COLOR_NORMAL
+			label.modulate = UITheme.COLOR_NORMAL
 
 		shop_list.add_child(label)
 
@@ -379,11 +371,11 @@ func _refresh_display() -> void:
 
 		# Color based on selection and shop's ability to afford
 		if not is_shop_focused and i == selected_index:
-			label.modulate = COLOR_SELECTED
+			label.modulate = UITheme.COLOR_SELECTED_GOLD
 			if shop_npc.gold < total_price:
-				label.modulate = COLOR_EXPENSIVE
+				label.modulate = UITheme.COLOR_EXPENSIVE
 		else:
-			label.modulate = COLOR_NORMAL
+			label.modulate = UITheme.COLOR_NORMAL
 
 		player_list.add_child(label)
 
@@ -520,9 +512,9 @@ func _update_filter_bar() -> void:
 	for filter_type in filter_labels_map:
 		var label = filter_labels_map[filter_type]
 		if filter_type == active_filter:
-			label.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+			label.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 		else:
-			label.add_theme_color_override("font_color", COLOR_NORMAL)
+			label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 
 ## Update the item details panel with currently selected item

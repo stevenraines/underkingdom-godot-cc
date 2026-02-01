@@ -27,11 +27,6 @@ var player = null  # Player instance
 var current_scroll_container: ScrollContainer = null  # Track which tab is active for scrolling
 var current_content_box: VBoxContainer = null  # Track which content box to add to
 
-# Colors matching inventory screen
-const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
-const COLOR_LABEL = Color(0.85, 0.85, 0.7)
-const COLOR_VALUE = Color(0.7, 0.9, 0.7)
-
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -139,7 +134,7 @@ func _add_attributes_section() -> void:
 		var name_label = Label.new()
 		name_label.text = "%s:" % attribute_names[attr]
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_color_override("font_color", COLOR_LABEL)
+		name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 		name_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(name_label)
 
@@ -151,7 +146,7 @@ func _add_attributes_section() -> void:
 			value_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4) if total_mod > 0 else Color(1.0, 0.5, 0.5))
 		else:
 			value_label.text = "%d" % effective
-			value_label.add_theme_color_override("font_color", COLOR_VALUE)
+			value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		value_label.custom_minimum_size.x = 120
@@ -228,7 +223,7 @@ func _add_skill_line(skill_id: String, skill_display_name: String, container: VB
 	var name_label = Label.new()
 	name_label.text = "%s:" % skill_display_name
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	skill_line.add_child(name_label)
 
@@ -240,7 +235,7 @@ func _add_skill_line(skill_id: String, skill_display_name: String, container: VB
 
 	# Color based on skill level
 	if skill_level > 0:
-		value_label.add_theme_color_override("font_color", COLOR_VALUE)  # Green - has points
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)  # Green - has points
 	else:
 		value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))  # Gray - no points
 
@@ -643,7 +638,7 @@ func _add_stat_line(label_text: String, value_text: String, value_color: Color) 
 	var label = Label.new()
 	label.text = "%s:" % label_text
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_color_override("font_color", COLOR_LABEL)
+	label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	label.add_theme_font_size_override("font_size", 14)
 	line.add_child(label)
 
@@ -662,7 +657,7 @@ func _create_section_header(text: String) -> Label:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_color_override("font_color", COLOR_SECTION)
+	header.add_theme_color_override("font_color", UITheme.COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	return header
 

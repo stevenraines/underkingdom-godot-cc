@@ -273,10 +273,6 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		#])
 		pass
 
-	# Show feedback message for first few chunks (helps player understand world is generating)
-	if visited_chunks.size() <= 5:
-		EventBus.message_logged.emit("Exploring chunk %v..." % chunk_coords)
-
 	return chunk
 
 ## Update LRU access tracking for a chunk (O(1) check, occasional O(n) rebuild)

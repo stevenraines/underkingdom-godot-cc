@@ -47,7 +47,6 @@ func restock_shop():
 		trade_inventory = []
 	last_restock_turn = TurnManager.current_turn
 	EventBus.emit_signal("shop_restocked", self)
-	EventBus.emit_signal("message_logged", "%s has restocked their shop." % name if name else "Shop restocked.")
 
 func interact(player: Player):
 	## Called when player interacts with this NPC

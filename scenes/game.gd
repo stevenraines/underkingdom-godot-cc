@@ -871,13 +871,15 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		# Note: For dungeons, we still do full entity re-render every move
 		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
 		# and the incremental check overhead would negate the benefit
+		# Calculate visibility BEFORE rendering (features/hazards need visibility_data for is_position_visible)
+		_update_visibility(false)  # Sets visibility_data but doesn't apply FOW yet
 		# Re-render entire map with updated wall visibility
 		_full_render_needed = true  # _render_map() clears entity layer, need full re-render
 		_render_map()
 		_render_ground_items()  # Render loot first so creatures appear on top
 		_render_all_entities()  # Renders entities to entity layer
-		# Update visibility AFTER entities are rendered so FOW is applied correctly
-		_update_visibility()
+		# Apply FOW to rendered entities
+		_update_visibility(true)  # Re-calculates and applies FOW
 	else:
 		# Overworld: update visibility for incremental entity rendering
 		# Entities are not fully re-rendered on every move, so FOW is applied to existing entities

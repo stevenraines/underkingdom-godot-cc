@@ -7,8 +7,9 @@ extends Control
 
 signal closed()
 
-# Inscription dialog preload
+# Preloads
 const InscriptionDialogScene = preload("res://ui/inscription_dialog.tscn")
+const GroundItemClass = preload("res://entities/ground_item.gd")
 
 @onready var equipment_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentScrollContainer/EquipmentList
 @onready var equipment_scroll: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ContentContainer/EquipmentPanel/EquipmentScrollContainer
@@ -896,7 +897,7 @@ func _use_selected() -> void:
 func _drop_selected() -> void:
 	if not player or not selected_item:
 		return
-	
+
 	if is_equipment_focused and selected_slot != "":
 		# Unequip then drop
 		var item = player.inventory.unequip_slot(selected_slot)
@@ -905,11 +906,26 @@ func _drop_selected() -> void:
 			if ground_item:
 				EntityManager.entities.append(ground_item)
 	else:
-		# Drop from inventory
-		var ground_item = player.drop_item(selected_item)
-		if ground_item:
+		# Drop from inventory - only drop 1 item from stack
+		if selected_item.stack_size > 1:
+			# Split the stack: create a copy with stack_size = 1
+			var item_to_drop = selected_item.duplicate_item()
+			item_to_drop.stack_size = 1
+
+			# Reduce original stack
+			selected_item.remove_from_stack(1)
+
+			# Drop the single item
+			var drop_pos = player._find_drop_position()
+			var ground_item = GroundItemClass.create(item_to_drop, drop_pos)
 			EntityManager.entities.append(ground_item)
-	
+			EventBus.item_dropped.emit(item_to_drop, drop_pos)
+		else:
+			# Drop the entire item (stack of 1)
+			var ground_item = player.drop_item(selected_item)
+			if ground_item:
+				EntityManager.entities.append(ground_item)
+
 	refresh()
 
 func _action_selected() -> void:

@@ -163,6 +163,9 @@ var death_cause: String = ""  # What killed the player (enemy name, "Starvation"
 var death_method: String = ""  # Weapon/method used (if applicable)
 var death_location: String = ""  # Where death occurred
 
+# Movement tracking for encumbrance
+var _last_move_turn: int = -1  # Turn when player last moved (for overburdened slowdown)
+
 # Race system
 var race_id: String = "human"  # Selected race ID
 var racial_traits: Dictionary = {}  # Trait state: {trait_id: {uses_remaining: int, active: bool}}
@@ -614,6 +617,20 @@ func attack(target: Entity) -> Dictionary:
 func move(direction: Vector2i) -> bool:
 	var new_pos = position + direction
 
+	# Check encumbrance - may block or slow movement
+	if inventory:
+		var penalty = inventory.get_encumbrance_penalty()
+		if not penalty.can_move:
+			EventBus.message_logged.emit("You are too overburdened to move! Drop some items.")
+			return false
+		if penalty.movement_cost > 1:
+			# Overburdened: can only move every N turns
+			# If not enough turns have passed, struggle (consume turn but don't move)
+			if _last_move_turn >= 0 and TurnManager.current_turn - _last_move_turn < penalty.movement_cost:
+				var turns_remaining = penalty.movement_cost - (TurnManager.current_turn - _last_move_turn)
+				EventBus.message_logged.emit("You struggle under the weight... (%d more turn%s)" % [turns_remaining, "" if turns_remaining == 1 else "s"])
+				return true  # Return true to consume the turn (player "rests" while struggling)
+
 	# Interrupt ritual channeling if player moves
 	if _RitualSystem.is_channeling():
 		_RitualSystem.interrupt_ritual("interrupted by movement")
@@ -648,6 +665,7 @@ func move(direction: Vector2i) -> bool:
 
 	var old_pos = position
 	position = new_pos
+	_last_move_turn = TurnManager.current_turn  # Track for encumbrance slowdown
 	EventBus.player_moved.emit(old_pos, new_pos)
 
 	# Check for hazards at new position
@@ -1061,15 +1079,18 @@ func get_total_armor() -> int:
 ## Pick up a ground item
 func pickup_item(ground_item: GroundItem) -> bool:
 	if not ground_item or not ground_item.item:
+		print("[Player] pickup_item failed: ground_item or item is null")
 		return false
 
 	if not inventory:
+		print("[Player] pickup_item failed: no inventory")
 		return false
 
 	# Check encumbrance before picking up
 	var new_weight = inventory.get_total_weight() + ground_item.item.get_total_weight()
 	if new_weight / inventory.max_weight > 1.25:
 		# Would be too heavy to move at all
+		print("[Player] pickup_item failed: too heavy (weight: %.1f / %.1f)" % [new_weight, inventory.max_weight])
 		return false
 
 	var item = ground_item.item
@@ -1098,6 +1119,7 @@ func pickup_item(ground_item: GroundItem) -> bool:
 		EventBus.item_picked_up.emit(item)
 		return true
 
+	print("[Player] pickup_item failed: inventory.add_item returned false (likely full)")
 	return false
 
 ## Drop an item from inventory

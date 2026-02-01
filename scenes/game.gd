@@ -1010,6 +1010,10 @@ func _auto_pickup_items() -> void:
 	for ground_item in ground_items:
 		if player.pickup_item(ground_item):
 			EntityManager.remove_entity(ground_item)
+		else:
+			# Pickup failed - provide feedback (only show once per position)
+			if ground_item and ground_item.item:
+				_add_message("Cannot pick up %s (inventory full or too heavy)" % ground_item.item.name, Color(0.9, 0.6, 0.4))
 
 ## Toggle auto-pickup on/off
 func toggle_auto_pickup() -> void:
@@ -2696,6 +2700,13 @@ func _on_debug_menu_closed() -> void:
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
 	input_handler.set_ui_blocking(false)
+	# Refresh rendering to show spawned entities/items and tile changes
+	_full_render_needed = true
+	_render_map()
+	_render_ground_items()
+	_render_all_entities()
+	renderer.render_entity(player.position, "@", Color.YELLOW)
+	_update_visibility()
 
 ## Toggle performance overlay
 func _on_perf_overlay_toggle() -> void:

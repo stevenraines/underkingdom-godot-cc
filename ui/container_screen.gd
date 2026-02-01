@@ -19,10 +19,6 @@ var container: Structure = null
 var selected_index: int = 0
 var is_player_focused: bool = true
 
-# Colors
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -175,9 +171,9 @@ func _refresh_display() -> void:
 		var label = Label.new()
 		label.text = "%s (%.1f kg)" % [item.name, item.get_total_weight()]
 		if is_player_focused and i == selected_index:
-			label.modulate = COLOR_SELECTED
+			label.modulate = UITheme.COLOR_SELECTED_GOLD
 		else:
-			label.modulate = COLOR_NORMAL
+			label.modulate = UITheme.COLOR_NORMAL
 		player_list.add_child(label)
 
 	# Populate container inventory
@@ -188,7 +184,7 @@ func _refresh_display() -> void:
 			var label = Label.new()
 			label.text = "%s (%.1f kg)" % [item.name, item.get_total_weight()]
 			if not is_player_focused and i == selected_index:
-				label.modulate = COLOR_SELECTED
+				label.modulate = UITheme.COLOR_SELECTED_GOLD
 			else:
-				label.modulate = COLOR_NORMAL
+				label.modulate = UITheme.COLOR_NORMAL
 			container_list.add_child(label)

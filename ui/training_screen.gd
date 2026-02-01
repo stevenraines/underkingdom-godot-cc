@@ -26,13 +26,7 @@ var available_recipes: Array = []  # Array of {recipe_id, base_price, recipe}
 # Training system reference
 var training_system: TrainingSystem = null
 
-# Colors
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_GOLD = Color(0.9, 0.7, 0.2, 1.0)
-const COLOR_AFFORDABLE = Color(0.6, 0.9, 0.6, 1.0)
-const COLOR_EXPENSIVE = Color(0.9, 0.5, 0.5, 1.0)
-const COLOR_PURPLE = Color(0.6, 0.4, 0.8, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -158,7 +152,7 @@ func _refresh_display() -> void:
 
 	# Update gold label
 	gold_label.text = "Your Gold: %d" % player.gold
-	gold_label.modulate = COLOR_GOLD
+	gold_label.modulate = UITheme.COLOR_GOLD
 
 	# Check if no recipes available
 	if available_recipes.is_empty():
@@ -193,11 +187,11 @@ func _refresh_display() -> void:
 			label.modulate = Color(0.5, 0.5, 0.5, 1.0)
 		elif i == selected_index:
 			if player.gold >= price:
-				label.modulate = COLOR_SELECTED
+				label.modulate = UITheme.COLOR_SELECTED_GOLD
 			else:
-				label.modulate = COLOR_EXPENSIVE
+				label.modulate = UITheme.COLOR_EXPENSIVE
 		else:
-			label.modulate = COLOR_NORMAL
+			label.modulate = UITheme.COLOR_NORMAL
 
 		recipe_list.add_child(label)
 
@@ -261,7 +255,7 @@ func _update_details_panel(data: Dictionary) -> void:
 	if is_known:
 		name_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1))
 	else:
-		name_label.add_theme_color_override("font_color", COLOR_PURPLE)
+		name_label.add_theme_color_override("font_color", UITheme.COLOR_PURPLE)
 	details_container.add_child(name_label)
 
 	# Show "Already Known" indicator
@@ -314,9 +308,9 @@ func _update_details_panel(data: Dictionary) -> void:
 		price_label.text = "Cost: %s" % training_system.get_price_display(data.base_price, recipe.difficulty, player.attributes["CHA"])
 		price_label.add_theme_font_size_override("font_size", 13)
 		if player.gold >= price:
-			price_label.add_theme_color_override("font_color", COLOR_AFFORDABLE)
+			price_label.add_theme_color_override("font_color", UITheme.COLOR_AFFORDABLE)
 		else:
-			price_label.add_theme_color_override("font_color", COLOR_EXPENSIVE)
+			price_label.add_theme_color_override("font_color", UITheme.COLOR_EXPENSIVE)
 		details_container.add_child(price_label)
 
 	# Note about ingredients (only show for unknown recipes)

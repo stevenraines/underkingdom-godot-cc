@@ -68,15 +68,6 @@ var inscription_dialog_active: bool = false
 var current_filter: Inventory.FilterType = Inventory.FilterType.ALL
 var filter_bar_focused: bool = false
 
-# Colors
-const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_EMPTY = Color(0.4, 0.4, 0.4, 1.0)
-const COLOR_EQUIPPED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_HIGHLIGHT = Color(1.0, 1.0, 0.6, 1.0)
-const COLOR_PANEL_ACTIVE = Color(0.8, 0.8, 0.5, 1.0)
-const COLOR_PANEL_INACTIVE = Color(0.5, 0.5, 0.4, 1.0)
-
 # Equipment slots in display order
 const EQUIPMENT_SLOTS = ["head", "neck", "torso", "back", "hands", "legs", "feet", "main_hand", "off_hand", "accessory_1", "accessory_2"]
 const SLOT_DISPLAY_NAMES = {
@@ -275,14 +266,14 @@ func _update_equipment_display() -> void:
 			container.get_node("Icon").text = equipped_item.ascii_char
 			container.get_node("Icon").add_theme_color_override("font_color", equipped_item.get_color())
 			container.get_node("Name").text = equipped_item.get_display_name()
-			container.get_node("Name").add_theme_color_override("font_color", COLOR_EQUIPPED)
+			container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_EQUIPPED)
 			container.get_node("Weight").text = "%.1fkg" % equipped_item.weight
 			container.get_node("Weight").add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		else:
 			container.get_node("Icon").text = slot_icon
-			container.get_node("Icon").add_theme_color_override("font_color", COLOR_EMPTY)
+			container.get_node("Icon").add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 			container.get_node("Name").text = "<%s>" % slot_name
-			container.get_node("Name").add_theme_color_override("font_color", COLOR_EMPTY)
+			container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 			container.get_node("Weight").text = ""
 		
 		container.set_meta("slot", slot)
@@ -314,7 +305,7 @@ func _update_inventory_display() -> void:
 		else:
 			var filter_name = FILTER_LABELS.get(current_filter, "items")
 			label.text = "  (No %s)" % filter_name.to_lower()
-		label.add_theme_color_override("font_color", COLOR_EMPTY)
+		label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 		label.add_theme_font_size_override("font_size", 13)
 		inventory_list.add_child(label)
 	else:
@@ -375,9 +366,9 @@ func _update_selection() -> void:
 	
 	# Update panel title colors to show which is active
 	if equipment_title:
-		equipment_title.add_theme_color_override("font_color", COLOR_PANEL_ACTIVE if is_equipment_focused else COLOR_PANEL_INACTIVE)
+		equipment_title.add_theme_color_override("font_color", UITheme.COLOR_PANEL_ACTIVE if is_equipment_focused else UITheme.COLOR_PANEL_INACTIVE)
 	if inventory_title:
-		inventory_title.add_theme_color_override("font_color", COLOR_PANEL_ACTIVE if not is_equipment_focused else COLOR_PANEL_INACTIVE)
+		inventory_title.add_theme_color_override("font_color", UITheme.COLOR_PANEL_ACTIVE if not is_equipment_focused else UITheme.COLOR_PANEL_INACTIVE)
 	
 	# Reset all highlights in equipment list
 	for i in range(equipment_list.get_child_count()):
@@ -447,7 +438,7 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 		if name_node and name_node is Label:
 			if highlighted:
 				name_node.text = "► " + name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 			else:
 				name_node.text = name_node.text.trim_prefix("► ")
 				# Restore original color from item metadata or use default
@@ -459,16 +450,16 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 					var slot = row.get_meta("slot")
 					var equipped = player.inventory.get_equipped(slot) if player and player.inventory else null
 					if equipped:
-						name_node.add_theme_color_override("font_color", COLOR_EQUIPPED)
+						name_node.add_theme_color_override("font_color", UITheme.COLOR_EQUIPPED)
 					else:
-						name_node.add_theme_color_override("font_color", COLOR_EMPTY)
+						name_node.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 	elif row is Label:
 		if highlighted:
 			row.text = "► " + row.text.trim_prefix("► ")
-			row.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+			row.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 		else:
 			row.text = row.text.trim_prefix("► ")
-			row.add_theme_color_override("font_color", COLOR_EMPTY)
+			row.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 
 func _update_tooltip() -> void:
 	if not item_name_label:
@@ -873,7 +864,7 @@ func _update_slot_selection_display() -> void:
 	item_desc_label.text = "\n".join(item_lines)
 	# Highlight the description in yellow when there's only one item (common case)
 	# or when showing the list
-	item_desc_label.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+	item_desc_label.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 
 	stat_line_1.text = "↑↓ Navigate"
 	stat_line_2.text = "Enter to equip"
@@ -1036,9 +1027,9 @@ func _update_filter_bar() -> void:
 	for filter_type in filter_labels_map:
 		var label = filter_labels_map[filter_type]
 		if filter_type == current_filter:
-			label.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+			label.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 		else:
-			label.add_theme_color_override("font_color", COLOR_NORMAL)
+			label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 ## Update inventory title with filter info
 func _update_inventory_title(item_count: int) -> void:

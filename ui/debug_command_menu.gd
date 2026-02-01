@@ -63,11 +63,7 @@ var coord_input_stage: String = ""  # "x" or "y"
 # Player reference (set when menu opens)
 var player: Player = null
 
-# Colors
-const COLOR_CATEGORY = Color(0.9, 0.5, 0.3, 1)
-const COLOR_COMMAND = Color(0.8, 0.8, 0.8, 1)
-const COLOR_SELECTED = Color(0.9, 0.9, 0.5, 1)
-const COLOR_DISABLED = Color(0.5, 0.5, 0.5, 1)
+# Colors from UITheme autoload
 
 # Tab definitions - commands organized by tab
 var tab_commands: Dictionary = {
@@ -1522,10 +1518,10 @@ func _build_current_tab() -> void:
 		var label = Label.new()
 		if i == selected_index:
 			label.text = "> %s" % display_text
-			label.add_theme_color_override("font_color", COLOR_SELECTED)
+			label.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 		else:
 			label.text = "  %s" % display_text
-			label.add_theme_color_override("font_color", COLOR_COMMAND)
+			label.add_theme_color_override("font_color", UITheme.COLOR_COMMAND)
 		label.add_theme_font_size_override("font_size", 14)
 		current_tab_container.add_child(label)
 
@@ -1583,10 +1579,10 @@ func _add_menu_item(container: VBoxContainer, item: Dictionary, is_selected: boo
 	var label = Label.new()
 	if is_selected:
 		label.text = "> %s" % item.text
-		label.add_theme_color_override("font_color", COLOR_SELECTED)
+		label.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 	else:
 		label.text = "  %s" % item.text
-		label.add_theme_color_override("font_color", COLOR_COMMAND)
+		label.add_theme_color_override("font_color", UITheme.COLOR_COMMAND)
 	label.add_theme_font_size_override("font_size", 14)
 	container.add_child(label)
 
@@ -1604,13 +1600,13 @@ func _update_selection() -> void:
 
 		if i == selected_index:
 			label.text = "> %s" % item.text
-			label.add_theme_color_override("font_color", COLOR_SELECTED)
+			label.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 			# Auto-scroll to keep selected item visible
 			if current_scroll:
 				current_scroll.ensure_control_visible(label)
 		else:
 			label.text = "  %s" % item.text
-			label.add_theme_color_override("font_color", COLOR_COMMAND)
+			label.add_theme_color_override("font_color", UITheme.COLOR_COMMAND)
 
 	# Update info panel for submenu selections
 	if current_state == MenuState.SUBMENU:
@@ -2192,7 +2188,7 @@ func _rebuild_submenu_display() -> void:
 	if submenu_items.is_empty():
 		var label = Label.new()
 		label.text = "  (no matches)"
-		label.add_theme_color_override("font_color", COLOR_DISABLED)
+		label.add_theme_color_override("font_color", UITheme.COLOR_DISABLED)
 		label.add_theme_font_size_override("font_size", 14)
 		current_tab_container.add_child(label)
 	else:

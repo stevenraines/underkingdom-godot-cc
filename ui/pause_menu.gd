@@ -21,10 +21,7 @@ var mode: String = "save"  # "save" or "load"
 var pending_action: String = ""
 var pending_slot: int = -1
 
-# Colors
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_EMPTY = Color(0.5, 0.5, 0.5, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -126,31 +123,31 @@ func _update_button_colors() -> void:
 		var info = SaveManager.get_save_slot_info(slot_num)
 
 		if i == selected_index:
-			slot_buttons[i].modulate = COLOR_SELECTED
+			slot_buttons[i].modulate = UITheme.COLOR_SELECTED_GOLD
 		elif not info.exists and mode == "load":
 			# Empty slots in load mode should be dimmed
-			slot_buttons[i].modulate = COLOR_EMPTY
+			slot_buttons[i].modulate = UITheme.COLOR_EMPTY
 		else:
-			slot_buttons[i].modulate = COLOR_NORMAL
+			slot_buttons[i].modulate = UITheme.COLOR_NORMAL
 
 	# Update action buttons based on mode
 	if mode == "load":
 		# Load mode: only main menu button (index 3)
 		if selected_index == 3:
-			main_menu_button.modulate = COLOR_SELECTED
+			main_menu_button.modulate = UITheme.COLOR_SELECTED_GOLD
 		else:
-			main_menu_button.modulate = COLOR_NORMAL
+			main_menu_button.modulate = UITheme.COLOR_NORMAL
 	else:
 		# Save mode: resume (index 3) and main menu (index 4)
 		if selected_index == 3:
-			resume_button.modulate = COLOR_SELECTED
-			main_menu_button.modulate = COLOR_NORMAL
+			resume_button.modulate = UITheme.COLOR_SELECTED_GOLD
+			main_menu_button.modulate = UITheme.COLOR_NORMAL
 		elif selected_index == 4:
-			resume_button.modulate = COLOR_NORMAL
-			main_menu_button.modulate = COLOR_SELECTED
+			resume_button.modulate = UITheme.COLOR_NORMAL
+			main_menu_button.modulate = UITheme.COLOR_SELECTED_GOLD
 		else:
-			resume_button.modulate = COLOR_NORMAL
-			main_menu_button.modulate = COLOR_NORMAL
+			resume_button.modulate = UITheme.COLOR_NORMAL
+			main_menu_button.modulate = UITheme.COLOR_NORMAL
 
 func _select_current() -> void:
 	if selected_index >= 0 and selected_index <= 2:
@@ -176,10 +173,10 @@ func _refresh_slot_info() -> void:
 			var turns_str = "Turn: %d" % info.playtime_turns
 			var world_display = info.world_name if not info.world_name.is_empty() else "Unknown World"
 			button.text = "Slot %d: %s - %s (%s)" % [i, world_display, time_str, turns_str]
-			button.modulate = COLOR_NORMAL
+			button.modulate = UITheme.COLOR_NORMAL
 		else:
 			button.text = "Slot %d: Empty" % i
-			button.modulate = COLOR_EMPTY if mode == "load" else COLOR_NORMAL
+			button.modulate = UITheme.COLOR_EMPTY if mode == "load" else UITheme.COLOR_NORMAL
 
 func _format_timestamp(timestamp: String) -> String:
 	if timestamp == "":

@@ -12,11 +12,7 @@ signal closed
 @onready var scroll_container: ScrollContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer
 @onready var content_container: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/ScrollMargin/ContentBox
 
-# Colors matching character sheet
-const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
-const COLOR_LABEL = Color(0.85, 0.85, 0.7)
-const COLOR_SELECTED = Color(0.7, 0.9, 0.7)
-const COLOR_UNSELECTED = Color(0.6, 0.6, 0.6)
+# Colors from UITheme autoload
 
 var locations: Array = []  # Array of {id, data} dictionaries
 var selected_index: int = 0
@@ -71,7 +67,7 @@ func _populate_content() -> void:
 	if locations.size() == 0:
 		var empty_label = Label.new()
 		empty_label.text = "No locations discovered yet."
-		empty_label.add_theme_color_override("font_color", COLOR_UNSELECTED)
+		empty_label.add_theme_color_override("font_color", UITheme.COLOR_UNSELECTED)
 		empty_label.add_theme_font_size_override("font_size", 14)
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		content_container.add_child(empty_label)
@@ -107,7 +103,7 @@ func _add_section_header(text: String) -> void:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_color_override("font_color", COLOR_SECTION)
+	header.add_theme_color_override("font_color", UITheme.COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	content_container.add_child(header)
 
@@ -129,7 +125,7 @@ func _add_location_line(index: int, location_name: String) -> void:
 	name_label.name = "NameLabel"
 	name_label.text = location_name
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
@@ -152,15 +148,15 @@ func _update_selection_display() -> void:
 			if i == selected_index:
 				if indicator:
 					indicator.text = "> "
-					indicator.add_theme_color_override("font_color", COLOR_SELECTED)
+					indicator.add_theme_color_override("font_color", UITheme.COLOR_SELECTED)
 				if name_label:
-					name_label.add_theme_color_override("font_color", COLOR_SELECTED)
+					name_label.add_theme_color_override("font_color", UITheme.COLOR_SELECTED)
 			else:
 				if indicator:
 					indicator.text = "  "
-					indicator.add_theme_color_override("font_color", COLOR_LABEL)
+					indicator.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 				if name_label:
-					name_label.add_theme_color_override("font_color", COLOR_LABEL)
+					name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 
 ## Move selection up
 func _move_selection_up() -> void:

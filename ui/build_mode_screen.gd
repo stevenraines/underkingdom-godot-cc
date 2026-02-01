@@ -20,10 +20,7 @@ var structure_rows: Array[Control] = []
 # Available structures
 const STRUCTURES = ["campfire", "lean_to", "chest"]
 
-# Colors
-const COLOR_HIGHLIGHT = Color(1.0, 1.0, 0.6, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_PANEL_ACTIVE = Color(0.8, 0.8, 0.5, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -170,7 +167,7 @@ func _create_structure_row(data: Dictionary) -> HBoxContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.text = data.get("name", "Unknown")
-	name_label.add_theme_color_override("font_color", COLOR_NORMAL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 	container.add_child(name_label)
 
 	return container
@@ -191,10 +188,10 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 		if name_node and name_node is Label:
 			if highlighted:
 				name_node.text = "► " + name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 			else:
 				name_node.text = name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_NORMAL)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 func _update_detail_panel() -> void:
 	if selected_index < 0 or selected_index >= STRUCTURES.size():

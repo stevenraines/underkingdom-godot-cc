@@ -24,12 +24,6 @@ signal closed
 # Active content container for adding help text
 var current_container: VBoxContainer
 
-# Colors matching inventory screen
-const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
-const COLOR_KEY = Color(0.7, 0.9, 0.7)
-const COLOR_DESC = Color(0.85, 0.85, 0.7)
-const COLOR_TIP = Color(0.8, 0.8, 0.7)
-
 func _ready() -> void:
 	_build_help_content()
 	hide()
@@ -207,7 +201,7 @@ func _add_section_header(text: String) -> void:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_color_override("font_color", COLOR_SECTION)
+	header.add_theme_color_override("font_color", UITheme.COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	current_container.add_child(header)
 
@@ -218,14 +212,14 @@ func _add_keybind(key: String, description: String) -> void:
 	var key_label = Label.new()
 	key_label.text = "[%s]" % key
 	key_label.custom_minimum_size.x = 180
-	key_label.add_theme_color_override("font_color", COLOR_KEY)
+	key_label.add_theme_color_override("font_color", UITheme.COLOR_KEY)
 	key_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(key_label)
 
 	var desc_label = Label.new()
 	desc_label.text = description
 	desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc_label.add_theme_color_override("font_color", COLOR_DESC)
+	desc_label.add_theme_color_override("font_color", UITheme.COLOR_DESC)
 	desc_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(desc_label)
 
@@ -236,7 +230,7 @@ func _add_help_text(text: String) -> void:
 	var label = Label.new()
 	label.text = "  • " + text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_color_override("font_color", COLOR_TIP)
+	label.add_theme_color_override("font_color", UITheme.COLOR_TIP)
 	label.add_theme_font_size_override("font_size", 14)
 	current_container.add_child(label)
 

@@ -25,17 +25,6 @@ var player: Player = null
 var actions: Array = []  # Array of dictionaries: {type: "feat"/"trait", id, name, description, uses_remaining, max_uses, source}
 var selected_index: int = 0
 
-# Colors
-const COLOR_SELECTED = Color(0.2, 0.4, 0.3, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_EMPTY = Color(0.4, 0.4, 0.4, 1.0)
-const COLOR_HIGHLIGHT = Color(1.0, 1.0, 0.6, 1.0)
-const COLOR_FEAT = Color(0.9, 0.7, 0.3, 1.0)  # Gold for class feats
-const COLOR_TRAIT = Color(0.3, 0.8, 0.9, 1.0)  # Cyan for racial traits
-const COLOR_USABLE = Color(0.5, 1.0, 0.5, 1.0)
-const COLOR_EXHAUSTED = Color(1.0, 0.5, 0.5, 1.0)
-
-
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -166,7 +155,7 @@ func _update_action_list() -> void:
 	if actions.is_empty():
 		var label = Label.new()
 		label.text = "  (No special actions available)"
-		label.add_theme_color_override("font_color", COLOR_EMPTY)
+		label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 		label.add_theme_font_size_override("font_size", 13)
 		action_list.add_child(label)
 	else:
@@ -188,10 +177,10 @@ func _create_action_row(action: Dictionary) -> HBoxContainer:
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if action.type == "feat":
 		icon.text = "◆"
-		icon.add_theme_color_override("font_color", COLOR_FEAT)
+		icon.add_theme_color_override("font_color", UITheme.COLOR_FEAT)
 	else:
 		icon.text = "●"
-		icon.add_theme_color_override("font_color", COLOR_TRAIT)
+		icon.add_theme_color_override("font_color", UITheme.COLOR_TRAIT)
 	container.add_child(icon)
 
 	# Name
@@ -200,7 +189,7 @@ func _create_action_row(action: Dictionary) -> HBoxContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.text = action.name
-	name_label.add_theme_color_override("font_color", COLOR_NORMAL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 	container.add_child(name_label)
 
 	# Source (class/race)
@@ -211,9 +200,9 @@ func _create_action_row(action: Dictionary) -> HBoxContainer:
 	source_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	source_label.text = action.source
 	if action.type == "feat":
-		source_label.add_theme_color_override("font_color", COLOR_FEAT)
+		source_label.add_theme_color_override("font_color", UITheme.COLOR_FEAT)
 	else:
-		source_label.add_theme_color_override("font_color", COLOR_TRAIT)
+		source_label.add_theme_color_override("font_color", UITheme.COLOR_TRAIT)
 	container.add_child(source_label)
 
 	# Uses remaining
@@ -224,13 +213,13 @@ func _create_action_row(action: Dictionary) -> HBoxContainer:
 	uses_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	if action.uses_remaining == -1:
 		uses_label.text = "∞"
-		uses_label.add_theme_color_override("font_color", COLOR_USABLE)
+		uses_label.add_theme_color_override("font_color", UITheme.COLOR_USABLE)
 	else:
 		uses_label.text = "%d/%d" % [action.uses_remaining, action.max_uses]
 		if action.uses_remaining > 0:
-			uses_label.add_theme_color_override("font_color", COLOR_USABLE)
+			uses_label.add_theme_color_override("font_color", UITheme.COLOR_USABLE)
 		else:
-			uses_label.add_theme_color_override("font_color", COLOR_EXHAUSTED)
+			uses_label.add_theme_color_override("font_color", UITheme.COLOR_EXHAUSTED)
 	container.add_child(uses_label)
 
 	return container
@@ -258,10 +247,10 @@ func _set_row_highlight(row: Control, highlighted: bool) -> void:
 		if name_node and name_node is Label:
 			if highlighted:
 				name_node.text = "► " + name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_HIGHLIGHT)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_HIGHLIGHT)
 			else:
 				name_node.text = name_node.text.trim_prefix("► ")
-				name_node.add_theme_color_override("font_color", COLOR_NORMAL)
+				name_node.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 
 func _scroll_to_action(action_row: Control) -> void:
@@ -299,7 +288,7 @@ func _update_detail_panel() -> void:
 func _clear_detail_panel() -> void:
 	if action_name_label:
 		action_name_label.text = "No action selected"
-		action_name_label.add_theme_color_override("font_color", COLOR_EMPTY)
+		action_name_label.add_theme_color_override("font_color", UITheme.COLOR_EMPTY)
 	if action_desc_label:
 		action_desc_label.text = "Select an action to view details"
 	if stat_line_1:
@@ -317,9 +306,9 @@ func _populate_action_details(action: Dictionary) -> void:
 	if action_name_label:
 		action_name_label.text = action.name
 		if action.type == "feat":
-			action_name_label.add_theme_color_override("font_color", COLOR_FEAT)
+			action_name_label.add_theme_color_override("font_color", UITheme.COLOR_FEAT)
 		else:
-			action_name_label.add_theme_color_override("font_color", COLOR_TRAIT)
+			action_name_label.add_theme_color_override("font_color", UITheme.COLOR_TRAIT)
 
 	if action_desc_label:
 		action_desc_label.text = action.description
@@ -329,9 +318,9 @@ func _populate_action_details(action: Dictionary) -> void:
 		var type_name = "Class Feat" if action.type == "feat" else "Racial Trait"
 		stat_line_1.text = "Type: %s" % type_name
 		if action.type == "feat":
-			stat_line_1.add_theme_color_override("font_color", COLOR_FEAT)
+			stat_line_1.add_theme_color_override("font_color", UITheme.COLOR_FEAT)
 		else:
-			stat_line_1.add_theme_color_override("font_color", COLOR_TRAIT)
+			stat_line_1.add_theme_color_override("font_color", UITheme.COLOR_TRAIT)
 
 	if stat_line_2:
 		stat_line_2.text = "Source: %s" % action.source
@@ -340,13 +329,13 @@ func _populate_action_details(action: Dictionary) -> void:
 	if stat_line_3:
 		if action.uses_remaining == -1:
 			stat_line_3.text = "Uses: Unlimited"
-			stat_line_3.add_theme_color_override("font_color", COLOR_USABLE)
+			stat_line_3.add_theme_color_override("font_color", UITheme.COLOR_USABLE)
 		elif action.uses_remaining > 0:
 			stat_line_3.text = "Uses: %d/%d per day" % [action.uses_remaining, action.max_uses]
-			stat_line_3.add_theme_color_override("font_color", COLOR_USABLE)
+			stat_line_3.add_theme_color_override("font_color", UITheme.COLOR_USABLE)
 		else:
 			stat_line_3.text = "Exhausted (recharges at dawn)"
-			stat_line_3.add_theme_color_override("font_color", COLOR_EXHAUSTED)
+			stat_line_3.add_theme_color_override("font_color", UITheme.COLOR_EXHAUSTED)
 
 	# Footer
 	if footer_label:

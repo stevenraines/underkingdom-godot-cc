@@ -18,8 +18,7 @@ var selected_button_index: int = 0
 var buttons: Array[Button] = []
 var current_item: Item = null
 
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
+# Colors from UITheme autoload
 
 func _ready() -> void:
 	hide()
@@ -116,9 +115,9 @@ func open_uninscribe(item: Item) -> void:
 func _update_button_colors() -> void:
 	for i in range(buttons.size()):
 		if i == selected_button_index:
-			buttons[i].modulate = COLOR_SELECTED
+			buttons[i].modulate = UITheme.COLOR_SELECTED_GOLD
 		else:
-			buttons[i].modulate = COLOR_NORMAL
+			buttons[i].modulate = UITheme.COLOR_NORMAL
 
 func _on_confirm_button_pressed() -> void:
 	var text = inscription_input.text.strip_edges()

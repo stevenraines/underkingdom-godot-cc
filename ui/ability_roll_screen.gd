@@ -27,14 +27,7 @@ const ABILITY_FULL_NAMES = {
 	"CHA": "Charisma"
 }
 
-# Colors matching inventory screen
-const COLOR_SECTION = Color(0.8, 0.8, 0.5, 1)
-const COLOR_LABEL = Color(0.85, 0.85, 0.7)
-const COLOR_VALUE = Color(0.7, 0.9, 0.7)
-const COLOR_SELECTED = Color(0.9, 0.85, 0.5, 1.0)
-const COLOR_NORMAL = Color(0.7, 0.7, 0.7, 1.0)
-const COLOR_PENDING = Color(1.0, 0.85, 0.3)
-const COLOR_ERROR = Color(1.0, 0.4, 0.4)
+# Colors from UITheme autoload
 
 # UI element tracking
 var ability_lines: Array = []  # Array of HBoxContainer nodes for each ability
@@ -132,10 +125,10 @@ func _populate_ui() -> void:
 
 		# Highlight if still available (accounting for duplicates)
 		if available_counts.get(roll_value, 0) > 0:
-			roll_label.add_theme_color_override("font_color", COLOR_VALUE)
+			roll_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 			available_counts[roll_value] -= 1  # Consume one occurrence
 		else:
-			roll_label.add_theme_color_override("font_color", COLOR_NORMAL)
+			roll_label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 		rolls_line.add_child(roll_label)
 		roll_labels.append(roll_label)
@@ -175,7 +168,7 @@ func _add_ability_line(ability_index: int) -> void:
 	var name_label = Label.new()
 	name_label.text = "%s (%s):" % [ability_name, full_name]
 	name_label.custom_minimum_size.x = 200
-	name_label.add_theme_color_override("font_color", COLOR_LABEL)
+	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(name_label)
 
@@ -191,13 +184,13 @@ func _add_ability_line(ability_index: int) -> void:
 		if total_mod != 0:
 			var mod_text = "%+d" % total_mod if total_mod > 0 else "%d" % total_mod
 			value_label.text = "%d → Final: %d (%s)" % [assigned, final_value, mod_text]
-			value_label.add_theme_color_override("font_color", COLOR_VALUE)
+			value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 		else:
 			value_label.text = "%d → Final: %d" % [assigned, final_value]
-			value_label.add_theme_color_override("font_color", COLOR_VALUE)
+			value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 	else:
 		value_label.text = "[Unassigned]"
-		value_label.add_theme_color_override("font_color", COLOR_NORMAL)
+		value_label.add_theme_color_override("font_color", UITheme.COLOR_NORMAL)
 
 	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	value_label.add_theme_font_size_override("font_size", 14)
@@ -302,7 +295,7 @@ func _update_selection_visual() -> void:
 			var indicator = line.get_child(0) as Label
 			if i == selected_ability_index:
 				indicator.text = "►"
-				indicator.add_theme_color_override("font_color", COLOR_SELECTED)
+				indicator.add_theme_color_override("font_color", UITheme.COLOR_SELECTED_GOLD)
 			else:
 				indicator.text = "  "
 
@@ -323,7 +316,7 @@ func _try_confirm() -> void:
 func _show_error(text: String) -> void:
 	if message_label:
 		message_label.text = text
-		message_label.add_theme_color_override("font_color", COLOR_ERROR)
+		message_label.add_theme_color_override("font_color", UITheme.COLOR_ERROR)
 		message_label.show()
 
 ## Clear message
@@ -337,7 +330,7 @@ func _create_section_header(text: String) -> Label:
 	var header = Label.new()
 	header.text = text
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_color_override("font_color", COLOR_SECTION)
+	header.add_theme_color_override("font_color", UITheme.COLOR_SECTION)
 	header.add_theme_font_size_override("font_size", 15)
 	return header
 

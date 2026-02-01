@@ -25,38 +25,17 @@ func _ready() -> void:
 
 ## Load all creature type definitions from JSON files
 func _load_creature_type_definitions() -> void:
-	var dir = DirAccess.open(CREATURE_TYPE_DATA_PATH)
-	if not dir:
-		push_warning("[CreatureTypeManager] No creature type data directory found: " + CREATURE_TYPE_DATA_PATH)
+	var files = JsonHelper.load_all_from_directory(CREATURE_TYPE_DATA_PATH, false)
+	for file_entry in files:
+		_process_creature_type_data(file_entry.path, file_entry.data)
+
+
+## Process loaded creature type data
+func _process_creature_type_data(file_path: String, data) -> void:
+	if not data is Dictionary:
+		push_error("[CreatureTypeManager] Invalid data format in: " + file_path)
 		return
 
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while file_name != "":
-		if file_name.ends_with(".json"):
-			var file_path = CREATURE_TYPE_DATA_PATH + "/" + file_name
-			_load_creature_type_file(file_path)
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-
-## Load a single creature type definition from JSON
-func _load_creature_type_file(file_path: String) -> void:
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	if not file:
-		push_error("[CreatureTypeManager] Failed to open file: " + file_path)
-		return
-
-	var json = JSON.new()
-	var error = json.parse(file.get_as_text())
-
-	if error != OK:
-		push_error("[CreatureTypeManager] JSON parse error in %s: %s" % [file_path, json.get_error_message()])
-		return
-
-	var data: Dictionary = json.data
 	if not data.has("id"):
 		push_error("[CreatureTypeManager] Missing 'id' field in: " + file_path)
 		return

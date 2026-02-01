@@ -80,46 +80,13 @@ func _set_default_config() -> void:
 
 ## Load all biome definitions from JSON files
 func _load_biome_definitions() -> void:
-	var dir = DirAccess.open(BIOME_DATA_PATH)
-	if not dir:
-		push_warning("BiomeManager: Could not open directory: %s" % BIOME_DATA_PATH)
-		return
+	var files = JsonHelper.load_all_from_directory(BIOME_DATA_PATH, false)
+	for file_entry in files:
+		_process_biome_data(file_entry.path, file_entry.data)
 
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
 
-	while file_name != "":
-		if file_name.ends_with(".json"):
-			var full_path = BIOME_DATA_PATH + "/" + file_name
-			_load_biome_from_file(full_path)
-
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
-
-## Load a single biome definition from a JSON file
-func _load_biome_from_file(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		push_warning("BiomeManager: File not found: %s" % path)
-		return
-
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		push_error("BiomeManager: Could not open file: %s" % path)
-		return
-
-	var json_text = file.get_as_text()
-	file.close()
-
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("BiomeManager: JSON parse error in %s at line %d: %s" % [
-			path, json.get_error_line(), json.get_error_message()
-		])
-		return
-
-	var data = json.data
+## Process loaded biome data
+func _process_biome_data(path: String, data) -> void:
 	if data is Dictionary and "id" in data:
 		var biome_id = data.get("id", "")
 		if biome_id != "":

@@ -21,57 +21,13 @@ func _ready() -> void:
 
 ## Load all item definitions by recursively scanning folders
 func _load_all_items() -> void:
-	_load_items_from_folder(ITEM_DATA_BASE_PATH)
+	var files = JsonHelper.load_all_from_directory(ITEM_DATA_BASE_PATH)
+	for file_entry in files:
+		_process_item_data(file_entry.path, file_entry.data)
 
-## Recursively load items from a folder and all subfolders
-func _load_items_from_folder(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if not dir:
-		push_warning("ItemManager: Could not open directory: %s" % path)
-		return
-	
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	
-	while file_name != "":
-		var full_path = path + "/" + file_name
-		
-		if dir.current_is_dir():
-			# Skip hidden folders and navigate into subfolders
-			if not file_name.begins_with("."):
-				_load_items_from_folder(full_path)
-		elif file_name.ends_with(".json"):
-			# Load JSON file as item data
-			_load_item_from_file(full_path)
-		
-		file_name = dir.get_next()
-	
-	dir.list_dir_end()
 
-## Load a single item from a JSON file
-func _load_item_from_file(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		push_warning("ItemManager: Item file not found: %s" % path)
-		return
-	
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		push_error("ItemManager: Could not open file: %s" % path)
-		return
-	
-	var json_text = file.get_as_text()
-	file.close()
-	
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("ItemManager: JSON parse error in %s at line %d: %s" % [
-			path, json.get_error_line(), json.get_error_message()
-		])
-		return
-	
-	var data = json.data
-	
+## Process loaded item data (handles both single and multi-item formats)
+func _process_item_data(path: String, data) -> void:
 	# Handle single item file (new format)
 	if data is Dictionary and "id" in data:
 		var item_id = data.get("id", "")

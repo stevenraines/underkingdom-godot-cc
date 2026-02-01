@@ -33,7 +33,7 @@ var current_highlight_position: Vector2i = Vector2i(-1, -1)
 var current_highlight_color: Color = Color.CYAN
 
 # Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, 1295 characters (41 rows)
+# Unicode tileset: 32 columns, 1551 characters (49 rows)
 # Characters indexed sequentially: col = index % 32, row = index / 32
 const TILES_PER_ROW = 32
 
@@ -292,9 +292,9 @@ func _create_ascii_tileset() -> TileSet:
 	source.separation = Vector2i(0, 0)  # No spacing between tiles
 	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
-	# Add tiles for all 1295 Unicode characters in 32-column grid
-	# Characters laid out left-to-right, top-to-bottom (41 rows)
-	var num_tiles = 1295
+	# Add tiles for all 1551 Unicode characters in 32-column grid
+	# Characters laid out left-to-right, top-to-bottom (49 rows)
+	var num_tiles = 1551
 	for i in range(num_tiles):
 		var col = i % TILES_PER_ROW
 		var row = i / TILES_PER_ROW

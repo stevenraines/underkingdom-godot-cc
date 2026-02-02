@@ -9,6 +9,7 @@ class_name FeatureManagerClass
 const FEATURE_DATA_PATH = "res://data/features"
 const _LockSystem = preload("res://systems/lock_system.gd")
 const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
+const ChunkCleanupHelper = preload("res://autoload/chunk_cleanup_helper.gd")
 
 ## Signal emitted when a feature is interacted with
 signal feature_interacted(feature_id: String, position: Vector2i, result: Dictionary)
@@ -776,19 +777,4 @@ func _cleanup_distant_features() -> void:
 
 ## Called when a chunk is unloaded - removes features that were spawned in that chunk
 func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
-	var removed_count = 0
-	var positions_to_remove: Array[Vector2i] = []
-
-	# Find all features in the unloaded chunk
-	for pos in active_features:
-		var feature_chunk = ChunkManagerClass.world_to_chunk(pos)
-		if feature_chunk == chunk_coords:
-			positions_to_remove.append(pos)
-
-	# Remove them
-	for pos in positions_to_remove:
-		active_features.erase(pos)
-		removed_count += 1
-
-	# DIAGNOSTIC: Always log, even if no features removed
-	#print("[FeatureManager] Chunk %v unloaded: removed %d features (total now: %d)" % [chunk_coords, removed_count, active_features.size()])
+	ChunkCleanupHelper.cleanup_positions_in_chunk(active_features, chunk_coords, "FeatureManager")

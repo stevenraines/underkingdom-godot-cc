@@ -7,6 +7,7 @@ class_name HazardManagerClass
 
 const HAZARD_DATA_PATH = "res://data/hazards"
 const ChunkManagerClass = preload("res://autoload/chunk_manager.gd")
+const ChunkCleanupHelper = preload("res://autoload/chunk_cleanup_helper.gd")
 
 ## Signal emitted when hazard is triggered
 signal hazard_triggered(hazard_id: String, position: Vector2i, target, damage: int)
@@ -489,19 +490,4 @@ func check_proximity_hazards(center: Vector2i, _max_radius: int, entity) -> Arra
 
 ## Called when a chunk is unloaded - removes hazards that were spawned in that chunk
 func _on_chunk_unloaded(chunk_coords: Vector2i) -> void:
-	var removed_count = 0
-	var positions_to_remove: Array[Vector2i] = []
-
-	# Find all hazards in the unloaded chunk
-	for pos in active_hazards:
-		var hazard_chunk = ChunkManagerClass.world_to_chunk(pos)
-		if hazard_chunk == chunk_coords:
-			positions_to_remove.append(pos)
-
-	# Remove them
-	for pos in positions_to_remove:
-		active_hazards.erase(pos)
-		removed_count += 1
-
-	if removed_count > 0:
-		print("[HazardManager] Cleaned up %d hazards from unloaded chunk %v" % [removed_count, chunk_coords])
+	ChunkCleanupHelper.cleanup_positions_in_chunk(active_hazards, chunk_coords, "HazardManager")

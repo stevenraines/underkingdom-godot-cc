@@ -149,11 +149,15 @@ func _ready() -> void:
 		player.apply_class(GameManager.player_class)
 
 		# Apply rolled abilities from character creation (if any)
+		# Note: bonus racial ability points are already included in these values
+		# (distributed during character creation), so zero out available_ability_points
 		if not GameManager.player_abilities.is_empty():
 			for ability in GameManager.player_abilities:
 				player.attributes[ability] = GameManager.player_abilities[ability]
 			# Clear after applying
 			GameManager.player_abilities.clear()
+			# Racial bonus points were spent during character creation
+			player.available_ability_points = 0
 			# Recalculate derived stats (HP, stamina, etc.)
 			player._calculate_derived_stats()
 

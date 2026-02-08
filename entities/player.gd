@@ -168,6 +168,9 @@ func _setup_player() -> void:
 	# Perception range calculated from WIS: Base 5 + (WIS / 2)
 	perception_range = 5 + int(attributes["WIS"] / 2.0)
 
+	# Set XP threshold for level 1 (respects xp_multiplier)
+	experience_to_next_level = calculate_xp_for_level(1)
+
 	# Initialize skills from SkillManager
 	_setup_skills()
 

@@ -124,9 +124,22 @@ func _add_attributes_section() -> void:
 	for attr in attributes:
 		var base_value = player.attributes.get(attr, 10)
 		var racial_mod = player.racial_stat_modifiers.get(attr, 0)
+		var class_mod = player.class_stat_modifiers.get(attr, 0)
 		var temp_mod = player.stat_modifiers.get(attr, 0)
-		var total_mod = racial_mod + temp_mod
+		var total_mod = racial_mod + class_mod + temp_mod
 		var effective = player.get_effective_attribute(attr)
+
+		# Build the modifier breakdown parts (only include non-zero modifiers)
+		var breakdown_parts: Array[String] = []
+		if racial_mod != 0:
+			var mod_str = "+%d" % racial_mod if racial_mod > 0 else "%d" % racial_mod
+			breakdown_parts.append("Race: %s" % mod_str)
+		if class_mod != 0:
+			var mod_str = "+%d" % class_mod if class_mod > 0 else "%d" % class_mod
+			breakdown_parts.append("Class: %s" % mod_str)
+		if temp_mod != 0:
+			var mod_str = "+%d" % temp_mod if temp_mod > 0 else "%d" % temp_mod
+			breakdown_parts.append("Effects: %s" % mod_str)
 
 		var stat_line = HBoxContainer.new()
 
@@ -138,18 +151,21 @@ func _add_attributes_section() -> void:
 		name_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(name_label)
 
-		# Value display (right-aligned)
+		# Value display (right-aligned) with full breakdown
 		var value_label = Label.new()
-		if total_mod != 0:
-			var modifier_text = "+%d" % total_mod if total_mod > 0 else "%d" % total_mod
-			value_label.text = "%d %s = %d" % [base_value, modifier_text, effective]
-			value_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4) if total_mod > 0 else Color(1.0, 0.5, 0.5))
+		if not breakdown_parts.is_empty():
+			var breakdown = ", ".join(breakdown_parts)
+			value_label.text = "%d (Base: %d, %s)" % [effective, base_value, breakdown]
+			if total_mod > 0:
+				value_label.add_theme_color_override("font_color", UITheme.COLOR_POSITIVE)
+			else:
+				value_label.add_theme_color_override("font_color", UITheme.COLOR_NEGATIVE)
 		else:
 			value_label.text = "%d" % effective
 			value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
 
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		value_label.custom_minimum_size.x = 120
+		value_label.custom_minimum_size.x = 260
 		value_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(value_label)
 

@@ -191,10 +191,11 @@ func _add_skill_line(skill_name: String, current_level: int) -> void:
 	marker.add_theme_font_size_override("font_size", 14)
 	line.add_child(marker)
 
-	# Skill name
+	# Skill name (look up display name from SkillManager)
 	var name_label = Label.new()
 	name_label.name = "Name"
-	name_label.text = skill_name
+	var skill_def = SkillManager.get_skill(skill_name)
+	name_label.text = skill_def.name if skill_def else skill_name
 	name_label.custom_minimum_size.x = 180
 	name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 	name_label.add_theme_font_size_override("font_size", 14)

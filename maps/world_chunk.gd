@@ -9,6 +9,7 @@ class_name WorldChunk
 const TownGeneratorScript = preload("res://generation/town_generator.gd")
 
 const CHUNK_SIZE: int = 32  # 32x32 tiles per chunk
+const SAVE_VERSION: int = 2  # v2: added is_interior serialization
 
 var chunk_coords: Vector2i  # Chunk grid position (e.g., 0,0 or 2,1)
 var tiles: Dictionary  # Vector2i (local 0-31) -> GameTile
@@ -16,6 +17,7 @@ var resources: Array  # Array of ResourceSpawner.ResourceInstance
 var seed: int  # Deterministic generation seed
 var is_loaded: bool  # Currently in memory and rendered
 var is_dirty: bool  # Needs re-rendering
+var _save_version: int = SAVE_VERSION  # Tracks format version for migration
 
 func _init(coords: Vector2i, world_seed: int) -> void:
 	chunk_coords = coords
@@ -783,6 +785,7 @@ func to_dict() -> Dictionary:
 			resources_data.append(resource.to_dict())
 
 	return {
+		"version": SAVE_VERSION,
 		"chunk_coords": [chunk_coords.x, chunk_coords.y],
 		"seed": seed,
 		"tiles": tiles_data,
@@ -795,6 +798,7 @@ static func from_dict(data: Dictionary, world_seed: int) -> WorldChunk:
 	var coords = Vector2i(coords_array[0], coords_array[1])
 	var chunk = WorldChunk.new(coords, world_seed)
 	chunk.seed = data.get("seed", chunk.seed)
+	chunk._save_version = data.get("version", 1)
 
 	# Restore tiles
 	var tiles_data = data.get("tiles", [])

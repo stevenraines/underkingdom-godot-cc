@@ -219,14 +219,21 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		return null
 
 	# Return cached chunk if available (preserves player modifications like chopped trees)
+	# Skip cache for old save format chunks that are missing is_interior data
 	if chunk_coords in chunk_cache:
 		var cached_chunk = chunk_cache[chunk_coords]
-		cached_chunk.is_loaded = true
-		cached_chunk.is_dirty = true
-		active_chunks[chunk_coords] = cached_chunk
-		_touch_chunk_lru(chunk_coords)
-		EventBus.chunk_loaded.emit(chunk_coords)
-		return cached_chunk
+		if cached_chunk._save_version >= 2:
+			cached_chunk.is_loaded = true
+			cached_chunk.is_dirty = true
+			active_chunks[chunk_coords] = cached_chunk
+			_touch_chunk_lru(chunk_coords)
+			EventBus.chunk_loaded.emit(chunk_coords)
+			return cached_chunk
+		else:
+			# Old save format - evict from cache so it gets regenerated below
+			chunk_cache.erase(chunk_coords)
+			chunk_access_order.erase(chunk_coords)
+			chunk_access_index.erase(chunk_coords)
 
 	# Check if chunk is within island bounds
 	var island_settings = BiomeManager.get_island_settings()

@@ -11,6 +11,7 @@ extends RenderInterface
 const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const FOVSystemClass = preload("res://systems/fov_system.gd")
 const LogManagerClass = preload("res://autoload/log_manager.gd")
+const ASCIITextureMapperClass = preload("res://rendering/ascii_texture_mapper.gd")
 
 const TILE_WIDTH = 38
 const TILE_HEIGHT = 64
@@ -32,21 +33,15 @@ var highlight_modulated_cells: Dictionary = {}
 var current_highlight_position: Vector2i = Vector2i(-1, -1)
 var current_highlight_color: Color = Color.CYAN
 
-# Tile ID mappings (char -> index in tileset)
-# Unicode tileset: 32 columns, 1551 characters (49 rows)
-# Characters indexed sequentially: col = index % 32, row = index / 32
-const TILES_PER_ROW = 32
-
-# Unicode character list (matches the order in unicode_tileset.png)
-# This must match the exact order from generate_tilesets.py
-var unicode_char_map: Dictionary = {}
+# Texture mapper handles character-to-tile-index and atlas coordinate lookups
+var _texture_mapper: ASCIITextureMapper = null
 
 # Pre-computed ground tile atlas coords for fast lookup in render_entity
 var ground_tile_atlas_coords: Dictionary = {}  # Vector2i -> true
 
 func _ready() -> void:
+	_texture_mapper = ASCIITextureMapperClass.new()
 	_setup_tilemap_layers()
-	_build_unicode_map()
 	_build_ground_tile_lookup()
 	# Connect to chunk unload signal to clean up cached terrain data
 	EventBus.chunk_unloaded.connect(_on_chunk_unloaded)
@@ -57,74 +52,7 @@ func _build_ground_tile_lookup() -> void:
 	# Include floor tiles, grass variants, tilled soil, and road tiles
 	var ground_chars = [".", "\"", ",", "▤", "▪", "·", "░", "=", "≡"]
 	for ground_char in ground_chars:
-		var ground_index = _char_to_index(ground_char)
-		var ground_col = ground_index % TILES_PER_ROW
-		var ground_row = ground_index / TILES_PER_ROW
-		ground_tile_atlas_coords[Vector2i(ground_col, ground_row)] = true
-
-# Build Unicode character index mapping
-# IMPORTANT: This must match the exact order from generate_tilesets.py
-func _build_unicode_map() -> void:
-	var chars: Array = []
-
-	# Basic Latin (ASCII 32-126) - 95 chars
-	for i in range(0x0020, 0x007F):
-		chars.append(char(i))
-
-	# Latin-1 Supplement (160-255) - 96 chars
-	for i in range(0x00A0, 0x0100):
-		chars.append(char(i))
-
-	# Greek and Coptic (0x0370-0x03FF) - includes Δ, Ω, α, β, γ, etc.
-	for i in range(0x0370, 0x0400):
-		chars.append(char(i))
-
-	# Mathematical Operators (0x2200-0x22FF) - includes ∴, ∞, ∑, √, etc.
-	for i in range(0x2200, 0x2300):
-		chars.append(char(i))
-
-	# Miscellaneous Technical (0x2300-0x23FF) - includes ⌂, ⌐, ⌠, etc.
-	for i in range(0x2300, 0x2400):
-		chars.append(char(i))
-
-	# Box Drawing (0x2500-0x257F) - 128 chars
-	for i in range(0x2500, 0x2580):
-		chars.append(char(i))
-
-	# Block Elements (0x2580-0x259F) - 32 chars
-	for i in range(0x2580, 0x25A0):
-		chars.append(char(i))
-
-	# Geometric Shapes (0x25A0-0x25FF) - 96 chars
-	for i in range(0x25A0, 0x2600):
-		chars.append(char(i))
-
-	# Miscellaneous Symbols (0x2600-0x26FF) - 256 chars
-	for i in range(0x2600, 0x2700):
-		chars.append(char(i))
-
-	# Dingbats (0x2700-0x27BF) - 192 chars
-	for i in range(0x2700, 0x27C0):
-		chars.append(char(i))
-
-	# Build lookup dictionary
-	for i in range(chars.size()):
-		unicode_char_map[chars[i]] = i
-
-	print("[ASCIIRenderer] Built unicode map with %d characters" % chars.size())
-
-# Helper function to get tile index from character
-func _char_to_index(character: String) -> int:
-	if character.is_empty():
-		return 0
-
-	# Look up character in unicode map
-	if character in unicode_char_map:
-		return unicode_char_map[character]
-
-	# Fallback for unmapped characters - use space
-	push_warning("[ASCIIRenderer] Unmapped character '%s' (U+%04X), using space" % [character, character.unicode_at(0) if character.length() > 0 else 0])
-	return 0  # Space character at index 0
+		ground_tile_atlas_coords[_texture_mapper.get_atlas_coords(ground_char)] = true
 
 # Default terrain colors (tiles should define their own colors)
 var default_terrain_colors: Dictionary = {
@@ -292,12 +220,13 @@ func _create_ascii_tileset() -> TileSet:
 	source.separation = Vector2i(0, 0)  # No spacing between tiles
 	source.margins = Vector2i(0, 0)     # No margins around the atlas
 
-	# Add tiles for all 1551 Unicode characters in 32-column grid
-	# Characters laid out left-to-right, top-to-bottom (49 rows)
-	var num_tiles = 1551
+	# Add tiles for all Unicode characters in grid layout
+	# Characters laid out left-to-right, top-to-bottom
+	var num_tiles = ASCIITextureMapperClass.TOTAL_TILE_COUNT
+	var tiles_per_row = ASCIITextureMapperClass.TILES_PER_ROW
 	for i in range(num_tiles):
-		var col = i % TILES_PER_ROW
-		var row = i / TILES_PER_ROW
+		var col = i % tiles_per_row
+		var row = i / tiles_per_row
 		source.create_tile(Vector2i(col, row))
 
 	tileset.add_source(source, 0)
@@ -381,14 +310,9 @@ func render_tile(position: Vector2i, tile_type: String, variant: int = 0, color:
 	if not terrain_layer:
 		return
 
-	# Get the tile index from the character directly
-	var tile_index = _char_to_index(tile_type)
-
-	# Convert linear index to grid coordinates (16 columns)
-	var col = tile_index % TILES_PER_ROW
-	var row = tile_index / TILES_PER_ROW
-
-	terrain_layer.set_cell(position, 0, Vector2i(col, row))
+	# Get atlas coordinates from texture mapper
+	var atlas_coords = _texture_mapper.get_atlas_coords(tile_type)
+	terrain_layer.set_cell(position, 0, atlas_coords)
 
 	# Set color modulation for this tile
 	# Use provided color if valid, otherwise fall back to default
@@ -420,11 +344,8 @@ func render_chunk(chunk: WorldChunk) -> void:
 			var tile_char = tile.ascii_char
 
 			# Render tile
-			var tile_index = _char_to_index(tile_char)
-			var col = tile_index % TILES_PER_ROW
-			var row = tile_index / TILES_PER_ROW
-
-			terrain_layer.set_cell(world_pos, 0, Vector2i(col, row))
+			var atlas_coords = _texture_mapper.get_atlas_coords(tile_char)
+			terrain_layer.set_cell(world_pos, 0, atlas_coords)
 
 			# Set color modulation
 			# Use tile's color if set (from biome data), otherwise fall back to default
@@ -454,14 +375,9 @@ func render_entity(position: Vector2i, entity_type: String, color: Color = Color
 			terrain_modulated_cells.erase(position)
 			_mark_terrain_dirty()
 
-	# Get the tile index from the character directly
-	var tile_index = _char_to_index(entity_type)
-
-	# Convert linear index to grid coordinates (16 columns)
-	var col = tile_index % TILES_PER_ROW
-	var row = tile_index / TILES_PER_ROW
-
-	entity_layer.set_cell(position, 0, Vector2i(col, row))
+	# Get atlas coordinates from texture mapper
+	var atlas_coords = _texture_mapper.get_atlas_coords(entity_type)
+	entity_layer.set_cell(position, 0, atlas_coords)
 
 	# Set color modulation for this entity
 	# Also update the original color cache so FOV doesn't restore a stale color
@@ -1149,11 +1065,8 @@ func render_highlight_border(pos: Vector2i, color: Color = Color.CYAN) -> void:
 
 	for corner in corners:
 		var corner_pos = pos + corner.offset
-		var tile_index = _char_to_index(corner.char)
-		var col = tile_index % TILES_PER_ROW
-		var row = tile_index / TILES_PER_ROW
-
-		highlight_layer.set_cell(corner_pos, 0, Vector2i(col, row))
+		var atlas_coords = _texture_mapper.get_atlas_coords(corner.char)
+		highlight_layer.set_cell(corner_pos, 0, atlas_coords)
 		highlight_modulated_cells[corner_pos] = color
 
 	_mark_highlight_dirty()

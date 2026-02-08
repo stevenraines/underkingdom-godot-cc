@@ -7,6 +7,7 @@ extends Control
 
 signal item_selected(item: Item)
 signal cancelled()
+signal closed()
 
 @onready var title_label: Label = $Panel/MarginContainer/MainVBox/TitleLabel
 @onready var item_list: VBoxContainer = $Panel/MarginContainer/MainVBox/ContentHBox/ItemPanel/ScrollContainer/ItemList
@@ -267,10 +268,12 @@ func _confirm_selection() -> void:
 		return
 
 	var selected_item = filtered_items[selected_index]
-	hide()
 	item_selected.emit(selected_item)
+	hide()
+	closed.emit()
 
 ## Cancel the dialog
 func _cancel() -> void:
-	hide()
 	cancelled.emit()
+	hide()
+	closed.emit()

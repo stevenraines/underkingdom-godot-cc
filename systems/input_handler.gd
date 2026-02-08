@@ -2573,11 +2573,13 @@ func _on_scroll_item_targeting_started(scroll, spell, targeting_mode: String) ->
 		var action_text = "identify" if spell.id == "identify" else "target with %s" % spell.name
 		game._add_message("Select an item to %s..." % action_text, Color(0.5, 0.8, 1.0))
 
-	# Open the spell item selection dialog
-	if game:
-		var dialog = game.get_node_or_null("SpellItemSelectionDialog")
-		if dialog and dialog.has_method("open"):
-			dialog.open(player, spell, targeting_mode)
+	# Close the inventory screen first
+	if game and game.inventory_screen and game.inventory_screen.visible:
+		game.inventory_screen.hide()
+
+	# Open the spell item selection dialog via UI coordinator
+	if game and game.ui_coordinator:
+		game.ui_coordinator.open("spell_item_selection", [player, spell, targeting_mode])
 
 
 ## Handle wand targeting signal

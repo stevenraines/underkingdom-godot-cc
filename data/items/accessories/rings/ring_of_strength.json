@@ -9,6 +9,7 @@
     "equippable": true,
     "magical": true
   },
+  "unidentified": true,
   "equip_slots": ["accessory"],
   "weight": 0.1,
   "value": 150,

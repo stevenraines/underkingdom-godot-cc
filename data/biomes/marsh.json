@@ -8,6 +8,7 @@
   "herb_density": 0.01,
   "flower_density": 0.006,
   "mushroom_density": 0.008,
+  "spring_density": 0.002,
   "color_floor": [0.2, 0.28, 0.2],
   "color_grass": [0.25, 0.32, 0.25],
   "altitude_tier": 0,

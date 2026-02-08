@@ -159,6 +159,11 @@ func _place_feature(map: GameMap, pos: Vector2i, feature_id: String, config: Dic
 	if feature_def.get("can_summon_enemy", false) and config.has("summons_enemy"):
 		feature_data.state["summons_enemy"] = config.get("summons_enemy")
 
+	# Initialize water source uses if applicable
+	var max_uses: int = feature_def.get("max_uses", 0)
+	if feature_def.get("water_source", false) and max_uses > 0:
+		feature_data.state["uses_remaining"] = max_uses
+
 	# Store in active features
 	active_features[pos] = feature_data
 
@@ -293,6 +298,30 @@ func interact_with_feature(pos: Vector2i, player = null) -> Dictionary:
 	if feature_def.get("can_grant_blessing", false):
 		result.effects.append({"type": "blessing", "stat": "health", "amount": 10})
 		result.message = "You feel blessed!"
+
+	# Handle water source
+	if feature_def.get("water_source", false):
+		var max_uses: int = feature_def.get("max_uses", 0)
+
+		# Check if depletable source is empty
+		if max_uses > 0 and feature.state.get("uses_remaining", 0) <= 0:
+			return {"success": false, "message": "The %s is empty." % feature_name}
+
+		# Check remaining uses for running_low warning
+		var is_running_low: bool = (max_uses > 0 and feature.state.get("uses_remaining", max_uses) == 1)
+
+		# Add water source effect for player processing
+		# Uses are decremented by consume_water_source() after player confirms use
+		result.effects.append({
+			"type": "water_source",
+			"thirst_restored": feature_def.get("thirst_restored", 50),
+			"fill_item_from": feature_def.get("fill_item_from", ""),
+			"fill_item_to": feature_def.get("fill_item_to", ""),
+			"feature_name": feature_name,
+			"position": pos,
+			"running_low": is_running_low
+		})
+		result.message = ""  # Player will set the message based on action taken
 
 	# Handle features that should be removed after interaction
 	if feature_def.get("removes_on_interact", false):
@@ -458,6 +487,19 @@ func has_interactable_feature(pos: Vector2i) -> bool:
 	return feature.definition.get("interactable", false)
 
 
+## Consume one use of a water source at position (called after player confirms use)
+func consume_water_source(pos: Vector2i) -> void:
+	if not active_features.has(pos):
+		return
+	var feature: Dictionary = active_features[pos]
+	var feature_def: Dictionary = feature.definition
+	var max_uses: int = feature_def.get("max_uses", 0)
+	if max_uses > 0:
+		feature.state["uses_remaining"] = feature.state.get("uses_remaining", max_uses) - 1
+		if feature.state.uses_remaining <= 0:
+			feature.state["depleted"] = true
+
+
 ## Check if position has a blocking feature
 func has_blocking_feature(pos: Vector2i) -> bool:
 	if not active_features.has(pos):
@@ -553,6 +595,11 @@ func _process_pending_features(map: GameMap) -> void:
 		if feature_def.get("can_summon_enemy", false) and config.has("summons_enemy"):
 			feature_data.state["summons_enemy"] = config.get("summons_enemy")
 
+		# Initialize water source uses if applicable
+		var pending_max_uses: int = feature_def.get("max_uses", 0)
+		if feature_def.get("water_source", false) and pending_max_uses > 0:
+			feature_data.state["uses_remaining"] = pending_max_uses
+
 		# Store in active features and map metadata
 		active_features[pos] = feature_data
 		map.metadata.features.append(feature_data)
@@ -633,6 +680,11 @@ func spawn_overworld_feature(feature_id: String, pos: Vector2i, biome_id: String
 			"biome_id": biome_id  # Store biome for variant selection
 		}
 	}
+
+	# Initialize water source uses if applicable
+	var ow_max_uses: int = feature_def.get("max_uses", 0)
+	if feature_def.get("water_source", false) and ow_max_uses > 0:
+		feature_data.state["uses_remaining"] = ow_max_uses
 
 	# Store in active features
 	active_features[pos] = feature_data

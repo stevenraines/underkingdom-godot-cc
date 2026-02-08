@@ -1,5 +1,6 @@
 {
   "id": "natural_cave",
+  "water_source_feature": "underground_lake",
   "name": "Natural Cave",
   "description": "Organic underground caverns formed by natural erosion",
   "entrance_char": "◊",
@@ -81,10 +82,8 @@
     },
     {
       "feature_id": "underground_lake",
-      "spawn_chance": 0.15,
-      "room_types": ["large"],
-      "contains": "water_enemies",
-      "source_of_water": true
+      "spawn_chance": 0.2,
+      "room_types": ["large", "any"]
     },
     {
       "feature_id": "mushroom_patch",

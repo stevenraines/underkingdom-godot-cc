@@ -1,5 +1,6 @@
 {
   "id": "ancient_fort",
+  "water_source_feature": "cistern",
   "name": "Ancient Fort",
   "description": "Ruined defensive fortress with concentric walls and defensive structures",
   "entrance_char": "⌐",
@@ -84,6 +85,11 @@
       "room_types": ["keep"],
       "requires_key": true,
       "loot_multiplier": 3.0
+    },
+    {
+      "feature_id": "cistern",
+      "spawn_chance": 0.15,
+      "room_types": ["any"]
     }
   ],
 

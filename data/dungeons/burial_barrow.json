@@ -1,5 +1,6 @@
 {
   "id": "burial_barrow",
+  "water_source_feature": "underground_lake",
   "name": "Burial Barrow",
   "description": "An ancient tomb filled with restless undead",
   "entrance_char": ">",
@@ -107,6 +108,11 @@
       "spawn_chance": 0.15,
       "room_types": ["any"],
       "provides_light": true
+    },
+    {
+      "feature_id": "underground_lake",
+      "spawn_chance": 0.1,
+      "room_types": ["large", "any"]
     }
   ],
 

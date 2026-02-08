@@ -176,6 +176,13 @@ func generate(world_seed: int) -> void:
 				if mushroom_density > 0 and rng.randf() < mushroom_density:
 					var biome_id = biome.get("id", "woodland")
 					FeatureManager.spawn_overworld_feature("wild_mushroom_feature", world_pos, biome_id, map)
+					continue
+
+				# Try to spawn spring (fresh water source)
+				var spring_density = biome.get("spring_density", 0.0)
+				if spring_density > 0 and rng.randf() < spring_density:
+					var biome_id = biome.get("id", "woodland")
+					FeatureManager.spawn_overworld_feature("spring", world_pos, biome_id, map)
 
 	# Generate town structures for any towns whose center is in this chunk
 	_generate_towns_in_chunk(towns_data, world_seed)

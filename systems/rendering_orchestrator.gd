@@ -119,7 +119,10 @@ func render_ground_item_at(pos: Vector2i) -> void:
 	var structures = StructureManager.get_structures_at(pos, map_id)
 	if structures.size() > 0:
 		var structure = structures[0]
-		renderer.render_entity(pos, structure.ascii_char, structure.color)
+		var color = structure.color
+		if color is String:
+			color = Color.from_string(color, Color.WHITE)
+		renderer.render_entity(pos, structure.ascii_char, color)
 		return
 
 	# If no structure, check for ground items
@@ -196,6 +199,9 @@ func _full_render_all_entities() -> void:
 	var player_pos = player.position if player else Vector2i(-1, -1)
 
 	for entity in EntityManager.entities:
+		# Ground items are rendered via render_ground_items(); skip them here
+		if entity.get_script() == GroundItemClass:
+			continue
 		if entity.is_alive:
 			# Skip entities at player's position - player renders on top
 			if entity.position == player_pos:
@@ -283,8 +289,10 @@ func _incremental_render_entities() -> void:
 	var current_target = input_handler.get_current_target() if input_handler else null
 	var player_pos = player.position if player else Vector2i(-1, -1)
 
-	# Build current entity positions
+	# Build current entity positions (skip ground items - rendered separately)
 	for entity in EntityManager.entities:
+		if entity.get_script() == GroundItemClass:
+			continue
 		if entity.is_alive and entity.position != player_pos:
 			current_entities[entity.position] = entity
 

@@ -128,18 +128,6 @@ func _add_attributes_section() -> void:
 		var temp_mod = player.stat_modifiers.get(attr, 0)
 		var effective = player.get_effective_attribute(attr)
 
-		# Build the modifier breakdown parts (only include non-zero modifiers)
-		var breakdown_parts: Array[String] = []
-		if racial_mod != 0:
-			var mod_str = "+%d" % racial_mod if racial_mod > 0 else "%d" % racial_mod
-			breakdown_parts.append("Race: %s" % mod_str)
-		if class_mod != 0:
-			var mod_str = "+%d" % class_mod if class_mod > 0 else "%d" % class_mod
-			breakdown_parts.append("Class: %s" % mod_str)
-		if temp_mod != 0:
-			var mod_str = "+%d" % temp_mod if temp_mod > 0 else "%d" % temp_mod
-			breakdown_parts.append("Effects: %s" % mod_str)
-
 		var stat_line = HBoxContainer.new()
 
 		# Attribute name

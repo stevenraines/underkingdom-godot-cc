@@ -3193,6 +3193,12 @@ func _process_rest_turn() -> void:
 		_end_rest()
 		return
 
+	# Safety check: Prevent infinite loops with a maximum turn limit
+	const MAX_REST_TURNS = 1000
+	if rest_turns_elapsed >= MAX_REST_TURNS:
+		_interrupt_rest("Rested for too long without reaching goal.")
+		return
+
 	# Check if stamina rest condition is already met (before resting)
 	if rest_type == "stamina" and player and player.survival:
 		if player.survival.stamina >= player.survival.get_max_stamina():
@@ -3203,6 +3209,12 @@ func _process_rest_turn() -> void:
 	if rest_type == "health" and player:
 		if player.current_health >= player.max_health:
 			_end_rest("You are fully healed.")
+			return
+
+	# For health rest, verify player can actually be healed in shelter
+	if rest_type == "health" and player:
+		if not _is_player_in_healing_shelter():
+			_interrupt_rest("You must be on a shelter tile to rest until healed.")
 			return
 
 	# Perform wait action (bonus stamina regen)
@@ -3247,6 +3259,25 @@ func _process_rest_turn() -> void:
 			call_deferred("_process_rest_turn")
 		else:
 			_end_rest()
+
+## Check if player is on a shelter tile that can heal them
+func _is_player_in_healing_shelter() -> bool:
+	if not player or not MapManager.current_map:
+		return false
+
+	var map_id = MapManager.current_map.map_id
+	var structures = StructureManager.get_structures_on_map(map_id)
+
+	for structure in structures:
+		if structure.has_component("shelter"):
+			var shelter = structure.get_component("shelter")
+			# Player must be ON the shelter tile for HP restoration
+			if shelter.is_inside_shelter(structure.position, player.position):
+				# Verify shelter can actually restore HP
+				if shelter.hp_restore_turns > 0 and shelter.hp_restore_amount > 0:
+					return true
+
+	return false
 
 ## Check if player is in a shelter and restore HP based on shelter settings
 ## Player must be on the same tile as the shelter for HP restoration

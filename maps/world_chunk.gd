@@ -754,8 +754,8 @@ func to_dict() -> Dictionary:
 	var tiles_data = []
 	for local_pos in tiles:
 		var tile = tiles[local_pos]
-		# Only save modified tiles (non-default) or tiles with lock state
-		if tile.tile_type != "floor" or tile.harvestable_resource_id != "" or tile.is_locked:
+		# Save non-default tiles: non-floor types, tiles with resources/locks, or interior tiles
+		if tile.tile_type != "floor" or tile.harvestable_resource_id != "" or tile.is_locked or tile.is_interior:
 			var tile_dict = {
 				"pos": [local_pos.x, local_pos.y],
 				"type": tile.tile_type,
@@ -772,6 +772,9 @@ func to_dict() -> Dictionary:
 			# Save door state
 			if tile.tile_type == "door":
 				tile_dict["is_open"] = tile.is_open
+			# Save interior flag for building visibility
+			if tile.is_interior:
+				tile_dict["is_interior"] = true
 			tiles_data.append(tile_dict)
 
 	var resources_data = []
@@ -811,6 +814,8 @@ static func from_dict(data: Dictionary, world_seed: int) -> WorldChunk:
 		# Restore door state
 		if tile.tile_type == "door":
 			tile.is_open = tile_data.get("is_open", false)
+		# Restore interior flag for building visibility
+		tile.is_interior = tile_data.get("is_interior", false)
 		chunk.tiles[local_pos] = tile
 
 	# Restore resources

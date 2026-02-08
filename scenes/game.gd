@@ -43,6 +43,7 @@ var special_actions_screen: Control = null
 var debug_command_menu: Control = null
 var perf_overlay: Label = null
 var ui_coordinator = null
+var event_handlers = null
 var perf_overlay_enabled: bool = false
 # Performance tracking
 var _perf_last_update_time: float = 0.0
@@ -82,8 +83,6 @@ var _cached_max_mana: float = -1
 var _cached_evasion: int = -1
 var _cached_armor: int = -1
 
-# Message deduplication for stamina warning
-var _last_stamina_warning_turn: int = -999  # Track when last stamina warning was shown
 var _cached_temperature: float = -999
 var _cached_env_temperature: float = -999
 var _cached_location: String = ""
@@ -94,9 +93,6 @@ var _cached_has_light: bool = false
 # Performance optimization: Track rendered entities for incremental updates
 var _rendered_entities: Dictionary = {}  # Vector2i -> Entity reference
 var _full_render_needed: bool = true
-
-# Reentrancy guard for _on_player_moved to prevent infinite loops
-var _processing_player_moved: bool = false
 
 @onready var hud: CanvasLayer = $HUD
 @onready var character_info_label: Label = $HUD/TopBar/CharacterInfo
@@ -122,6 +118,7 @@ const RitualMenuScene = preload("res://ui/ritual_menu.tscn")
 const SpecialActionsScreenScene = preload("res://ui/special_actions_screen.tscn")
 const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
 const UICoordinatorClass = preload("res://systems/ui_coordinator.gd")
+const GameEventHandlersClass = preload("res://systems/game_event_handlers.gd")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -255,37 +252,10 @@ func _ready() -> void:
 	renderer.set_visibility_data(visibility_result.tile_data)
 	renderer.update_fov(visibility_result.visible_tiles, player.position)
 
-	# Connect signals
-	EventBus.player_moved.connect(_on_player_moved)
-	EventBus.map_changed.connect(_on_map_changed)
-	EventBus.tile_changed.connect(_on_tile_changed)
-	EventBus.turn_advanced.connect(_on_turn_advanced)
-	EventBus.entity_moved.connect(_on_entity_moved)
-	EventBus.entity_died.connect(_on_entity_died)
-	EventBus.attack_performed.connect(_on_attack_performed)
-	EventBus.player_died.connect(_on_player_died)
-	EventBus.player_leveled_up.connect(_on_player_leveled_up)
-	EventBus.survival_warning.connect(_on_survival_warning)
-	EventBus.stamina_depleted.connect(_on_stamina_depleted)
-	EventBus.inventory_changed.connect(_on_inventory_changed)
-	EventBus.item_used.connect(_on_item_used)
-	EventBus.item_picked_up.connect(_on_item_picked_up)
-	EventBus.item_dropped.connect(_on_item_dropped)
-	EventBus.message_logged.connect(_on_message_logged)
-	EventBus.structure_placed.connect(_on_structure_placed)
-	EventBus.shop_opened.connect(_on_shop_opened)
-	EventBus.training_opened.connect(_on_training_opened)
-	EventBus.npc_menu_opened.connect(_on_npc_menu_opened)
-	EventBus.combat_message.connect(_on_combat_message)
-	EventBus.time_of_day_changed.connect(_on_time_of_day_changed)
-	EventBus.harvesting_mode_changed.connect(_on_harvesting_mode_changed)
-	EventBus.sprint_mode_changed.connect(_on_sprint_mode_changed)
-	EventBus.item_equipped.connect(_on_item_equipped)
-	EventBus.item_unequipped.connect(_on_item_unequipped)
-	EventBus.weather_changed.connect(_on_weather_changed)
-	EventBus.entity_visual_changed.connect(_on_entity_visual_changed)
-	EventBus.chunk_loaded.connect(_on_chunk_loaded)
-	FeatureManager.feature_spawned_enemy.connect(_on_feature_spawned_enemy)
+	# Initialize event handlers (EventBus signal subscriptions)
+	event_handlers = GameEventHandlersClass.new()
+	event_handlers.setup(self)
+	event_handlers.connect_signals()
 
 	# Update HUD
 	_update_hud()
@@ -294,6 +264,10 @@ func _ready() -> void:
 	_add_message("Welcome to the Underkingdom!", Color(0.6, 0.9, 0.6))
 
 	print("Game scene initialized")
+
+func _exit_tree() -> void:
+	if event_handlers:
+		event_handlers.disconnect_signals()
 
 ## Update performance overlay every frame
 func _process(_delta: float) -> void:
@@ -434,9 +408,6 @@ func _setup_ui_screens() -> void:
 	if debug_command_menu and debug_command_menu.has_signal("action_completed"):
 		debug_command_menu.action_completed.connect(_on_debug_action_completed)
 
-	# Connect EventBus signals related to UI
-	EventBus.ritual_menu_requested.connect(_on_ritual_menu_requested)
-
 	# Connect unified close handler
 	ui_coordinator.screen_closed.connect(_on_ui_screen_closed)
 
@@ -455,7 +426,6 @@ func _setup_perf_overlay() -> void:
 	perf_overlay.modulate = Color(1.0, 1.0, 0.0, 0.9)
 	perf_overlay.visible = false
 	hud.add_child(perf_overlay)
-	EventBus.debug_toggle_perf_overlay.connect(_on_perf_overlay_toggle)
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -580,145 +550,6 @@ func _is_wall_adjacent_to_walkable(pos: Vector2i) -> bool:
 
 	return false
 
-## Called when player moves
-func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
-	# CRITICAL: Prevent recursive calls that cause infinite loops
-	if _processing_player_moved:
-		push_warning("[Game] Recursive _on_player_moved detected! old=%v new=%v" % [old_pos, new_pos])
-		return
-
-	_processing_player_moved = true
-
-	# Update chunk loading for overworld
-	if MapManager.current_map and MapManager.current_map.chunk_based:
-		var chunk_update_start = Time.get_ticks_usec()
-		ChunkManager.update_active_chunks(new_pos)
-		var chunk_update_time = Time.get_ticks_usec() - chunk_update_start
-
-		# Re-render map for chunk-based worlds (new chunks may have loaded)
-		# Only re-render if player crossed chunk boundary
-		var old_chunk = ChunkManagerClass.world_to_chunk(old_pos)
-		var new_chunk = ChunkManagerClass.world_to_chunk(new_pos)
-		if old_chunk != new_chunk:
-			var render_start = Time.get_ticks_usec()
-			_full_render_needed = true  # New chunks loaded - need full render
-
-			# Calculate visibility BEFORE rendering (features need visibility_data)
-			var visibility_calc_start = Time.get_ticks_usec()
-			_update_visibility(false)  # Sets visibility_data but doesn't apply FOW
-			var visibility_calc_time = Time.get_ticks_usec() - visibility_calc_start
-
-			var map_render_start = Time.get_ticks_usec()
-			_render_map()
-			var map_render_time = Time.get_ticks_usec() - map_render_start
-
-			# NOTE: No need to call _render_ground_items() - _render_all_entities() handles it
-			var entity_render_start = Time.get_ticks_usec()
-			_render_all_entities()
-			var entity_render_time = Time.get_ticks_usec() - entity_render_start
-
-			# Apply FOW to rendered entities
-			var visibility_fow_start = Time.get_ticks_usec()
-			_update_visibility(true)  # Re-calculates and applies FOW
-			var visibility_fow_time = Time.get_ticks_usec() - visibility_fow_start
-
-			var total_render_time = Time.get_ticks_usec() - render_start
-			print("[Game] Chunk crossing: chunk_update=%.2fms, vis_calc=%.2fms, map_render=%.2fms, entities=%.2fms, vis_fow=%.2fms, total=%.2fms" % [
-				chunk_update_time / 1000.0,
-				visibility_calc_time / 1000.0,
-				map_render_time / 1000.0,
-				entity_render_time / 1000.0,
-				visibility_fow_time / 1000.0,
-				total_render_time / 1000.0
-			])
-
-	# Clear old player position
-	renderer.clear_entity(old_pos)
-
-	# Re-render items/hazards/features at old position that were hidden under player
-	# Render loot first, then hazards/features, then creatures (so creatures appear on top)
-	_render_ground_item_at(old_pos)
-	_render_feature_at(old_pos)
-	_render_hazard_at(old_pos)
-	_render_entity_at(old_pos)
-
-	renderer.center_camera(new_pos)
-
-	# In dungeons, wall visibility depends on player position
-	# So we need to re-render the entire map when player moves
-	var is_dungeon = MapManager.current_map and ("_floor_" in MapManager.current_map.map_id or MapManager.current_map.metadata.has("floor_number"))
-
-	if is_dungeon:
-		# Note: For dungeons, we still do full entity re-render every move
-		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
-		# and the incremental check overhead would negate the benefit
-		# Calculate visibility BEFORE rendering (features/hazards need visibility_data for is_position_visible)
-		_update_visibility(false)  # Sets visibility_data but doesn't apply FOW yet
-		# Re-render entire map with updated wall visibility
-		_full_render_needed = true  # _render_map() clears entity layer, need full re-render
-		_render_map()
-		_render_ground_items()  # Render loot first so creatures appear on top
-		_render_all_entities()  # Renders entities to entity layer
-		# Apply FOW to rendered entities
-		_update_visibility(true)  # Re-calculates and applies FOW
-	else:
-		# Overworld: update visibility for incremental entity rendering
-		# Entities are not fully re-rendered on every move, so FOW is applied to existing entities
-		_update_visibility()
-
-	# CRITICAL: Render player AFTER everything else
-	# Must be after visibility update so fog of war doesn't hide the player
-	renderer.render_entity(new_pos, "@", Color.YELLOW)
-
-	# Auto-pickup items at new position
-	_auto_pickup_items()
-
-	# If player stepped onto a structure, show a contextual message
-	var map_id = MapManager.current_map.map_id if MapManager.current_map else ""
-	var structures = StructureManager.get_structures_at(new_pos, map_id)
-	if structures.size() > 0:
-		# Show only the first structure's message to avoid spamming
-		var structure = structures[0]
-		# Use "in" for shelters (player is inside), "near" for other structures
-		var preposition = "in" if structure.has_component("shelter") else "near"
-		var entry_msg = "You are %s %s." % [preposition, structure.name]
-		if structure.has_component("fire"):
-			var fire = structure.get_component("fire")
-			var lit_text = "lit" if fire.is_lit else "unlit"
-			entry_msg += " The fire is %s." % lit_text
-		_add_message(entry_msg, Color(0.9, 0.8, 0.6))
-
-	# Check if standing on stairs and update message
-	_update_message()
-
-	# Clear reentrancy guard
-	_processing_player_moved = false
-
-## Called when a chunk finishes loading (async or sync)
-## Triggers re-render for nearby chunks so player sees new content
-func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
-	# Only trigger re-render if we're in chunk mode and have a player
-	if not MapManager.current_map or not MapManager.current_map.chunk_based:
-		return
-	if not player:
-		return
-
-	# Check if this chunk is adjacent to or contains the player
-	var player_chunk = ChunkManagerClass.world_to_chunk(player.position)
-	var distance = max(abs(chunk_coords.x - player_chunk.x), abs(chunk_coords.y - player_chunk.y))
-
-	# Only re-render for nearby chunks (within load radius)
-	if distance <= ChunkManager.load_radius:
-		_full_render_needed = true
-		# Calculate visibility data before rendering (features need visibility_data)
-		_update_visibility(false)
-		_render_map()
-		_render_all_entities()
-		# Apply FOW to rendered entities
-		_update_visibility(true)
-		# Re-render player on top
-		renderer.render_entity(player.position, "@", Color.YELLOW)
-
 ## Render any non-blocking entity at a specific position (crops, etc.)
 ## Skips rendering if player is at the position (player renders on top)
 func _render_entity_at(pos: Vector2i) -> void:
@@ -782,20 +613,6 @@ func _render_hazard_at(pos: Vector2i) -> void:
 		renderer.render_entity(pos, ascii_char, color)
 
 
-## Auto-pickup items at the player's position
-func _auto_pickup_items() -> void:
-	if not player or not GameManager.auto_pickup_enabled:
-		return
-
-	var ground_items = EntityManager.get_ground_items_at(player.position)
-	for ground_item in ground_items:
-		if player.pickup_item(ground_item):
-			EntityManager.remove_entity(ground_item)
-		else:
-			# Pickup failed - provide feedback (only show once per position)
-			if ground_item and ground_item.item:
-				_add_message("Cannot pick up %s (inventory full or too heavy)" % ground_item.item.name, Color(0.9, 0.6, 0.4))
-
 ## Toggle auto-pickup on/off
 func toggle_auto_pickup() -> void:
 	GameManager.auto_pickup_enabled = not GameManager.auto_pickup_enabled
@@ -809,357 +626,6 @@ func toggle_auto_open_doors() -> void:
 	var status = "ON" if GameManager.auto_open_doors else "OFF"
 	_add_message("Auto-open doors: %s" % status, Color(0.8, 0.8, 0.6))
 	_update_toggles_display()
-
-## Called when map changes (dungeon transitions, etc.)
-func _on_map_changed(map_id: String) -> void:
-	print("[Game] === Map change START: %s ===" % map_id)
-
-	# Mark full render needed for new map
-	_full_render_needed = true
-
-	# Skip entity handling during save load (SaveManager handles entities separately)
-	if SaveManager.is_deserializing:
-		print("[Game] Skipping entity handling during deserialization")
-		# Still need to render the map
-		if MapManager.current_map and MapManager.current_map.chunk_based and player:
-			ChunkManager.update_active_chunks(player.position)
-		_render_map()
-		if player:
-			renderer.center_camera(player.position)
-		print("[Game] === Map change COMPLETE (deserializing) ===")
-		return
-
-	# Invalidate FOV cache since map changed
-	print("[Game] 1/8 Invalidating FOV cache")
-	FOVSystemClass.invalidate_cache()
-
-	# Mark enemy light cache as dirty (new map has different enemies)
-	_enemy_light_cache_dirty = true
-
-	# Clear existing entities from EntityManager
-	print("[Game] 2/8 Clearing entities")
-	EntityManager.clear_entities()
-
-	# Clear features and hazards when transitioning to overworld
-	# This removes leftover dungeon features that could interfere with rendering
-	# Overworld features will be spawned during chunk generation
-	if MapManager.current_map and MapManager.current_map.chunk_based:
-		print("[Game] 2/8 Clearing features/hazards for overworld transition")
-		FeatureManager.clear_features()
-		HazardManager.clear_hazards()
-
-	# Setup fog of war for new map BEFORE chunk loading and rendering
-	# This ensures renderer.current_map is set so is_position_visible() works for features/NPCs
-	var fow_map_id = MapManager.current_map.map_id if MapManager.current_map else ""
-	var fow_chunk_based = MapManager.current_map.chunk_based if MapManager.current_map else false
-	print("[Game] 2.5/8 Setting renderer map info: map_id=%s, chunk_based=%s, map_set=%s" % [fow_map_id, fow_chunk_based, MapManager.current_map != null])
-	renderer.set_map_info(fow_map_id, fow_chunk_based, MapManager.current_map)
-
-	# Spawn or restore enemies for the new map
-	print("[Game] 3/8 Spawning/restoring enemies")
-	# Try to restore from saved state first (for visited maps)
-	if not EntityManager.restore_entity_states_from_map(MapManager.current_map):
-		# First visit - spawn from metadata
-		_spawn_map_enemies()
-
-	# Load chunks at current player position before rendering
-	# Player position has been set before map transition in input_handler
-	if MapManager.current_map and MapManager.current_map.chunk_based and player:
-		print("[Game] 4/8 Loading chunks at player position %v" % player.position)
-		print("[Game] 4/8 Before chunk load: active_chunks=%d, cache=%d" % [ChunkManager.active_chunks.size(), ChunkManager.chunk_cache.size()])
-		ChunkManager.update_active_chunks(player.position)
-		print("[Game] 4/8 Chunks loaded, active count: %d" % ChunkManager.active_chunks.size())
-		print("[Game] 4/8 After chunk load: features=%d, structures=%d, entities=%d" % [
-			FeatureManager.active_features.size(),
-			StructureManager.get_structures_on_map("overworld").size(),
-			EntityManager.entities.size()
-		])
-
-	# Initialize light sources for new map (braziers, torches, etc.)
-	# MUST happen before visibility calculation
-	print("[Game] 5/8 Initializing light sources")
-	_initialize_light_sources_for_map()
-
-	# Calculate visibility data BEFORE rendering (needed for features/hazards visibility checks)
-	# But DON'T apply FOW yet - entity layer will be cleared and re-rendered
-	print("[Game] 6/8 Calculating visibility data")
-	_update_visibility(false)  # Sets visibility_data but doesn't apply FOW
-
-	# Render map (calls clear_all which clears entity layer)
-	print("[Game] 7/8 Rendering map and entities")
-	_render_map()
-	_full_render_needed = true  # _render_map() calls clear_all(), must do full re-render
-	_render_all_entities()
-
-	# Apply FOW to the rendered entities
-	# This hides entities outside player's view
-	print("[Game] 8/8 Applying fog of war to entities")
-	_update_visibility(true)  # Re-calculates and applies FOW to rendered entities
-
-	# Re-render player at new position (ensure player renders on top)
-	renderer.render_entity(player.position, "@", Color.YELLOW)
-	renderer.center_camera(player.position)
-
-	# Update message
-	_update_message()
-	print("[Game] === Map change COMPLETE ===")
-
-## Called when a single tile changes (door opened/closed, etc.)
-func _on_tile_changed(pos: Vector2i) -> void:
-	if not MapManager.current_map:
-		return
-
-	# Re-render the changed tile (e.g., door opened/closed)
-	var tile = MapManager.current_map.get_tile(pos)
-	if tile:
-		# Pass tile's color if it has one set (e.g., from biome data)
-		if tile.color != Color.WHITE:
-			renderer.render_tile(pos, tile.ascii_char, 0, tile.color)
-		else:
-			renderer.render_tile(pos, tile.ascii_char)
-
-	# Invalidate FOV cache since tile transparency may have changed (doors, walls)
-	FOVSystemClass.invalidate_cache()
-
-	# Recalculate visibility when tiles change (doors open/close affects LOS)
-	_update_visibility()
-
-## Called when turn advances
-func _on_turn_advanced(_turn_number: int) -> void:
-	# Mark enemy light cache as dirty once per turn (enemies may have moved)
-	# This is more efficient than marking it dirty on every enemy move
-	_enemy_light_cache_dirty = true
-
-	_update_hud()
-	_update_survival_display()
-
-## Called when a survival warning is triggered
-func _on_survival_warning(message: String, severity: String) -> void:
-	var color: Color
-	match severity:
-		"critical":
-			color = Color.RED
-		"severe":
-			color = Color(1.0, 0.4, 0.2)  # Orange-red
-		"warning":
-			color = Color(1.0, 0.7, 0.2)  # Orange
-		_:
-			color = Color(0.8, 0.8, 0.5)  # Dim yellow
-	
-	_add_message(message, color)
-
-## Called when stamina is depleted
-func _on_stamina_depleted() -> void:
-	# Debounce: Only show message once per 3 turns to avoid spam
-	var current_turn = TurnManager.current_turn if TurnManager else 0
-	if current_turn - _last_stamina_warning_turn < 3:
-		return
-
-	_last_stamina_warning_turn = current_turn
-	_add_message("You are out of stamina!", Color(1.0, 0.5, 0.5))
-
-## Called when any entity moves
-func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> void:
-	renderer.clear_entity(old_pos)
-	renderer.render_entity(new_pos, entity.ascii_char, entity.color)
-
-	# NOTE: Don't mark enemy light cache dirty here - it causes too many rebuilds
-	# Cache is invalidated once per turn via turn_advanced signal instead
-
-	# Update target highlight if this entity is the current target
-	if input_handler:
-		var current_target = input_handler.get_current_target()
-		if current_target and entity == current_target:
-			update_target_highlight(current_target)
-
-## Called when an entity's visual (char/color) changes (e.g., crop growth stage)
-func _on_entity_visual_changed(pos: Vector2i) -> void:
-	# CRITICAL: Clear tracking FIRST before clearing/re-rendering
-	# This ensures incremental rendering knows this position needs updating
-	if _rendered_entities.has(pos):
-		_rendered_entities.erase(pos)
-
-	# Clear existing entity rendering at position
-	renderer.clear_entity(pos)
-
-	# Force immediate entity layer flush to prevent ghost visuals
-	# This is ONLY needed here for crop harvesting (not for general entity clearing)
-	if renderer and renderer.has_method("_flush_entity_updates"):
-		renderer._flush_entity_updates()
-
-	# NOTE: We don't re-render here because:
-	# 1. For crop growth: the crop is still in EntityManager.entities,
-	#    incremental rendering will pick it up with new visuals
-	# 2. For crop harvest: the crop is removed from EntityManager.entities,
-	#    the harvest handler will update visibility and re-render everything properly
-	# Trying to render here causes timing issues and ghost visuals
-
-
-## Called when an entity dies
-func _on_entity_died(entity: Entity) -> void:
-	renderer.clear_entity(entity.position)
-
-	# Check if it's the player
-	if entity == player:
-		EventBus.player_died.emit()
-	else:
-		var drop_messages: Array[String] = []
-		var total_yields: Dictionary = {}
-
-		if entity and entity is Enemy:
-			# Process yields array (direct item drops defined on enemy)
-			if entity.yields.size() > 0:
-				for yield_data in entity.yields:
-					var item_id = yield_data.get("item_id", "")
-					var min_count = int(yield_data.get("min_count", 1))
-					var max_count = int(yield_data.get("max_count", 1))
-					var chance = float(yield_data.get("chance", 1.0))
-					if randf() > chance:
-						continue
-					var range_size = max_count - min_count + 1
-					var count = min_count + (randi() % max(1, range_size))
-					if count > 0:
-						if item_id in total_yields:
-							total_yields[item_id] += count
-						else:
-							total_yields[item_id] = count
-
-			# Process loot tables (creature type defaults + entity-specific, with CR scaling)
-			var loot_drops = LootTableManager.generate_loot_for_entity(entity)
-			for drop in loot_drops:
-				var item_id = drop.get("item_id", "")
-				var count = drop.get("count", 1)
-				if item_id != "" and count > 0:
-					if item_id in total_yields:
-						total_yields[item_id] += count
-					else:
-						total_yields[item_id] = count
-
-			# Create and spawn items as ground items
-			for item_id in total_yields:
-				var count = total_yields[item_id]
-				var stacks = ItemManager.create_item_stacks(item_id, count)
-				for it in stacks:
-					EntityManager.spawn_ground_item(it, entity.position)
-				var item_data = ItemManager.get_item_data(item_id)
-				if item_data:
-					drop_messages.append("%d %s" % [count, item_data.get("name", item_id)])
-
-			if drop_messages.size() > 0:
-				_add_message("Dropped: %s" % ", ".join(drop_messages), Color(0.8, 0.8, 0.6))
-				_render_ground_item_at(entity.position)
-
-		# Remove entity from managers
-		EntityManager.remove_entity(entity)
-
-## Called when an attack is performed
-func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionary) -> void:
-	var is_player_attacker = (attacker == player)
-	var message = CombatSystem.get_attack_message(result, is_player_attacker)
-	
-	# Determine message color
-	var color: Color
-	if result.hit:
-		if result.defender_died:
-			color = Color.RED
-		elif is_player_attacker:
-			color = Color(1.0, 0.6, 0.2)  # Orange - player dealing damage
-		else:
-			color = Color(1.0, 0.4, 0.4)  # Light red - taking damage
-	else:
-		color = Color(0.6, 0.6, 0.6)  # Gray for misses
-	
-	_add_message(message, color)
-	
-	# Update HUD to show health changes
-	# If player killed an enemy, award XP
-	if result.defender_died and is_player_attacker and _defender and _defender is Enemy:
-		var xp_gain = _defender.xp_value if "xp_value" in _defender else 0
-		player.gain_experience(xp_gain)
-		_add_message("Gained %d XP." % xp_gain, Color(0.6, 0.9, 0.6))
-
-	_update_hud()
-
-## Called when a combat message is emitted (hazards, traps, etc.)
-func _on_combat_message(message: String, color: Color) -> void:
-	print("[DEBUG] _on_combat_message received: '%s'" % message)
-	_add_message(message, color)
-
-
-## Called when a feature spawns an enemy (e.g., sarcophagus releasing a skeleton)
-func _on_feature_spawned_enemy(enemy_id: String, spawn_position: Vector2i) -> void:
-	print("[Game] Feature spawned enemy: %s at %v" % [enemy_id, spawn_position])
-	# Find a valid spawn position near the feature (not on the feature itself)
-	var spawn_pos = _find_nearby_spawn_position(spawn_position)
-	if spawn_pos != Vector2i(-1, -1):
-		var enemy = EntityManager.spawn_enemy(enemy_id, spawn_pos)
-		if enemy:
-			_add_message("A %s emerges!" % enemy.name, Color.ORANGE_RED)
-			_render_all_entities()
-	else:
-		push_warning("[Game] Could not find spawn position for feature enemy near %v" % spawn_position)
-
-
-## Find a valid spawn position near a given position
-func _find_nearby_spawn_position(center: Vector2i) -> Vector2i:
-	# Check adjacent tiles for valid spawn position
-	var directions = [
-		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
-		Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)
-	]
-	for dir in directions:
-		var pos = center + dir
-		if MapManager.current_map and MapManager.current_map.is_walkable(pos):
-			# Make sure no blocking entity is already there (player is not in entities array)
-			if not EntityManager.get_blocking_entity_at(pos) and player.position != pos:
-				return pos
-	return Vector2i(-1, -1)
-
-
-## Called when player dies
-func _on_player_died() -> void:
-	print("[Game] !!! _on_player_died() called - Player has died !!!")
-	_add_message("", Color.WHITE)  # Blank line
-	_add_message("*** YOU HAVE DIED ***", Color.RED)
-
-	print("[Game] Collecting player stats for death screen...")
-	# Collect player stats for death screen
-	var player_stats = {
-		"turns": TurnManager.current_turn,
-		"experience": player.experience if player else 0,
-		"gold": player.gold if player else 0,
-		"recipes_discovered": player.known_recipes.size() if player else 0,
-		"structures_built": 0,  # TODO: Track this if needed
-		"death_cause": player.death_cause if player else "",
-		"death_method": player.death_method if player else "",
-		"death_location": player.death_location if player else ""
-	}
-
-	print("[Game] Opening death screen...")
-	# Show death screen with stats
-	if death_screen:
-		death_screen.open(player_stats)
-		print("[Game] Death screen opened successfully")
-	else:
-		print("[Game] ERROR: death_screen is null!")
-
-	print("[Game] _on_player_died() complete")
-
-## Called when player levels up
-func _on_player_leveled_up(new_level: int, skill_points_gained: int, gained_ability_point: bool) -> void:
-	# Display congratulatory message with banner-style formatting
-	_add_message("", Color.WHITE)  # Blank line
-	_add_message("*** LEVEL UP! ***", Color(1.0, 0.85, 0.3))  # Gold
-	_add_message("You have reached Level %d!" % new_level, Color(0.7, 0.95, 0.7))  # Light green
-	_add_message("Gained %d skill point%s." % [skill_points_gained, "s" if skill_points_gained != 1 else ""], Color(0.7, 0.85, 0.95))  # Light blue
-
-	if gained_ability_point:
-		_add_message("You may increase one ability score!", Color(0.95, 0.7, 0.85))  # Light pink
-
-	_add_message("Open Character Screen (P) to spend points.", Color.WHITE)
-	_add_message("", Color.WHITE)  # Blank line
-
-	_update_hud()
 
 ## Handle load save request from death screen
 func _on_death_screen_load_save(slot: int) -> void:
@@ -2163,15 +1629,6 @@ func _render_ground_items() -> void:
 				render_color = Color(1.0, 0.7, 0.2)  # Bright orange-yellow for lit torches
 			renderer.render_entity(entity.position, entity.ascii_char, render_color)
 
-## Called when inventory contents change - only refresh if already open
-func _on_inventory_changed() -> void:
-	if inventory_screen and inventory_screen.visible:
-		inventory_screen.refresh()
-
-## Called when an item is used (consumed) - update HUD immediately
-func _on_item_used(_item, _result: Dictionary) -> void:
-	_update_hud()
-
 ## Toggle inventory screen visibility (called from input handler)
 func toggle_inventory_screen() -> void:
 	if inventory_screen:
@@ -2207,7 +1664,7 @@ func _on_ui_screen_closed(screen_name: String) -> void:
 			_update_hud()
 			# Reopen character sheet (it was hidden when level-up opened)
 			if character_sheet and player:
-				character_sheet.open(player)
+				ui_coordinator.open("character_sheet", [player])
 		_:
 			_update_visibility()
 			_update_hud()
@@ -2283,16 +1740,6 @@ func _on_structure_selected(structure_id: String) -> void:
 	_update_build_cursor()
 
 
-## Called when shop is opened
-func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
-	if shop_screen and shop_player:
-		ui_coordinator.open("shop", [shop_player, shop_npc])
-
-## Called when training is opened
-func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
-	if training_screen and train_player:
-		ui_coordinator.open("training", [train_player, trainer_npc])
-
 ## Called when shop screen requests switch to training
 func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
 	if training_screen and switch_player:
@@ -2302,11 +1749,6 @@ func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
 func _on_training_switch_to_trade(npc: NPC, switch_player: Player) -> void:
 	if shop_screen and switch_player:
 		ui_coordinator.open("shop", [switch_player, npc])
-
-## Called when NPC menu is opened (NPC with multiple services)
-func _on_npc_menu_opened(menu_npc: NPC, menu_player: Player) -> void:
-	if npc_menu_screen and menu_player:
-		ui_coordinator.open("npc_menu", [menu_player, menu_npc])
 
 ## Called when trade is selected from NPC menu
 func _on_npc_menu_trade_selected(menu_npc: NPC, menu_player: Player) -> void:
@@ -2318,98 +1760,6 @@ func _on_npc_menu_train_selected(menu_npc: NPC, menu_player: Player) -> void:
 	if training_screen and menu_player:
 		ui_coordinator.open("training", [menu_player, menu_npc])
 
-## Called when harvesting mode changes
-func _on_harvesting_mode_changed(is_active: bool) -> void:
-	_update_toggles_display()
-	if is_active:
-		_add_message("Entered harvesting mode - keep pressing direction to continue", Color(0.6, 0.9, 0.6))
-
-
-## Called when sprint mode changes
-func _on_sprint_mode_changed(_is_active: bool) -> void:
-	_update_toggles_display()
-
-
-## Called when weather changes
-func _on_weather_changed(_old_weather: String, _new_weather: String, message: String) -> void:
-	if message != "":
-		# Get weather color for the message
-		var weather_color = WeatherManager.get_current_weather_color()
-		_add_message(message, weather_color)
-
-## Called when time of day changes - refresh FOV/lighting and handle shop door locking
-func _on_time_of_day_changed(new_time: String) -> void:
-	# CRITICAL: Don't process time changes if player is dead
-	# This prevents infinite loops in visibility calculations after death
-	if not player or not player.is_alive:
-		return
-
-	# Refresh visibility using unified system (handles both LOS and lighting)
-	# Time of day affects lighting calculations (day/night) and racial bonuses (darkvision)
-	if MapManager.current_map:
-		# Mark enemy light cache dirty since lighting conditions changed
-		_enemy_light_cache_dirty = true
-		# Recalculate visibility with new lighting
-		_update_visibility()
-
-	# Handle shop door locking on overworld
-	if not MapManager.current_map or MapManager.current_map.map_id != "overworld":
-		return
-
-	var town_center = MapManager.current_map.get_meta("town_center", Vector2i(-1, -1))
-	if town_center == Vector2i(-1, -1):
-		return
-
-	# Shop door position: shop is 5x5 centered on town_center, door at x=2, y=4 of shop
-	# shop_start = town_center - Vector2i(2, 2)
-	# door at shop_start + Vector2i(2, 4) = town_center + Vector2i(0, 2)
-	var shop_door_pos = town_center + Vector2i(0, 2)
-
-	if new_time == "night" or new_time == "midnight":
-		_lock_shop_door_if_player_outside(shop_door_pos, town_center)
-	elif new_time == "dawn":
-		_unlock_shop_door(shop_door_pos)
-
-## Lock shop door at night if player is outside
-func _lock_shop_door_if_player_outside(door_pos: Vector2i, town_center: Vector2i) -> void:
-	var tile = ChunkManager.get_tile(door_pos)
-	if not tile or tile.tile_type != "door":
-		return
-
-	# Check if player is inside the shop (5x5 area centered on town_center)
-	if player:
-		var shop_start = town_center - Vector2i(2, 2)
-		var shop_end = shop_start + Vector2i(4, 4)  # Inclusive bounds
-		var player_inside = (player.position.x >= shop_start.x and player.position.x <= shop_end.x and
-							 player.position.y >= shop_start.y and player.position.y <= shop_end.y)
-
-		if player_inside:
-			# Player is inside shop, don't lock them in
-			return
-
-	# Lock the door
-	if not tile.is_locked:
-		tile.is_locked = true
-		tile.lock_id = "shop_door"
-		tile.lock_level = 3  # Moderate difficulty
-		# Close the door if open
-		if tile.is_open:
-			tile.close_door()
-		EventBus.tile_changed.emit(door_pos)
-		_add_message("The shop door locks for the night.", Color.GRAY)
-
-## Unlock shop door at dawn
-func _unlock_shop_door(door_pos: Vector2i) -> void:
-	var tile = ChunkManager.get_tile(door_pos)
-	if not tile or tile.tile_type != "door":
-		return
-
-	if tile.is_locked and tile.lock_id == "shop_door":
-		tile.is_locked = false
-		EventBus.tile_changed.emit(door_pos)
-		_add_message("The shop door unlocks at dawn.", Color.GRAY)
-
-
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
 	input_handler.set_ui_blocking(false)
@@ -2420,24 +1770,6 @@ func _on_debug_action_completed() -> void:
 	_render_all_entities()
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	_update_visibility()
-
-## Toggle performance overlay
-func _on_perf_overlay_toggle() -> void:
-	if perf_overlay:
-		perf_overlay_enabled = not perf_overlay_enabled
-		perf_overlay.visible = perf_overlay_enabled
-		if perf_overlay_enabled:
-			_add_message("Performance overlay enabled", Color(0.5, 1.0, 0.5))
-		else:
-			_add_message("Performance overlay disabled", Color(0.7, 0.7, 0.7))
-	# Refresh rendering to show spawned entities/items and tile changes
-	_full_render_needed = true  # _render_map() clears entity layer
-	_render_map()
-	_render_ground_items()
-	_render_all_entities()
-	renderer.render_entity(player.position, "@", Color.YELLOW)
-	_update_visibility()
-
 
 ## Called when player requests to cast a spell from the spell list
 func _on_spell_cast_requested(spell_id: String) -> void:
@@ -2498,18 +1830,10 @@ func _cast_spell_on_target(spell, target) -> void:
 	_update_visibility()
 
 
-## Called when EventBus.ritual_menu_requested is emitted
-func _on_ritual_menu_requested() -> void:
-	if ritual_menu and player:
-		ui_coordinator.open("ritual", [player])
-
-
 ## Called when player begins a ritual from the ritual menu
 func _on_ritual_started(ritual_id: String) -> void:
 	input_handler.set_ui_blocking(false)
 	_add_message("Ritual channeling has begun. Continue waiting to complete it.", Color.MAGENTA)
-
-
 
 ## Called when a special action is used
 func _on_special_action_used(_action_type: String, _action_id: String) -> void:
@@ -2535,61 +1859,6 @@ func toggle_fast_travel() -> void:
 		else:
 			ui_coordinator.open("fast_travel")
 
-
-## Called when an item is picked up
-func _on_item_picked_up(item) -> void:
-	_add_message("Picked up: %s" % item.name, Color(0.6, 0.9, 0.6))
-	# Re-render to update ground items
-	_render_ground_items()
-
-## Called when an item is dropped
-func _on_item_dropped(item, pos: Vector2i) -> void:
-	_add_message("Dropped: %s" % item.name, Color(0.7, 0.7, 0.7))
-	# Re-render to show dropped item
-	var render_color = item.get_color()
-	# Lit light sources get a bright orange/yellow color
-	if item.provides_light and item.is_lit:
-		render_color = Color(1.0, 0.7, 0.2)
-		# Update visibility since we dropped a light source
-		_update_visibility()
-	renderer.render_entity(pos, item.ascii_char, render_color)
-	_update_hud()
-
-## Called when an item is equipped
-func _on_item_equipped(item, _slot: String) -> void:
-	# Auto-light torches and other burnable light sources when equipped
-	if item.provides_light and item.burns_per_turn > 0 and not item.is_lit:
-		item.is_lit = true
-		_add_message("You light the %s." % item.name, Color(1.0, 0.8, 0.4))
-		# Update visibility since we now have a light source
-		_update_visibility()
-
-## Called when an item is unequipped
-func _on_item_unequipped(item, _slot: String) -> void:
-	# When a lit torch is unequipped (but not dropped), it stays lit
-	# The light source will be recalculated on next visibility update
-	if item.provides_light and item.is_lit:
-		_update_visibility()
-
-## Called when a message is logged from any system
-func _on_message_logged(message: String) -> void:
-	_add_message(message, Color.WHITE)
-
-## Called when a structure is placed
-func _on_structure_placed(_structure: Structure) -> void:
-	# Note: Message is already logged via result.message in _try_place_structure/_try_place_structure_at_cursor
-	# Clear build mode state
-	build_mode_active = false
-	selected_structure_id = ""
-	build_cursor_offset = Vector2i(1, 0)
-	input_handler.set_ui_blocking(false)  # Re-enable player movement
-	# Re-render map to clear cursor and show the new structure
-	# Force full entity re-render since _render_map() clears the entity layer
-	_full_render_needed = true
-	_render_map()
-	_render_ground_items()
-	_render_all_entities()
-	renderer.render_entity(player.position, "@", Color.YELLOW)
 
 ## Try to place a structure at the clicked screen position
 func _try_place_structure_at_screen(screen_pos: Vector2) -> void:
@@ -2902,7 +2171,7 @@ func _process_rest_turn() -> void:
 	# For health rest, verify player can actually be healed in shelter
 	if rest_type == "health" and player:
 		if not _is_player_in_healing_shelter():
-			_interrupt_rest("No nearby shelter can restore your health.")
+			_interrupt_rest("You must rest on a shelter that can restore health.")
 			return
 
 	# Perform wait action (bonus stamina regen)

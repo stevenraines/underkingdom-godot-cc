@@ -16,7 +16,17 @@ const _FOVSystem = preload("res://systems/fov_system.gd")
 const _LockSystem = preload("res://systems/lock_system.gd")
 const _RitualSystem = preload("res://systems/ritual_system.gd")
 const _ItemFactory = preload("res://items/item_factory.gd")
+const _SummonComponentClass = preload("res://entities/components/summon_component.gd")
+const _ConcentrationComponentClass = preload("res://entities/components/concentration_component.gd")
+const _RaceComponentClass = preload("res://entities/components/race_component.gd")
+const _ClassComponentClass = preload("res://entities/components/class_component.gd")
 # Note: ClassManager is accessed as an autoload singleton (registered in project.godot)
+
+# Components
+var summon_component = null
+var concentration_component = null
+var race_component = null
+var class_component = null
 
 var perception_range: int = 10
 var survival: SurvivalSystem = null
@@ -39,93 +49,39 @@ var active_summons: Array = []  # Array of SummonedCreature references
 const MAX_SUMMONS = 3
 
 # =============================================================================
-# SUMMONING SYSTEM
+# SUMMONING SYSTEM (delegated to SummonComponent)
 # =============================================================================
 
-## Add a summon to the player's active summons
-## Enforces MAX_SUMMONS limit by dismissing the oldest summon
 func add_summon(summon) -> bool:
-	# Enforce limit - dismiss oldest if at max
-	if active_summons.size() >= MAX_SUMMONS:
-		var oldest = active_summons[0]
-		oldest.dismiss()
-		# Note: dismiss() calls remove_summon()
+	return summon_component.add_summon(summon)
 
-	active_summons.append(summon)
-	EventBus.summon_created.emit(summon, self)
-	return true
-
-## Remove a summon from the active list
 func remove_summon(summon) -> void:
-	active_summons.erase(summon)
+	summon_component.remove_summon(summon)
 
-## Set behavior mode for a summon by index
 func set_summon_behavior(index: int, mode: String) -> void:
-	if index >= 0 and index < active_summons.size():
-		active_summons[index].set_behavior(mode)
+	summon_component.set_summon_behavior(index, mode)
 
-## Dismiss a specific summon by index
 func dismiss_summon(index: int) -> void:
-	if index >= 0 and index < active_summons.size():
-		active_summons[index].dismiss()
+	summon_component.dismiss_summon(index)
 
-## Dismiss all active summons
 func dismiss_all_summons() -> void:
-	# Iterate copy since dismiss modifies the array
-	for summon in active_summons.duplicate():
-		summon.dismiss()
+	summon_component.dismiss_all_summons()
 
-## Get active summon count
 func get_summon_count() -> int:
-	return active_summons.size()
+	return summon_component.get_summon_count()
 
 # =============================================================================
-# CONCENTRATION SYSTEM
+# CONCENTRATION SYSTEM (delegated to ConcentrationComponent)
 # =============================================================================
 
-## Start concentrating on a spell
-## Ends any previous concentration spell
 func start_concentration(spell_id: String) -> void:
-	# End previous concentration if any
-	if concentration_spell != "":
-		end_concentration()
+	concentration_component.start_concentration(spell_id)
 
-	concentration_spell = spell_id
-	EventBus.concentration_started.emit(self, spell_id)
-
-## End concentration, removing the maintained effect
 func end_concentration() -> void:
-	if concentration_spell != "":
-		# Remove the concentration effect from active effects
-		remove_magical_effect(concentration_spell + "_effect")
-		EventBus.concentration_ended.emit(self, concentration_spell)
-		concentration_spell = ""
+	concentration_component.end_concentration()
 
-## Check if concentration is maintained after taking damage
-## Concentration check: d20 + CON modifier vs DC 10 + damage/2 (minimum DC 10)
-## Returns true if concentration maintained, false if broken
 func check_concentration(damage_taken: int) -> bool:
-	if concentration_spell == "":
-		return true  # No concentration to break
-
-	# Roll d20 + CON modifier
-	var roll = randi_range(1, 20)
-	var con_mod = (get_effective_attribute("CON") - 10) / 2
-	var total = roll + con_mod
-
-	# DC is 10 or half the damage, whichever is higher
-	var dc = max(10, 10 + (damage_taken / 2))
-
-	var success = total >= dc
-	EventBus.concentration_check.emit(self, damage_taken, success)
-
-	if not success:
-		var spell_name = concentration_spell.replace("_", " ").capitalize()
-		EventBus.message_logged.emit("Your concentration on %s is broken!" % spell_name, Color.RED)
-		end_concentration()
-		return false
-
-	return true
+	return concentration_component.check_concentration(damage_taken)
 
 # =============================================================================
 # RITUAL SYSTEM
@@ -194,6 +150,11 @@ var bonus_skill_points_per_level: int = 0  # Jack of All Trades (Adventurer)
 
 func _init() -> void:
 	super("player", Vector2i(10, 10), "@", Color(1.0, 1.0, 0.0), true)
+	# Initialize components
+	summon_component = _SummonComponentClass.new(self)
+	concentration_component = _ConcentrationComponentClass.new(self)
+	race_component = _RaceComponentClass.new(self)
+	class_component = _ClassComponentClass.new(self)
 	_setup_player()
 
 ## Setup player-specific properties
@@ -244,136 +205,23 @@ func _on_item_unequipped(_item, _slot: String) -> void:
 
 
 # =============================================================================
-# RACE SYSTEM
+# RACE SYSTEM (delegated to RaceComponent)
 # =============================================================================
 
-## Apply race bonuses to player attributes
-## Should be called during character creation, after race is selected
 func apply_race(new_race_id: String) -> void:
-	race_id = new_race_id
+	race_component.apply_race(new_race_id)
 
-	# Store racial stat modifiers (don't modify base attributes)
-	racial_stat_modifiers = RaceManager.get_stat_modifiers(race_id).duplicate()
-	print("[Player] Racial stat modifiers: %s" % racial_stat_modifiers)
-
-	# Apply bonus stat points (e.g., Human Versatile trait)
-	var bonus_points = RaceManager.get_bonus_stat_points(race_id)
-	if bonus_points > 0:
-		available_ability_points += bonus_points
-		print("[Player] Granted %d bonus ability points from race" % bonus_points)
-
-	# Apply trait effects
-	var race_traits = RaceManager.get_traits(race_id)
-	for race_trait in race_traits:
-		_apply_racial_trait(race_trait)
-
-	# Recalculate derived stats after attribute changes
-	_calculate_derived_stats()
-
-	# Update perception based on effective WIS (includes racial modifier)
-	perception_range = 5 + int(get_effective_attribute("WIS") / 2.0)
-
-	# Apply racial color (optional - tint player)
-	var race_color_str = RaceManager.get_race_color(race_id)
-	if not race_color_str.is_empty():
-		color = Color(race_color_str)
-
-	print("[Player] Applied race '%s' - Stats: %s" % [race_id, RaceManager.format_stat_modifiers(race_id)])
-
-
-## Apply a single racial trait
-func _apply_racial_trait(trait_data: Dictionary) -> void:
-	var trait_id = trait_data.get("id", "")
-	var trait_type = trait_data.get("type", "passive")
-
-	# Initialize trait state
-	var uses_per_day = trait_data.get("uses_per_day", -1)  # -1 = unlimited
-	racial_traits[trait_id] = {
-		"uses_remaining": uses_per_day,
-		"active": true
-	}
-
-	# Apply passive effects
-	if trait_type == "passive":
-		var effect = trait_data.get("effect", {})
-		_apply_passive_trait_effect(effect)
-
-
-## Apply passive trait effects (resistances, bonuses, etc.)
-func _apply_passive_trait_effect(effect: Dictionary) -> void:
-	# Elemental resistances (e.g., Dwarf poison resistance)
-	if effect.has("elemental_resistance"):
-		for element in effect.elemental_resistance:
-			var value = effect.elemental_resistance[element]
-			elemental_resistances[element] = elemental_resistances.get(element, 0) + value
-
-	# Melee damage bonus (e.g., Half-Orc Aggressive)
-	if effect.has("melee_damage_bonus"):
-		base_damage += effect.melee_damage_bonus
-
-	# Trap detection bonus (e.g., Elf Keen Senses)
-	if effect.has("trap_detection_bonus"):
-		trap_detection_bonus += effect.trap_detection_bonus
-
-	# Crafting bonus (e.g., Gnome Tinkerer)
-	if effect.has("crafting_bonus"):
-		crafting_bonus += effect.crafting_bonus
-
-	# Spell success bonus (e.g., Gnome Arcane Affinity)
-	if effect.has("spell_success_bonus"):
-		spell_success_bonus += effect.spell_success_bonus
-
-	# Harvest bonuses (e.g., Dwarf Stonecunning)
-	if effect.has("harvest_bonus"):
-		for resource_type in effect.harvest_bonus:
-			var value = effect.harvest_bonus[resource_type]
-			harvest_bonuses[resource_type] = harvest_bonuses.get(resource_type, 0) + value
-
-
-## Check if player has a specific racial trait
 func has_racial_trait(trait_id: String) -> bool:
-	return racial_traits.has(trait_id) and racial_traits[trait_id].active
+	return race_component.has_racial_trait(trait_id)
 
-
-## Use a racial ability (for active traits with limited uses)
-## Returns true if ability was used successfully
 func use_racial_ability(trait_id: String) -> bool:
-	if not racial_traits.has(trait_id):
-		return false
+	return race_component.use_racial_ability(trait_id)
 
-	var trait_state = racial_traits[trait_id]
-
-	# Check if uses remaining (unlimited = -1)
-	if trait_state.uses_remaining == 0:
-		return false
-
-	# Decrement uses if not unlimited
-	if trait_state.uses_remaining > 0:
-		trait_state.uses_remaining -= 1
-
-	EventBus.racial_ability_used.emit(self, trait_id)
-	return true
-
-
-## Check if a racial ability has uses remaining
 func can_use_racial_ability(trait_id: String) -> bool:
-	if not racial_traits.has(trait_id):
-		return false
+	return race_component.can_use_racial_ability(trait_id)
 
-	var trait_state = racial_traits[trait_id]
-	return trait_state.uses_remaining != 0  # -1 (unlimited) or positive
-
-
-## Reset racial ability uses (called at dawn each day)
 func reset_racial_abilities() -> void:
-	var all_traits = RaceManager.get_traits(race_id)
-	for trait_data in all_traits:
-		var tid = trait_data.get("id", "")
-		if racial_traits.has(tid):
-			var uses_per_day = trait_data.get("uses_per_day", -1)
-			racial_traits[tid].uses_remaining = uses_per_day
-			EventBus.racial_ability_recharged.emit(self, tid)
-
+	race_component.reset_racial_abilities()
 
 ## Override to include racial and class stat modifiers in effective attribute calculation
 func get_effective_attribute(attr_name: String) -> int:
@@ -383,223 +231,49 @@ func get_effective_attribute(attr_name: String) -> int:
 	var temp_mod = stat_modifiers.get(attr_name, 0)
 	return max(1, base_value + racial_mod + class_mod + temp_mod)
 
-
-## Get effective perception range (with racial bonuses like darkvision)
 func get_effective_perception_range() -> int:
-	var base = perception_range
+	return race_component.get_effective_perception_range()
 
-	# Apply darkvision bonus during night
-	if has_racial_trait("darkvision"):
-		var darkvision_trait = RaceManager.get_trait(race_id, "darkvision")
-		var effect = darkvision_trait.get("effect", {})
-		var dark_bonus = effect.get("perception_bonus_dark", 0)
-
-		# Check if currently in darkness (night time)
-		if TurnManager.time_of_day in ["night", "midnight"]:
-			base += dark_bonus
-
-	return base
-
-
-## Get evasion bonus from racial traits (e.g., Halfling Nimble)
 func get_racial_evasion_bonus() -> int:
-	var bonus = 0
+	return race_component.get_racial_evasion_bonus()
 
-	if has_racial_trait("nimble"):
-		var nimble_trait = RaceManager.get_trait(race_id, "nimble")
-		var effect = nimble_trait.get("effect", {})
-		bonus += effect.get("evasion_bonus", 0)
-
-	return bonus
-
-
-## Get XP bonus multiplier from racial traits (e.g., Human Ambitious)
 func get_racial_xp_bonus() -> int:
-	var bonus = 0
-
-	if has_racial_trait("ambitious"):
-		var ambitious_trait = RaceManager.get_trait(race_id, "ambitious")
-		var effect = ambitious_trait.get("effect", {})
-		bonus += effect.get("xp_bonus", 0)
-
-	return bonus
+	return race_component.get_racial_xp_bonus()
 
 
 # =============================================================================
-# CLASS SYSTEM
+# CLASS SYSTEM (delegated to ClassComponent)
 # =============================================================================
 
-## Apply class bonuses to player attributes and skills
-## Should be called during character creation, after class is selected
 func apply_class(new_class_id: String) -> void:
-	class_id = new_class_id
+	class_component.apply_class(new_class_id)
 
-	# Store class stat modifiers (don't modify base attributes)
-	class_stat_modifiers = ClassManager.get_stat_modifiers(class_id).duplicate()
-	print("[Player] Class stat modifiers: %s" % class_stat_modifiers)
-
-	# Store class skill bonuses
-	class_skill_bonuses = ClassManager.get_skill_bonuses(class_id).duplicate()
-	print("[Player] Class skill bonuses: %s" % class_skill_bonuses)
-
-	# Apply skill bonuses to skills
-	for skill_id in class_skill_bonuses:
-		if skills.has(skill_id):
-			skills[skill_id] += class_skill_bonuses[skill_id]
-
-	# Apply class feats
-	var feats = ClassManager.get_feats(class_id)
-	for feat in feats:
-		_apply_class_feat(feat)
-
-	# Recalculate derived stats after attribute changes
-	_calculate_derived_stats()
-
-	# Update perception based on effective WIS (includes class modifier)
-	perception_range = 5 + int(get_effective_attribute("WIS") / 2.0)
-
-	print("[Player] Applied class '%s' - Stats: %s, Skills: %s" % [
-		class_id,
-		ClassManager.format_stat_modifiers(class_id),
-		ClassManager.format_skill_bonuses(class_id)
-	])
-
-
-## Apply a single class feat
-func _apply_class_feat(feat_data: Dictionary) -> void:
-	var feat_id = feat_data.get("id", "")
-	var feat_type = feat_data.get("type", "passive")
-
-	# Initialize feat state
-	var uses_per_day = feat_data.get("uses_per_day", -1)  # -1 = unlimited (passive)
-	class_feats[feat_id] = {
-		"uses_remaining": uses_per_day,
-		"active": true
-	}
-
-	# Apply passive effects immediately
-	if feat_type == "passive":
-		var effect = feat_data.get("effect", {})
-		_apply_passive_feat_effect(effect)
-
-
-## Apply passive feat effects (stat bonuses, etc.)
-func _apply_passive_feat_effect(effect: Dictionary) -> void:
-	# Max health bonus (e.g., Warrior Battle Hardened)
-	if effect.has("max_health_bonus"):
-		max_health_bonus += effect.max_health_bonus
-		max_health += effect.max_health_bonus
-		current_health += effect.max_health_bonus
-
-	# Max mana bonus (e.g., Mage Arcane Mind)
-	if effect.has("max_mana_bonus"):
-		max_mana_bonus += effect.max_mana_bonus
-		if survival:
-			survival.base_max_mana += effect.max_mana_bonus
-			survival.mana += effect.max_mana_bonus
-
-	# Critical hit damage bonus (e.g., Rogue Shadow Strike)
-	if effect.has("crit_damage_bonus"):
-		crit_damage_bonus += effect.crit_damage_bonus
-
-	# Ranged damage bonus (e.g., Ranger Hunter's Mark)
-	if effect.has("ranged_damage_bonus"):
-		ranged_damage_bonus += effect.ranged_damage_bonus
-
-	# Healing received bonus (e.g., Cleric Divine Favor)
-	if effect.has("healing_received_bonus"):
-		healing_received_bonus += effect.healing_received_bonus
-
-	# Low HP melee bonus (e.g., Barbarian Rage)
-	if effect.has("low_hp_melee_bonus"):
-		low_hp_melee_bonus += effect.low_hp_melee_bonus
-
-	# Bonus skill points per level (e.g., Adventurer Jack of All Trades)
-	if effect.has("bonus_skill_points_per_level"):
-		bonus_skill_points_per_level += effect.bonus_skill_points_per_level
-
-
-## Check if player has a specific class feat
 func has_class_feat(feat_id: String) -> bool:
-	return class_feats.has(feat_id) and class_feats[feat_id].active
+	return class_component.has_class_feat(feat_id)
 
-
-## Use a class feat (for active feats with limited uses)
-## Returns true if feat was used successfully
 func use_class_feat(feat_id: String) -> bool:
-	if not class_feats.has(feat_id):
-		return false
+	return class_component.use_class_feat(feat_id)
 
-	var feat_state = class_feats[feat_id]
-
-	# Check if uses remaining (unlimited = -1 for passives)
-	if feat_state.uses_remaining == 0:
-		return false
-
-	# Decrement uses if not unlimited
-	if feat_state.uses_remaining > 0:
-		feat_state.uses_remaining -= 1
-
-	EventBus.class_feat_used.emit(self, feat_id)
-	return true
-
-
-## Check if a class feat has uses remaining
 func can_use_class_feat(feat_id: String) -> bool:
-	if not class_feats.has(feat_id):
-		return false
+	return class_component.can_use_class_feat(feat_id)
 
-	var feat_state = class_feats[feat_id]
-	return feat_state.uses_remaining != 0  # -1 (unlimited) or positive
-
-
-## Get remaining uses for a class feat
 func get_class_feat_uses(feat_id: String) -> int:
-	if not class_feats.has(feat_id):
-		return 0
-	return class_feats[feat_id].uses_remaining
+	return class_component.get_class_feat_uses(feat_id)
 
-
-## Reset class feat uses (called at dawn each day)
 func reset_class_feats() -> void:
-	var feats = ClassManager.get_feats(class_id)
-	for feat in feats:
-		var feat_id = feat.get("id", "")
-		if class_feats.has(feat_id):
-			var uses_per_day = feat.get("uses_per_day", -1)
-			class_feats[feat_id].uses_remaining = uses_per_day
-			EventBus.class_feat_recharged.emit(self, feat_id)
+	class_component.reset_class_feats()
 
-
-## Get melee damage bonus from class feats (e.g., Barbarian Rage when low HP)
 func get_class_melee_bonus() -> int:
-	var bonus = 0
+	return class_component.get_class_melee_bonus()
 
-	# Rage: bonus damage when below threshold HP
-	if has_class_feat("rage"):
-		var feat = ClassManager.get_feat(class_id, "rage")
-		var effect = feat.get("effect", {})
-		var threshold = effect.get("low_hp_threshold", 0.5)
-		if float(current_health) / float(max_health) <= threshold:
-			bonus += effect.get("low_hp_melee_bonus", 0)
-
-	return bonus
-
-
-## Get ranged damage bonus from class feats
 func get_class_ranged_bonus() -> int:
-	return ranged_damage_bonus
+	return class_component.get_class_ranged_bonus()
 
-
-## Get crit damage bonus from class feats
 func get_class_crit_bonus() -> int:
-	return crit_damage_bonus
+	return class_component.get_class_crit_bonus()
 
-
-## Apply healing with class bonus (e.g., Cleric Divine Favor)
 func heal_with_class_bonus(amount: int) -> void:
-	var bonus_amount = int(amount * healing_received_bonus)
-	heal(amount + bonus_amount)
+	class_component.heal_with_class_bonus(amount)
 
 
 ## Attempt to attack a target entity

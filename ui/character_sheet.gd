@@ -271,8 +271,11 @@ func _add_combat_section() -> void:
 	var weapon_damage = "Unarmed (%d)" % player.base_damage
 	if player.inventory:
 		var weapon = player.inventory.get_equipped("main_hand")
-		if weapon and weapon.damage_bonus > 0:
-			weapon_damage = "%s (+%d)" % [weapon.name, weapon.damage_bonus]
+		if weapon:
+			if weapon.damage_min > 0 and weapon.damage_max > 0:
+				weapon_damage = "%s (%d-%d)" % [weapon.name, weapon.damage_min, weapon.damage_max]
+			elif weapon.damage_bonus > 0:
+				weapon_damage = "%s (+%d)" % [weapon.name, weapon.damage_bonus]
 	_add_stat_line("Weapon", weapon_damage, Color(0.9, 0.7, 0.7))
 
 	# Armor

@@ -600,28 +600,29 @@ func _filter_items(item_list: Array[Item], filter: FilterType) -> Array[Item]:
 	return result
 
 ## Check if item matches filter category
+## Note: category values in JSON data are singular (e.g., "weapon", "tool", "consumable")
 func _item_matches_filter(item: Item, filter: FilterType) -> bool:
 	match filter:
 		FilterType.WEAPONS:
-			return item.category == "weapons" or (item.flags.get("weapon", false) and item.equip_slots.size() > 0)
+			return item.category == "weapon" or (item.flags.get("weapon", false) and item.equip_slots.size() > 0)
 		FilterType.ARMOR:
 			return item.category == "armor" or (item.flags.get("equippable", false) and item.armor_value > 0)
 		FilterType.TOOLS:
-			return item.category == "tools" or item.flags.get("tool", false)
+			return item.category == "tool" or item.flags.get("tool", false)
 		FilterType.CONSUMABLES:
-			return item.category == "consumables" or item.flags.get("consumable", false)
+			return item.category == "consumable" or item.flags.get("consumable", false)
 		FilterType.MATERIALS:
-			return item.category == "materials" or item.item_type == "material"
+			return item.category == "material" or item.item_type == "material"
 		FilterType.AMMUNITION:
 			return item.category == "ammunition"
 		FilterType.BOOKS:
-			return item.category == "books" or item.teaches_recipe != ""
+			return item.category == "book" or item.teaches_recipe != ""
 		FilterType.SEEDS:
-			return item.category == "seeds"
+			return item.category == "seed"
 		FilterType.MISC:
 			# Misc includes currency, keys, and anything that doesn't fit other categories
 			return item.category == "misc" or item.item_type == "currency" or (
-				item.category not in ["weapons", "armor", "tools", "consumables", "materials", "ammunition", "books", "seeds"]
+				item.category not in ["weapon", "armor", "tool", "consumable", "material", "ammunition", "book", "seed"]
 			)
 	return false
 

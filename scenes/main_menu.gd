@@ -51,13 +51,6 @@ func _ready() -> void:
 	# collect buttons in visual order using @onready references
 	buttons = [continue_button, start_button, load_button, quit_button]
 
-	for i in range(buttons.size()):
-		var b = buttons[i]
-		if b:
-			b.connect("mouse_entered", Callable(self, "_on_button_mouse_entered").bind(i))
-			# Disable automatic focus navigation to prevent conflicts
-			b.focus_mode = Control.FOCUS_NONE
-
 	# Hide Continue button if there is no auto-save
 	if not SaveManager.has_autosave():
 		continue_button.visible = false
@@ -68,6 +61,14 @@ func _ready() -> void:
 	if OS.get_name() == "Web":
 		quit_button.visible = false
 		buttons.erase(quit_button)
+
+	# Connect signals AFTER building final buttons array to ensure indices are correct
+	for i in range(buttons.size()):
+		var b = buttons[i]
+		if b:
+			b.connect("mouse_entered", Callable(self, "_on_button_mouse_entered").bind(i))
+			# Disable automatic focus navigation to prevent conflicts
+			b.focus_mode = Control.FOCUS_NONE
 
 	# default selection to first visible button
 	selected_index = 0

@@ -44,11 +44,10 @@ func attempt_purchase_training(npc, recipe_id: String, player) -> bool:
 		EventBus.emit_signal("message_logged", "Not enough gold. Need %d gold." % price)
 		return false
 
-	# Execute transaction
+	# Execute transaction (recipe stays in NPC's list so training screen shows [KNOWN])
 	player.gold -= price
 	npc.gold += price
 	player.learn_recipe(recipe_id)
-	npc.remove_recipe_for_sale(recipe_id)
 
 	EventBus.emit_signal("recipe_trained", recipe_id, price)
 	EventBus.emit_signal("message_logged", "%s teaches you how to craft %s for %d gold." % [npc.name, recipe.get_display_name(), price])

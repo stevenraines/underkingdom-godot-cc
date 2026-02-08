@@ -42,6 +42,7 @@ var ritual_menu: Control = null
 var special_actions_screen: Control = null
 var debug_command_menu: Control = null
 var perf_overlay: Label = null
+var ui_coordinator = null
 var perf_overlay_enabled: bool = false
 # Performance tracking
 var _perf_last_update_time: float = 0.0
@@ -120,6 +121,7 @@ const SpellListScreenScene = preload("res://ui/spell_list_screen.tscn")
 const RitualMenuScene = preload("res://ui/ritual_menu.tscn")
 const SpecialActionsScreenScene = preload("res://ui/special_actions_screen.tscn")
 const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
+const UICoordinatorClass = preload("res://systems/ui_coordinator.gd")
 
 func _ready() -> void:
 	# Get renderer reference
@@ -131,65 +133,8 @@ func _ready() -> void:
 	# Set UI colors
 	_setup_ui_colors()
 	
-	# Create inventory screen
-	_setup_inventory_screen()
-
-	# Create crafting screen
-	_setup_crafting_screen()
-
-	# Create build mode screen
-	_setup_build_mode_screen()
-
-	# Create container screen
-	_setup_container_screen()
-
-	# Create shop screen
-	_setup_shop_screen()
-
-	# Create training screen
-	_setup_training_screen()
-
-	# Create NPC menu screen
-	_setup_npc_menu_screen()
-
-	# Create pause menu
-	_setup_pause_menu()
-
-	# Create death screen
-	_setup_death_screen()
-
-	# Create character sheet
-	_setup_character_sheet()
-
-	# Create level-up screen
-	_setup_level_up_screen()
-
-	# Create help screen
-	_setup_help_screen()
-
-	# Create world map screen
-	_setup_world_map_screen()
-
-	# Create fast travel screen
-	_setup_fast_travel_screen()
-
-	# Create rest menu
-	_setup_rest_menu()
-
-	# Create spell list screen
-	_setup_spell_list_screen()
-
-	# Create ritual menu
-	_setup_ritual_menu()
-
-	# Create special actions screen
-	_setup_special_actions_screen()
-
-	# Create debug command menu
-	_setup_debug_command_menu()
-
-	# Create performance overlay
-	_setup_perf_overlay()
+	# Setup all UI screens via coordinator
+	_setup_ui_screens()
 
 	# Only initialize new game if not loading from save
 	if not GameManager.is_loading_save:
@@ -437,244 +382,80 @@ func _update_perf_overlay() -> void:
 	perf_overlay.text = text
 	_perf_last_update_time = current_time
 
-## Setup inventory screen
-func _setup_inventory_screen() -> void:
-	inventory_screen = InventoryScreenScene.instantiate()
-	hud.add_child(inventory_screen)
-	inventory_screen.closed.connect(_on_inventory_closed)
+## Setup all UI screens via UICoordinator
+func _setup_ui_screens() -> void:
+	ui_coordinator = UICoordinatorClass.new(hud, input_handler)
 
-## Setup crafting screen
-func _setup_crafting_screen() -> void:
-	crafting_screen = CraftingScreenScene.instantiate()
-	hud.add_child(crafting_screen)
-	# Ensure crafting screen blocks player input while open
-	if crafting_screen.has_signal("closed"):
-		crafting_screen.closed.connect(_on_crafting_closed)
+	# Preloaded screens
+	inventory_screen = ui_coordinator.setup_preloaded("inventory", InventoryScreenScene)
+	crafting_screen = ui_coordinator.setup_preloaded("crafting", CraftingScreenScene)
+	build_mode_screen = ui_coordinator.setup_preloaded("build_mode", BuildModeScreenScene)
+	container_screen = ui_coordinator.setup_preloaded("container", ContainerScreenScene)
+	shop_screen = ui_coordinator.setup_preloaded("shop", ShopScreenScene)
+	training_screen = ui_coordinator.setup_preloaded("training", TrainingScreenScene)
+	npc_menu_screen = ui_coordinator.setup_preloaded("npc_menu", NpcMenuScreenScene)
+	pause_menu = ui_coordinator.setup_preloaded("pause_menu", PauseMenuScene)
+	death_screen = ui_coordinator.setup_preloaded("death", DeathScreenScene)
+	spell_list_screen = ui_coordinator.setup_preloaded("spell_list", SpellListScreenScene)
+	ritual_menu = ui_coordinator.setup_preloaded("ritual", RitualMenuScene)
+	special_actions_screen = ui_coordinator.setup_preloaded("special_actions", SpecialActionsScreenScene)
 
-## Setup build mode screen
-func _setup_build_mode_screen() -> void:
-	build_mode_screen = BuildModeScreenScene.instantiate()
-	hud.add_child(build_mode_screen)
-	build_mode_screen.closed.connect(_on_build_mode_closed)
-	build_mode_screen.structure_selected.connect(_on_structure_selected)
+	# Dynamically loaded screens
+	character_sheet = ui_coordinator.setup_loaded("character_sheet", "res://ui/character_sheet.tscn", "CharacterSheet")
+	level_up_screen = ui_coordinator.setup_loaded("level_up", "res://ui/level_up_screen.tscn", "LevelUpScreen")
+	help_screen = ui_coordinator.setup_loaded("help", "res://ui/help_screen.tscn", "HelpScreen")
+	world_map_screen = ui_coordinator.setup_loaded("world_map", "res://ui/world_map_screen.tscn", "WorldMapScreen")
+	fast_travel_screen = ui_coordinator.setup_loaded("fast_travel", "res://ui/fast_travel_screen.tscn", "FastTravelScreen")
+	rest_menu = ui_coordinator.setup_loaded("rest_menu", "res://ui/rest_menu.tscn", "RestMenu")
+	debug_command_menu = ui_coordinator.setup_loaded("debug_menu", "res://ui/debug_command_menu.tscn", "DebugCommandMenu")
 
-## Setup container screen
-func _setup_container_screen() -> void:
-	container_screen = ContainerScreenScene.instantiate()
-	hud.add_child(container_screen)
-	container_screen.closed.connect(_on_container_closed)
+	# Connect custom signals (beyond "closed") on screens that have them
+	if build_mode_screen:
+		build_mode_screen.structure_selected.connect(_on_structure_selected)
+	if shop_screen:
+		shop_screen.switch_to_training.connect(_on_shop_switch_to_training)
+	if training_screen:
+		training_screen.switch_to_trade.connect(_on_training_switch_to_trade)
+	if npc_menu_screen:
+		npc_menu_screen.trade_selected.connect(_on_npc_menu_trade_selected)
+		npc_menu_screen.train_selected.connect(_on_npc_menu_train_selected)
+	if death_screen:
+		death_screen.load_save_requested.connect(_on_death_screen_load_save)
+		death_screen.restore_checkpoint_requested.connect(_on_death_screen_restore_checkpoint)
+		death_screen.return_to_menu_requested.connect(_on_death_screen_return_to_menu)
+	if rest_menu and rest_menu.has_signal("rest_requested"):
+		rest_menu.rest_requested.connect(_on_rest_requested)
+	if spell_list_screen and spell_list_screen.has_signal("spell_cast_requested"):
+		spell_list_screen.spell_cast_requested.connect(_on_spell_cast_requested)
+	if ritual_menu and ritual_menu.has_signal("ritual_started"):
+		ritual_menu.ritual_started.connect(_on_ritual_started)
+	if special_actions_screen and special_actions_screen.has_signal("action_used"):
+		special_actions_screen.action_used.connect(_on_special_action_used)
+	if debug_command_menu and debug_command_menu.has_signal("action_completed"):
+		debug_command_menu.action_completed.connect(_on_debug_action_completed)
 
-## Setup shop screen
-func _setup_shop_screen() -> void:
-	shop_screen = ShopScreenScene.instantiate()
-	hud.add_child(shop_screen)
-	shop_screen.closed.connect(_on_shop_closed)
-	shop_screen.switch_to_training.connect(_on_shop_switch_to_training)
+	# Connect EventBus signals related to UI
+	EventBus.ritual_menu_requested.connect(_on_ritual_menu_requested)
 
-## Setup training screen
-func _setup_training_screen() -> void:
-	training_screen = TrainingScreenScene.instantiate()
-	hud.add_child(training_screen)
-	training_screen.closed.connect(_on_training_closed)
-	training_screen.switch_to_trade.connect(_on_training_switch_to_trade)
+	# Connect unified close handler
+	ui_coordinator.screen_closed.connect(_on_ui_screen_closed)
 
-## Setup NPC menu screen
-func _setup_npc_menu_screen() -> void:
-	npc_menu_screen = NpcMenuScreenScene.instantiate()
-	hud.add_child(npc_menu_screen)
-	npc_menu_screen.closed.connect(_on_npc_menu_closed)
-	npc_menu_screen.trade_selected.connect(_on_npc_menu_trade_selected)
-	npc_menu_screen.train_selected.connect(_on_npc_menu_train_selected)
+	# Setup performance overlay (not a screen - custom widget)
+	_setup_perf_overlay()
 
-## Setup pause menu
-func _setup_pause_menu() -> void:
-	pause_menu = PauseMenuScene.instantiate()
-	hud.add_child(pause_menu)
-	pause_menu.closed.connect(_on_pause_menu_closed)
-
-## Setup death screen
-func _setup_death_screen() -> void:
-	death_screen = DeathScreenScene.instantiate()
-	hud.add_child(death_screen)
-	death_screen.load_save_requested.connect(_on_death_screen_load_save)
-	death_screen.restore_checkpoint_requested.connect(_on_death_screen_restore_checkpoint)
-	death_screen.return_to_menu_requested.connect(_on_death_screen_return_to_menu)
-
-## Setup character sheet
-func _setup_character_sheet() -> void:
-	print("[Game] Setting up character sheet from scene...")
-	var CharacterSheetScene = load("res://ui/character_sheet.tscn")
-	if CharacterSheetScene:
-		character_sheet = CharacterSheetScene.instantiate()
-		character_sheet.name = "CharacterSheet"
-		hud.add_child(character_sheet)
-		if character_sheet.has_signal("closed"):
-			character_sheet.closed.connect(_on_character_sheet_closed)
-		print("[Game] Character sheet scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load character_sheet.tscn scene")
-
-## Setup level-up screen
-func _setup_level_up_screen() -> void:
-	print("[Game] Setting up level-up screen from scene...")
-	var LevelUpScreenScene = load("res://ui/level_up_screen.tscn")
-	if LevelUpScreenScene:
-		level_up_screen = LevelUpScreenScene.instantiate()
-		level_up_screen.name = "LevelUpScreen"
-		hud.add_child(level_up_screen)
-		if level_up_screen.has_signal("closed"):
-			level_up_screen.closed.connect(_on_level_up_screen_closed)
-		print("[Game] Level-up screen scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load level_up_screen.tscn scene")
-
-## Setup help screen
-func _setup_help_screen() -> void:
-	print("[Game] Setting up help screen from scene...")
-	var HelpScreenScene = load("res://ui/help_screen.tscn")
-	if HelpScreenScene:
-		help_screen = HelpScreenScene.instantiate()
-		help_screen.name = "HelpScreen"
-		hud.add_child(help_screen)
-		if help_screen.has_signal("closed"):
-			help_screen.closed.connect(_on_help_screen_closed)
-		print("[Game] Help screen scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load help_screen.tscn scene")
-
-## Setup world map screen
-func _setup_world_map_screen() -> void:
-	print("[Game] Setting up world map screen from scene...")
-	var WorldMapScreenScene = load("res://ui/world_map_screen.tscn")
-	if WorldMapScreenScene:
-		world_map_screen = WorldMapScreenScene.instantiate()
-		world_map_screen.name = "WorldMapScreen"
-		hud.add_child(world_map_screen)
-		if world_map_screen.has_signal("closed"):
-			world_map_screen.closed.connect(_on_world_map_closed)
-		print("[Game] World map screen scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load world_map_screen.tscn scene")
-
-## Setup fast travel screen
-func _setup_fast_travel_screen() -> void:
-	print("[Game] Setting up fast travel screen from scene...")
-	var FastTravelScreenScene = load("res://ui/fast_travel_screen.tscn")
-	if FastTravelScreenScene:
-		fast_travel_screen = FastTravelScreenScene.instantiate()
-		fast_travel_screen.name = "FastTravelScreen"
-		hud.add_child(fast_travel_screen)
-		if fast_travel_screen.has_signal("closed"):
-			fast_travel_screen.closed.connect(_on_fast_travel_closed)
-		print("[Game] Fast travel screen scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load fast_travel_screen.tscn scene")
-
-## Setup rest menu
-func _setup_rest_menu() -> void:
-	print("[Game] Setting up rest menu from scene...")
-	var RestMenuScene = load("res://ui/rest_menu.tscn")
-	if RestMenuScene:
-		rest_menu = RestMenuScene.instantiate()
-		rest_menu.name = "RestMenu"
-		hud.add_child(rest_menu)
-		if rest_menu.has_signal("closed"):
-			rest_menu.closed.connect(_on_rest_menu_closed)
-		if rest_menu.has_signal("rest_requested"):
-			rest_menu.rest_requested.connect(_on_rest_requested)
-		print("[Game] Rest menu scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load rest_menu.tscn scene")
-
-## Setup spell list screen
-func _setup_spell_list_screen() -> void:
-	print("[Game] Setting up spell list screen from scene...")
-	if SpellListScreenScene:
-		spell_list_screen = SpellListScreenScene.instantiate()
-		spell_list_screen.name = "SpellListScreen"
-		hud.add_child(spell_list_screen)
-		if spell_list_screen.has_signal("closed"):
-			spell_list_screen.closed.connect(_on_spell_list_closed)
-		if spell_list_screen.has_signal("spell_cast_requested"):
-			spell_list_screen.spell_cast_requested.connect(_on_spell_cast_requested)
-		print("[Game] Spell list screen scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load spell_list_screen.tscn scene")
-
-## Setup ritual menu
-func _setup_ritual_menu() -> void:
-	print("[Game] Setting up ritual menu from scene...")
-	if RitualMenuScene:
-		ritual_menu = RitualMenuScene.instantiate()
-		ritual_menu.name = "RitualMenu"
-		hud.add_child(ritual_menu)
-		if ritual_menu.has_signal("closed"):
-			ritual_menu.closed.connect(_on_ritual_menu_closed)
-		if ritual_menu.has_signal("ritual_started"):
-			ritual_menu.ritual_started.connect(_on_ritual_started)
-		# Connect to EventBus signal
-		EventBus.ritual_menu_requested.connect(_on_ritual_menu_requested)
-		print("[Game] Ritual menu scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load ritual_menu.tscn scene")
-
-## Setup special actions screen
-func _setup_special_actions_screen() -> void:
-	print("[Game] Setting up special actions screen from scene...")
-	if SpecialActionsScreenScene:
-		special_actions_screen = SpecialActionsScreenScene.instantiate()
-		special_actions_screen.name = "SpecialActionsScreen"
-		hud.add_child(special_actions_screen)
-		if special_actions_screen.has_signal("closed"):
-			special_actions_screen.closed.connect(_on_special_actions_closed)
-		if special_actions_screen.has_signal("action_used"):
-			special_actions_screen.action_used.connect(_on_special_action_used)
-		print("[Game] Special actions screen scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load special_actions_screen.tscn scene")
-
-
-## Setup debug command menu
-func _setup_debug_command_menu() -> void:
-	print("[Game] Setting up debug command menu from scene...")
-	var DebugCommandMenuScene = load("res://ui/debug_command_menu.tscn")
-	if DebugCommandMenuScene:
-		debug_command_menu = DebugCommandMenuScene.instantiate()
-		debug_command_menu.name = "DebugCommandMenu"
-		hud.add_child(debug_command_menu)
-		if debug_command_menu.has_signal("closed"):
-			debug_command_menu.closed.connect(_on_debug_menu_closed)
-		if debug_command_menu.has_signal("action_completed"):
-			debug_command_menu.action_completed.connect(_on_debug_action_completed)
-		print("[Game] Debug command menu scene instantiated and added to HUD")
-	else:
-		print("[Game] ERROR: Could not load debug_command_menu.tscn scene")
 
 ## Setup performance overlay
 func _setup_perf_overlay() -> void:
-	print("[Game] Setting up performance overlay...")
 	perf_overlay = Label.new()
 	perf_overlay.name = "PerformanceOverlay"
-
-	# Position in top-left corner with padding
 	perf_overlay.position = Vector2(10, 10)
 	perf_overlay.size = Vector2(400, 300)
-	perf_overlay.z_index = 1000  # Ensure it's on top
-
-	# Styling
+	perf_overlay.z_index = 1000
 	perf_overlay.add_theme_font_size_override("font_size", 12)
-	perf_overlay.modulate = Color(1.0, 1.0, 0.0, 0.9)  # Bright yellow with slight transparency
-
-	# Start hidden
+	perf_overlay.modulate = Color(1.0, 1.0, 0.0, 0.9)
 	perf_overlay.visible = false
-
-	# Add to HUD
 	hud.add_child(perf_overlay)
-
-	# Connect to toggle signal
 	EventBus.debug_toggle_perf_overlay.connect(_on_perf_overlay_toggle)
-
-	print("[Game] Performance overlay created (toggle with F12 > Toggle Performance Overlay)")
 
 ## Give player some starter items
 func _give_starter_items() -> void:
@@ -2398,31 +2179,38 @@ func toggle_inventory_screen() -> void:
 			inventory_screen.hide()
 			input_handler.set_ui_blocking(false)
 		else:
-			inventory_screen.open(player)
-			input_handler.set_ui_blocking(true)
+			ui_coordinator.open("inventory", [player])
 
 ## Open crafting screen (called from input handler)
 func open_crafting_screen() -> void:
 	if crafting_screen and player:
-		crafting_screen.open(player)
-		# Block player movement while crafting UI is open
-		if input_handler:
-			input_handler.set_ui_blocking(true)
-		# Center HUD focus if necessary
+		ui_coordinator.open("crafting", [player])
 		_render_ground_items()
 		_update_hud()
 		get_viewport().set_input_as_handled()
 
 
-## Common cleanup after closing any menu - refreshes display and HUD
-func _refresh_after_menu_close() -> void:
-	input_handler.set_ui_blocking(false)
-	_update_visibility()
-	_update_hud()
-
-func _on_crafting_closed() -> void:
-	# Called when crafting screen closes to re-enable player input
-	_refresh_after_menu_close()
+## Unified close handler for all UI screens (via UICoordinator.screen_closed signal).
+## The coordinator already called set_ui_blocking(false) before emitting this signal.
+func _on_ui_screen_closed(screen_name: String) -> void:
+	match screen_name:
+		"build_mode":
+			if selected_structure_id == "":
+				build_mode_active = false
+				_update_visibility()
+				_update_hud()
+			else:
+				# Re-block input - we're still in structure placement mode
+				input_handler.set_ui_blocking(true)
+		"level_up":
+			_update_visibility()
+			_update_hud()
+			# Reopen character sheet (it was hidden when level-up opened)
+			if character_sheet and player:
+				character_sheet.open(player)
+		_:
+			_update_visibility()
+			_update_hud()
 
 ## Toggle build mode (called from input handler)
 func toggle_build_mode() -> void:
@@ -2433,8 +2221,7 @@ func toggle_build_mode() -> void:
 			selected_structure_id = ""
 			input_handler.set_ui_blocking(false)
 		else:
-			build_mode_screen.open(player)
-			input_handler.set_ui_blocking(true)
+			ui_coordinator.open("build_mode", [player])
 
 ## Toggle world map (called from input handler)
 func toggle_world_map() -> void:
@@ -2443,8 +2230,7 @@ func toggle_world_map() -> void:
 			world_map_screen.close()
 			input_handler.set_ui_blocking(false)
 		else:
-			world_map_screen.open()
-			input_handler.set_ui_blocking(true)
+			ui_coordinator.open("world_map")
 
 ## Toggle spell list (called from input handler via Shift+M)
 func toggle_spell_list() -> void:
@@ -2453,64 +2239,37 @@ func toggle_spell_list() -> void:
 			spell_list_screen.hide()
 			input_handler.set_ui_blocking(false)
 		else:
-			spell_list_screen.open(player)
-			input_handler.set_ui_blocking(true)
+			ui_coordinator.open("spell_list", [player])
 
 ## Open container screen (called from input handler)
 func open_container_screen(structure: Structure) -> void:
 	if container_screen and player:
-		container_screen.open(player, structure)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("container", [player, structure])
 
 ## Open pause menu (called from ESC key)
 func _open_pause_menu() -> void:
 	if pause_menu:
-		pause_menu.open(true)  # true = save mode
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("pause_menu", [true])
 
 ## Open character sheet (called from P key)
 func open_character_sheet() -> void:
-	print("[Game] open_character_sheet called - character_sheet: ", character_sheet, " player: ", player)
 	if character_sheet and player:
-		print("[Game] Opening character sheet UI")
-		character_sheet.open(player)
-		input_handler.set_ui_blocking(true)
-	else:
-		print("[Game] ERROR: character_sheet or player is null")
+		ui_coordinator.open("character_sheet", [player])
 
 ## Open help screen (called from ? or F1 key)
 func open_help_screen() -> void:
-	print("[Game] open_help_screen called - help_screen: ", help_screen)
 	if help_screen:
-		print("[Game] Opening help screen UI")
-		help_screen.open()
-		input_handler.set_ui_blocking(true)
-	else:
-		print("[Game] ERROR: help_screen is null")
+		ui_coordinator.open("help")
 
 ## Toggle debug command menu (called from F12 key)
 func toggle_debug_menu() -> void:
-	print("[Game] toggle_debug_menu called - debug_command_menu: ", debug_command_menu)
 	if debug_command_menu:
 		if debug_command_menu.visible:
 			debug_command_menu.close()
 			input_handler.set_ui_blocking(false)
 		else:
-			debug_command_menu.open(player)
-			input_handler.set_ui_blocking(true)
-	else:
-		print("[Game] ERROR: debug_command_menu is null")
+			ui_coordinator.open("debug_menu", [player])
 
-## Called when inventory screen is closed
-func _on_inventory_closed() -> void:
-	_refresh_after_menu_close()
-
-## Called when build mode screen is closed
-func _on_build_mode_closed() -> void:
-	# Only clear if we're not in placement mode
-	if selected_structure_id == "":
-		build_mode_active = false
-		_refresh_after_menu_close()
 
 ## Called when a structure is selected from build mode
 func _on_structure_selected(structure_id: String) -> void:
@@ -2523,65 +2282,41 @@ func _on_structure_selected(structure_id: String) -> void:
 	# Show initial cursor
 	_update_build_cursor()
 
-## Called when container screen is closed
-func _on_container_closed() -> void:
-	_refresh_after_menu_close()
 
 ## Called when shop is opened
 func _on_shop_opened(shop_npc: NPC, shop_player: Player) -> void:
 	if shop_screen and shop_player:
-		shop_screen.open(shop_player, shop_npc)
-		input_handler.set_ui_blocking(true)
-
-## Called when shop screen is closed
-func _on_shop_closed() -> void:
-	_refresh_after_menu_close()
+		ui_coordinator.open("shop", [shop_player, shop_npc])
 
 ## Called when training is opened
 func _on_training_opened(trainer_npc: NPC, train_player: Player) -> void:
 	if training_screen and train_player:
-		training_screen.open(train_player, trainer_npc)
-		input_handler.set_ui_blocking(true)
-
-## Called when training screen is closed
-func _on_training_closed() -> void:
-	_refresh_after_menu_close()
+		ui_coordinator.open("training", [train_player, trainer_npc])
 
 ## Called when shop screen requests switch to training
 func _on_shop_switch_to_training(npc: NPC, switch_player: Player) -> void:
 	if training_screen and switch_player:
-		training_screen.open(switch_player, npc)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("training", [switch_player, npc])
 
 ## Called when training screen requests switch to trade
 func _on_training_switch_to_trade(npc: NPC, switch_player: Player) -> void:
 	if shop_screen and switch_player:
-		shop_screen.open(switch_player, npc)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("shop", [switch_player, npc])
 
 ## Called when NPC menu is opened (NPC with multiple services)
 func _on_npc_menu_opened(menu_npc: NPC, menu_player: Player) -> void:
 	if npc_menu_screen and menu_player:
-		npc_menu_screen.open(menu_player, menu_npc)
-		input_handler.set_ui_blocking(true)
-
-## Called when NPC menu screen is closed
-func _on_npc_menu_closed() -> void:
-	_refresh_after_menu_close()
+		ui_coordinator.open("npc_menu", [menu_player, menu_npc])
 
 ## Called when trade is selected from NPC menu
 func _on_npc_menu_trade_selected(menu_npc: NPC, menu_player: Player) -> void:
-	# Open shop screen
 	if shop_screen and menu_player:
-		shop_screen.open(menu_player, menu_npc)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("shop", [menu_player, menu_npc])
 
 ## Called when train is selected from NPC menu
 func _on_npc_menu_train_selected(menu_npc: NPC, menu_player: Player) -> void:
-	# Open training screen
 	if training_screen and menu_player:
-		training_screen.open(menu_player, menu_npc)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("training", [menu_player, menu_npc])
 
 ## Called when harvesting mode changes
 func _on_harvesting_mode_changed(is_active: bool) -> void:
@@ -2674,28 +2409,6 @@ func _unlock_shop_door(door_pos: Vector2i) -> void:
 		EventBus.tile_changed.emit(door_pos)
 		_add_message("The shop door unlocks at dawn.", Color.GRAY)
 
-## Called when pause menu is closed
-func _on_pause_menu_closed() -> void:
-	_refresh_after_menu_close()
-
-## Called when character sheet is closed
-func _on_character_sheet_closed() -> void:
-	_refresh_after_menu_close()
-
-## Called when level-up screen is closed
-func _on_level_up_screen_closed() -> void:
-	_refresh_after_menu_close()
-	# Reopen character sheet (it was hidden when level-up opened)
-	if character_sheet and player:
-		character_sheet.open(player)
-
-## Called when help screen is closed
-func _on_help_screen_closed() -> void:
-	_refresh_after_menu_close()
-
-## Called when debug menu is closed
-func _on_debug_menu_closed() -> void:
-	_refresh_after_menu_close()
 
 ## Called when a debug action is completed (spawning, etc.)
 func _on_debug_action_completed() -> void:
@@ -2725,13 +2438,6 @@ func _on_perf_overlay_toggle() -> void:
 	renderer.render_entity(player.position, "@", Color.YELLOW)
 	_update_visibility()
 
-## Called when world map is closed
-func _on_world_map_closed() -> void:
-	_refresh_after_menu_close()
-
-## Called when spell list is closed
-func _on_spell_list_closed() -> void:
-	_refresh_after_menu_close()
 
 ## Called when player requests to cast a spell from the spell list
 func _on_spell_cast_requested(spell_id: String) -> void:
@@ -2795,22 +2501,14 @@ func _cast_spell_on_target(spell, target) -> void:
 ## Called when EventBus.ritual_menu_requested is emitted
 func _on_ritual_menu_requested() -> void:
 	if ritual_menu and player:
-		ritual_menu.open(player)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("ritual", [player])
 
-## Called when ritual menu is closed
-func _on_ritual_menu_closed() -> void:
-	_refresh_after_menu_close()
 
 ## Called when player begins a ritual from the ritual menu
 func _on_ritual_started(ritual_id: String) -> void:
 	input_handler.set_ui_blocking(false)
 	_add_message("Ritual channeling has begun. Continue waiting to complete it.", Color.MAGENTA)
 
-
-## Called when special actions screen is closed
-func _on_special_actions_closed() -> void:
-	_refresh_after_menu_close()
 
 
 ## Called when a special action is used
@@ -2826,9 +2524,7 @@ func toggle_special_actions() -> void:
 			special_actions_screen.hide()
 			input_handler.set_ui_blocking(false)
 		else:
-			special_actions_screen.open(player)
-			input_handler.set_ui_blocking(true)
-
+			ui_coordinator.open("special_actions", [player])
 
 ## Toggle fast travel screen (called from input handler)
 func toggle_fast_travel() -> void:
@@ -2837,12 +2533,8 @@ func toggle_fast_travel() -> void:
 			fast_travel_screen.close()
 			input_handler.set_ui_blocking(false)
 		else:
-			fast_travel_screen.open()
-			input_handler.set_ui_blocking(true)
+			ui_coordinator.open("fast_travel")
 
-## Called when fast travel screen is closed
-func _on_fast_travel_closed() -> void:
-	_refresh_after_menu_close()
 
 ## Called when an item is picked up
 func _on_item_picked_up(item) -> void:
@@ -3157,12 +2849,8 @@ func _update_visibility(apply_fow: bool = true) -> void:
 ## Open rest menu (called from input handler)
 func open_rest_menu() -> void:
 	if rest_menu and player:
-		rest_menu.open(player)
-		input_handler.set_ui_blocking(true)
+		ui_coordinator.open("rest_menu", [player])
 
-## Called when rest menu is closed
-func _on_rest_menu_closed() -> void:
-	_refresh_after_menu_close()
 
 ## Called when player requests rest from menu
 func _on_rest_requested(type: String, turns: int) -> void:

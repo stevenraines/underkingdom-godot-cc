@@ -344,6 +344,13 @@ static func is_tile_transparent(pos: Vector2i) -> bool:
 		tile = MapManager.current_map.get_tile(pos)
 
 	if not tile:
+		# CRITICAL FIX: During turn processing, ChunkManager is frozen and may return null
+		# for tiles in unloaded chunks. For dungeons (chunk-based maps), treat null tiles
+		# as transparent during frozen state to prevent AI from freezing when checking LOS.
+		# This is safe because dungeon rooms are fully generated - missing tiles are due to
+		# freeze state, not actual walls.
+		if MapManager.current_map.chunk_based and ChunkManager.is_frozen():
+			return true
 		return false
 
 	return tile.transparent

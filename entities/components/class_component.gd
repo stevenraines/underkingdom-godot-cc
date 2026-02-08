@@ -7,7 +7,7 @@ extends RefCounted
 ## State variables (class_id, class_feats, class_stat_modifiers, etc.)
 ## remain on the Player for backward compatibility with external callers.
 
-var _owner = null
+var _owner = null  # Player
 
 
 func _init(owner = null) -> void:

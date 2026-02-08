@@ -86,8 +86,8 @@ func _build_unicode_map() -> void:
 	for i in range(chars.size()):
 		unicode_char_map[chars[i]] = i
 
-	if chars.size() != TOTAL_TILE_COUNT:
-		push_error("[ASCIITextureMapper] TOTAL_TILE_COUNT (%d) doesn't match built map size (%d)" % [TOTAL_TILE_COUNT, chars.size()])
+	assert(chars.size() == TOTAL_TILE_COUNT,
+		"TOTAL_TILE_COUNT (%d) doesn't match built map size (%d)" % [TOTAL_TILE_COUNT, chars.size()])
 	print("[ASCIITextureMapper] Built unicode map with %d characters" % chars.size())
 
 

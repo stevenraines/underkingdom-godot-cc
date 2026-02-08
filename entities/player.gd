@@ -1600,7 +1600,7 @@ func take_damage(amount: int, source: String = "Unknown", method: String = "") -
 	super.take_damage(amount, source, method)
 
 	# Check concentration after taking damage (if still alive)
-	if is_alive and concentration_spell != "":
+	if is_alive:
 		check_concentration(amount)
 
 ## Get death summary for death screen

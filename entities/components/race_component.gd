@@ -7,7 +7,7 @@ extends RefCounted
 ## State variables (race_id, racial_traits, racial_stat_modifiers, etc.)
 ## remain on the Player for backward compatibility with external callers.
 
-var _owner = null
+var _owner = null  # Player
 
 
 func _init(owner = null) -> void:

@@ -7,7 +7,7 @@ extends RefCounted
 ## State variables (active_summons, MAX_SUMMONS) remain on the Player
 ## for backward compatibility with external callers.
 
-var _owner = null
+var _owner = null  # Player
 
 
 func _init(owner = null) -> void:

@@ -404,6 +404,11 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		return
 
 	_updating_chunks = true
+
+	# CRITICAL: Ensure flag is always reset, even if error occurs
+	# Use deferred call as a safety net (runs at end of frame)
+	_reset_updating_flag_deferred.call_deferred()
+
 	var start_time = Time.get_ticks_usec()
 
 	var player_chunk = world_to_chunk(player_pos)
@@ -461,6 +466,13 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 
 	# Clear reentrancy guard
 	_updating_chunks = false
+
+## Helper function to reset the updating flag (called deferred as safety net)
+func _reset_updating_flag_deferred() -> void:
+	if _updating_chunks:
+		# Flag is still set - this means normal reset didn't happen (error occurred)
+		push_error("[ChunkManager] update_active_chunks flag was not cleared normally - forcing reset!")
+		_updating_chunks = false
 
 ## Get tile at world position (chunk-based access)
 ## Optimized with fast path for already-active chunks (avoids LRU overhead)

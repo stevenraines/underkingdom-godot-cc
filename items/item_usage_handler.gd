@@ -19,6 +19,12 @@ static func use(item: Item, user: Entity) -> Dictionary:
 	if item == null or user == null:
 		return {"success": false, "consumed": false, "message": ""}
 
+	# Reveal curse on use if item is cursed and not yet revealed
+	if item.is_cursed and not item.curse_revealed:
+		item.reveal_curse()
+		var item_name = item.get_display_name()
+		EventBus.message_logged.emit("The %s reveals its true nature - it is cursed!" % item_name, Color.RED)
+
 	# Handle wands (charged spell items)
 	if item.is_wand():
 		return _use_wand(item, user)

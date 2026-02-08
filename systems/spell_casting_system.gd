@@ -568,6 +568,23 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 		result.message = "A soft light begins to glow."
 		# TODO: Integrate with lighting system
 
+	# Handle identify effect (reveal item identity and curses)
+	if effects.has("identify"):
+		result.effects_applied.append("identify")
+		# Target should be an item from inventory (inventory targeting mode)
+		if target and "id" in target and "unidentified" in target:
+			var item_id = target.id
+			# Identify the item
+			IdentificationManager.identify_item(item_id)
+			# Reveal curse if item is cursed
+			if target.has("is_cursed") and target.is_cursed and target.has("curse_revealed") and not target.curse_revealed:
+				target.reveal_curse()
+				result.message = "You sense a dark aura emanating from the %s..." % target.get_display_name()
+			else:
+				result.message = "The %s's true nature is revealed!" % target.get_display_name()
+		else:
+			result.message = spell.cast_message if spell.has("cast_message") else "The spell reveals nothing unusual."
+
 	# Handle summon effects
 	if effects.has("summon"):
 		var summon_data = effects.summon
@@ -585,13 +602,14 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 
 	# Handle remove curse effect
 	if effects.has("remove_curse"):
-		const CurseSystemClass = preload("res://systems/curse_system.gd")
-		var curses_removed = CurseSystemClass.remove_all_curses(target)
 		result.effects_applied.append("remove_curse")
-		if curses_removed > 0:
-			result.message = "The curses are lifted!"
+		# Target should be an equipped item (equipped_item targeting mode)
+		if target and "is_cursed" in target and target.is_cursed:
+			var item_name = target.get_display_name() if target.has("get_display_name") else target.name if "name" in target else "the item"
+			target.remove_curse()
+			result.message = "The curse dissipates! The %s is no longer cursed." % item_name
 		else:
-			result.message = "No curses to remove."
+			result.message = "No curse to remove."
 
 	# Use cast_message if no specific message was set
 	if result.message == "" and spell.cast_message != "":

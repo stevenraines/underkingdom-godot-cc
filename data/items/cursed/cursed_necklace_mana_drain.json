@@ -1,0 +1,27 @@
+{
+  "id": "cursed_necklace_mana_drain",
+  "name": "Arcane Pendant",
+  "true_name": "Pendant of Mana Drain",
+  "description": "A mystical pendant that hums with arcane energy.",
+  "true_description": "This cursed pendant slowly siphons away the wearer's magical power.",
+  "category": "misc",
+  "subtype": "amulet",
+  "equip_slots": ["neck"],
+  "flags": {
+    "equippable": true,
+    "cursed": true
+  },
+  "is_cursed": true,
+  "curse_type": "draining",
+  "curse_revealed": false,
+  "curse_drain_type": "mana",
+  "curse_drain_amount": 3,
+  "value": 250,
+  "weight": 0.1,
+  "ascii_char": "\"",
+  "ascii_color": "#4B0082",
+  "fake_passive_effects": {
+    "max_mana_bonus": 20
+  },
+  "passive_effects": {}
+}

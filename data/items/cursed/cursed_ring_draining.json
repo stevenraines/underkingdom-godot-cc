@@ -1,0 +1,27 @@
+{
+  "id": "cursed_ring_draining",
+  "name": "Ring of Vitality",
+  "true_name": "Vampiric Ring",
+  "description": "A silver ring that pulses with life energy.",
+  "true_description": "This cursed ring slowly drains the wearer's life force.",
+  "category": "misc",
+  "subtype": "ring",
+  "equip_slots": ["accessory"],
+  "flags": {
+    "equippable": true,
+    "cursed": true
+  },
+  "is_cursed": true,
+  "curse_type": "draining",
+  "curse_revealed": false,
+  "curse_drain_type": "health",
+  "curse_drain_amount": 2,
+  "value": 200,
+  "weight": 0.1,
+  "ascii_char": "=",
+  "ascii_color": "#C0C0C0",
+  "fake_passive_effects": {
+    "max_health_bonus": 10
+  },
+  "passive_effects": {}
+}

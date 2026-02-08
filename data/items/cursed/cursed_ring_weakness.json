@@ -1,0 +1,31 @@
+{
+  "id": "cursed_ring_weakness",
+  "name": "Ring of Strength",
+  "true_name": "Cursed Ring of Weakness",
+  "description": "A beautiful gold ring that seems to emanate power.",
+  "true_description": "This ring bears an ancient curse that saps the wearer's strength.",
+  "category": "misc",
+  "subtype": "ring",
+  "equip_slots": ["accessory"],
+  "flags": {
+    "equippable": true,
+    "cursed": true
+  },
+  "is_cursed": true,
+  "curse_type": "stat_penalty",
+  "curse_revealed": false,
+  "value": 150,
+  "weight": 0.1,
+  "ascii_char": "=",
+  "ascii_color": "#FFD700",
+  "fake_passive_effects": {
+    "stat_bonuses": {
+      "STR": 2
+    }
+  },
+  "passive_effects": {
+    "stat_bonuses": {
+      "STR": -2
+    }
+  }
+}

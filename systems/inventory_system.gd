@@ -395,12 +395,18 @@ func equip_item(item: Item, target_slot: String = "") -> Array[Item]:
 	# Swap with currently equipped
 	var previous = equipment[slot]
 	equipment[slot] = item
-	
+
 	# Put previous item back in inventory
 	if previous:
 		add_item(previous)
 		unequipped.append(previous)
-	
+
+	# Reveal curse on equip if item is cursed and not yet revealed
+	if item.is_cursed and not item.curse_revealed:
+		item.reveal_curse()
+		var item_name = item.get_display_name()
+		EventBus.message_logged.emit("The %s reveals its true nature - it is cursed!" % item_name, Color.RED)
+
 	EventBus.item_equipped.emit(item, slot)
 	return unequipped
 
@@ -443,19 +449,37 @@ func get_items_for_slot(slot: String) -> Array[Item]:
 			result.append(item)
 	return result
 
+## Check if an item can be unequipped
+## Returns dictionary with {can_unequip: bool, reason: String}
+func can_unequip_item(item: Item) -> Dictionary:
+	if not item:
+		return {"can_unequip": false, "reason": "No item"}
+
+	# Check if item has binding curse that's been revealed
+	if item.has_binding_curse() and item.curse_revealed:
+		return {"can_unequip": false, "reason": "The curse prevents you from removing the %s!" % item.get_display_name()}
+
+	return {"can_unequip": true, "reason": ""}
+
 ## Unequip an item from a slot
-## Returns the unequipped item
+## Returns the unequipped item (null if cannot unequip)
 func unequip_slot(slot: String) -> Item:
 	if slot not in equipment:
 		return null
-	
+
 	var item = equipment[slot]
 	if not item:
 		return null
-	
+
+	# Check if item can be unequipped (binding curse check)
+	var unequip_check = can_unequip_item(item)
+	if not unequip_check.can_unequip:
+		EventBus.message_logged.emit(unequip_check.reason, Color.RED)
+		return null
+
 	equipment[slot] = null
 	add_item(item)
-	
+
 	EventBus.item_unequipped.emit(item, slot)
 	return item
 

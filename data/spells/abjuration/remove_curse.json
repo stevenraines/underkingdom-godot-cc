@@ -1,7 +1,7 @@
 {
   "id": "remove_curse",
   "name": "Remove Curse",
-  "description": "Lift a curse from an item or creature.",
+  "description": "Lift a curse from an equipped item.",
   "school": "abjuration",
   "level": 4,
   "magic_type": "divine",
@@ -11,7 +11,7 @@
     "intelligence": 11
   },
   "targeting": {
-    "mode": "self"
+    "mode": "equipped_item"
   },
   "effects": {
     "remove_curse": true

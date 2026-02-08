@@ -265,8 +265,16 @@ func _update_equipment_display() -> void:
 		if equipped_item:
 			container.get_node("Icon").text = equipped_item.ascii_char
 			container.get_node("Icon").add_theme_color_override("font_color", equipped_item.get_color())
-			container.get_node("Name").text = equipped_item.get_display_name()
-			container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_EQUIPPED)
+
+			# Add curse indicator if item is cursed and revealed
+			var display_name = equipped_item.get_display_name()
+			if equipped_item.is_cursed and equipped_item.curse_revealed:
+				display_name += " (CURSED)"
+				container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_ERROR)
+			else:
+				container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_EQUIPPED)
+
+			container.get_node("Name").text = display_name
 			container.get_node("Weight").text = "%.1fkg" % equipped_item.weight
 			container.get_node("Weight").add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		else:

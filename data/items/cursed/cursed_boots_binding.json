@@ -1,0 +1,28 @@
+{
+  "id": "cursed_boots_binding",
+  "name": "Boots of Speed",
+  "true_name": "Cursed Binding Boots",
+  "description": "Fine leather boots that promise swift movement.",
+  "true_description": "These cursed boots bind themselves to the wearer's feet, refusing to come off.",
+  "category": "armor",
+  "subtype": "boots",
+  "equip_slots": ["feet"],
+  "flags": {
+    "equippable": true,
+    "cursed": true
+  },
+  "is_cursed": true,
+  "curse_type": "binding",
+  "curse_revealed": false,
+  "armor_value": 1,
+  "value": 100,
+  "weight": 0.8,
+  "ascii_char": "[",
+  "ascii_color": "#8B4513",
+  "fake_passive_effects": {
+    "stat_bonuses": {
+      "DEX": 1
+    }
+  },
+  "passive_effects": {}
+}

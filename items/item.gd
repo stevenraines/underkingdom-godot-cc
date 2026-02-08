@@ -122,9 +122,18 @@ var true_description: String = ""   # Real description (for cursed items)
 
 # Curse properties
 var is_cursed: bool = false         # True if item is cursed
-var curse_type: String = ""         # "binding", "draining", "unlucky"
+var curse_type: String = ""         # "binding", "stat_penalty", "draining", "unlucky"
 var curse_revealed: bool = false    # True once curse is discovered
 var fake_passive_effects: Dictionary = {}  # Fake effects shown before curse reveal
+
+# Draining curse properties
+var curse_drain_type: String = ""  # "health", "mana", "stamina"
+var curse_drain_amount: int = 0    # Amount drained per turn
+
+# Unlucky curse properties
+var curse_accuracy_penalty: int = 0      # Penalty to hit chance
+var curse_dodge_penalty: int = 0         # Penalty to dodge chance
+var curse_encounter_modifier: float = 1.0  # Multiplier for encounter rate (e.g., 1.25 = 25% more encounters)
 
 ## Create an item from a data dictionary (loaded from JSON)
 static func create_from_data(data: Dictionary) -> Item:
@@ -257,6 +266,15 @@ static func create_from_data(data: Dictionary) -> Item:
 	item.curse_revealed = data.get("curse_revealed", false)
 	item.fake_passive_effects = data.get("fake_passive_effects", {})
 
+	# Draining curse properties
+	item.curse_drain_type = data.get("curse_drain_type", "")
+	item.curse_drain_amount = data.get("curse_drain_amount", 0)
+
+	# Unlucky curse properties
+	item.curse_accuracy_penalty = data.get("curse_accuracy_penalty", 0)
+	item.curse_dodge_penalty = data.get("curse_dodge_penalty", 0)
+	item.curse_encounter_modifier = data.get("curse_encounter_modifier", 1.0)
+
 	return item
 
 ## Create a copy of this item
@@ -323,6 +341,11 @@ func duplicate_item() -> Item:
 	copy.curse_type = curse_type
 	copy.curse_revealed = curse_revealed
 	copy.fake_passive_effects = fake_passive_effects.duplicate(true)
+	copy.curse_drain_type = curse_drain_type
+	copy.curse_drain_amount = curse_drain_amount
+	copy.curse_accuracy_penalty = curse_accuracy_penalty
+	copy.curse_dodge_penalty = curse_dodge_penalty
+	copy.curse_encounter_modifier = curse_encounter_modifier
 	return copy
 
 ## Get the display name (handles unidentified items and inscriptions)

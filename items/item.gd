@@ -799,11 +799,11 @@ func remove_curse() -> void:
 		is_cursed = false
 		curse_type = ""
 		curse_revealed = false
-		# Restore true name if it was hidden
-		if true_name != "":
-			name = true_name
-		if true_description != "":
-			description = true_description
+		# Clear curse-related text (benign name/description stay in name/description)
+		true_name = ""
+		true_description = ""
+		# Also mark as identified so it shows the proper benign name
+		unidentified = false
 		EventBus.curse_removed.emit(self)
 
 

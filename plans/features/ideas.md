@@ -2,8 +2,6 @@
 ---
 ## Unplanned
 
-- [ ] Hide item info until revealed
-    When a player finds or purchases a magic item that has not yet been identified it should appear in inventory and messages as a normal item of that type. For example, a "Ring of Power" might be a shiny gold ring. Only when used/equipped and its powers revealed (like on a successful hit for a weapon, or being hit for armor) or when an Identify spell is cast on it should it show what it is. 
 - [ ] Feature: Add Ritual to Charge Magic Items
     Wands and other items have charges. Create a ritual that allows for a charged item with no charges to be recharged. To determine which item is being targeted, this should leverage the item selection dialog implemented for the Identify spell. Only items that can be charged should appear.
 - [ ] Feature: Dungeon Map 

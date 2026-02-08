@@ -60,6 +60,7 @@ var targeting_system = null  # TargetingSystem instance
 
 # Scroll targeting - track pending scroll for consumption after cast
 var pending_scroll: Item = null  # Scroll being used for spell casting
+var pending_spell = null  # Spell being cast from player's spell list (for item targeting)
 
 # Wand targeting - track pending wand for charge consumption after cast
 var pending_wand: Item = null  # Wand being used for spell casting

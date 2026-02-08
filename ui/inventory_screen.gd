@@ -195,19 +195,6 @@ func open(p: Player) -> void:
 	_update_selection()
 
 func _close() -> void:
-	# Clean up scroll item targeting mode if active
-	var input_handler = get_tree().get_first_node_in_group("input_handler")
-	if input_handler and input_handler.has_meta("pending_spell"):
-		# Cancel the scroll targeting
-		input_handler.remove_meta("pending_spell")
-		input_handler.remove_meta("pending_targeting_mode")
-		input_handler.pending_scroll = null
-
-		# Notify the user
-		var game = get_tree().get_first_node_in_group("game")
-		if game and game.has_method("_add_message"):
-			game._add_message("Cancelled.", Color(0.7, 0.7, 0.7))
-
 	hide()
 	closed.emit()
 
@@ -215,25 +202,14 @@ func refresh() -> void:
 	if not player or not player.inventory:
 		return
 
-	# Check if we're in spell targeting mode
-	var input_handler = get_tree().get_first_node_in_group("input_handler")
-	var in_spell_targeting = input_handler and input_handler.has_meta("pending_spell")
-
-	# Update title if in spell targeting mode
-	if in_spell_targeting and inventory_title:
-		var spell = input_handler.get_meta("pending_spell")
-		var spell_name = spell.name if spell and "name" in spell else "spell"
-		inventory_title.text = "══ SELECT ITEM FOR %s (E to select, ESC to cancel) ══" % spell_name.to_upper()
-		inventory_title.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
-
 	_update_weight_display()
 	_update_filter_bar()
 	_update_equipment_display()
 	_update_inventory_display()
 	_update_selection()
 
-	# Restore normal title if not in targeting mode
-	if not in_spell_targeting and inventory_title:
+	# Update title
+	if inventory_title:
 		var filtered_items = player.inventory.get_items_by_filter(current_filter)
 		_update_inventory_title(filtered_items.size())
 
@@ -701,12 +677,6 @@ func _equip_selected() -> void:
 	if not player or not player.inventory:
 		return
 
-	# Check if we're in spell item targeting mode (scroll of identify, etc.)
-	var input_handler = get_tree().get_first_node_in_group("input_handler")
-	if input_handler and input_handler.has_meta("pending_spell"):
-		_cast_scroll_spell_on_item()
-		return
-
 	if is_equipment_focused:
 		# On equipment side
 		if selected_item:
@@ -1093,40 +1063,3 @@ func _update_inventory_title(item_count: int) -> void:
 		var filter_name = FILTER_LABELS.get(current_filter, "items")
 		inventory_title.text = "══ BACKPACK (%d %s) ══" % [item_count, filter_name.to_lower()]
 
-## Cast a scroll spell on the selected item (for scroll item targeting mode)
-func _cast_scroll_spell_on_item() -> void:
-	const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
-
-	if not selected_item or not player:
-		return
-
-	var input_handler = get_tree().get_first_node_in_group("input_handler")
-	if not input_handler:
-		return
-
-	var spell = input_handler.get_meta("pending_spell")
-	var pending_scroll = input_handler.pending_scroll
-
-	if not spell or not pending_scroll:
-		return
-
-	# Cast the spell on the selected item
-	var cast_result = SpellCastingSystemClass.cast_spell(player, spell, selected_item, true)
-
-	# Show the result message
-	var game = get_tree().get_first_node_in_group("game")
-	if game and game.has_method("_add_message"):
-		if cast_result.message:
-			game._add_message(cast_result.message, Color(0.7, 0.9, 1.0))
-
-	# Consume the scroll if successful
-	if cast_result.success or not cast_result.has("failed") or not cast_result.failed:
-		player.inventory.remove_item(pending_scroll)
-		input_handler.pending_scroll = null
-
-	# Clear the pending spell metadata
-	input_handler.remove_meta("pending_spell")
-	input_handler.remove_meta("pending_targeting_mode")
-
-	# Close the inventory
-	_close()

@@ -2568,31 +2568,16 @@ func _on_scroll_item_targeting_started(scroll, spell, targeting_mode: String) ->
 	# Store the scroll for consumption after cast
 	pending_scroll = scroll
 
-	# Store the spell and targeting mode for later use
-	# We'll need these when the player selects an item
-	set_meta("pending_spell", spell)
-	set_meta("pending_targeting_mode", targeting_mode)
-
 	# Show message about item selection
 	if game and game.has_method("_add_message"):
 		var action_text = "identify" if spell.id == "identify" else "target with %s" % spell.name
-		game._add_message("Select an item to %s (E to select, ESC to cancel)" % action_text, Color(0.5, 0.8, 1.0))
+		game._add_message("Select an item to %s..." % action_text, Color(0.5, 0.8, 1.0))
 
-	# Ensure inventory screen is open (don't toggle if already open)
+	# Open the spell item selection dialog
 	if game:
-		var inventory_screen = game.get_node_or_null("InventoryScreen")
-		if inventory_screen and not inventory_screen.visible:
-			# Inventory is closed, open it via UI coordinator
-			if game.has_node("UICoordinator"):
-				var ui_coordinator = game.get_node("UICoordinator")
-				if ui_coordinator and ui_coordinator.has_method("open"):
-					ui_coordinator.open("inventory", [player])
-			elif game.has_method("toggle_inventory_screen"):
-				game.toggle_inventory_screen()
-		elif inventory_screen and inventory_screen.visible:
-			# Inventory is already open - just refresh it
-			if inventory_screen.has_method("refresh"):
-				inventory_screen.refresh()
+		var dialog = game.get_node_or_null("SpellItemSelectionDialog")
+		if dialog and dialog.has_method("open"):
+			dialog.open(player, spell, targeting_mode)
 
 
 ## Handle wand targeting signal

@@ -140,6 +140,18 @@ func get_starting_equipment(class_id: String) -> Array:
 	return cls.get("starting_equipment", [])
 
 
+## Get priority abilities for a class (ordered highest to lowest priority)
+## Used for auto-assigning ability scores during character creation
+## Returns array of ability names e.g., ["STR", "CON", "DEX", "WIS", "CHA", "INT"]
+func get_priority_abilities(class_id: String) -> Array:
+	var cls = get_class_def(class_id)
+	var priorities = cls.get("priority_abilities", [])
+	if priorities.is_empty():
+		# Default order if not specified
+		return ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
+	return priorities
+
+
 ## Get starting spells for a class
 ## Returns array of spell IDs that the class knows at game start
 func get_starting_spells(class_id: String) -> Array:

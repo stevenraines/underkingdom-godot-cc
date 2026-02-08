@@ -4,6 +4,7 @@
   "description": "Masters of stealth and precision, rogues strike from the shadows with deadly accuracy. They prefer light armor that doesn't impede their agility.",
   "ascii_color": "#666666",
   "magic_types": [],
+  "priority_abilities": ["DEX", "CON", "STR", "INT", "WIS", "CHA"],
   "stat_modifiers": {
     "DEX": 2,
     "CON": -1

@@ -4,6 +4,7 @@
   "description": "A jack of all trades with no specialization but unlimited potential. Free from class restrictions, adventurers can master any weapon and wear any armor.",
   "ascii_color": "#AAAAAA",
   "magic_types": ["arcane", "divine"],
+  "priority_abilities": ["STR", "DEX", "CON", "INT", "WIS", "CHA"],
   "stat_modifiers": {},
   "skill_bonuses": {},
   "feats": [

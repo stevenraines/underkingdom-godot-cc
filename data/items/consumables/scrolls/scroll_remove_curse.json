@@ -1,0 +1,20 @@
+{
+  "id": "scroll_remove_curse",
+  "name": "Scroll of Remove Curse",
+  "description": "A scroll inscribed with abjuration magic that can lift curses from items.",
+  "category": "consumable",
+  "subtype": "scroll",
+  "item_type": "consumable",
+  "flags": {
+    "consumable": true,
+    "magical": true,
+    "scroll": true
+  },
+  "unidentified": true,
+  "casts_spell": "remove_curse",
+  "weight": 0.1,
+  "value": 100,
+  "max_stack": 5,
+  "ascii_char": "~",
+  "ascii_color": "#FFAA00"
+}

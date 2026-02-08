@@ -1,0 +1,30 @@
+{
+  "id": "cursed_amulet_unlucky",
+  "name": "Amulet of Fortune",
+  "true_name": "Amulet of Misfortune",
+  "description": "A golden amulet that seems to shimmer with good luck.",
+  "true_description": "This cursed amulet brings terrible misfortune to its wearer.",
+  "category": "misc",
+  "subtype": "amulet",
+  "equip_slots": ["neck"],
+  "flags": {
+    "equippable": true,
+    "cursed": true
+  },
+  "is_cursed": true,
+  "curse_type": "unlucky",
+  "curse_revealed": false,
+  "curse_accuracy_penalty": -15,
+  "curse_dodge_penalty": -10,
+  "curse_encounter_modifier": 1.25,
+  "value": 180,
+  "weight": 0.2,
+  "ascii_char": "\"",
+  "ascii_color": "#FFD700",
+  "fake_passive_effects": {
+    "stat_bonuses": {
+      "DEX": 1
+    }
+  },
+  "passive_effects": {}
+}

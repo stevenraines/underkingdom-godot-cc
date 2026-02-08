@@ -232,7 +232,18 @@ func get_effective_attribute(attr_name: String) -> int:
 	var racial_mod = racial_stat_modifiers.get(attr_name, 0)
 	var class_mod = class_stat_modifiers.get(attr_name, 0)
 	var temp_mod = stat_modifiers.get(attr_name, 0)
-	return max(1, base_value + racial_mod + class_mod + temp_mod)
+
+	# Apply curse stat penalties from equipped cursed items
+	var curse_mod = 0
+	for slot in inventory.equipment:
+		var item = inventory.equipment[slot]
+		if item and item.is_cursed and item.curse_revealed:
+			# Get real passive effects (not fake ones)
+			var effects = item.get_passive_effects()
+			if effects.has("stat_bonuses") and effects.stat_bonuses.has(attr_name):
+				curse_mod += effects.stat_bonuses[attr_name]
+
+	return max(1, base_value + racial_mod + class_mod + temp_mod + curse_mod)
 
 func get_effective_perception_range() -> int:
 	return race_component.get_effective_perception_range()
@@ -651,8 +662,36 @@ func process_survival_turn(turn_number: int) -> Dictionary:
 	var survival_effects = survival._calculate_survival_effects()
 	var base_perception = 5 + int(attributes["WIS"] / 2.0)
 	perception_range = max(2, base_perception + survival_effects.perception_modifier)
-	
+
+	# Process draining curse effects from equipped cursed items
+	_process_draining_curses()
+
 	return effects
+
+## Process draining curse effects each turn
+func _process_draining_curses() -> void:
+	for slot in inventory.equipment:
+		var item = inventory.equipment[slot]
+		if item and item.is_cursed and item.curse_revealed and item.curse_type == "draining":
+			if item.curse_drain_type != "" and item.curse_drain_amount > 0:
+				var item_name = item.get_display_name()
+				match item.curse_drain_type:
+					"health":
+						take_damage(item.curse_drain_amount, "Curse", item_name)
+						EventBus.message_logged.emit("The %s drains your life force! (-%d HP)" % [item_name, item.curse_drain_amount], Color.RED)
+					"mana":
+						if survival:
+							var drained = min(item.curse_drain_amount, int(survival.mana))
+							survival.mana = max(0, survival.mana - drained)
+							EventBus.mana_changed.emit(survival.mana + drained, survival.mana, survival.max_mana)
+							if drained > 0:
+								EventBus.message_logged.emit("The %s drains your mana! (-%d MP)" % [item_name, drained], Color.CYAN)
+					"stamina":
+						if survival:
+							var drained = min(item.curse_drain_amount, int(survival.stamina))
+							survival.stamina = max(0, survival.stamina - drained)
+							if drained > 0:
+								EventBus.message_logged.emit("The %s drains your stamina! (-%d)" % [item_name, drained], Color.YELLOW)
 
 ## Regenerate stamina (called when waiting/not acting)
 func regenerate_stamina() -> void:

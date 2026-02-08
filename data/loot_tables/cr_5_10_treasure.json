@@ -11,6 +11,17 @@
 		{"item_id": "healing_potion", "min_count": 1, "max_count": 1, "chance": 0.15},
 		{"item_id": "mana_potion", "min_count": 1, "max_count": 1, "chance": 0.1},
 		{"item_id": "antidote", "min_count": 1, "max_count": 1, "chance": 0.1},
-		{"item_id": "iron_key", "min_count": 1, "max_count": 1, "chance": 0.08}
+		{"item_id": "iron_key", "min_count": 1, "max_count": 1, "chance": 0.08},
+		{"item_id": "ring_of_strength", "min_count": 1, "max_count": 1, "chance": 0.08},
+		{"item_id": "ring_of_power", "min_count": 1, "max_count": 1, "chance": 0.06},
+		{"item_id": "ring_of_vitality", "min_count": 1, "max_count": 1, "chance": 0.06},
+		{"item_id": "boots_of_speed", "min_count": 1, "max_count": 1, "chance": 0.06},
+		{"item_id": "gloves_of_dexterity", "min_count": 1, "max_count": 1, "chance": 0.06},
+		{"item_id": "cursed_ring_weakness", "min_count": 1, "max_count": 1, "chance": 0.05},
+		{"item_id": "cursed_ring_draining", "min_count": 1, "max_count": 1, "chance": 0.04},
+		{"item_id": "cursed_amulet_unlucky", "min_count": 1, "max_count": 1, "chance": 0.04},
+		{"item_id": "cursed_boots_binding", "min_count": 1, "max_count": 1, "chance": 0.05},
+		{"item_id": "cursed_gloves_penalty", "min_count": 1, "max_count": 1, "chance": 0.04},
+		{"item_id": "cursed_necklace_mana_drain", "min_count": 1, "max_count": 1, "chance": 0.03}
 	]
 }

@@ -1,0 +1,21 @@
+{
+  "id": "gloves_of_dexterity",
+  "name": "Gloves of Dexterity",
+  "description": "Finely crafted leather gloves that promise improved dexterity.",
+  "category": "armor",
+  "subtype": "gloves",
+  "equip_slots": ["hands"],
+  "flags": {
+    "equippable": true
+  },
+  "armor_value": 1,
+  "ascii_char": "[",
+  "ascii_color": "#654321",
+  "weight": 0.3,
+  "value": 180,
+  "passive_effects": {
+    "stat_bonuses": {
+      "DEX": 2
+    }
+  }
+}

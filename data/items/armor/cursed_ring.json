@@ -1,12 +1,30 @@
 {
 	"id": "cursed_ring",
-	"name": "Cursed Ring",
-	"description": "A tarnished ring that whispers dark promises",
+	"name": "Ring of Power",
+	"true_name": "Cursed Ring",
+	"description": "A ring that seems to pulse with mysterious energy.",
+	"true_description": "A tarnished ring that whispers dark promises and drains the wearer's vitality.",
+	"category": "misc",
+	"subtype": "ring",
+	"equip_slots": ["accessory"],
+	"flags": {
+		"equippable": true,
+		"cursed": true
+	},
+	"is_cursed": true,
+	"curse_type": "draining",
+	"curse_revealed": false,
+	"curse_drain_type": "health",
+	"curse_drain_amount": 1,
 	"ascii_char": "=",
-	"color": "#4B0082",
+	"ascii_color": "#4B0082",
 	"weight": 0.1,
 	"value": 150,
 	"max_stack": 1,
-	"item_type": "armor",
-	"slot": "accessory"
+	"fake_passive_effects": {
+		"stat_bonuses": {
+			"STR": 1
+		}
+	},
+	"passive_effects": {}
 }

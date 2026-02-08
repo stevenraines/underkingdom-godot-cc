@@ -33,6 +33,7 @@ var world_map_screen: Control = null
 var fast_travel_screen: Control = null
 var rest_menu: Control = null
 var spell_list_screen: Control = null
+var spell_item_selection_dialog: Control = null
 var ritual_menu: Control = null
 var special_actions_screen: Control = null
 var debug_command_menu: Control = null
@@ -103,6 +104,7 @@ const DeathScreenScene = preload("res://ui/death_screen.tscn")
 const SpellListScreenScene = preload("res://ui/spell_list_screen.tscn")
 const RitualMenuScene = preload("res://ui/ritual_menu.tscn")
 const SpecialActionsScreenScene = preload("res://ui/special_actions_screen.tscn")
+const SpellItemSelectionDialogScene = preload("res://ui/spell_item_selection_dialog.tscn")
 const SpellCastingSystemClass = preload("res://systems/spell_casting_system.gd")
 const UICoordinatorClass = preload("res://systems/ui_coordinator.gd")
 const GameEventHandlersClass = preload("res://systems/game_event_handlers.gd")
@@ -350,6 +352,7 @@ func _setup_ui_screens() -> void:
 	spell_list_screen = ui_coordinator.setup_preloaded("spell_list", SpellListScreenScene)
 	ritual_menu = ui_coordinator.setup_preloaded("ritual", RitualMenuScene)
 	special_actions_screen = ui_coordinator.setup_preloaded("special_actions", SpecialActionsScreenScene)
+	spell_item_selection_dialog = ui_coordinator.setup_preloaded("spell_item_selection", SpellItemSelectionDialogScene)
 
 	# Dynamically loaded screens
 	character_sheet = ui_coordinator.setup_loaded("character_sheet", "res://ui/character_sheet.tscn", "CharacterSheet")
@@ -384,6 +387,9 @@ func _setup_ui_screens() -> void:
 		special_actions_screen.action_used.connect(_on_special_action_used)
 	if debug_command_menu and debug_command_menu.has_signal("action_completed"):
 		debug_command_menu.action_completed.connect(_on_debug_action_completed)
+	if spell_item_selection_dialog and spell_item_selection_dialog.has_signal("item_selected"):
+		spell_item_selection_dialog.item_selected.connect(_on_spell_item_selected)
+		spell_item_selection_dialog.cancelled.connect(_on_spell_item_selection_cancelled)
 
 	# Connect unified close handler
 	ui_coordinator.screen_closed.connect(_on_ui_screen_closed)
@@ -1389,6 +1395,43 @@ func _cast_spell_on_target(spell, target) -> void:
 func _on_ritual_started(ritual_id: String) -> void:
 	input_handler.set_ui_blocking(false)
 	_add_message("Ritual channeling has begun. Continue waiting to complete it.", Color.MAGENTA)
+
+## Called when an item is selected from the spell item selection dialog
+func _on_spell_item_selected(item: Item) -> void:
+	if not player or not item or not input_handler:
+		return
+
+	# Get the pending scroll
+	var pending_scroll = input_handler.pending_scroll
+	if not pending_scroll:
+		return
+
+	# Get the spell from the scroll
+	var spell = SpellManager.get_spell(pending_scroll.casts_spell)
+	if not spell:
+		_add_message("The scroll contains corrupted magic.", Color(1.0, 0.5, 0.5))
+		return
+
+	# Cast the spell on the selected item
+	var cast_result = SpellCastingSystemClass.cast_spell(player, spell, item, true)
+
+	# Show the result message
+	if cast_result.message:
+		_add_message(cast_result.message, Color(0.7, 0.9, 1.0))
+
+	# Consume the scroll if successful
+	if cast_result.success or not cast_result.has("failed") or not cast_result.failed:
+		player.inventory.remove_item(pending_scroll)
+		input_handler.pending_scroll = null
+
+	# Advance turn
+	TurnManager.advance_turn()
+
+## Called when the spell item selection dialog is cancelled
+func _on_spell_item_selection_cancelled() -> void:
+	if input_handler:
+		input_handler.pending_scroll = null
+	_add_message("Cancelled.", Color(0.7, 0.7, 0.7))
 
 ## Called when a special action is used
 func _on_special_action_used(_action_type: String, _action_id: String) -> void:

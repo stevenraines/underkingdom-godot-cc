@@ -2,10 +2,12 @@
 ---
 ## Unplanned
 
+- [ ] Hide item info until revelaed
+    When a player finds or purchases a magic item that has not yet been identified it should appear in inventory and messages as a normal item of that type. For example, a "Ring of Power" might be a shiny gold ring. Only when used/equipped and it's powers revealed (like on a successful hit for a weapon, or being hit for armor) or when an Identify spell is cast on it should it show what it is. 
 - [ ] Feature: Add Ritual to Charge Magic Items
     Wands and other items have charges. Create a ritual that allows for these items to be recharged.
 - [ ] Feature: Dungeon Map 
-    Opening the Map in a dungeone should show currently explored level, not the overworld
+    Opening the Map in a dungeon should show a mini-map of the currently explored level, not the overworld
 - [ ] Save / Load Across Machines
     Add the ability to download a saved game as a JSON file and load it into a different instance of the game. Add a Load from file option and a place to download a saved game to a file.
 - [ ] Feature: Initial Spawn Time - Day

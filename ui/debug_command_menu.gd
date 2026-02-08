@@ -565,6 +565,11 @@ func _show_item_submenu(mode: String) -> void:
 	for item_id in all_item_ids:
 		var item_data = ItemManager.get_item_data(item_id)
 		var display_name = item_data.get("name", item_id) if item_data else item_id
+
+		# Add curse indicator if item is cursed
+		if item_data and item_data.get("is_cursed", false):
+			display_name += " [CURSED]"
+
 		items.append({"type": "command", "text": display_name, "id": item_id, "name": display_name})
 
 	# Add templated items from VariantManager
@@ -1161,7 +1166,7 @@ func _do_give_item(item_id: String) -> void:
 	var item = ItemManager.create_item(item_id)
 	if item:
 		if player.inventory.add_item(item):
-			_show_message("Added: %s" % item.name)
+			_show_message("Added: %s" % item.get_display_name())
 		else:
 			_show_message("Inventory full!")
 	else:

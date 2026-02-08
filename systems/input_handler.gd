@@ -78,12 +78,14 @@ var current_look_object = null  # Currently looked-at object
 signal look_object_changed(obj)  # Emitted when look selection changes
 
 func _ready() -> void:
+	add_to_group("input_handler")
 	set_process_unhandled_input(true)
 	set_process(false)  # Start disabled for performance - enabled when player's turn starts
 	targeting_system = TargetingSystemClass.new()
 
 	# Connect to scroll and wand targeting signals
 	EventBus.scroll_targeting_started.connect(_on_scroll_targeting_started)
+	EventBus.scroll_item_targeting_started.connect(_on_scroll_item_targeting_started)
 	EventBus.wand_targeting_started.connect(_on_wand_targeting_started)
 	# Connect to turn signals for performance optimization
 	TurnManager.player_turn_started.connect(_on_player_turn_started)
@@ -2553,6 +2555,31 @@ func _on_scroll_targeting_started(scroll, spell) -> void:
 		pending_scroll = null
 		if game and game.has_method("_add_message"):
 			game._add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))
+
+
+## Handle scroll item targeting signal
+## Called when a scroll with an inventory/equipped_item spell is used
+func _on_scroll_item_targeting_started(scroll, spell, targeting_mode: String) -> void:
+	if not player:
+		return
+
+	var game = get_parent()
+
+	# Store the scroll for consumption after cast
+	pending_scroll = scroll
+
+	# Show message about item selection
+	if game and game.has_method("_add_message"):
+		var action_text = "identify" if spell.id == "identify" else "target with %s" % spell.name
+		game._add_message("Select an item to %s..." % action_text, Color(0.5, 0.8, 1.0))
+
+	# Close the inventory screen first
+	if game and game.inventory_screen and game.inventory_screen.visible:
+		game.inventory_screen.hide()
+
+	# Open the spell item selection dialog via UI coordinator
+	if game and game.ui_coordinator:
+		game.ui_coordinator.open("spell_item_selection", [player, spell, targeting_mode])
 
 
 ## Handle wand targeting signal

@@ -163,6 +163,8 @@ signal terrain_changed(position: Vector2i, new_type: String)
 @warning_ignore("unused_signal")
 signal scroll_targeting_started(scroll, spell)  # Item, Spell
 @warning_ignore("unused_signal")
+signal scroll_item_targeting_started(scroll, spell, targeting_mode: String)  # Item, Spell, String ("inventory" or "equipped_item")
+@warning_ignore("unused_signal")
 signal transcription_attempted(scroll, spell, success: bool)  # Item, Spell
 
 # Wand signals

@@ -1,0 +1,32 @@
+{
+  "id": "cursed_gloves_penalty",
+  "name": "Gloves of Dexterity",
+  "true_name": "Gloves of Clumsiness",
+  "description": "Finely crafted leather gloves that promise improved dexterity.",
+  "true_description": "These cursed gloves make the wearer clumsy and awkward.",
+  "category": "armor",
+  "subtype": "gloves",
+  "equip_slots": ["hands"],
+  "flags": {
+    "equippable": true,
+    "cursed": true
+  },
+  "is_cursed": true,
+  "curse_type": "stat_penalty",
+  "curse_revealed": false,
+  "armor_value": 1,
+  "value": 120,
+  "weight": 0.3,
+  "ascii_char": "[",
+  "ascii_color": "#654321",
+  "fake_passive_effects": {
+    "stat_bonuses": {
+      "DEX": 2
+    }
+  },
+  "passive_effects": {
+    "stat_bonuses": {
+      "DEX": -2
+    }
+  }
+}

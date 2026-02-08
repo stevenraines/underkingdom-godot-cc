@@ -208,6 +208,11 @@ func refresh() -> void:
 	_update_inventory_display()
 	_update_selection()
 
+	# Update title
+	if inventory_title:
+		var filtered_items = player.inventory.get_items_by_filter(current_filter)
+		_update_inventory_title(filtered_items.size())
+
 func _update_weight_display() -> void:
 	if not player or not player.inventory:
 		return
@@ -265,8 +270,16 @@ func _update_equipment_display() -> void:
 		if equipped_item:
 			container.get_node("Icon").text = equipped_item.ascii_char
 			container.get_node("Icon").add_theme_color_override("font_color", equipped_item.get_color())
-			container.get_node("Name").text = equipped_item.get_display_name()
-			container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_EQUIPPED)
+
+			# Add curse indicator if item is cursed and revealed
+			var display_name = equipped_item.get_display_name()
+			if equipped_item.is_cursed and equipped_item.curse_revealed:
+				display_name += " (CURSED)"
+				container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_ERROR)
+			else:
+				container.get_node("Name").add_theme_color_override("font_color", UITheme.COLOR_EQUIPPED)
+
+			container.get_node("Name").text = display_name
 			container.get_node("Weight").text = "%.1fkg" % equipped_item.weight
 			container.get_node("Weight").add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		else:
@@ -503,7 +516,15 @@ func _populate_item_tooltip(item: Item) -> void:
 	# Name column - show inscription if present
 	item_name_label.text = item.get_display_name()
 	item_name_label.add_theme_color_override("font_color", item.get_color())
-	item_desc_label.text = item.description
+
+	# Description - add curse warning if cursed and revealed
+	var description = item.description
+	if item.is_cursed and item.curse_revealed:
+		description += "\n[!] CURSED - Cannot be unequipped!"
+		item_desc_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	else:
+		item_desc_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	item_desc_label.text = description
 
 	# Stats column - build stat lines based on item type
 	var stats: Array[String] = []
@@ -655,7 +676,7 @@ func _toggle_focus() -> void:
 func _equip_selected() -> void:
 	if not player or not player.inventory:
 		return
-	
+
 	if is_equipment_focused:
 		# On equipment side
 		if selected_item:
@@ -669,27 +690,27 @@ func _equip_selected() -> void:
 		# On inventory side - equip selected item
 		if not selected_item:
 			return
-		
+
 		# Store the item reference before any operations
 		var item_to_process = selected_item
-		
+
 		# Check if item is equippable
 		if not item_to_process.is_equippable():
 			return
-		
+
 		# Check if it's in inventory
 		if not player.inventory.contains_item(item_to_process):
 			return
-		
+
 		# If item can go in multiple slots, show slot picker
 		var slots = item_to_process.get_equip_slots()
 		if slots.size() > 1:
 			_show_slot_picker(item_to_process)
 			return
-		
+
 		# Clear selection state to prevent double-operations
 		selected_item = null
-		
+
 		# Equip to default slot
 		player.inventory.equip_item(item_to_process)
 	
@@ -1041,3 +1062,4 @@ func _update_inventory_title(item_count: int) -> void:
 	else:
 		var filter_name = FILTER_LABELS.get(current_filter, "items")
 		inventory_title.text = "══ BACKPACK (%d %s) ══" % [item_count, filter_name.to_lower()]
+

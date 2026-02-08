@@ -1,0 +1,18 @@
+{
+  "id": "ring_of_vitality",
+  "name": "Ring of Vitality",
+  "description": "A silver ring that pulses with life energy.",
+  "category": "misc",
+  "subtype": "ring",
+  "equip_slots": ["accessory"],
+  "flags": {
+    "equippable": true
+  },
+  "ascii_char": "=",
+  "ascii_color": "#C0C0C0",
+  "weight": 0.1,
+  "value": 300,
+  "passive_effects": {
+    "max_health_bonus": 10
+  }
+}

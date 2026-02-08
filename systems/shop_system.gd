@@ -61,6 +61,12 @@ func attempt_purchase(shop_npc, item_id: String, count: int, player) -> bool:
 	shop_npc.remove_shop_item(item_id, count)
 
 	var item = ItemManager.create_item(item_id, count)
+
+	# Items purchased from shops are automatically identified
+	if item.unidentified:
+		IdentificationManager.identify_item(item.id)
+		item.unidentified = false
+
 	player.inventory.add_item(item)
 
 	EventBus.emit_signal("item_purchased", item, total_price)

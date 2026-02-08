@@ -1143,6 +1143,9 @@ func _try_auto_harvest_on_bump(target_pos: Vector2i, direction: Vector2i) -> boo
 	# Check if player has the required tool
 	var tool_check = HarvestSystemClass.has_required_tool(player, resource)
 	if not tool_check.has_tool:
+		# Allow direct drinking from water sources without a container
+		if tile.harvestable_resource_id == "water" and player.survival:
+			return _try_drink_from_tile(target_pos)
 		return false
 
 	# Player has the right tool - start harvesting automatically
@@ -1162,6 +1165,25 @@ func _try_auto_harvest_on_bump(target_pos: Vector2i, direction: Vector2i) -> boo
 		return true
 
 	return false
+
+## Drink directly from an adjacent water tile (well, water) when no container is available
+func _try_drink_from_tile(target_pos: Vector2i) -> bool:
+	var parent_game = get_parent()
+	if player.survival.thirst >= 100:
+		if parent_game and parent_game.has_method("_add_message"):
+			parent_game._add_message("You're not thirsty.", Color(0.7, 0.7, 0.7))
+		return true  # Consumed the action but didn't drink
+
+	player.survival.drink(75)
+	var tile = MapManager.current_map.get_tile(target_pos)
+	var source_name = "water"
+	if tile and tile.tile_type == "well":
+		source_name = "well"
+	if parent_game and parent_game.has_method("_add_message"):
+		parent_game._add_message("You drink from the %s. (+75 thirst)" % source_name, Color(0.6, 0.9, 0.6))
+	TurnManager.advance_turn()
+	return true
+
 
 ## Search for traps in all directions around player
 ## Range is 2 + traps skill

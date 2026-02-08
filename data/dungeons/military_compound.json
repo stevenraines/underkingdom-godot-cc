@@ -1,5 +1,6 @@
 {
   "id": "military_compound",
+  "water_source_feature": "water_barrel",
   "name": "Military Compound",
   "description": "Active or abandoned military installation with organized defenses",
   "entrance_char": "⌐",
@@ -91,6 +92,11 @@
       "room_types": ["courtyard"],
       "spawns_archers": true,
       "provides_overwatch": true
+    },
+    {
+      "feature_id": "water_barrel",
+      "spawn_chance": 0.15,
+      "room_types": ["any"]
     }
   ],
 

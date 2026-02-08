@@ -1,5 +1,6 @@
 {
   "id": "abandoned_mine",
+  "water_source_feature": "water_barrel",
   "name": "Abandoned Mine",
   "description": "Grid-like mining tunnels with dangerous shafts and toxic gas",
   "entrance_char": "⛏",
@@ -92,6 +93,11 @@
       "room_types": ["tunnel"],
       "destructible": true,
       "causes_collapse": true
+    },
+    {
+      "feature_id": "water_barrel",
+      "spawn_chance": 0.15,
+      "room_types": ["any"]
     }
   ],
 

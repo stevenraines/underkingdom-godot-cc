@@ -1,5 +1,6 @@
 {
   "id": "wizard_tower",
+  "water_source_feature": "cistern",
   "name": "Wizard Tower",
   "description": "Vertical tower filled with magical research and arcane dangers",
   "entrance_char": "⌠",
@@ -108,6 +109,11 @@
       "spawn_chance": 0.2,
       "room_types": ["entrance"],
       "provides_light": true
+    },
+    {
+      "feature_id": "cistern",
+      "spawn_chance": 0.15,
+      "room_types": ["any"]
     }
   ],
 

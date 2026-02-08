@@ -1,5 +1,6 @@
 {
   "id": "temple_ruins",
+  "water_source_feature": "well_feature",
   "name": "Temple Ruins",
   "description": "Forgotten sacred site with symmetrical architecture and divine guardians",
   "entrance_char": "Δ",
@@ -96,6 +97,11 @@
       "room_types": ["any"],
       "animated": true,
       "attacks_undead": true
+    },
+    {
+      "feature_id": "well_feature",
+      "spawn_chance": 0.15,
+      "room_types": ["sanctum", "chamber"]
     }
   ],
 

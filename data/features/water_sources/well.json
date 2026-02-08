@@ -1,0 +1,15 @@
+{
+  "id": "well_feature",
+  "name": "Well",
+  "ascii_char": "O",
+  "color": "#4488FF",
+  "blocking": false,
+  "interactable": true,
+  "interaction_verb": "drink from",
+  "repeatable": true,
+  "water_source": true,
+  "thirst_restored": 75,
+  "max_uses": 0,
+  "fill_item_from": "waterskin_empty",
+  "fill_item_to": "waterskin_full"
+}

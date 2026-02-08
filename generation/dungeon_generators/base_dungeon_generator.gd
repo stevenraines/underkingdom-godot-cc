@@ -82,8 +82,6 @@ func _place_features_and_hazards(map: GameMap, dungeon_def: Dictionary, rng: See
 ## Used when FeatureManager autoload is not available during generation
 func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom) -> void:
 	var room_features: Array = dungeon_def.get("room_features", [])
-	if room_features.is_empty():
-		return
 
 	# Store raw feature config for later processing
 	if not map.metadata.has("pending_features"):
@@ -99,6 +97,10 @@ func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRando
 	# Sort positions for deterministic order, then shuffle with seeded RNG
 	floor_positions.sort_custom(func(a, b): return a.x * 10000 + a.y < b.x * 10000 + b.y)
 	var shuffled_positions = _seeded_shuffle(floor_positions, rng)
+
+	# Track whether a water source was placed via normal feature spawning
+	var water_source_feature_id: String = dungeon_def.get("water_source_feature", "")
+	var water_source_placed: bool = false
 
 	for feature_config in room_features:
 		var feature_id: String = feature_config.get("feature_id", "")
@@ -124,6 +126,22 @@ func _store_feature_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRando
 						"config": feature_config
 					})
 					placed += 1
+					if feature_id == water_source_feature_id:
+						water_source_placed = true
+
+	# Guarantee water source placement on every 5th floor (~80% chance)
+	if not water_source_feature_id.is_empty() and not water_source_placed:
+		var floor_number: int = map.metadata.get("floor_number", 1)
+		if floor_number % 5 == 0 and rng.randf() < 0.8:
+			# Find a valid position for the water source
+			for pos in shuffled_positions:
+				if _is_valid_feature_placement(pos, water_source_feature_id, map):
+					map.metadata.pending_features.append({
+						"feature_id": water_source_feature_id,
+						"position": pos,
+						"config": {}
+					})
+					break
 
 
 ## Fallback: Store hazard placement data in map metadata
@@ -179,7 +197,15 @@ func _store_hazard_data(map: GameMap, dungeon_def: Dictionary, rng: SeededRandom
 ## Returns true if the position is valid for this feature
 func _is_valid_feature_placement(pos: Vector2i, feature_id: String, map: GameMap) -> bool:
 	# Load feature definition to check if it's blocking
+	# Check both flat path and common subdirectories
 	var feature_def_path = "res://data/features/%s.json" % feature_id
+	if not FileAccess.file_exists(feature_def_path):
+		# Try subdirectories
+		for subdir in ["overworld", "dungeon", "water_sources"]:
+			var sub_path = "res://data/features/%s/%s.json" % [subdir, feature_id]
+			if FileAccess.file_exists(sub_path):
+				feature_def_path = sub_path
+				break
 	if not FileAccess.file_exists(feature_def_path):
 		return true  # If no definition, allow placement
 

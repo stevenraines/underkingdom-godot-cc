@@ -2,10 +2,6 @@
 ---
 ## Unplanned
 
-- [ ] Add more sources of fresh water
-    Add additional sources of water to the underworld, like  "Barrel" and "Cistern". In the overworld, add periodic "Spring" spots. All should act like wells.
-- [ ] Hide Cursed status of items
-    Cursed items should never show that they are cursed until used / worn
 - [ ] Feature: Add Ritual to Charge Magic Items
     Wands and other items have charges. Create a ritual that allows for these items to be recharged.
 - [ ] Feature: Dungeon Map 
@@ -39,11 +35,11 @@
 - [ ] Secret Doors
     Add secret doors to dungeons using traditional roguelike mechanics. Players should be able to detect secret doors like the detect traps.
 - [ ] Fire!
-    Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes.
+    Add a fire mechanic, where wood structures can burn.  Players should also be able to throw oil and light the oil on fire. Base this feature on fire mechanics in other roguelikes. Additionally, gas pockets in dungeons should be able to explode if they come in contact with fire (including a players torch and create an explosion that leaves a fire behind)
 - [ ] City: Add a new city (large town) to island.
     Include a general store, blacksmith, temple, magic shop, and multiple wells.
-- [ ] Limit Trade by Trader
-    NPCs only buy certain types of items
+- [ ] Limit Trade by NPC
+    NPCs only buy certain types of items. that are appropriate to that kind of trader.
 - [ ] NPC: Tanner & mechanics
     Add a tanner NPC to the city who teaches the player to turn animal hide into leather. Modify creatures that yield leather to yield hide instead.
 - [ ] Rivers

@@ -537,8 +537,49 @@ func _interact_with_feature_at(pos: Vector2i) -> Dictionary:
 					EventBus.combat_message.emit("You feel blessed! (+%d HP)" % amount, Color.GOLD)
 				"hint":
 					EventBus.message_logged.emit(effect.get("text", ""))
+				"water_source":
+					_use_water_source(effect, result)
 
 	return result
+
+
+## Use a water source: fill waterskin if available, otherwise drink directly
+func _use_water_source(effect: Dictionary, result: Dictionary) -> void:
+	var thirst_restored: int = effect.get("thirst_restored", 50)
+	var fill_from: String = effect.get("fill_item_from", "")
+	var fill_to: String = effect.get("fill_item_to", "")
+	var source_name: String = effect.get("feature_name", "water source")
+	var running_low: bool = effect.get("running_low", false)
+	var source_pos: Vector2i = effect.get("position", position)
+
+	# Try to fill a waterskin first
+	if not fill_from.is_empty() and not fill_to.is_empty() and inventory:
+		var empty_container = inventory.get_item_by_id(fill_from)
+		if empty_container:
+			inventory.remove_item(empty_container)
+			var full_item = ItemManager.create_item(fill_to)
+			if full_item:
+				inventory.add_item(full_item)
+			FeatureManager.consume_water_source(source_pos)
+			result.message = "You fill your waterskin from the %s." % source_name
+			EventBus.combat_message.emit(result.message, Color.GOLD)
+			if running_low:
+				EventBus.combat_message.emit("The %s is running low." % source_name, Color.ORANGE)
+			return
+
+	# No waterskin - drink directly
+	if survival and survival.thirst >= 100:
+		result.message = "You're not thirsty."
+		EventBus.combat_message.emit(result.message, Color(0.7, 0.7, 0.7))
+		return
+
+	FeatureManager.consume_water_source(source_pos)
+	if survival:
+		survival.drink(thirst_restored)
+	result.message = "You drink from the %s. (+%d thirst)" % [source_name, thirst_restored]
+	EventBus.combat_message.emit(result.message, Color.GOLD)
+	if running_low:
+		EventBus.combat_message.emit("The %s is running low." % source_name, Color.ORANGE)
 
 
 ## Collect loot from a feature

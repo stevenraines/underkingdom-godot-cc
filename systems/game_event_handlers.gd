@@ -155,25 +155,25 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		var new_chunk = ChunkManagerClass.world_to_chunk(new_pos)
 		if old_chunk != new_chunk:
 			var render_start = Time.get_ticks_usec()
-			game._full_render_needed = true  # New chunks loaded - need full render
+			game.render_orchestrator.full_render_needed = true  # New chunks loaded - need full render
 
 			# Calculate visibility BEFORE rendering (features need visibility_data)
 			var visibility_calc_start = Time.get_ticks_usec()
-			game._update_visibility(false)  # Sets visibility_data but doesn't apply FOW
+			game.render_orchestrator.update_visibility(false)  # Sets visibility_data but doesn't apply FOW
 			var visibility_calc_time = Time.get_ticks_usec() - visibility_calc_start
 
 			var map_render_start = Time.get_ticks_usec()
-			game._render_map()
+			game.render_orchestrator.render_map()
 			var map_render_time = Time.get_ticks_usec() - map_render_start
 
 			# NOTE: No need to call _render_ground_items() - _render_all_entities() handles it
 			var entity_render_start = Time.get_ticks_usec()
-			game._render_all_entities()
+			game.render_orchestrator.render_all_entities()
 			var entity_render_time = Time.get_ticks_usec() - entity_render_start
 
 			# Apply FOW to rendered entities
 			var visibility_fow_start = Time.get_ticks_usec()
-			game._update_visibility(true)  # Re-calculates and applies FOW
+			game.render_orchestrator.update_visibility(true)  # Re-calculates and applies FOW
 			var visibility_fow_time = Time.get_ticks_usec() - visibility_fow_start
 
 			var total_render_time = Time.get_ticks_usec() - render_start
@@ -191,10 +191,10 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 
 	# Re-render items/hazards/features at old position that were hidden under player
 	# Render loot first, then hazards/features, then creatures (so creatures appear on top)
-	game._render_ground_item_at(old_pos)
-	game._render_feature_at(old_pos)
-	game._render_hazard_at(old_pos)
-	game._render_entity_at(old_pos)
+	game.render_orchestrator.render_ground_item_at(old_pos)
+	game.render_orchestrator.render_feature_at(old_pos)
+	game.render_orchestrator.render_hazard_at(old_pos)
+	game.render_orchestrator.render_entity_at(old_pos)
 
 	game.renderer.center_camera(new_pos)
 
@@ -207,18 +207,18 @@ func _on_player_moved(old_pos: Vector2i, new_pos: Vector2i) -> void:
 		# This is because dungeon entity counts are typically lower (20-30 vs 100+ in overworld)
 		# and the incremental check overhead would negate the benefit
 		# Calculate visibility BEFORE rendering (features/hazards need visibility_data for is_position_visible)
-		game._update_visibility(false)  # Sets visibility_data but doesn't apply FOW yet
+		game.render_orchestrator.update_visibility(false)  # Sets visibility_data but doesn't apply FOW yet
 		# Re-render entire map with updated wall visibility
-		game._full_render_needed = true  # _render_map() clears entity layer, need full re-render
-		game._render_map()
-		game._render_ground_items()  # Render loot first so creatures appear on top
-		game._render_all_entities()  # Renders entities to entity layer
+		game.render_orchestrator.full_render_needed = true  # _render_map() clears entity layer, need full re-render
+		game.render_orchestrator.render_map()
+		game.render_orchestrator.render_ground_items()  # Render loot first so creatures appear on top
+		game.render_orchestrator.render_all_entities()  # Renders entities to entity layer
 		# Apply FOW to rendered entities
-		game._update_visibility(true)  # Re-calculates and applies FOW
+		game.render_orchestrator.update_visibility(true)  # Re-calculates and applies FOW
 	else:
 		# Overworld: update visibility for incremental entity rendering
 		# Entities are not fully re-rendered on every move, so FOW is applied to existing entities
-		game._update_visibility()
+		game.render_orchestrator.update_visibility()
 
 	# CRITICAL: Render player AFTER everything else
 	# Must be after visibility update so fog of war doesn't hide the player
@@ -266,8 +266,8 @@ func _on_entity_moved(entity: Entity, old_pos: Vector2i, new_pos: Vector2i) -> v
 func _on_entity_visual_changed(pos: Vector2i) -> void:
 	# CRITICAL: Clear tracking FIRST before clearing/re-rendering
 	# This ensures incremental rendering knows this position needs updating
-	if game._rendered_entities.has(pos):
-		game._rendered_entities.erase(pos)
+	if game.render_orchestrator.rendered_entities.has(pos):
+		game.render_orchestrator.rendered_entities.erase(pos)
 
 	# Clear existing entity rendering at position
 	game.renderer.clear_entity(pos)
@@ -286,7 +286,7 @@ func _on_map_changed(map_id: String) -> void:
 	print("[Game] === Map change START: %s ===" % map_id)
 
 	# Mark full render needed for new map
-	game._full_render_needed = true
+	game.render_orchestrator.full_render_needed = true
 
 	# Skip entity handling during save load (SaveManager handles entities separately)
 	if SaveManager.is_deserializing:
@@ -294,7 +294,7 @@ func _on_map_changed(map_id: String) -> void:
 		# Still need to render the map
 		if MapManager.current_map and MapManager.current_map.chunk_based and game.player:
 			ChunkManager.update_active_chunks(game.player.position)
-		game._render_map()
+		game.render_orchestrator.render_map()
 		if game.player:
 			game.renderer.center_camera(game.player.position)
 		print("[Game] === Map change COMPLETE (deserializing) ===")
@@ -305,7 +305,7 @@ func _on_map_changed(map_id: String) -> void:
 	FOVSystemClass.invalidate_cache()
 
 	# Mark enemy light cache as dirty (new map has different enemies)
-	game._enemy_light_cache_dirty = true
+	game.render_orchestrator.enemy_light_cache_dirty = true
 
 	# Clear existing entities from EntityManager
 	print("[Game] 2/8 Clearing entities")
@@ -349,23 +349,23 @@ func _on_map_changed(map_id: String) -> void:
 	# Initialize light sources for new map (braziers, torches, etc.)
 	# MUST happen before visibility calculation
 	print("[Game] 5/8 Initializing light sources")
-	game._initialize_light_sources_for_map()
+	game.render_orchestrator.initialize_light_sources_for_map()
 
 	# Calculate visibility data BEFORE rendering (needed for features/hazards visibility checks)
 	# But DON'T apply FOW yet - entity layer will be cleared and re-rendered
 	print("[Game] 6/8 Calculating visibility data")
-	game._update_visibility(false)  # Sets visibility_data but doesn't apply FOW
+	game.render_orchestrator.update_visibility(false)  # Sets visibility_data but doesn't apply FOW
 
 	# Render map (calls clear_all which clears entity layer)
 	print("[Game] 7/8 Rendering map and entities")
-	game._render_map()
-	game._full_render_needed = true  # _render_map() calls clear_all(), must do full re-render
-	game._render_all_entities()
+	game.render_orchestrator.render_map()
+	game.render_orchestrator.full_render_needed = true  # _render_map() calls clear_all(), must do full re-render
+	game.render_orchestrator.render_all_entities()
 
 	# Apply FOW to the rendered entities
 	# This hides entities outside player's view
 	print("[Game] 8/8 Applying fog of war to entities")
-	game._update_visibility(true)  # Re-calculates and applies FOW to rendered entities
+	game.render_orchestrator.update_visibility(true)  # Re-calculates and applies FOW to rendered entities
 
 	# Re-render player at new position (ensure player renders on top)
 	game.renderer.render_entity(game.player.position, "@", Color.YELLOW)
@@ -393,7 +393,7 @@ func _on_tile_changed(pos: Vector2i) -> void:
 	FOVSystemClass.invalidate_cache()
 
 	# Recalculate visibility when tiles change (doors open/close affects LOS)
-	game._update_visibility()
+	game.render_orchestrator.update_visibility()
 
 
 func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
@@ -409,13 +409,13 @@ func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
 
 	# Only re-render for nearby chunks (within load radius)
 	if distance <= ChunkManager.load_radius:
-		game._full_render_needed = true
+		game.render_orchestrator.full_render_needed = true
 		# Calculate visibility data before rendering (features need visibility_data)
-		game._update_visibility(false)
-		game._render_map()
-		game._render_all_entities()
+		game.render_orchestrator.update_visibility(false)
+		game.render_orchestrator.render_map()
+		game.render_orchestrator.render_all_entities()
 		# Apply FOW to rendered entities
-		game._update_visibility(true)
+		game.render_orchestrator.update_visibility(true)
 		# Re-render player on top
 		game.renderer.render_entity(game.player.position, "@", Color.YELLOW)
 
@@ -427,7 +427,7 @@ func _on_chunk_loaded(chunk_coords: Vector2i) -> void:
 func _on_turn_advanced(_turn_number: int) -> void:
 	# Mark enemy light cache as dirty once per turn (enemies may have moved)
 	# This is more efficient than marking it dirty on every enemy move
-	game._enemy_light_cache_dirty = true
+	game.render_orchestrator.enemy_light_cache_dirty = true
 
 	game._update_hud()
 	game._update_survival_display()
@@ -443,9 +443,9 @@ func _on_time_of_day_changed(new_time: String) -> void:
 	# Time of day affects lighting calculations (day/night) and racial bonuses (darkvision)
 	if MapManager.current_map:
 		# Mark enemy light cache dirty since lighting conditions changed
-		game._enemy_light_cache_dirty = true
+		game.render_orchestrator.enemy_light_cache_dirty = true
 		# Recalculate visibility with new lighting
-		game._update_visibility()
+		game.render_orchestrator.update_visibility()
 
 	# Handle shop door locking on overworld
 	if not MapManager.current_map or MapManager.current_map.map_id != "overworld":
@@ -590,7 +590,7 @@ func _on_entity_died(entity: Entity) -> void:
 
 			if drop_messages.size() > 0:
 				game._add_message("Dropped: %s" % ", ".join(drop_messages), Color(0.8, 0.8, 0.6))
-				game._render_ground_item_at(entity.position)
+				game.render_orchestrator.render_ground_item_at(entity.position)
 
 		# Remove entity from managers
 		EntityManager.remove_entity(entity)
@@ -686,7 +686,7 @@ func _on_stamina_depleted() -> void:
 func _on_item_picked_up(item) -> void:
 	game._add_message("Picked up: %s" % item.name, Color(0.6, 0.9, 0.6))
 	# Re-render to update ground items
-	game._render_ground_items()
+	game.render_orchestrator.render_ground_items()
 
 
 func _on_item_dropped(item, pos: Vector2i) -> void:
@@ -697,7 +697,7 @@ func _on_item_dropped(item, pos: Vector2i) -> void:
 	if item.provides_light and item.is_lit:
 		render_color = Color(1.0, 0.7, 0.2)
 		# Update visibility since we dropped a light source
-		game._update_visibility()
+		game.render_orchestrator.update_visibility()
 	game.renderer.render_entity(pos, item.ascii_char, render_color)
 	game._update_hud()
 
@@ -712,14 +712,14 @@ func _on_item_equipped(item, _slot: String) -> void:
 		item.is_lit = true
 		game._add_message("You light the %s." % item.name, Color(1.0, 0.8, 0.4))
 		# Update visibility since we now have a light source
-		game._update_visibility()
+		game.render_orchestrator.update_visibility()
 
 
 func _on_item_unequipped(item, _slot: String) -> void:
 	# When a lit torch is unequipped (but not dropped), it stays lit
 	# The light source will be recalculated on next visibility update
 	if item.provides_light and item.is_lit:
-		game._update_visibility()
+		game.render_orchestrator.update_visibility()
 
 
 func _on_inventory_changed() -> void:
@@ -744,10 +744,10 @@ func _on_structure_placed(_structure: Structure) -> void:
 	game.input_handler.set_ui_blocking(false)  # Re-enable player movement
 	# Re-render map to clear cursor and show the new structure
 	# Force full entity re-render since _render_map() clears the entity layer
-	game._full_render_needed = true
-	game._render_map()
-	game._render_ground_items()
-	game._render_all_entities()
+	game.render_orchestrator.full_render_needed = true
+	game.render_orchestrator.render_map()
+	game.render_orchestrator.render_ground_items()
+	game.render_orchestrator.render_all_entities()
 	game.renderer.render_entity(game.player.position, "@", Color.YELLOW)
 
 
@@ -813,12 +813,12 @@ func _on_perf_overlay_toggle() -> void:
 		else:
 			game._add_message("Performance overlay disabled", Color(0.7, 0.7, 0.7))
 	# Refresh rendering to show spawned entities/items and tile changes
-	game._full_render_needed = true  # _render_map() clears entity layer
-	game._render_map()
-	game._render_ground_items()
-	game._render_all_entities()
+	game.render_orchestrator.full_render_needed = true  # _render_map() clears entity layer
+	game.render_orchestrator.render_map()
+	game.render_orchestrator.render_ground_items()
+	game.render_orchestrator.render_all_entities()
 	game.renderer.render_entity(game.player.position, "@", Color.YELLOW)
-	game._update_visibility()
+	game.render_orchestrator.update_visibility()
 
 
 # =============================================================================
@@ -833,7 +833,7 @@ func _on_feature_spawned_enemy(enemy_id: String, spawn_position: Vector2i) -> vo
 		var enemy = EntityManager.spawn_enemy(enemy_id, spawn_pos)
 		if enemy:
 			game._add_message("A %s emerges!" % enemy.name, Color.ORANGE_RED)
-			game._render_all_entities()
+			game.render_orchestrator.render_all_entities()
 	else:
 		push_warning("[Game] Could not find spawn position for feature enemy near %v" % spawn_position)
 

@@ -337,6 +337,14 @@ static func _use_scroll(item: Item, user: Entity) -> Dictionary:
 		result.message = "Select a target for %s..." % spell.name
 		# Emit signal for input handler to start targeting
 		EventBus.scroll_targeting_started.emit(item, spell)
+	elif targeting_mode in ["inventory", "equipped_item"]:
+		# Inventory/equipment targeting spells need item selection
+		result.success = true
+		result.requires_targeting = true
+		result.scroll_spell = spell
+		result.message = "Select an item for %s..." % spell.name
+		# Emit signal for UI to show item selection
+		EventBus.scroll_item_targeting_started.emit(item, spell, targeting_mode)
 	else:
 		result.message = "Unknown scroll targeting type."
 

@@ -11,5 +11,5 @@
     The Short Bow and Iron Hatchet do not appear in the inventory when the "weapons" filter is applied. Short bow definitely should be and the hatchet acts as a weapon in addition to a tool. Neither of these trigger the "Combat" Player Character Screen to Weapon - it shows as Unarmed.
 - [X] Main Menu "Quit" option not valid in web deploy
     When deployed via the HTML export, the "Quit" option on the main menu does nothing. Modify the main menu to hide this option when deployed via the HTML Export.
-- [ ] Hide Cursed status of Items until used or worn
+- [X] Hide Cursed status of Items until used or worn
     Cursed items should never show that they are cursed until used / worn. Cursed items that are worn should not be able to be removed without a Remove Curse spell being cast. Priests should be able to train a player to cast this spell.

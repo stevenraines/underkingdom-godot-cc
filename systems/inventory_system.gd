@@ -455,8 +455,9 @@ func can_unequip_item(item: Item) -> Dictionary:
 	if not item:
 		return {"can_unequip": false, "reason": "No item"}
 
-	# Check if item has binding curse that's been revealed
-	if item.has_binding_curse() and item.curse_revealed:
+	# Check if item is cursed and curse has been revealed
+	# All cursed items cannot be unequipped once the curse is revealed
+	if item.is_cursed and item.curse_revealed:
 		return {"can_unequip": false, "reason": "The curse prevents you from removing the %s!" % item.get_display_name()}
 
 	return {"can_unequip": true, "reason": ""}

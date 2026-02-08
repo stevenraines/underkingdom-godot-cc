@@ -372,7 +372,7 @@ func _notify_blocked_by_tile(pos: Vector2i) -> void:
 	# (e.g., entities in map.entities but not EntityManager.entities, or edge cases)
 	if MapManager.current_map:
 		for entity in MapManager.current_map.entities:
-			if entity.position == pos and entity.blocks_movement:
+			if entity.position == pos and entity.blocks_movement and entity.is_alive:
 				EventBus.message_logged.emit("Your path is blocked by %s." % entity.name.to_lower())
 				return
 

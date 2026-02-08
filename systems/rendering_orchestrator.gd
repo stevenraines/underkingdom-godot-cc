@@ -200,7 +200,7 @@ func _full_render_all_entities() -> void:
 
 	for entity in EntityManager.entities:
 		# Ground items are rendered via render_ground_items(); skip them here
-		if entity.get_script() == GroundItemClass:
+		if entity is GroundItemClass:
 			continue
 		if entity.is_alive:
 			# Skip entities at player's position - player renders on top
@@ -291,7 +291,7 @@ func _incremental_render_entities() -> void:
 
 	# Build current entity positions (skip ground items - rendered separately)
 	for entity in EntityManager.entities:
-		if entity.get_script() == GroundItemClass:
+		if entity is GroundItemClass:
 			continue
 		if entity.is_alive and entity.position != player_pos:
 			current_entities[entity.position] = entity

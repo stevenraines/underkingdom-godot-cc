@@ -184,22 +184,22 @@ func get_display_name(item) -> String:
 			return "%s potion" % appearance.capitalize()
 		"ring":
 			var appearance = ring_appearances.get(item_id, "plain")
-			return "%s ring" % appearance
+			return "%s ring" % appearance.capitalize()
 		"amulet":
 			var appearance = amulet_appearances.get(item_id, "plain")
-			return "%s amulet" % appearance
+			return "%s amulet" % appearance.capitalize()
 		_:
 			# Check category for weapons and armor
 			if category == "weapon":
 				var prefix = weapon_appearances.get(item_id, "fine")
 				# Get base weapon type from name (e.g., "Sword of Flame" -> "sword")
 				var base_type = _get_base_item_type(item.name)
-				return "%s %s" % [prefix, base_type]
+				return "%s %s" % [prefix.capitalize(), base_type]
 			elif category == "armor":
 				var prefix = armor_appearances.get(item_id, "fine")
 				# Get base armor type from name (e.g., "Boots of Speed" -> "boots")
 				var base_type = _get_base_item_type(item.name)
-				return "%s %s" % [prefix, base_type]
+				return "%s %s" % [prefix.capitalize(), base_type]
 
 	return item.name
 

@@ -606,6 +606,24 @@ func get_tooltip() -> String:
 				var sign_str = "+" if bonus > 0 else ""
 				lines.append("  %s: %s%d" % [stat_name, sign_str, bonus])
 
+		# Also support direct-stat passive bonuses present at the top level of `passive`
+		# (e.g., { "STR": 1 }) by rendering any other numeric keys that aren't already
+		# handled explicitly below.
+		var _handled_keys := {
+			"stat_bonuses": true,
+			"max_health_bonus": true,
+			"max_mana_bonus": true,
+			"mana_regen_bonus": true,
+			"health_regen_bonus": true,
+		}
+		for passive_key in passive:
+			if _handled_keys.has(passive_key):
+				continue
+			var passive_value = passive[passive_key]
+			if passive_value is int or passive_value is float:
+				var direct_sign_str = "+" if passive_value > 0 else ""
+				lines.append("  %s: %s%s" % [str(passive_key), direct_sign_str, str(passive_value)])
+
 		# Show other passive effects
 		if passive.has("max_health_bonus"):
 			lines.append("  Max Health: +%d" % passive["max_health_bonus"])
@@ -804,6 +822,12 @@ func remove_curse() -> void:
 		true_description = ""
 		# Also mark as identified so it shows the proper benign name
 		unidentified = false
+		# If this item used fake_passive_effects to represent the benign state,
+		# migrate those effects into passive_effects now that the curse is gone.
+		if not fake_passive_effects.is_empty():
+			# Use duplicate(true) to avoid sharing references between dictionaries.
+			passive_effects = fake_passive_effects.duplicate(true)
+			fake_passive_effects.clear()
 		EventBus.curse_removed.emit(self)
 
 

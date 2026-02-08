@@ -41,7 +41,7 @@
 - [ ] Limit Trade by NPC
     NPCs only buy certain types of items. that are appropriate to that kind of trader.
 - [ ] NPC: Tanner & mechanics
-    Add a tanner NPC to the city who teaches the player to turn animal hide into leather. Modify creatures that yield leather to yield hide instead.
+    Add a tanner NPC to the starting town who teaches the player to turn animal hide into leather. Modify creatures that yield leather to yield hide instead.
 - [ ] Rivers
     Add rivers to the game, including one near the starting town. where rivers and roads intersect, bridges should exist.
 - [ ] NPC: Miller and mechanics
@@ -62,10 +62,10 @@
     Add a brewer to the city who sells beer and teaches brewing skill
 - [ ] NPC: Vintner
     Add a vintner outside of the city town who sells wine and teaches wine making & distillation
-- [ ] NPCs: Wandering Traders:
-    Add wandering traders who appear along roads and offer goods for sale.
 - [ ] Craft: Cord
     Fisherman, tailor, or weaver can teach receipe for cord.
+- [ ] NPCs: Wandering Traders:
+    Add wandering traders who appear along roads and offer goods for sale.
 - [ ] NPCs: Non-trade NPCs
     Additional non-trade NPCs (with houses, camps, etc) in the world to add color. Families, factions, etc. 
 - [ ] Town layouts vary by seed

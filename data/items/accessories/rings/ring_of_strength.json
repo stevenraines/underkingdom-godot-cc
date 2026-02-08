@@ -17,6 +17,8 @@
   "ascii_char": "=",
   "ascii_color": "#CD7F32",
   "passive_effects": {
-    "STR": 1
+    "stat_bonuses": {
+      "STR": 1
+    }
   }
 }

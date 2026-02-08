@@ -119,8 +119,8 @@ func add_item(item: Item) -> bool:
 	# Add as new item
 	items.append(item)
 
-	# Check for INT 16+ auto-identify on pickup
-	if _owner and item.unidentified and not IdentificationManager.is_identified(item.id):
+	# Check for INT 16+ auto-identify on pickup (skip cursed items)
+	if _owner and item.unidentified and not item.is_cursed and not IdentificationManager.is_identified(item.id):
 		var owner_int = 10
 		if _owner.has_method("get_effective_attribute"):
 			owner_int = _owner.get_effective_attribute("INT")
@@ -417,26 +417,42 @@ func equip_item(item: Item, target_slot: String = "") -> Array[Item]:
 		add_item(previous)
 		unequipped.append(previous)
 
+	# Track whether we revealed a curse as part of this equip identification
+	var curse_revealed_on_equip := false
+
 	# Identify unidentified items on equip
 	if item.unidentified and not IdentificationManager.is_identified(item.id):
 		var appearance_name = IdentificationManager.get_display_name(item)
 		IdentificationManager.identify_item(item.id)
 
+		# If the item is cursed, reveal the curse before composing the identification message
+		if item.is_cursed and not item.curse_revealed:
+			item.reveal_curse()
+			curse_revealed_on_equip = true
+
+		var identified_name = item.get_display_name()
+
 		# Build identification message with effects summary
 		var effects_summary = _get_item_effects_summary(item)
 		if effects_summary != "":
 			EventBus.message_logged.emit(
-				"You equip the %s. It is a %s! %s" % [appearance_name, item.name, effects_summary],
+				"You equip the %s. It is a %s! %s" % [appearance_name, identified_name, effects_summary],
 				Color.CYAN
 			)
 		else:
 			EventBus.message_logged.emit(
-				"You equip the %s. It is a %s!" % [appearance_name, item.name],
+				"You equip the %s. It is a %s!" % [appearance_name, identified_name],
 				Color.CYAN
 			)
 
-	# Reveal curse on equip if item is cursed and not yet revealed
-	if item.is_cursed and not item.curse_revealed:
+	# Reveal curse on equip if item is cursed and not yet revealed, and emit curse message once
+	if curse_revealed_on_equip:
+		var item_name = item.get_display_name()
+		if item.curse_type == "binding":
+			EventBus.message_logged.emit("The %s clings to you - you cannot remove it!" % item_name, Color.RED)
+		else:
+			EventBus.message_logged.emit("The %s reveals its true nature - it is cursed!" % item_name, Color.RED)
+	elif item.is_cursed and not item.curse_revealed:
 		item.reveal_curse()
 		var item_name = item.get_display_name()
 		if item.curse_type == "binding":
@@ -458,6 +474,14 @@ func _get_item_effects_summary(item: Item) -> String:
 			var stat_bonuses = passive["stat_bonuses"]
 			for stat_name in stat_bonuses:
 				var bonus = stat_bonuses[stat_name]
+				var sign_str = "+" if bonus > 0 else ""
+				parts.append("%s%d %s" % [sign_str, bonus, stat_name])
+
+		# Also support direct-stat format (e.g., {"STR": 1})
+		var stat_names = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
+		for stat_name in stat_names:
+			if passive.has(stat_name):
+				var bonus = passive[stat_name]
 				var sign_str = "+" if bonus > 0 else ""
 				parts.append("%s%d %s" % [sign_str, bonus, stat_name])
 

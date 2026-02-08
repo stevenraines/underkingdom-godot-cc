@@ -37,9 +37,11 @@ ASCIIRenderer (TileMapLayer-based)
 
 ## Character Mapping
 
-Built-in `unicode_char_map` dictionary in `ascii_renderer.gd`:
-- Maps character → tileset index
-- Index → grid coords: `col = index % 32, row = index / 32`
+Handled by `ASCIITextureMapper` class (`rendering/ascii_texture_mapper.gd`):
+- `get_tile_index(character)` → linear tileset index
+- `get_atlas_coords(character)` → `Vector2i(col, row)` for tileset grid
+- Constants: `TILES_PER_ROW = 32`, `TOTAL_TILE_COUNT = 1551`
+- Unicode ranges must match `generate_tilesets.py` exactly
 
 ---
 
@@ -66,6 +68,7 @@ When entities/items render:
 
 - `rendering/render_interface.gd` - Abstract interface
 - `rendering/ascii_renderer.gd` - TileMapLayer implementation
+- `rendering/ascii_texture_mapper.gd` - Character-to-tile mapping
 - `rendering/generate_tilesets.py` - Python script (PIL) for tileset generation
 - `rendering/tilesets/unicode_tileset.png` - Main tileset
 - `rendering/tilesets/ascii_tileset.png` - CP437 tileset

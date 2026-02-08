@@ -1,6 +1,6 @@
 ---
 name: implement-feature
-description: Checkout a new branch and implement a feature from a plan file. Use when the user says "/implement-feature {feature-file}" to start implementing a feature defined in plans/features/.
+description: Feth and pull main, then checkout a new branch and implement a feature from a supplied plan file. Use when the user says "/implement-feature {feature-file}" to start implementing a feature defined in plans/features/.
 ---
 
 # Implement Feature

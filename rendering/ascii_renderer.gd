@@ -34,7 +34,7 @@ var current_highlight_position: Vector2i = Vector2i(-1, -1)
 var current_highlight_color: Color = Color.CYAN
 
 # Texture mapper handles character-to-tile-index and atlas coordinate lookups
-var _texture_mapper: ASCIITextureMapper = null
+var _texture_mapper = null
 
 # Pre-computed ground tile atlas coords for fast lookup in render_entity
 var ground_tile_atlas_coords: Dictionary = {}  # Vector2i -> true

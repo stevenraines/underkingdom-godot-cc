@@ -64,6 +64,11 @@ func _ready() -> void:
 		# remove it from navigation
 		buttons.erase(continue_button)
 
+	# Hide Quit button on web exports (browser can't be quit from the game)
+	if OS.get_name() == "Web":
+		quit_button.visible = false
+		buttons.erase(quit_button)
+
 	# default selection to first visible button
 	selected_index = 0
 	update_selection()

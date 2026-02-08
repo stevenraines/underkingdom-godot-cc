@@ -494,6 +494,10 @@ func process_entity_turns() -> void:
 ## Clear all entities (for map transitions)
 func clear_entities() -> void:
 	entities.clear()
+	# Also clear the current map's entity list to prevent ghost duplicates.
+	# spawn_enemy() adds to both arrays, so both must be cleared together.
+	if MapManager.current_map:
+		MapManager.current_map.entities.clear()
 
 ## Get entities on current map
 func get_current_map_entities() -> Array[Entity]:

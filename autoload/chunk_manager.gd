@@ -218,6 +218,16 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 		push_error("[ChunkManager] CIRCUIT BREAKER: Too many chunk operations in turn %d (%d ops). Possible infinite loop!" % [current_turn, _chunk_ops_this_turn])
 		return null
 
+	# Return cached chunk if available (preserves player modifications like chopped trees)
+	if chunk_coords in chunk_cache:
+		var cached_chunk = chunk_cache[chunk_coords]
+		cached_chunk.is_loaded = true
+		cached_chunk.is_dirty = true
+		active_chunks[chunk_coords] = cached_chunk
+		_touch_chunk_lru(chunk_coords)
+		EventBus.chunk_loaded.emit(chunk_coords)
+		return cached_chunk
+
 	# Check if chunk is within island bounds
 	var island_settings = BiomeManager.get_island_settings()
 	var max_chunk_x = island_settings.get("width_chunks", 50)
@@ -231,7 +241,7 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 
 	var load_start = Time.get_ticks_usec()
 
-	# Generate chunk
+	# Generate chunk (only when not in cache)
 	var gen_start = Time.get_ticks_usec()
 	var chunk = WorldChunk.new(chunk_coords, world_seed)
 	chunk.generate(world_seed)

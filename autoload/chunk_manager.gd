@@ -221,6 +221,8 @@ func load_chunk(chunk_coords: Vector2i) -> WorldChunk:
 	# Return cached chunk if available (preserves player modifications like chopped trees)
 	if chunk_coords in chunk_cache:
 		var cached_chunk = chunk_cache[chunk_coords]
+		cached_chunk.is_loaded = true
+		cached_chunk.is_dirty = true
 		active_chunks[chunk_coords] = cached_chunk
 		_touch_chunk_lru(chunk_coords)
 		EventBus.chunk_loaded.emit(chunk_coords)

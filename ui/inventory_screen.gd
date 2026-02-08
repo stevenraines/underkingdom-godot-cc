@@ -215,11 +215,27 @@ func refresh() -> void:
 	if not player or not player.inventory:
 		return
 
+	# Check if we're in spell targeting mode
+	var input_handler = get_tree().get_first_node_in_group("input_handler")
+	var in_spell_targeting = input_handler and input_handler.has_meta("pending_spell")
+
+	# Update title if in spell targeting mode
+	if in_spell_targeting and inventory_title:
+		var spell = input_handler.get_meta("pending_spell")
+		var spell_name = spell.name if spell and "name" in spell else "spell"
+		inventory_title.text = "══ SELECT ITEM FOR %s (E to select, ESC to cancel) ══" % spell_name.to_upper()
+		inventory_title.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+
 	_update_weight_display()
 	_update_filter_bar()
 	_update_equipment_display()
 	_update_inventory_display()
 	_update_selection()
+
+	# Restore normal title if not in targeting mode
+	if not in_spell_targeting and inventory_title:
+		var filtered_items = player.inventory.get_filtered_items(current_filter)
+		_update_inventory_title(filtered_items.size())
 
 func _update_weight_display() -> void:
 	if not player or not player.inventory:

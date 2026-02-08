@@ -303,6 +303,10 @@ func interact_with_feature(pos: Vector2i, player = null) -> Dictionary:
 	if feature_def.get("water_source", false):
 		var max_uses: int = feature_def.get("max_uses", 0)
 
+		# Lazy-initialize uses_remaining if it wasn't set during creation
+		if max_uses > 0 and not feature.state.has("uses_remaining"):
+			feature.state["uses_remaining"] = max_uses
+
 		# Check if depletable source is empty
 		if max_uses > 0 and feature.state.get("uses_remaining", 0) <= 0:
 			return {"success": false, "message": "The %s is empty." % feature_name}

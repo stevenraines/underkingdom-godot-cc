@@ -41,6 +41,7 @@ func _ready() -> void:
 func open(p_player) -> void:
 	player = p_player
 	_roll_all_abilities()
+	_auto_assign_by_class()
 	_populate_ui()
 	_clear_message()
 	show()
@@ -76,6 +77,28 @@ func _roll_4d6_drop_lowest() -> int:
 	# Drop lowest (index 0), sum the rest
 	return rolls[1] + rolls[2] + rolls[3]
 
+## Auto-assign rolled values to abilities based on class priority
+## Highest rolled value goes to the class's most important ability, etc.
+func _auto_assign_by_class() -> void:
+	assigned_values.clear()
+	available_rolls = rolled_values.duplicate()
+
+	# Get class priority order from ClassManager
+	var class_id = GameManager.player_class
+	var priority = ClassManager.get_priority_abilities(class_id)
+
+	# Sort available rolls high to low
+	var sorted_rolls = rolled_values.duplicate()
+	sorted_rolls.sort()
+	sorted_rolls.reverse()
+
+	# Assign highest values to highest-priority abilities
+	for i in range(priority.size()):
+		if i < sorted_rolls.size():
+			assigned_values[priority[i]] = sorted_rolls[i]
+			available_rolls.erase(sorted_rolls[i])
+
+
 ## Populate the UI
 func _populate_ui() -> void:
 	# Clear existing content
@@ -95,7 +118,7 @@ func _populate_ui() -> void:
 
 	# Instructions
 	var instructions = Label.new()
-	instructions.text = "Roll 4d6 drop lowest for each ability. Assign values strategically!"
+	instructions.text = "Scores auto-assigned by class. Use 1-6 to reassign, A to auto-assign, R to re-roll."
 	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	instructions.add_theme_color_override("font_color", Color(0.8, 0.8, 0.6))
 	instructions.add_theme_font_size_override("font_size", 12)
@@ -370,6 +393,13 @@ func _input(event: InputEvent) -> void:
 
 			KEY_R:
 				_roll_all_abilities()
+				_auto_assign_by_class()
+				_populate_ui()
+				_clear_message()
+				viewport.set_input_as_handled()
+
+			KEY_A:
+				_auto_assign_by_class()
 				_populate_ui()
 				_clear_message()
 				viewport.set_input_as_handled()

@@ -19,13 +19,13 @@ signal cancelled()
 
 var selected_class_index: int = 0
 var class_buttons: Array[Button] = []
-var class_ids: Array[String] = []  # Includes "random" as first entry
+var class_ids: Array[String] = []
 
 var selected_button_index: int = 0
 var action_buttons: Array[Button] = []
 var in_button_mode: bool = false
 
-const RANDOM_ID = "random"
+const DEFAULT_CLASS = "adventurer"
 
 
 func _ready() -> void:
@@ -111,27 +111,22 @@ func _populate_class_list() -> void:
 	class_buttons.clear()
 	class_ids.clear()
 
-	# Add "Random" option first
-	class_ids.append(RANDOM_ID)
-	var random_button = Button.new()
-	random_button.text = "? Random"
-	random_button.focus_mode = Control.FOCUS_NONE
-	random_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	random_button.custom_minimum_size = Vector2(150, 30)
-	random_button.mouse_entered.connect(_on_class_hover.bind(0))
-	random_button.pressed.connect(_on_class_clicked.bind(0))
-	class_list.add_child(random_button)
-	class_buttons.append(random_button)
-
-	# Add separator after random
-	var separator = HSeparator.new()
-	separator.custom_minimum_size = Vector2(0, 10)
-	class_list.add_child(separator)
-
-	# Get all classes sorted by name
+	# Get all classes sorted by name, but put Adventurer (default) first
 	var classes = ClassManager.get_all_classes_sorted()
+	var sorted_classes: Array[Dictionary] = []
+	var default_class_data: Dictionary = {}
 
 	for cls in classes:
+		if cls.get("id", "") == DEFAULT_CLASS:
+			default_class_data = cls
+		else:
+			sorted_classes.append(cls)
+
+	# Insert default class at front
+	if not default_class_data.is_empty():
+		sorted_classes.insert(0, default_class_data)
+
+	for cls in sorted_classes:
 		var class_id = cls.get("id", "")
 		class_ids.append(class_id)
 
@@ -181,15 +176,6 @@ func _update_class_selection() -> void:
 
 
 func _update_info_panel(class_id: String) -> void:
-	# Handle random option
-	if class_id == RANDOM_ID:
-		description_label.text = "[i]Let fate decide your path! A class will be randomly selected for you.[/i]"
-		stats_label.text = "[b]Stat Modifiers:[/b] ???"
-		skills_label.text = "[b]Skill Bonuses:[/b] ???"
-		feats_label.text = "[b]Feats:[/b] ???"
-		restrictions_label.text = "[b]Restrictions:[/b] ???"
-		return
-
 	var cls = ClassManager.get_class_def(class_id)
 
 	# Description
@@ -256,18 +242,6 @@ func _on_class_clicked(idx: int) -> void:
 func _on_confirm_pressed() -> void:
 	if selected_class_index >= 0 and selected_class_index < class_ids.size():
 		var class_id = class_ids[selected_class_index]
-
-		# Handle random selection
-		if class_id == RANDOM_ID:
-			# Get actual class IDs (skip the "random" entry)
-			var actual_classes: Array[String] = []
-			for i in range(1, class_ids.size()):
-				actual_classes.append(class_ids[i])
-
-			if actual_classes.size() > 0:
-				class_id = actual_classes[randi() % actual_classes.size()]
-				print("Random class selected: %s" % class_id)
-
 		class_selected.emit(class_id)
 		hide()
 

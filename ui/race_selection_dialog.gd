@@ -17,13 +17,13 @@ signal cancelled()
 
 var selected_race_index: int = 0
 var race_buttons: Array[Button] = []
-var race_ids: Array[String] = []  # Includes "random" as first entry
+var race_ids: Array[String] = []
 
 var selected_button_index: int = 0
 var action_buttons: Array[Button] = []
 var in_button_mode: bool = false
 
-const RANDOM_ID = "random"
+const DEFAULT_RACE = "human"
 
 
 func _ready() -> void:
@@ -109,27 +109,22 @@ func _populate_race_list() -> void:
 	race_buttons.clear()
 	race_ids.clear()
 
-	# Add "Random" option first
-	race_ids.append(RANDOM_ID)
-	var random_button = Button.new()
-	random_button.text = "? Random"
-	random_button.focus_mode = Control.FOCUS_NONE
-	random_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	random_button.custom_minimum_size = Vector2(150, 30)
-	random_button.mouse_entered.connect(_on_race_hover.bind(0))
-	random_button.pressed.connect(_on_race_clicked.bind(0))
-	race_list.add_child(random_button)
-	race_buttons.append(random_button)
-
-	# Add separator after random
-	var separator = HSeparator.new()
-	separator.custom_minimum_size = Vector2(0, 10)
-	race_list.add_child(separator)
-
-	# Get all races sorted by name
+	# Get all races sorted by name, but put Human (default) first
 	var races = RaceManager.get_all_races_sorted()
+	var sorted_races: Array[Dictionary] = []
+	var default_race_data: Dictionary = {}
 
 	for race in races:
+		if race.get("id", "") == DEFAULT_RACE:
+			default_race_data = race
+		else:
+			sorted_races.append(race)
+
+	# Insert default race at front
+	if not default_race_data.is_empty():
+		sorted_races.insert(0, default_race_data)
+
+	for race in sorted_races:
 		var race_id = race.get("id", "")
 		race_ids.append(race_id)
 
@@ -179,13 +174,6 @@ func _update_race_selection() -> void:
 
 
 func _update_info_panel(race_id: String) -> void:
-	# Handle random option
-	if race_id == RANDOM_ID:
-		description_label.text = "[i]Let fate decide your destiny! A race will be randomly selected for you.[/i]"
-		stats_label.text = "[b]Stat Modifiers:[/b] ???"
-		traits_label.text = "[b]Traits:[/b] ???"
-		return
-
 	var race = RaceManager.get_race(race_id)
 
 	# Description
@@ -234,18 +222,6 @@ func _on_race_clicked(idx: int) -> void:
 func _on_confirm_pressed() -> void:
 	if selected_race_index >= 0 and selected_race_index < race_ids.size():
 		var race_id = race_ids[selected_race_index]
-
-		# Handle random selection
-		if race_id == RANDOM_ID:
-			# Get actual race IDs (skip the "random" entry)
-			var actual_races: Array[String] = []
-			for i in range(1, race_ids.size()):
-				actual_races.append(race_ids[i])
-
-			if actual_races.size() > 0:
-				race_id = actual_races[randi() % actual_races.size()]
-				print("Random race selected: %s" % race_id)
-
 		race_selected.emit(race_id)
 		hide()
 

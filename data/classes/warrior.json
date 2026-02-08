@@ -4,6 +4,7 @@
   "description": "Masters of martial combat, warriors excel in melee fighting and defensive tactics. Their training grants proficiency with heavy weapons and armor.",
   "ascii_color": "#CC6633",
   "magic_types": [],
+  "priority_abilities": ["STR", "CON", "DEX", "WIS", "CHA", "INT"],
   "stat_modifiers": {
     "STR": 1,
     "CON": 1,

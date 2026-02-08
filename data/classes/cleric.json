@@ -4,6 +4,7 @@
   "description": "Holy warriors devoted to the gods, clerics channel divine magic to heal allies and smite the undead. Their faith protects them from arcane interference.",
   "ascii_color": "#FFFF66",
   "magic_types": ["divine"],
+  "priority_abilities": ["WIS", "CHA", "CON", "STR", "DEX", "INT"],
   "stat_modifiers": {
     "WIS": 1,
     "CHA": 1,

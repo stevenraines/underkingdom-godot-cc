@@ -4,6 +4,7 @@
   "description": "Fierce warriors who channel primal fury in battle, barbarians grow stronger as they take damage. They disdain heavy armor and magic alike.",
   "ascii_color": "#CC3333",
   "magic_types": [],
+  "priority_abilities": ["STR", "CON", "DEX", "WIS", "CHA", "INT"],
   "stat_modifiers": {
     "STR": 2,
     "CON": 1,

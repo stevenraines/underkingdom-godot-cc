@@ -520,6 +520,9 @@ func get_durability_percent() -> int:
 func get_tooltip() -> String:
 	var lines: Array[String] = []
 
+	# Check if item is unidentified
+	var identified = is_identified()
+
 	# Show appropriate name and description based on curse reveal status
 	var display_name = get_display_name()
 	var display_desc = description
@@ -529,59 +532,90 @@ func get_tooltip() -> String:
 
 	lines.append(display_name)
 
-	if display_desc != "":
+	# For unidentified items, show generic description
+	if unidentified and not identified:
+		lines.append("An unidentified item. Its true nature is unknown.")
+	elif display_desc != "":
 		lines.append(display_desc)
-	
+
 	lines.append("")
 	lines.append("Type: %s" % item_type.capitalize())
 	lines.append("Weight: %.2f kg" % weight)
-	
+
 	if value > 0:
 		lines.append("Value: %d gold" % value)
-	
+
 	if stack_size > 1:
 		lines.append("Stack: %d/%d" % [stack_size, max_stack])
-	
+
 	if equip_slot != "":
 		lines.append("Equips to: %s" % equip_slot.replace("_", " ").capitalize())
-		# Show damage for weapons
-		if damage_min > 0 and damage_max > 0:
-			# Has damage range - show range plus bonus
-			if damage_bonus > 0:
-				lines.append("Damage: %d-%d +%d" % [damage_min, damage_max, damage_bonus])
-			else:
-				lines.append("Damage: %d-%d" % [damage_min, damage_max])
-		elif damage_bonus > 0:
-			# Legacy: flat damage bonus only
-			lines.append("Damage: +%d" % damage_bonus)
-		if armor_value > 0:
-			lines.append("Armor: %d" % armor_value)
-		if warmth != 0.0:
-			var warmth_text = "%+.0f°F" % warmth
-			lines.append("Warmth: %s" % warmth_text)
-	
+
+		# Only show enchantment properties if identified
+		if identified or not unidentified:
+			# Show damage for weapons
+			if damage_min > 0 and damage_max > 0:
+				# Has damage range - show range plus bonus
+				if damage_bonus > 0:
+					lines.append("Damage: %d-%d +%d" % [damage_min, damage_max, damage_bonus])
+				else:
+					lines.append("Damage: %d-%d" % [damage_min, damage_max])
+			elif damage_bonus > 0:
+				# Legacy: flat damage bonus only
+				lines.append("Damage: +%d" % damage_bonus)
+			if armor_value > 0:
+				lines.append("Armor: %d" % armor_value)
+			if warmth != 0.0:
+				var warmth_text = "%+.0f°F" % warmth
+				lines.append("Warmth: %s" % warmth_text)
+
 	if tool_type != "":
 		lines.append("Tool type: %s" % tool_type.capitalize())
-	
+
 	if durability > 0:
 		lines.append("Durability: %d/%d" % [durability, max_durability])
 
-	# Wand charges
+	# Wand charges - only show spell name if identified
 	if max_charges > 0:
 		lines.append("Charges: %d/%d" % [charges, max_charges])
-		if casts_spell != "":
+		if casts_spell != "" and (identified or not unidentified):
 			var spell = SpellManager.get_spell(casts_spell)
 			if spell:
 				lines.append("Casts: %s" % spell.name)
 
-	if effects.size() > 0:
+	# Only show consumable effects if identified
+	if effects.size() > 0 and (identified or not unidentified):
 		lines.append("")
 		lines.append("Effects:")
 		for effect_name in effects:
 			var effect_value = effects[effect_name]
 			var sign_str = "+" if effect_value > 0 else ""
 			lines.append("  %s: %s%d" % [effect_name.capitalize(), sign_str, effect_value])
-	
+
+	# Only show passive effects if identified
+	if has_passive_effects() and (identified or not unidentified):
+		lines.append("")
+		lines.append("Passive Effects:")
+		var passive = get_effective_passive_effects()
+
+		# Show stat bonuses
+		if passive.has("stat_bonuses"):
+			var stat_bonuses = passive["stat_bonuses"]
+			for stat_name in stat_bonuses:
+				var bonus = stat_bonuses[stat_name]
+				var sign_str = "+" if bonus > 0 else ""
+				lines.append("  %s: %s%d" % [stat_name, sign_str, bonus])
+
+		# Show other passive effects
+		if passive.has("max_health_bonus"):
+			lines.append("  Max Health: +%d" % passive["max_health_bonus"])
+		if passive.has("max_mana_bonus"):
+			lines.append("  Max Mana: +%d" % passive["max_mana_bonus"])
+		if passive.has("mana_regen_bonus"):
+			lines.append("  Mana Regen: +%d/turn" % passive["mana_regen_bonus"])
+		if passive.has("health_regen_bonus"):
+			lines.append("  Health Regen: +%d/turn" % passive["health_regen_bonus"])
+
 	return "\n".join(lines)
 
 ## Get display color as Color object

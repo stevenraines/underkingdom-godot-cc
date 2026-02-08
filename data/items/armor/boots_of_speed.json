@@ -8,6 +8,7 @@
   "flags": {
     "equippable": true
   },
+  "unidentified": true,
   "armor_value": 1,
   "ascii_char": "[",
   "ascii_color": "#8B4513",

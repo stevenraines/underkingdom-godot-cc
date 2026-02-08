@@ -311,8 +311,9 @@ func interact_with_feature(pos: Vector2i, player = null) -> Dictionary:
 		if max_uses > 0 and feature.state.get("uses_remaining", 0) <= 0:
 			return {"success": false, "message": "The %s is empty." % feature_name}
 
-		# Check remaining uses for running_low warning
-		var is_running_low: bool = (max_uses > 0 and feature.state.get("uses_remaining", max_uses) == 1)
+		# Check remaining uses for running_low warning (based on post-consumption count)
+		var current_uses: int = feature.state.get("uses_remaining", max_uses)
+		var is_running_low: bool = (max_uses > 0 and current_uses - 1 == 1)
 
 		# Add water source effect for player processing
 		# Uses are decremented by consume_water_source() after player confirms use

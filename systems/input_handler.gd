@@ -1181,7 +1181,6 @@ func _try_drink_from_tile(target_pos: Vector2i) -> bool:
 		source_name = "well"
 	if parent_game and parent_game.has_method("_add_message"):
 		parent_game._add_message("You drink from the %s. (+75 thirst)" % source_name, Color(0.6, 0.9, 0.6))
-	TurnManager.advance_turn()
 	return true
 
 

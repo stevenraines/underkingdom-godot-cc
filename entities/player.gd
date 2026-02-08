@@ -517,7 +517,7 @@ func _interact_with_feature_at(pos: Vector2i) -> Dictionary:
 	var result = FeatureManager.interact_with_feature(pos)
 
 	# Show message to player
-	if result.has("message"):
+	if result.has("message") and result.message != "":
 		EventBus.combat_message.emit(result.message, Color.GOLD)
 
 	# Process effects
@@ -556,16 +556,20 @@ func _use_water_source(effect: Dictionary, result: Dictionary) -> void:
 	if not fill_from.is_empty() and not fill_to.is_empty() and inventory:
 		var empty_container = inventory.get_item_by_id(fill_from)
 		if empty_container:
-			inventory.remove_item(empty_container)
 			var full_item = ItemManager.create_item(fill_to)
 			if full_item:
+				inventory.remove_item(empty_container)
 				inventory.add_item(full_item)
-			FeatureManager.consume_water_source(source_pos)
-			result.message = "You fill your waterskin from the %s." % source_name
-			EventBus.combat_message.emit(result.message, Color.GOLD)
-			if running_low:
-				EventBus.combat_message.emit("The %s is running low." % source_name, Color.ORANGE)
-			return
+				FeatureManager.consume_water_source(source_pos)
+				result.message = "You fill your waterskin from the %s." % source_name
+				EventBus.combat_message.emit(result.message, Color.GOLD)
+				if running_low:
+					EventBus.combat_message.emit("The %s is running low." % source_name, Color.ORANGE)
+				return
+			else:
+				result.message = "You try to fill your waterskin from the %s, but something goes wrong." % source_name
+				EventBus.combat_message.emit(result.message, Color.RED)
+				return
 
 	# No waterskin - drink directly
 	if survival and survival.thirst >= 100:

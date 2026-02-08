@@ -7,7 +7,7 @@
     When a new character is created, auto-assign the ability scores based on the class the character chose, applying the highest scores the the abilities commonly associated with that class. Player should still be able to unassign/reassign.
 - [X] Force race/class selection. 
     Remove the "Random" option from Character creation Class and Race screens. Instead, make Human the default race (the first one at the top) and Adventurer the default class.
-- [/] Items that can be weapons don't appear as weapons
+- [X] Items that can be weapons don't appear as weapons
     The Short Bow and Iron Hatchet do not appear in the inventory when the "weapons" filter is applied. Short bow definitiely should be and the hatchet acts as a weapon in addition to a tool. Neither of these trigger the "Combat" Player Character Screen to Weapon - it shows as Unarmed.
 - [ ] Main Menu "Quit" option not valid in web deploy
     When deployed via the HTML export, the "Quit" option on the main menu does nothing. Modify the main menu to hide this option when deployed via the HTML Export.

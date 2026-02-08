@@ -335,7 +335,8 @@ func _calculate_turns_to_full_health() -> int:
 	# Get shelter HP restore rate from the shelter player is on
 	var shelter_data = _get_player_shelter_data()
 	if shelter_data:
-		var hp_per_interval = shelter_data.get("hp_restore_amount", 1)
+		# Include level scaling (matches game.gd _check_shelter_hp_restoration)
+		var hp_per_interval = shelter_data.get("hp_restore_amount", 1) + player.level
 		var turns_per_restore = shelter_data.get("hp_restore_turns", 10)
 		# Calculate turns needed: (missing_hp / hp_per_interval) * turns_per_restore
 		var intervals_needed = int(ceil(float(missing_hp) / float(hp_per_interval)))

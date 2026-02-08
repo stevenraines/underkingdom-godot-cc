@@ -404,6 +404,11 @@ func update_active_chunks(player_pos: Vector2i) -> void:
 		return
 
 	_updating_chunks = true
+
+	# CRITICAL: Add deferred safety net to reset flag even if error occurs
+	# This prevents permanent game freeze if chunk update fails mid-operation
+	call_deferred("_reset_updating_flag_deferred")
+
 	var start_time = Time.get_ticks_usec()
 
 	var player_chunk = world_to_chunk(player_pos)
@@ -583,3 +588,12 @@ func load_chunks(chunks_data: Array) -> void:
 		# Don't add to active_chunks yet - will load on demand
 
 	#print("[ChunkManager] Loaded %d chunks from save" % chunks_data.size())
+
+## Deferred safety net to reset updating flag if error occurred
+## This prevents permanent freeze if update_active_chunks() errors mid-execution
+func _reset_updating_flag_deferred() -> void:
+	# Only reset if flag is still set (error case)
+	# Normal execution resets flag before this deferred call executes
+	if _updating_chunks:
+		push_error("[ChunkManager] RECOVERY: _updating_chunks flag was stuck! Resetting to prevent freeze.")
+		_updating_chunks = false

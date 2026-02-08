@@ -352,15 +352,23 @@ func duplicate_item() -> Item:
 func get_display_name() -> String:
 	var display_name = name
 
-	# Use IdentificationManager if available (it's an autoload)
-	if Engine.has_singleton("IdentificationManager"):
-		var id_manager = Engine.get_singleton("IdentificationManager")
-		display_name = id_manager.get_display_name(self)
+	# Handle cursed items - show fake name until curse is revealed
+	if is_cursed and not curse_revealed:
+		# Use the fake name (stored in 'name' field)
+		display_name = name
+	elif is_cursed and curse_revealed and true_name != "":
+		# Use the true name after curse is revealed
+		display_name = true_name
 	else:
-		# Fallback: check if we can access it as a node
-		var id_manager = Engine.get_main_loop().root.get_node_or_null("IdentificationManager")
-		if id_manager:
+		# Use IdentificationManager for unidentified items (scrolls, wands, potions)
+		if Engine.has_singleton("IdentificationManager"):
+			var id_manager = Engine.get_singleton("IdentificationManager")
 			display_name = id_manager.get_display_name(self)
+		else:
+			# Fallback: check if we can access it as a node
+			var id_manager = Engine.get_main_loop().root.get_node_or_null("IdentificationManager")
+			if id_manager:
+				display_name = id_manager.get_display_name(self)
 
 	# Add inscription if present
 	if inscription != "":
@@ -511,11 +519,18 @@ func get_durability_percent() -> int:
 ## Get tooltip text for this item
 func get_tooltip() -> String:
 	var lines: Array[String] = []
-	
-	lines.append(name)
-	
-	if description != "":
-		lines.append(description)
+
+	# Show appropriate name and description based on curse reveal status
+	var display_name = get_display_name()
+	var display_desc = description
+
+	if is_cursed and curse_revealed and true_description != "":
+		display_desc = true_description
+
+	lines.append(display_name)
+
+	if display_desc != "":
+		lines.append(display_desc)
 	
 	lines.append("")
 	lines.append("Type: %s" % item_type.capitalize())

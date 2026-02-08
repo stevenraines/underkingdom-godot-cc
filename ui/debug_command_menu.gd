@@ -1161,7 +1161,7 @@ func _do_give_item(item_id: String) -> void:
 	var item = ItemManager.create_item(item_id)
 	if item:
 		if player.inventory.add_item(item):
-			_show_message("Added: %s" % item.name)
+			_show_message("Added: %s" % item.get_display_name())
 		else:
 			_show_message("Inventory full!")
 	else:

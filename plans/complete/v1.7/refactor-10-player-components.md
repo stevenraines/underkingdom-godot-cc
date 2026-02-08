@@ -2,6 +2,18 @@
 
 **Risk Level**: Medium-High
 **Estimated Changes**: 4 new files, 1 file significantly reduced
+**Status**: Complete
+
+---
+
+## Implementation Note
+
+The implementation diverged from the plan below in one key way: **all state variables remain on `Player`**, not on the components. Components hold only logic and reference `_owner` (Player) to read/write state. This preserves backward compatibility with the serializer, UI screens, and any code that accesses `player.racial_traits`, `player.class_feats`, etc. directly. The plan's code samples show self-contained components with their own state — the actual implementation is the preferred pattern for this project.
+
+Additional changes shipped alongside:
+- **Bug fix**: `spell_casting_system.gd` — item-based casting (scrolls/wands) no longer costs mana or risks failure
+- **Bug fix**: `player_serializer.gd` — `_recalculate_effect_modifiers()` now always runs, not just when active_effects exist
+- **Cleanup**: Removed dead mode handler instantiation code from `input_handler.gd`
 
 ---
 

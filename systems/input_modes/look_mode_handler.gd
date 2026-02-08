@@ -15,18 +15,6 @@ var objects: Array = []
 var current_index: int = 0
 var current_object: Dictionary = {}
 
-# References
-var player: Player = null
-
-
-func _init(p: Player = null) -> void:
-	player = p
-
-
-func set_player(p: Player) -> void:
-	player = p
-
-
 ## Start look mode - gather all visible objects
 ## objects_array should be provided by InputHandler (which has access to the gathering logic)
 func start(objects_array: Array) -> Dictionary:

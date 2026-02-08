@@ -6,8 +6,6 @@ extends RefCounted
 ## Extracted from InputHandler to reduce file size and improve maintainability.
 ## Manages state for awaiting direction input and continuous harvesting mode.
 
-const HarvestSystemClass = preload("res://systems/harvest_system.gd")
-
 signal mode_changed(active: bool)
 
 # State
@@ -55,7 +53,6 @@ func start() -> Dictionary:
 ## Cancel harvest mode
 func cancel() -> void:
 	var was_active = active
-	var was_awaiting = awaiting_direction
 
 	active = false
 	awaiting_direction = false

@@ -8,7 +8,6 @@ extends RefCounted
 
 const FarmingSystemClass = preload("res://systems/farming_system.gd")
 
-signal action_completed()
 signal action_cancelled()
 
 enum Mode { NONE, TILL, PLANT }

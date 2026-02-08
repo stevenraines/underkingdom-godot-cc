@@ -1,0 +1,21 @@
+{
+  "id": "boots_of_speed",
+  "name": "Boots of Speed",
+  "description": "Fine leather boots that promise swift movement.",
+  "category": "armor",
+  "subtype": "boots",
+  "equip_slots": ["feet"],
+  "flags": {
+    "equippable": true
+  },
+  "armor_value": 1,
+  "ascii_char": "[",
+  "ascii_color": "#8B4513",
+  "weight": 0.8,
+  "value": 150,
+  "passive_effects": {
+    "stat_bonuses": {
+      "DEX": 1
+    }
+  }
+}

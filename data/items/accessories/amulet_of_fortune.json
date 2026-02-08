@@ -1,0 +1,20 @@
+{
+  "id": "amulet_of_fortune",
+  "name": "Amulet of Fortune",
+  "description": "A golden amulet that seems to shimmer with good luck.",
+  "category": "misc",
+  "subtype": "amulet",
+  "equip_slots": ["neck"],
+  "flags": {
+    "equippable": true
+  },
+  "ascii_char": "\"",
+  "ascii_color": "#FFD700",
+  "weight": 0.2,
+  "value": 280,
+  "passive_effects": {
+    "stat_bonuses": {
+      "DEX": 1
+    }
+  }
+}

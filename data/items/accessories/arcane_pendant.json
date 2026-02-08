@@ -1,0 +1,18 @@
+{
+  "id": "arcane_pendant",
+  "name": "Arcane Pendant",
+  "description": "A mystical pendant that hums with arcane energy.",
+  "category": "misc",
+  "subtype": "amulet",
+  "equip_slots": ["neck"],
+  "flags": {
+    "equippable": true
+  },
+  "ascii_char": "\"",
+  "ascii_color": "#4B0082",
+  "weight": 0.1,
+  "value": 350,
+  "passive_effects": {
+    "max_mana_bonus": 20
+  }
+}

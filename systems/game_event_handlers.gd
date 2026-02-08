@@ -513,23 +513,25 @@ func _unlock_shop_door(door_pos: Vector2i) -> void:
 
 func _on_attack_performed(attacker: Entity, _defender: Entity, result: Dictionary) -> void:
 	var is_player_attacker = (attacker == game.player)
-	var message = CombatSystemClass.get_attack_message(result, is_player_attacker)
 
-	# Determine message color
-	var color: Color
-	if result.hit:
-		if result.defender_died:
-			color = Color.RED
-		elif is_player_attacker:
-			color = Color(1.0, 0.6, 0.2)  # Orange - player dealing damage
+	# Skip message for ranged attacks - they display their own message via input_handler
+	if not result.get("is_ranged", false):
+		var message = CombatSystemClass.get_attack_message(result, is_player_attacker)
+
+		# Determine message color
+		var color: Color
+		if result.hit:
+			if result.defender_died:
+				color = Color.RED
+			elif is_player_attacker:
+				color = Color(1.0, 0.6, 0.2)  # Orange - player dealing damage
+			else:
+				color = Color(1.0, 0.4, 0.4)  # Light red - taking damage
 		else:
-			color = Color(1.0, 0.4, 0.4)  # Light red - taking damage
-	else:
-		color = Color(0.6, 0.6, 0.6)  # Gray for misses
+			color = Color(0.6, 0.6, 0.6)  # Gray for misses
 
-	game._add_message(message, color)
+		game._add_message(message, color)
 
-	# Update HUD to show health changes
 	# If player killed an enemy, award XP
 	if result.defender_died and is_player_attacker and _defender and _defender is Enemy:
 		var xp_gain = _defender.xp_value if "xp_value" in _defender else 0

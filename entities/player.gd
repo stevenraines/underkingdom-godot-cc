@@ -1348,24 +1348,27 @@ func try_toggle_adjacent_door() -> bool:
 static func calculate_xp_for_level(target_level: int) -> int:
 	if target_level <= 0:
 		return 0
-	if target_level == 1:
-		return 100
-	if target_level == 2:
-		return 200
 
-	# For level 3+, use Fibonacci-like formula with configurable multiplier
+	# Compute Fibonacci-like base XP (always grows), then scale by multiplier.
+	# CRITICAL: xp_multiplier is applied to the FINAL value, not each step.
+	# Applying it inside the loop causes convergence when multiplier < 1.0,
+	# which leads to an infinite level-up loop.
+	if target_level == 1:
+		return maxi(1, int(100 * GameConfig.xp_multiplier))
+	if target_level == 2:
+		return maxi(1, int(200 * GameConfig.xp_multiplier))
+
+	# For level 3+, use Fibonacci-like growth (unscaled), then apply multiplier
 	var prev_prev = 100  # Level 1
 	var prev = 200       # Level 2
 	var current = 0
 
 	for i in range(3, target_level + 1):
-		# Sum of previous two levels, multiplied by config
-		var base_xp = prev + prev_prev
-		current = int(base_xp * GameConfig.xp_multiplier)
+		current = prev + prev_prev
 		prev_prev = prev
 		prev = current
 
-	return current
+	return maxi(1, int(current * GameConfig.xp_multiplier))
 
 ## Calculate skill points earned for reaching a level
 ## Formula: ceil(level / skill_points_divisor)
@@ -1391,9 +1394,13 @@ func gain_experience(amount: int) -> void:
 
 	experience += amount
 
-	# Check for level-up(s)
-	while experience >= experience_to_next_level:
+	# Check for level-up(s) - safety limit prevents infinite loop if XP formula has issues
+	var max_levelups = 50
+	while experience >= experience_to_next_level and max_levelups > 0:
 		_level_up()
+		max_levelups -= 1
+	if max_levelups <= 0:
+		push_error("[Player] Emergency brake: 50 level-ups in one gain_experience call (level=%d, xp=%d, next=%d)" % [level, experience, experience_to_next_level])
 
 ## Handle level-up
 func _level_up() -> void:

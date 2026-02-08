@@ -14,6 +14,12 @@ const FogOfWarSystemClass = preload("res://systems/fog_of_war_system.gd")
 const HarvestSystemClass = preload("res://systems/harvest_system.gd")
 const RitualSystemClass = preload("res://systems/ritual_system.gd")
 
+# Input mode handlers
+const HarvestModeHandlerClass = preload("res://systems/input_modes/harvest_mode_handler.gd")
+const FishingModeHandlerClass = preload("res://systems/input_modes/fishing_mode_handler.gd")
+const FarmingModeHandlerClass = preload("res://systems/input_modes/farming_mode_handler.gd")
+const LookModeHandlerClass = preload("res://systems/input_modes/look_mode_handler.gd")
+
 var player: Player = null
 var ui_blocking_input: bool = false  # Set to true when a UI is open that should block game input
 
@@ -32,28 +38,34 @@ var sprint_mode: bool = false  # Whether sprint is toggled on
 var sprint_moves_remaining: int = 0  # Moves left in current sprint (2 per turn when sprinting)
 const SPRINT_STAMINA_MULTIPLIER: int = 4  # Stamina cost multiplier when sprinting
 
-# Harvest mode
-var _awaiting_harvest_direction: bool = false  # Waiting for player to specify direction to harvest
-var _harvesting_active: bool = false  # Currently in continuous harvesting mode
-var _harvest_direction: Vector2i = Vector2i.ZERO  # Direction being harvested
-var _harvest_timer: float = 0.0  # Timer for continuous harvesting
-var _skip_movement_this_frame: bool = false  # Prevent movement after harvest completion
+# Mode handlers (extracted to separate classes for maintainability)
+var harvest_handler = null  # HarvestModeHandler
+var fishing_handler = null  # FishingModeHandler
+var farming_handler = null  # FarmingModeHandler
+var look_handler = null  # LookModeHandler
 
-# Fishing mode
-var _awaiting_fishing_direction: bool = false  # Waiting for player to specify direction to fish
-var _fishing_active: bool = false  # Currently in continuous fishing mode
-var _fishing_direction: Vector2i = Vector2i.ZERO  # Direction being fished
-var _fishing_timer: float = 0.0  # Timer for continuous fishing
+# Harvest mode (delegated to harvest_handler)
+var _awaiting_harvest_direction: bool = false
+var _harvesting_active: bool = false
+var _harvest_direction: Vector2i = Vector2i.ZERO
+var _harvest_timer: float = 0.0
+var _skip_movement_this_frame: bool = false
 
-# Farming modes
-var _awaiting_till_direction: bool = false  # Waiting for player to specify direction to till
-var _awaiting_plant_direction: bool = false  # Waiting for player to specify direction to plant
-var _selected_seed_for_planting: Item = null  # The seed selected for planting
-var _available_seeds: Array = []  # All plantable seeds available
-var _current_seed_index: int = 0  # Index into _available_seeds for cycling
+# Fishing mode (delegated to fishing_handler)
+var _awaiting_fishing_direction: bool = false
+var _fishing_active: bool = false
+var _fishing_direction: Vector2i = Vector2i.ZERO
+var _fishing_timer: float = 0.0
+
+# Farming modes (delegated to farming_handler)
+var _awaiting_till_direction: bool = false
+var _awaiting_plant_direction: bool = false
+var _selected_seed_for_planting: Item = null
+var _available_seeds: Array = []
+var _current_seed_index: int = 0
 
 # Trap disarm mode
-var _awaiting_disarm_trap_direction: bool = false  # Waiting for player to specify direction to disarm
+var _awaiting_disarm_trap_direction: bool = false
 
 # Ranged targeting mode
 var targeting_system = null  # TargetingSystem instance
@@ -81,6 +93,18 @@ func _ready() -> void:
 	set_process_unhandled_input(true)
 	set_process(false)  # Start disabled for performance - enabled when player's turn starts
 	targeting_system = TargetingSystemClass.new()
+
+	# Initialize mode handlers
+	harvest_handler = HarvestModeHandlerClass.new()
+	fishing_handler = FishingModeHandlerClass.new()
+	farming_handler = FarmingModeHandlerClass.new()
+	look_handler = LookModeHandlerClass.new()
+
+	# Connect handler signals
+	harvest_handler.mode_changed.connect(_on_harvest_mode_changed)
+	fishing_handler.mode_changed.connect(_on_fishing_mode_changed)
+	look_handler.object_changed.connect(_on_look_handler_object_changed)
+
 	# Connect to scroll and wand targeting signals
 	EventBus.scroll_targeting_started.connect(_on_scroll_targeting_started)
 	EventBus.wand_targeting_started.connect(_on_wand_targeting_started)
@@ -90,6 +114,15 @@ func _ready() -> void:
 
 func set_player(p: Player) -> void:
 	player = p
+	# Update handlers with player reference
+	if harvest_handler:
+		harvest_handler.set_player(p)
+	if fishing_handler:
+		fishing_handler.set_player(p)
+	if farming_handler:
+		farming_handler.set_player(p)
+	if look_handler:
+		look_handler.set_player(p)
 
 
 ## Set UI blocking state and control _process() for performance
@@ -2567,3 +2600,21 @@ func _on_player_turn_started() -> void:
 ## Disables _process() to save CPU during enemy turns
 func _on_player_turn_ended() -> void:
 	set_process(false)
+
+
+## Handle harvest mode changed signal from handler
+func _on_harvest_mode_changed(active: bool) -> void:
+	EventBus.harvesting_mode_changed.emit(active)
+
+
+## Handle fishing mode changed signal from handler
+func _on_fishing_mode_changed(_active: bool) -> void:
+	# Fishing mode doesn't have a dedicated EventBus signal yet
+	pass
+
+
+## Handle look object changed signal from handler
+func _on_look_handler_object_changed(obj: Dictionary) -> void:
+	# Update the local state to match handler
+	current_look_object = obj
+	look_object_changed.emit(obj)

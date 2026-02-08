@@ -2882,7 +2882,7 @@ func _process_rest_turn() -> void:
 		return
 
 	# Safety check: Prevent infinite loops with a maximum turn limit
-	const MAX_REST_TURNS = 1000
+	const MAX_REST_TURNS = 5000
 	if rest_turns_elapsed >= MAX_REST_TURNS:
 		_interrupt_rest("Rested for too long without reaching goal.")
 		return
@@ -2902,7 +2902,7 @@ func _process_rest_turn() -> void:
 	# For health rest, verify player can actually be healed in shelter
 	if rest_type == "health" and player:
 		if not _is_player_in_healing_shelter():
-			_interrupt_rest("You must be on a shelter tile to rest until healed.")
+			_interrupt_rest("No nearby shelter can restore your health.")
 			return
 
 	# Perform wait action (bonus stamina regen)
@@ -2983,7 +2983,7 @@ func _check_shelter_hp_restoration() -> void:
 			if shelter.is_inside_shelter(structure.position, player.position):
 				# Check if enough turns have passed for HP restoration
 				if shelter.hp_restore_turns > 0 and rest_turns_elapsed % shelter.hp_restore_turns == 0:
-					var hp_to_restore = shelter.hp_restore_amount
+					var hp_to_restore = shelter.hp_restore_amount + player.level
 					if player.current_health < player.max_health:
 						var old_hp = player.current_health
 						player.current_health = min(player.max_health, player.current_health + hp_to_restore)

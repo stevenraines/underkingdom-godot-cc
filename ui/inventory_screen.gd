@@ -234,7 +234,7 @@ func refresh() -> void:
 
 	# Restore normal title if not in targeting mode
 	if not in_spell_targeting and inventory_title:
-		var filtered_items = player.inventory.get_filtered_items(current_filter)
+		var filtered_items = player.inventory.get_items_by_filter(current_filter)
 		_update_inventory_title(filtered_items.size())
 
 func _update_weight_display() -> void:
@@ -540,7 +540,15 @@ func _populate_item_tooltip(item: Item) -> void:
 	# Name column - show inscription if present
 	item_name_label.text = item.get_display_name()
 	item_name_label.add_theme_color_override("font_color", item.get_color())
-	item_desc_label.text = item.description
+
+	# Description - add curse warning if cursed and revealed
+	var description = item.description
+	if item.is_cursed and item.curse_revealed:
+		description += "\n[!] CURSED - Cannot be unequipped!"
+		item_desc_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	else:
+		item_desc_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	item_desc_label.text = description
 
 	# Stats column - build stat lines based on item type
 	var stats: Array[String] = []

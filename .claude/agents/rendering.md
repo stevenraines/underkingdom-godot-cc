@@ -15,7 +15,7 @@ RenderInterface (abstract)
 ASCIIRenderer (TileMapLayer-based)
 ```
 
-**Current Implementation**: ASCIIRenderer using Unicode tileset (895 characters, 32-column grid)
+**Current Implementation**: ASCIIRenderer using Unicode tileset (1551 characters, 32-column grid)
 - Rectangular tiles (38×64 pixels) optimized for monospace fonts
 - Two TileMapLayer nodes: TerrainLayer (floors/walls) + EntityLayer (entities/items)
 - Runtime color modulation via white tiles + modulated_cells dictionaries
@@ -28,9 +28,9 @@ ASCIIRenderer (TileMapLayer-based)
 ## Unicode Tileset
 
 - **File**: `rendering/tilesets/unicode_tileset.png`
-- **Dimensions**: 1216×1792 pixels (32 cols × 28 rows)
+- **Dimensions**: 1216×3136 pixels (32 cols × 49 rows)
 - **Tile Size**: 38×64 pixels (rectangular, not square)
-- **Characters**: 895 total (Basic Latin, Latin-1, Box Drawing, Block Elements, Geometric Shapes, Symbols, Dingbats)
+- **Characters**: 1551 total (Basic Latin, Latin-1, Greek/Coptic, Math Operators, Misc Technical, Box Drawing, Block Elements, Geometric Shapes, Misc Symbols, Dingbats)
 - **Font**: DejaVu Sans Mono (58pt), generated via Python PIL
 
 ---

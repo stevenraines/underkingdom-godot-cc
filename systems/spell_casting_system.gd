@@ -66,38 +66,40 @@ static func cast_spell(caster, spell, target = null, from_item: bool = false) ->
 
 	result.target_name = target.name if target else ""
 
-	# Calculate mana cost (with potential reduction from casting focus)
-	var mana_cost = spell.get_mana_cost()
+	# Item-based casting (scrolls, wands) bypasses mana cost and failure
+	if not from_item:
+		# Calculate mana cost (with potential reduction from casting focus)
+		var mana_cost = spell.get_mana_cost()
 
-	# Apply mana cost modifier from casting focus (staves)
-	if caster.has_method("get_casting_bonuses"):
-		var casting_bonuses = caster.get_casting_bonuses()
-		var mana_modifier = casting_bonuses.get("mana_cost_modifier", 0)
-		# mana_modifier is a percentage (e.g., -10 = 10% reduction)
-		if mana_modifier != 0:
-			var multiplier = 1.0 + (mana_modifier / 100.0)
-			mana_cost = int(mana_cost * multiplier)
-			mana_cost = max(1, mana_cost)  # Minimum 1 mana cost
+		# Apply mana cost modifier from casting focus (staves)
+		if caster.has_method("get_casting_bonuses"):
+			var casting_bonuses = caster.get_casting_bonuses()
+			var mana_modifier = casting_bonuses.get("mana_cost_modifier", 0)
+			# mana_modifier is a percentage (e.g., -10 = 10% reduction)
+			if mana_modifier != 0:
+				var multiplier = 1.0 + (mana_modifier / 100.0)
+				mana_cost = int(mana_cost * multiplier)
+				mana_cost = max(1, mana_cost)  # Minimum 1 mana cost
 
-	result.mana_cost = mana_cost
+		result.mana_cost = mana_cost
 
-	if caster.has_method("get") and caster.get("survival"):
-		caster.survival.consume_mana(mana_cost)
+		if caster.has_method("get") and caster.get("survival"):
+			caster.survival.consume_mana(mana_cost)
 
-	# Check for spell failure (based on level difference)
-	var failure_result = _check_spell_failure(caster, spell)
-	if failure_result.failed:
-		result.failed = true
-		result.failure_type = failure_result.type
-		result.message = failure_result.message
+		# Check for spell failure (based on level difference)
+		var failure_result = _check_spell_failure(caster, spell)
+		if failure_result.failed:
+			result.failed = true
+			result.failure_type = failure_result.type
+			result.message = failure_result.message
 
-		# Handle wild magic if that's the failure type
-		if failure_result.type == "wild_magic":
-			const WildMagicClass = preload("res://systems/wild_magic.gd")
-			WildMagicClass.trigger_wild_magic(caster, spell)
+			# Handle wild magic if that's the failure type
+			if failure_result.type == "wild_magic":
+				const WildMagicClass = preload("res://systems/wild_magic.gd")
+				WildMagicClass.trigger_wild_magic(caster, spell)
 
-		# Mana is still consumed on failure
-		return result
+			# Mana is still consumed on failure
+			return result
 
 	# Apply spell effects
 	result = _apply_spell_effects(caster, spell, target, result)

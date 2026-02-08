@@ -213,8 +213,9 @@ static func deserialize(player, player_data: Dictionary) -> void:
 	if player_data.has("active_effects"):
 		for effect_data in player_data.active_effects:
 			player.active_effects.append(effect_data.duplicate(true))
-		# Recalculate stat modifiers from restored effects
-		player._recalculate_effect_modifiers()
+
+	# Recalculate stat modifiers from effects and equipment after full restore
+	player._recalculate_effect_modifiers()
 
 	# Re-apply race and class for old saves that didn't have these systems
 	if old_save_detected:

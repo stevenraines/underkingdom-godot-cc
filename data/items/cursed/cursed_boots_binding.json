@@ -11,6 +11,7 @@
     "equippable": true,
     "cursed": true
   },
+  "unidentified": true,
   "is_cursed": true,
   "curse_type": "binding",
   "curse_revealed": false,

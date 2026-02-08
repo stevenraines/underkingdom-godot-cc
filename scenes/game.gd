@@ -1366,6 +1366,17 @@ func _on_spell_cast_requested(spell_id: String) -> void:
 				update_target_highlight(initial_target)
 		else:
 			_add_message("No valid targets in range.", Color(1.0, 0.8, 0.3))
+	elif targeting_mode in ["inventory", "equipped_item"]:
+		# Item-targeting spells need item selection via SpellItemSelectionDialog
+		var action_text = "identify" if spell.id == "identify" else "target with %s" % spell.name
+		_add_message("Select an item to %s..." % action_text, Color(0.5, 0.8, 1.0))
+
+		# Store the spell for later use when item is selected
+		input_handler.pending_spell = spell
+
+		# Open the spell item selection dialog via UI coordinator
+		if ui_coordinator:
+			ui_coordinator.open("spell_item_selection", [player, spell, targeting_mode])
 	else:
 		_add_message("Unsupported targeting mode: %s" % targeting_mode, Color(1.0, 0.5, 0.5))
 
@@ -1401,28 +1412,44 @@ func _on_spell_item_selected(item: Item) -> void:
 	if not player or not item or not input_handler:
 		return
 
-	# Get the pending scroll
-	var pending_scroll = input_handler.pending_scroll
-	if not pending_scroll:
-		return
+	var spell = null
+	var from_item = false  # Whether the spell is from an item (scroll/wand) or player's spell list
 
-	# Get the spell from the scroll
-	var spell = SpellManager.get_spell(pending_scroll.casts_spell)
-	if not spell:
-		_add_message("The scroll contains corrupted magic.", Color(1.0, 0.5, 0.5))
+	# Check if this is from a scroll
+	var pending_scroll = input_handler.pending_scroll
+	if pending_scroll:
+		spell = SpellManager.get_spell(pending_scroll.casts_spell)
+		from_item = true
+		if not spell:
+			_add_message("The scroll contains corrupted magic.", Color(1.0, 0.5, 0.5))
+			input_handler.pending_scroll = null
+			return
+	# Check if this is from player's spell list
+	elif input_handler.pending_spell:
+		spell = input_handler.pending_spell
+		from_item = false
+	else:
+		# No pending spell found
 		return
 
 	# Cast the spell on the selected item
-	var cast_result = SpellCastingSystemClass.cast_spell(player, spell, item, true)
+	var cast_result = SpellCastingSystemClass.cast_spell(player, spell, item, from_item)
 
 	# Show the result message
 	if cast_result.message:
 		_add_message(cast_result.message, Color(0.7, 0.9, 1.0))
 
-	# Consume the scroll if successful
-	if cast_result.success or not cast_result.has("failed") or not cast_result.failed:
-		player.inventory.remove_item(pending_scroll)
-		input_handler.pending_scroll = null
+	# Consume the scroll if it was from a scroll and successful
+	if from_item and pending_scroll:
+		if cast_result.success or not cast_result.has("failed") or not cast_result.failed:
+			player.inventory.remove_item(pending_scroll)
+
+	# Clean up pending items
+	input_handler.pending_scroll = null
+	input_handler.pending_spell = null
+
+	# Update HUD to show mana/item changes
+	_update_hud()
 
 	# Advance turn
 	TurnManager.advance_turn()
@@ -1431,6 +1458,7 @@ func _on_spell_item_selected(item: Item) -> void:
 func _on_spell_item_selection_cancelled() -> void:
 	if input_handler:
 		input_handler.pending_scroll = null
+		input_handler.pending_spell = null
 	_add_message("Cancelled.", Color(0.7, 0.7, 0.7))
 
 ## Called when a special action is used

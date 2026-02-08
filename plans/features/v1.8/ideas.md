@@ -13,3 +13,5 @@
     When deployed via the HTML export, the "Quit" option on the main menu does nothing. Modify the main menu to hide this option when deployed via the HTML Export.
 - [X] Hide Cursed status of Items until used or worn
     Cursed items should never show that they are cursed until used / worn. Cursed items that are worn should not be able to be removed without a Remove Curse spell being cast. Priests should be able to train a player to cast this spell.
+- [X] Hide item info until revealed
+    When a player finds or purchases a magic item that has not yet been identified it should appear in inventory and messages as a normal item of that type. For example, a "Ring of Power" might be a shiny gold ring. Only when used/equipped and its powers revealed (like on a successful hit for a weapon, or being hit for armor) or when an Identify spell is cast on it should it show what it is. 

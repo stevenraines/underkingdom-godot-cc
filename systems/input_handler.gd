@@ -2573,14 +2573,26 @@ func _on_scroll_item_targeting_started(scroll, spell, targeting_mode: String) ->
 	set_meta("pending_spell", spell)
 	set_meta("pending_targeting_mode", targeting_mode)
 
-	# Open inventory screen in item selection mode
-	if game and game.has_method("toggle_inventory_screen"):
-		game.toggle_inventory_screen()
+	# Show message about item selection
+	if game and game.has_method("_add_message"):
+		var action_text = "identify" if spell.id == "identify" else "target with %s" % spell.name
+		game._add_message("Select an item to %s (E to select, ESC to cancel)" % action_text, Color(0.5, 0.8, 1.0))
 
-		# Show message about selecting an item
-		if game.has_method("_add_message"):
-			var action_text = "identify" if spell.id == "identify" else "target with %s" % spell.name
-			game._add_message("Select an item to %s (E to select, ESC to cancel)" % action_text, Color(0.5, 0.8, 1.0))
+	# Ensure inventory screen is open (don't toggle if already open)
+	if game:
+		var inventory_screen = game.get_node_or_null("InventoryScreen")
+		if inventory_screen and not inventory_screen.visible:
+			# Inventory is closed, open it via UI coordinator
+			if game.has_node("UICoordinator"):
+				var ui_coordinator = game.get_node("UICoordinator")
+				if ui_coordinator and ui_coordinator.has_method("open"):
+					ui_coordinator.open("inventory", [player])
+			elif game.has_method("toggle_inventory_screen"):
+				game.toggle_inventory_screen()
+		elif inventory_screen and inventory_screen.visible:
+			# Inventory is already open - just refresh it
+			if inventory_screen.has_method("refresh"):
+				inventory_screen.refresh()
 
 
 ## Handle wand targeting signal

@@ -572,12 +572,15 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 	if effects.has("identify"):
 		result.effects_applied.append("identify")
 		# Target should be an item from inventory (inventory targeting mode)
-		if target and "id" in target and "unidentified" in target:
+		if target and "id" in target:
 			var item_id = target.id
 			# Identify the item
 			IdentificationManager.identify_item(item_id)
+			# Mark item as identified
+			if "unidentified" in target:
+				target.unidentified = false
 			# Reveal curse if item is cursed
-			if target.has("is_cursed") and target.is_cursed and target.has("curse_revealed") and not target.curse_revealed:
+			if "is_cursed" in target and target.is_cursed and "curse_revealed" in target and not target.curse_revealed:
 				target.reveal_curse()
 				result.message = "You sense a dark aura emanating from the %s..." % target.get_display_name()
 			else:
@@ -605,7 +608,7 @@ static func _apply_spell_effects(caster, spell, target, result: Dictionary) -> D
 		result.effects_applied.append("remove_curse")
 		# Target should be an equipped item (equipped_item targeting mode)
 		if target and "is_cursed" in target and target.is_cursed:
-			var item_name = target.get_display_name() if target.has("get_display_name") else target.name if "name" in target else "the item"
+			var item_name = target.get_display_name() if target.has_method("get_display_name") else target.name if "name" in target else "the item"
 			target.remove_curse()
 			result.message = "The curse dissipates! The %s is no longer cursed." % item_name
 		else:

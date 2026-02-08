@@ -1,7 +1,7 @@
 {
 	"progression": {
 		"xp_multiplier": 0.5,
-		"skill_points_divisor": 1.0,
-		"ability_point_interval": 1
+		"skill_points_divisor": 3.0,
+		"ability_point_interval": 4
 	}
 }

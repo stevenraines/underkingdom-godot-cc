@@ -96,6 +96,13 @@ func _ready() -> void:
 	ability_roll_screen.confirmed.connect(_on_abilities_confirmed)
 	ability_roll_screen.cancelled.connect(_on_abilities_cancelled)
 
+	# Setup bonus points screen (for racial bonus ability points)
+	var BonusPointsScreenScene = load("res://ui/bonus_points_screen.tscn")
+	var bonus_points_screen = BonusPointsScreenScene.instantiate()
+	add_child(bonus_points_screen)
+	bonus_points_screen.confirmed.connect(_on_bonus_points_confirmed)
+	bonus_points_screen.cancelled.connect(_on_bonus_points_cancelled)
+
 	# Setup skill allocation screen
 	var SkillAllocationScreenScene = load("res://ui/skill_allocation_screen.tscn")
 	var skill_allocation_screen = SkillAllocationScreenScene.instantiate()
@@ -134,6 +141,11 @@ func _input(event) -> void:
 	# Don't process input if ability roll screen is visible
 	var ability_screen = get_node_or_null("AbilityRollScreen")
 	if ability_screen and ability_screen.visible:
+		return
+
+	# Don't process input if bonus points screen is visible
+	var bonus_screen = get_node_or_null("BonusPointsScreen")
+	if bonus_screen and bonus_screen.visible:
 		return
 
 	# Don't process input if skill allocation screen is visible
@@ -212,23 +224,25 @@ func _on_class_cancelled() -> void:
 		race_dialog.open()
 
 func _on_abilities_confirmed(assigned_abilities: Dictionary) -> void:
-	print("Abilities confirmed: %s - Opening skill allocation..." % str(assigned_abilities))
+	print("Abilities confirmed: %s" % str(assigned_abilities))
 	# Store assigned abilities
 	pending_abilities = assigned_abilities
 
-	# Create temporary player to calculate skill points and preview
-	var temp_player = Player.new()
-	temp_player.apply_race(pending_race_id)
-	temp_player.apply_class(GameManager.player_class)
+	# Check if race grants bonus ability points
+	var bonus_points = RaceManager.get_bonus_stat_points(pending_race_id)
+	if bonus_points > 0:
+		print("Race '%s' grants %d bonus points - Opening bonus points screen..." % [pending_race_id, bonus_points])
+		# Create temporary player for preview
+		var temp_player = Player.new()
+		temp_player.apply_race(pending_race_id)
+		temp_player.apply_class(GameManager.player_class)
 
-	# Apply abilities to get correct INT for skill point calculation
-	for ability in assigned_abilities:
-		temp_player.attributes[ability] = assigned_abilities[ability]
-
-	# Open skill allocation screen
-	var skill_screen = get_node("SkillAllocationScreen")
-	if skill_screen:
-		skill_screen.open(temp_player)
+		var bonus_screen = get_node("BonusPointsScreen")
+		if bonus_screen:
+			bonus_screen.open(temp_player, assigned_abilities, bonus_points)
+	else:
+		print("No bonus points - Opening skill allocation...")
+		_open_skill_allocation()
 
 func _on_abilities_cancelled() -> void:
 	print("Ability roll cancelled - returning to class selection")
@@ -236,6 +250,43 @@ func _on_abilities_cancelled() -> void:
 	var class_dialog = get_node("ClassSelectionDialog")
 	if class_dialog:
 		class_dialog.open()
+
+func _on_bonus_points_confirmed(bonus_distributions: Dictionary) -> void:
+	print("Bonus points distributed: %s" % str(bonus_distributions))
+	# Merge bonus distributions into pending abilities
+	for ability in bonus_distributions:
+		if pending_abilities.has(ability):
+			pending_abilities[ability] += bonus_distributions[ability]
+	print("Final abilities after bonus: %s" % str(pending_abilities))
+	_open_skill_allocation()
+
+func _on_bonus_points_cancelled() -> void:
+	print("Bonus points cancelled - returning to ability roll")
+	# Create temporary player again for ability roll screen
+	var temp_player = Player.new()
+	temp_player.apply_race(pending_race_id)
+	temp_player.apply_class(GameManager.player_class)
+
+	# Return to ability roll screen
+	var ability_screen = get_node("AbilityRollScreen")
+	if ability_screen:
+		ability_screen.open(temp_player)
+
+## Helper to open skill allocation (shared by abilities confirmed and bonus points confirmed)
+func _open_skill_allocation() -> void:
+	# Create temporary player to calculate skill points and preview
+	var temp_player = Player.new()
+	temp_player.apply_race(pending_race_id)
+	temp_player.apply_class(GameManager.player_class)
+
+	# Apply abilities (including any bonus points) to get correct INT for skill point calculation
+	for ability in pending_abilities:
+		temp_player.attributes[ability] = pending_abilities[ability]
+
+	# Open skill allocation screen
+	var skill_screen = get_node("SkillAllocationScreen")
+	if skill_screen:
+		skill_screen.open(temp_player)
 
 func _on_skills_confirmed(distributed_points: Dictionary) -> void:
 	print("Skills confirmed: %s - Starting game..." % str(distributed_points))

@@ -124,34 +124,55 @@ func _add_attributes_section() -> void:
 	for attr in attributes:
 		var base_value = player.attributes.get(attr, 10)
 		var racial_mod = player.racial_stat_modifiers.get(attr, 0)
+		var class_mod = player.class_stat_modifiers.get(attr, 0)
 		var temp_mod = player.stat_modifiers.get(attr, 0)
-		var total_mod = racial_mod + temp_mod
 		var effective = player.get_effective_attribute(attr)
+
+		# Build the modifier breakdown parts (only include non-zero modifiers)
+		var breakdown_parts: Array[String] = []
+		if racial_mod != 0:
+			var mod_str = "+%d" % racial_mod if racial_mod > 0 else "%d" % racial_mod
+			breakdown_parts.append("Race: %s" % mod_str)
+		if class_mod != 0:
+			var mod_str = "+%d" % class_mod if class_mod > 0 else "%d" % class_mod
+			breakdown_parts.append("Class: %s" % mod_str)
+		if temp_mod != 0:
+			var mod_str = "+%d" % temp_mod if temp_mod > 0 else "%d" % temp_mod
+			breakdown_parts.append("Effects: %s" % mod_str)
 
 		var stat_line = HBoxContainer.new()
 
-		# Attribute name (left-aligned)
+		# Attribute name
 		var name_label = Label.new()
 		name_label.text = "%s:" % attribute_names[attr]
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.custom_minimum_size.x = 120
 		name_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
 		name_label.add_theme_font_size_override("font_size", 14)
 		stat_line.add_child(name_label)
 
-		# Value display (right-aligned)
-		var value_label = Label.new()
-		if total_mod != 0:
-			var modifier_text = "+%d" % total_mod if total_mod > 0 else "%d" % total_mod
-			value_label.text = "%d %s = %d" % [base_value, modifier_text, effective]
-			value_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4) if total_mod > 0 else Color(1.0, 0.5, 0.5))
-		else:
-			value_label.text = "%d" % effective
-			value_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
+		# Effective score (always shown prominently)
+		var score_label = Label.new()
+		score_label.text = "%d" % effective
+		score_label.custom_minimum_size.x = 30
+		score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		score_label.add_theme_color_override("font_color", UITheme.COLOR_VALUE)
+		score_label.add_theme_font_size_override("font_size", 14)
+		stat_line.add_child(score_label)
 
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		value_label.custom_minimum_size.x = 120
-		value_label.add_theme_font_size_override("font_size", 14)
-		stat_line.add_child(value_label)
+		# Breakdown: base and each modifier (always shown)
+		var parts: Array[String] = ["Base: %d" % base_value]
+		if racial_mod != 0:
+			parts.append("Race: %+d" % racial_mod)
+		if class_mod != 0:
+			parts.append("Class: %+d" % class_mod)
+		if temp_mod != 0:
+			parts.append("Effects: %+d" % temp_mod)
+
+		var detail_label = Label.new()
+		detail_label.text = "  (%s)" % ", ".join(parts)
+		detail_label.add_theme_color_override("font_color", UITheme.COLOR_LABEL)
+		detail_label.add_theme_font_size_override("font_size", 14)
+		stat_line.add_child(detail_label)
 
 		abilities_content.add_child(stat_line)
 

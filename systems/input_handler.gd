@@ -897,8 +897,8 @@ func _try_toggle_light() -> void:
 				if game and game.has_method("_add_message"):
 					game._add_message("You light the %s." % item.name, Color(1.0, 0.8, 0.4))
 			# Update visibility and HUD
-			if game and game.has_method("_update_visibility"):
-				game._update_visibility()
+			if game and game.render_orchestrator:
+				game.render_orchestrator.update_visibility()
 			if game and game.has_method("_update_hud"):
 				game._update_hud()
 			return
@@ -1095,10 +1095,10 @@ func _start_harvest_mode() -> void:
 			var result = player.interact_with_feature()
 			if result.get("success", false):
 				TurnManager.advance_turn()
-				if game and game.has_method("_render_all_entities"):
-					game._render_all_entities()
-				if game and game.has_method("_update_visibility"):
-					game._update_visibility()
+				if game and game.render_orchestrator:
+					game.render_orchestrator.render_all_entities()
+				if game and game.render_orchestrator:
+					game.render_orchestrator.update_visibility()
 			return
 
 	# No feature at position, prompt for harvest direction (for trees, rocks, etc.)
@@ -1212,9 +1212,9 @@ func _start_detect_trap_mode() -> void:
 			var trap_list = ", ".join(detected_traps)
 			game._add_message("You discover: %s!" % trap_list, Color(0.6, 1.0, 0.6))
 			# Render only the newly detected hazards (not all hazards on map)
-			if game.has_method("_render_hazard_at"):
+			if game.render_orchestrator:
 				for trap_pos in detected_positions:
-					game._render_hazard_at(trap_pos)
+					game.render_orchestrator.render_hazard_at(trap_pos)
 		elif sensed_count > 0:
 			game._add_message("You sense something nearby, but can't pinpoint it...", Color(1.0, 0.8, 0.5))
 		else:
@@ -1267,8 +1267,8 @@ func _try_disarm_trap_at(pos: Vector2i) -> void:
 		game._add_message(result.message, color)
 
 	# Refresh hazard rendering to show grey disarmed trap (only at this position)
-	if result.success and game.has_method("_render_hazard_at"):
-		game._render_hazard_at(pos)
+	if result.success and game.render_orchestrator:
+		game.render_orchestrator.render_hazard_at(pos)
 
 	# If disarm failed and triggered the trap, apply damage
 	if result.get("triggered", false):
@@ -1391,12 +1391,12 @@ func _try_till(direction: Vector2i) -> bool:
 
 	# Re-render map if successful
 	if result.success and game:
-		if game.has_method("_render_map"):
-			game._render_map()
-		if game.has_method("_render_all_entities"):
-			game._render_all_entities()
-		if game.has_method("_update_visibility"):
-			game._update_visibility()
+		if game.render_orchestrator:
+			game.render_orchestrator.render_map()
+		if game.render_orchestrator:
+			game.render_orchestrator.render_all_entities()
+		if game.render_orchestrator:
+			game.render_orchestrator.update_visibility()
 		# Re-render player (must be after visibility update)
 		if game.renderer:
 			game.renderer.render_entity(player.position, "@", Color.YELLOW)
@@ -1474,12 +1474,12 @@ func _try_plant(direction: Vector2i) -> bool:
 
 	# Re-render map if successful
 	if result.success and game:
-		if game.has_method("_render_map"):
-			game._render_map()
-		if game.has_method("_render_all_entities"):
-			game._render_all_entities()
-		if game.has_method("_update_visibility"):
-			game._update_visibility()
+		if game.render_orchestrator:
+			game.render_orchestrator.render_map()
+		if game.render_orchestrator:
+			game.render_orchestrator.render_all_entities()
+		if game.render_orchestrator:
+			game.render_orchestrator.update_visibility()
 		# Re-render player (must be after visibility update)
 		if game.renderer:
 			game.renderer.render_entity(player.position, "@", Color.YELLOW)
@@ -1519,8 +1519,8 @@ func _try_harvest(direction: Vector2i) -> Dictionary:
 
 	# Update visibility to apply fog of war after harvest
 	# This ensures the harvested position is properly updated
-	if result.success and game and game.has_method("_update_visibility"):
-		game._update_visibility()
+	if result.success and game and game.render_orchestrator:
+		game.render_orchestrator.update_visibility()
 
 	# Determine if harvest is complete (resource depleted)
 	# Harvest is complete when: success=true AND in_progress is not true
@@ -1679,11 +1679,11 @@ func _process_ranged_attack_result(result: Dictionary) -> void:
 	TurnManager.advance_turn()
 
 	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
-	if game and game.has_method("_render_all_entities"):
-		game._render_all_entities()
-		game._render_ground_items()
-	if game and game.has_method("_update_visibility"):
-		game._update_visibility()
+	if game and game.render_orchestrator:
+		game.render_orchestrator.render_all_entities()
+		game.render_orchestrator.render_ground_items()
+	if game and game.render_orchestrator:
+		game.render_orchestrator.update_visibility()
 
 
 ## Process the result of a spell cast
@@ -1709,11 +1709,11 @@ func _process_spell_result(result: Dictionary, game) -> void:
 		game._update_hud()
 
 	# Refresh rendering, then apply FOW (order matters - render first, then FOW hides non-visible)
-	if game and game.has_method("_render_all_entities"):
-		game._render_all_entities()
-		game._render_ground_items()
-	if game and game.has_method("_update_visibility"):
-		game._update_visibility()
+	if game and game.render_orchestrator:
+		game.render_orchestrator.render_all_entities()
+		game.render_orchestrator.render_ground_items()
+	if game and game.render_orchestrator:
+		game.render_orchestrator.update_visibility()
 
 
 ## Get the equipped ranged or thrown weapon
@@ -1929,11 +1929,11 @@ func _fire_at_target() -> void:
 	TurnManager.advance_turn()
 
 	# Refresh rendering
-	if game and game.has_method("_render_all_entities"):
-		game._render_all_entities()
-		game._render_ground_items()
-	if game and game.has_method("_update_visibility"):
-		game._update_visibility()
+	if game and game.render_orchestrator:
+		game.render_orchestrator.render_all_entities()
+		game.render_orchestrator.render_ground_items()
+	if game and game.render_orchestrator:
+		game.render_orchestrator.update_visibility()
 
 
 ## Get all valid targets within perception range

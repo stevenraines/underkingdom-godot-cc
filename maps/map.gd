@@ -57,9 +57,9 @@ func is_walkable(pos: Vector2i) -> bool:
 	if not tile.walkable:
 		return false
 
-	# Check if any entity blocks movement at this position
+	# Check if any living entity blocks movement at this position
 	for entity in entities:
-		if entity.position == pos and entity.blocks_movement:
+		if entity.position == pos and entity.blocks_movement and entity.is_alive:
 			return false
 
 	# Check if any structure blocks movement at this position

@@ -19,7 +19,7 @@
 - [ ] Enemy traits
     Some creatures should have special abilities like the racial traits / feats players have - trolls have regenreation, dragons breath fire, etc. Implement a system to support special abilities that can be defined through data configuration
 - [ ] Allow enemies to use ranged weapons and spells.
-    Humanoid creatures should be able to use ranged weapons like bows and slings to attach players (if they possess them). Spell casting creatures (mages, demons, etc) should also be able to cast spells on players to hurt or hinder them. For instance, in addition to the combat spells, a wizard of sufficent level should be able to cast a Slow spell on the player that causes the player to only be able to act once every 2 turns until the spell ends or the player makes a successful save.
+    Humanoid creatures should be able to use ranged weapons like bows and slings to attack players (if they possess them). Spell casting creatures (mages, demons, etc) should also be able to cast spells on players to hurt or hinder them. For instance, in addition to the combat spells, a wizard of sufficient level should be able to cast a Slow spell on the player that causes the player to only be able to act once every 2 turns until the spell ends or the player makes a successful save.
 - [ ] Creature interaction
     Creatures in the world should interact with other creatures. For example, a deserter in the woods meets a wolf - they should interact in the same way with each other that either would with the player. 
 - [ ] Allies

@@ -23,7 +23,7 @@ var selected_button_index: int = 0
 var action_buttons: Array[Button] = []
 var in_button_mode: bool = false
 
-const DEFAULT_RACE = "human"
+const DEFAULT_RACE := RaceManager.DEFAULT_RACE
 
 
 func _ready() -> void:

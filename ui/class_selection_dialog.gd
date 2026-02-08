@@ -25,7 +25,7 @@ var selected_button_index: int = 0
 var action_buttons: Array[Button] = []
 var in_button_mode: bool = false
 
-const DEFAULT_CLASS = "adventurer"
+const DEFAULT_CLASS := ClassManager.DEFAULT_CLASS
 
 
 func _ready() -> void:

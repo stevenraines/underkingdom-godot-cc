@@ -1,0 +1,15 @@
+{
+  "id": "half_orc_surname",
+  "type": "syllable",
+  "description": "Half-orc surnames (deed names, strength themed)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Bone", "Blood", "Iron", "Stone", "Skull", "War", "Battle", "Rage", "Scar", "Grim",
+    "Dark", "Black", "Red", "Fist", "Axe", "Blade"
+  ],
+  "suffixes": [
+    "crusher", "breaker", "smasher", "render", "ripper", "bane", "slayer", "fist", "blade",
+    "rage", "wrath", "fury"
+  ]
+}

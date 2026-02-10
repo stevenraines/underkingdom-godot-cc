@@ -51,6 +51,7 @@ CreatureTypeManager="*res://autoload/creature_type_manager.gd"
 RaceManager="*res://autoload/race_manager.gd"
 ClassManager="*res://autoload/class_manager.gd"
 UITheme="*res://autoload/ui_theme.gd"
+NameGenerator="*res://autoload/name_generator.gd"
 
 [debug]
 

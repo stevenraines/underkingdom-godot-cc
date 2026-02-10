@@ -1,0 +1,18 @@
+{
+  "id": "human_surname",
+  "type": "syllable",
+  "description": "Western European/Anglo-Saxon inspired surnames",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Black", "Green", "White", "Red", "Brown", "Gray", "Stone", "Wood", "Iron", "Gold",
+    "Silver", "Oak", "Ash", "Thorn", "River", "Hill", "Moor", "Marsh", "Frost", "Storm",
+    "Night", "Day", "Sun", "Moon", "Star", "Wind", "Snow", "Raven", "Wolf", "Bear",
+    "Hart", "Hawk", "Fox", "Badger", "Elder", "Young"
+  ],
+  "suffixes": [
+    "smith", "wright", "wood", "field", "ford", "brook", "stone", "hill", "vale", "dale",
+    "ton", "ham", "don", "ley", "by", "thorpe", "burn", "bourne", "mere", "worth",
+    "shaw", "hurst", "croft", "grove", "ridge", "barrow"
+  ]
+}

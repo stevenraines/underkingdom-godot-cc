@@ -1,0 +1,17 @@
+{
+  "id": "dwarf_surname",
+  "type": "syllable",
+  "description": "Dwarf clan/family names (craft or mountain themed)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Iron", "Stone", "Granite", "Steel", "Bronze", "Gold", "Silver", "Copper", "Mithril",
+    "Anvil", "Hammer", "Forge", "Fire", "Flame", "Thunder", "Battle", "War", "Shield",
+    "Mountain", "Rock", "Boulder", "Deep", "Dark", "Strong", "Stout", "Bold", "True"
+  ],
+  "suffixes": [
+    "fist", "hand", "arm", "beard", "brow", "heart", "helm", "shield", "axe", "hammer",
+    "forge", "anvil", "breaker", "bane", "slayer", "delver", "seeker", "finder", "guard",
+    "keeper", "warden", "born", "son", "daughter"
+  ]
+}

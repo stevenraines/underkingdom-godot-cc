@@ -1,0 +1,21 @@
+{
+  "id": "settlement_fort",
+  "type": "template",
+  "description": "Military fort/tower names",
+  "templates": [
+    "Fort [descriptor]",
+    "[descriptor] Keep",
+    "[descriptor] Tower",
+    "Castle [descriptor]",
+    "[descriptor] Bastion",
+    "[descriptor]guard",
+    "The [descriptor] Citadel"
+  ],
+  "word_lists": {
+    "descriptor": [
+      "Iron", "Stone", "Steel", "Black", "White", "Red", "Gold", "Silver", "Gray",
+      "North", "South", "East", "West", "High", "Crow", "Raven", "Eagle", "Lion",
+      "Dragon", "Wolf", "Bear", "Stag", "Boar", "Storm", "Thunder", "Shadow", "Dawn"
+    ]
+  }
+}

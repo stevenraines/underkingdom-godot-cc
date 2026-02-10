@@ -1,0 +1,17 @@
+{
+  "id": "gnome_female",
+  "type": "syllable",
+  "description": "Gnome female names (quirky, inventive)",
+  "structure": "prefix-middle-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Nim", "Zin", "Pip", "Twig", "Wen", "Lil", "Fiz", "Bree", "Sprite", "Spark",
+    "Wren", "Glit", "Shim"
+  ],
+  "middles": [
+    "ble", "zi", "wi", "li"
+  ],
+  "suffixes": [
+    "zy", "wick", "top", "pin", "a", "y", "la", "na"
+  ]
+}

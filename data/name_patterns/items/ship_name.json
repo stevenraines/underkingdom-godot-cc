@@ -1,0 +1,29 @@
+{
+  "id": "ship_name",
+  "type": "template",
+  "description": "Ship and vessel names",
+  "templates": [
+    "The [adjective] [noun]",
+    "[noun]'s [quality]",
+    "The [quality] [noun]",
+    "[adjective] [creature]"
+  ],
+  "word_lists": {
+    "adjective": [
+      "Swift", "Bold", "Brave", "Mighty", "Golden", "Silver", "Iron", "Stormy",
+      "Windy", "Northern", "Southern", "Eastern", "Western", "Royal", "Noble", "Fair"
+    ],
+    "noun": [
+      "Wave", "Tide", "Wind", "Storm", "Gale", "Tempest", "Star", "Moon", "Sun",
+      "Maiden", "Lady", "Queen", "King", "Crown", "Sword", "Shield", "Anchor"
+    ],
+    "quality": [
+      "Pride", "Glory", "Fortune", "Destiny", "Revenge", "Victory", "Triumph", "Hope",
+      "Promise", "Dream", "Desire"
+    ],
+    "creature": [
+      "Dragon", "Serpent", "Kraken", "Whale", "Dolphin", "Albatross", "Gull", "Raven",
+      "Eagle", "Phoenix", "Griffin"
+    ]
+  }
+}

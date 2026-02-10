@@ -1,0 +1,16 @@
+{
+  "id": "settlement_town",
+  "type": "syllable",
+  "description": "Generic town/village names",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Ash", "Oak", "Elm", "Pine", "Birch", "Maple", "Willow", "Cedar", "Thorn", "Briar",
+    "Stone", "River", "Mill", "Bridge", "Cross", "King", "Queen", "White", "Black", "Green",
+    "Red", "North", "South", "East", "West", "High", "Low", "New", "Old", "Fair"
+  ],
+  "suffixes": [
+    "ford", "bridge", "ton", "ham", "bury", "stead", "field", "haven", "port", "vale",
+    "dale", "wood", "shire", "borough", "ville", "mount", "hill", "crest", "fall", "gate"
+  ]
+}

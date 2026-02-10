@@ -1,0 +1,17 @@
+{
+  "id": "gnome_male",
+  "type": "syllable",
+  "description": "Gnome male names (quirky, inventive)",
+  "structure": "prefix-middle-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Zook", "Nib", "Glib", "Wiz", "Fiz", "Gim", "Nim", "Zip", "Quib", "Tink",
+    "Bink", "Sprock", "Cog", "Giz", "Wren"
+  ],
+  "middles": [
+    "ble", "zle", "wick", "nick", "bin"
+  ],
+  "suffixes": [
+    "ton", "wick", "ble", "by", "zog", "nox", "mix", "lix"
+  ]
+}

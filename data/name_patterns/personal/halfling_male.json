@@ -1,0 +1,15 @@
+{
+  "id": "halfling_male",
+  "type": "syllable",
+  "description": "Halfling male names (cheerful, simple)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Bil", "Bun", "Mer", "Per", "Sam", "Fro", "Pip", "Milo", "Hob", "Bob",
+    "Tom", "Ned", "Pod", "Olo", "Odo", "Dud", "Ham", "Wil", "Tob", "Fred"
+  ],
+  "suffixes": [
+    "bo", "do", "go", "by", "kin", "ley", "wy", "bert", "fred", "win",
+    "o", "y", "ie"
+  ]
+}

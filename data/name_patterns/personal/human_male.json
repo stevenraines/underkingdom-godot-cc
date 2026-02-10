@@ -1,0 +1,18 @@
+{
+  "id": "human_male",
+  "type": "syllable",
+  "description": "Western European/Anglo-Saxon inspired male first names",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Ald", "Bald", "Ber", "Brand", "Ced", "Ed", "Gar", "God", "Har", "Hugh",
+    "Ral", "Rob", "Rod", "Wal", "Wil", "Al", "Eth", "Os", "Sig", "The",
+    "Arn", "Bran", "Cor", "Der", "Eal", "Fen", "Grim", "Hel", "Leof", "Mor",
+    "Nor", "Orm", "Red", "Tor", "Ulf", "Wyn"
+  ],
+  "suffixes": [
+    "win", "ric", "mund", "bert", "fred", "ward", "gar", "wald", "helm", "mar",
+    "red", "ric", "ulf", "wyn", "bald", "mund", "ard", "stan", "ton", "den",
+    "ley", "ford", "ham", "don", "ric", "mer"
+  ]
+}

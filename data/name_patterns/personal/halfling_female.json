@@ -1,0 +1,14 @@
+{
+  "id": "halfling_female",
+  "type": "syllable",
+  "description": "Halfling female names (cheerful, simple)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Bel", "Daisy", "May", "Rose", "Lil", "Prim", "Pan", "Ruby", "Pearl", "Poppy",
+    "Nell", "Bess", "Dot", "Merry", "Jes", "Cal", "Del", "Ell"
+  ],
+  "suffixes": [
+    "la", "ly", "ie", "a", "y", "wyn", "wen", "ara", "ina"
+  ]
+}

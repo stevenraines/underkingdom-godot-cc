@@ -1,0 +1,15 @@
+{
+  "id": "dwarf_female",
+  "type": "syllable",
+  "description": "Nordic/Germanic inspired dwarf female names",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Asta", "Bjor", "Dag", "Ger", "Grun", "Hild", "Ing", "Kat", "Sig", "Thora",
+    "Val", "Vigg", "Aud", "Bar", "Dis", "Frey", "Ran", "Sif", "Tor", "Var"
+  ],
+  "suffixes": [
+    "a", "dis", "run", "hild", "borg", "rid", "lyn", "thrud", "unn", "vera",
+    "na", "da", "la", "ra"
+  ]
+}

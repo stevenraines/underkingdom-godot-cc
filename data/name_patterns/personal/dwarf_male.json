@@ -1,0 +1,16 @@
+{
+  "id": "dwarf_male",
+  "type": "syllable",
+  "description": "Nordic/Germanic inspired dwarf male names",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Bal", "Bof", "Bom", "Dain", "Dor", "Duf", "Dwal", "Far", "Gim", "Gloi",
+    "Nar", "Nori", "Oin", "Ori", "Thrain", "Thor", "Thror", "Bif", "Bof", "Dur",
+    "Frar", "Gror", "Nor", "Thar", "Vor", "Balin", "Dwalin", "Fundin", "Grar"
+  ],
+  "suffixes": [
+    "in", "li", "ur", "ri", "ni", "or", "ar", "im", "oin", "din",
+    "dur", "mund", "rik", "grim", "helm", "bjorn", "gar", "ulf", "sson"
+  ]
+}

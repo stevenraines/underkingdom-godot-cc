@@ -1,0 +1,18 @@
+{
+  "id": "elf_female",
+  "type": "syllable",
+  "description": "Elvish female names (flowing, melodic)",
+  "structure": "prefix-optional-middle-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Ae", "Ara", "Ar", "El", "Gal", "Id", "Lin", "Luth", "Mir", "Nim",
+    "Cel", "Elw", "Fin", "Ithil", "Mel", "Nim", "Tar", "Yav"
+  ],
+  "middles": [
+    "dri", "wen", "ran", "dor", "las", "mir"
+  ],
+  "suffixes": [
+    "wen", "iel", "ien", "ril", "riel", "las", "eth", "ith", "anna", "iel",
+    "wen", "dis", "ria", "na", "ra", "la"
+  ]
+}

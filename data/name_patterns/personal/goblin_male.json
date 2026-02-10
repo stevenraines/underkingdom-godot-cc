@@ -1,0 +1,14 @@
+{
+  "id": "goblin_male",
+  "type": "syllable",
+  "description": "Goblin names (sneaky, sharp sounds)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Snag", "Grib", "Nix", "Snik", "Grot", "Skab", "Rik", "Zik", "Grik", "Shiv",
+    "Sniv", "Krik", "Pik", "Stik", "Zak", "Nak"
+  ],
+  "suffixes": [
+    "snot", "grot", "nik", "zik", "ak", "ik", "nab", "stab", "sneak", "creep"
+  ]
+}

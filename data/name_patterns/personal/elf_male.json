@@ -1,0 +1,18 @@
+{
+  "id": "elf_male",
+  "type": "syllable",
+  "description": "Elvish male names (flowing, melodic)",
+  "structure": "prefix-optional-middle-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Ae", "Ara", "Cal", "El", "Gal", "Gil", "Hal", "Lego", "Lin", "The",
+    "Cel", "Fin", "Tha", "Elen", "Ere", "Glor", "Im", "Leg", "Oro", "Thr"
+  ],
+  "middles": [
+    "dor", "ras", "ran", "dir", "ron", "dan", "wen", "las"
+  ],
+  "suffixes": [
+    "dir", "las", "orn", "ion", "dan", "dor", "wen", "mir", "thir", "fin",
+    "ril", "del", "ael", "ian", "on", "en", "il"
+  ]
+}

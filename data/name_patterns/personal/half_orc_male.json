@@ -1,0 +1,15 @@
+{
+  "id": "half_orc_male",
+  "type": "syllable",
+  "description": "Half-orc male names (harsh, guttural)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Grok", "Thok", "Drog", "Krag", "Brok", "Grul", "Thrag", "Urok", "Zog", "Nak",
+    "Mog", "Gash", "Skar", "Ruk", "Dak"
+  ],
+  "suffixes": [
+    "tar", "gar", "gul", "nok", "ash", "uk", "nak", "zog", "kar", "rog",
+    "mash", "bash"
+  ]
+}

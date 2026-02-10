@@ -1,0 +1,17 @@
+{
+  "id": "human_female",
+  "type": "syllable",
+  "description": "Western European/Anglo-Saxon inspired female first names",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Ael", "Aelf", "Ath", "Edel", "El", "Eth", "God", "Hild", "Mil", "Os",
+    "Ro", "Sae", "Wyn", "Ae", "Al", "Bri", "El", "Fre", "Gwen", "Isa",
+    "Lil", "Mar", "Nel", "Si", "The", "Vi"
+  ],
+  "suffixes": [
+    "wyn", "gith", "burh", "flaed", "hild", "drida", "burg", "run", "swith", "frith",
+    "linda", "berta", "wyn", "giva", "ith", "a", "ana", "ina", "ela", "ilda",
+    "wen", "yn", "lyn", "ra", "la", "na"
+  ]
+}

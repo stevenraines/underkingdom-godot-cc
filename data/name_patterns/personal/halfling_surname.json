@@ -1,0 +1,15 @@
+{
+  "id": "halfling_surname",
+  "type": "syllable",
+  "description": "Halfling family names (nature, food, craft themed)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Good", "Proud", "Bright", "Green", "Brown", "Under", "Over", "Brook", "Hill", "Burrow",
+    "Garden", "Apple", "Cherry", "Berry", "Tea", "Butter", "Bread", "Barrel"
+  ],
+  "suffixes": [
+    "foot", "fellow", "body", "bottom", "took", "banks", "downs", "worthy", "child", "kin",
+    "barrel", "brew", "leaf", "seed"
+  ]
+}

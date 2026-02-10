@@ -1,0 +1,13 @@
+{
+  "id": "half_orc_female",
+  "type": "syllable",
+  "description": "Half-orc female names (harsh, strong)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Gra", "Brag", "Shag", "Urg", "Yag", "Mog", "Nog", "Rog", "Bag", "Kra"
+  ],
+  "suffixes": [
+    "sha", "ka", "na", "ra", "ush", "ak", "ok", "gra"
+  ]
+}

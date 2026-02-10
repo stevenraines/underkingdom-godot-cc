@@ -1,0 +1,39 @@
+{
+  "id": "book_title",
+  "type": "template",
+  "description": "Generic book titles",
+  "templates": [
+    "The [adjective] [noun]",
+    "[noun] of [quality]",
+    "On the Nature of [subject]",
+    "A [adjective] [noun]",
+    "The [noun]'s [quality]",
+    "[author]'s [noun]",
+    "Chronicles of [place]",
+    "Tales of the [adjective] [noun]"
+  ],
+  "word_lists": {
+    "adjective": [
+      "Ancient", "Lost", "Forgotten", "Hidden", "Secret", "Dark", "Light", "Sacred",
+      "Forbidden", "Arcane", "Mystical", "Divine", "Eternal", "Mortal", "Immortal"
+    ],
+    "noun": [
+      "Tome", "Codex", "Grimoire", "Scroll", "Chronicle", "History", "Legend", "Tale",
+      "Book", "Manuscript", "Record", "Archive", "Journal", "Diary", "Guide"
+    ],
+    "quality": [
+      "Power", "Wisdom", "Knowledge", "Truth", "Secrets", "Mysteries", "Shadows",
+      "Light", "Darkness", "Time", "Ages", "Eternity"
+    ],
+    "subject": [
+      "Magic", "Alchemy", "Herbalism", "Beasts", "Dragons", "Demons", "Angels",
+      "Stars", "Elements", "Runes", "Spirits", "Dreams", "Death", "Life"
+    ],
+    "author": [
+      "Aldwin", "Mereth", "Thalorian", "Gandor", "Elandra", "Morvain", "Celestine"
+    ],
+    "place": [
+      "the North", "the Deep", "the Forgotten Realm", "Ancient Times", "the Old Kingdom"
+    ]
+  }
+}

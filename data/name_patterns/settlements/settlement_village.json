@@ -1,0 +1,15 @@
+{
+  "id": "settlement_village",
+  "type": "syllable",
+  "description": "Small village names (simpler, rustic)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Barley", "Wheat", "Oat", "Rye", "Hay", "Clover", "Moss", "Fern", "Heath", "Mead",
+    "Brook", "Creek", "Pond", "Lake", "Marsh", "Moor", "Glen", "Dell", "Combe", "Hollow"
+  ],
+  "suffixes": [
+    "wick", "by", "thorpe", "cot", "end", "green", "worth", "ham", "ton", "leigh",
+    "ford", "well", "mere", "brook", "burn"
+  ]
+}

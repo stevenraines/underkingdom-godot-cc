@@ -1,0 +1,15 @@
+{
+  "id": "gnome_surname",
+  "type": "syllable",
+  "description": "Gnome family names (invention, tinkering themed)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Gear", "Cog", "Spring", "Bolt", "Widget", "Gadget", "Tinker", "Sprocket", "Gizmo", "Clock",
+    "Wrench", "Spark", "Flash", "Whir", "Click", "Twist"
+  ],
+  "suffixes": [
+    "spinner", "winder", "maker", "fixer", "turner", "twister", "builder", "crafter", "works",
+    "ton", "wick", "bottom"
+  ]
+}

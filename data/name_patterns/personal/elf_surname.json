@@ -1,0 +1,15 @@
+{
+  "id": "elf_surname",
+  "type": "syllable",
+  "description": "Elvish family names (nature themed, melodic)",
+  "structure": "prefix-suffix",
+  "capitalization": "first",
+  "prefixes": [
+    "Star", "Moon", "Sun", "Tree", "Leaf", "Wood", "Silver", "Gold", "Light", "Dawn",
+    "Wind", "Song", "Dream", "Mist", "Crystal", "River", "Forest", "Sky", "Night", "Snow"
+  ],
+  "suffixes": [
+    "song", "wind", "whisper", "glade", "leaf", "bough", "runner", "walker", "seeker", "dancer",
+    "weaver", "singer", "speaker", "warden", "keeper", "born", "heart", "light", "shadow", "shine"
+  ]
+}
